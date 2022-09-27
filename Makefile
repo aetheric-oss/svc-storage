@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
-DOCKER_NAME      := arrow-lib-storage
-IMAGE_NAME       := lib-storage
+DOCKER_NAME      := arrow-svc-storage
+IMAGE_NAME       := svc-storage
 BUILD_IMAGE_NAME := ghcr.io/arrow-air/tools/arrow-rust
 BUILD_IMAGE_TAG  := latest
 
