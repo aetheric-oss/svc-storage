@@ -14,7 +14,7 @@ indent_size = 4
 # denotes a line break in Markdown
 indent_size = off
 trim_trailing_whitespace = false
-[{*.yml,*.yaml,*.toml}]
+[{*.yml,*.yaml,*.toml,*.json}]
 indent_size = 2
 [*.tf]
 indent_size = 2
