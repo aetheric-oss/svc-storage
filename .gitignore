@@ -33,6 +33,3 @@ target/
 
 # Don't add DS_Store
 .DS_Store
-
-# Don't add .env
-*.env
