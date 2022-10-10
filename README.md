@@ -1,28 +1,22 @@
 ![Arrow Banner](https://github.com/Arrow-air/.github/raw/main/profile/assets/arrow_v2_twitter-banner_neu.png)
 
-# MODULE_NAME Service
-
-*TODO after cloning:*
-
-1. *Replace the repository name for each:*
+# svc-storage Service
 
 ![Rust
-Checks](https://github.com/arrow-air/svc-template-rust/actions/workflows/rust_ci.yml/badge.svg?branch=main)
-![Python Flake8](https://github.com/arrow-air/svc-template-rust/actions/workflows/python_ci.yml/badge.svg?branch=main)
+Checks](https://github.com/arrow-air/svc-storage/actions/workflows/rust_ci.yml/badge.svg?branch=main)
+![Python Flake8](https://github.com/arrow-air/svc-storage/actions/workflows/python_ci.yml/badge.svg?branch=main)
 ![Arrow DAO
 Discord](https://img.shields.io/discord/853833144037277726?style=plastic)
 
-2. *Rename `svc-template-rust` and `svc_template_rust` in all files*
-   - *Replace with the name of your service (e.g. `svc-scheduler`)*
-3. *Rename or remove `tmp_lib`*
-4. *Remove this and previous numbered bullets*
-
-
 ## :telescope: Overview
-*TODO: This is a high level description of this module.*
+svc-storage is responsible for storing and retrieving data from the Arrow database and other storage. 
+It's meant to be used only by other internal services via GRPC interface.
+- server - [bin] target to run gRPC server 
+- client - [lib] target for other services to import and use
 
 Directory:
-- `src/`: Source Code and Unit Tests
+- `server/src/`: Source Code and Unit Tests of the server
+- `client/src/`: Source Code and Unit Tests of the client
 - `tests/`: Integration Tests
 - `docs/`: Module Documentation
 
@@ -41,8 +35,9 @@ cargo test
 
 ## :scroll: Documentation
 The following documents are relevant to this service:
-- [Concept of Operations](TODO)
-- [Requirements & User Stories](TODO)
+- [Concept of Operations](./docs/conops.md)
+- [Requirements & User Stories](./docs/requirements.md)
+- [ICD](./docs/icd.md)
 - [SDD](./docs/sdd.md)
 
 ## :busts_in_silhouette: Arrow DAO
