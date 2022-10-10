@@ -1,8 +1,18 @@
 ![Arrow Banner](https://github.com/Arrow-air/.github/raw/main/profile/assets/arrow_v2_twitter-banner_neu.png)
 
 # svc-storage Service
+
+![Rust
+Checks](https://github.com/arrow-air/svc-storage/actions/workflows/rust_ci.yml/badge.svg?branch=main)
+![Python Flake8](https://github.com/arrow-air/svc-storage/actions/workflows/python_ci.yml/badge.svg?branch=main)
+![Arrow DAO
+Discord](https://img.shields.io/discord/853833144037277726?style=plastic)
+
 ## :telescope: Overview
-*TODO: This is a high level description of this module.*
+svc-storage is responsible for storing and retrieving data from the Arrow database and other storage. 
+It's meant to be used only by other internal services via GRPC interface.
+- server - [bin] target to run gRPC server 
+- client - [lib] target for other services to import and use
 
 Directory:
 - `server/src/`: Source Code and Unit Tests of the server
