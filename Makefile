@@ -8,7 +8,7 @@ DOCKER_NAME := arrow-svc-storage
 
 IMAGE_NAME   := svc-storage
 PACKAGE_NAME := $(IMAGE_NAME)
-DOCKER_PORT  := 8080
+DOCKER_PORT  := 8000
 HOST_PORT    := 8003
 
 help: .help-base .help-rust .help-python .help-cspell .help-markdown .help-editorconfig .help-toml .help-docker
