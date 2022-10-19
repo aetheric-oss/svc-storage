@@ -3,9 +3,9 @@
 # File origin: https://github.com/Arrow-air/tf-github/tree/main/src/templates/rust-all/Makefile.tftpl
 
 DOCKER_NAME          := arrow-svc-storage
-PACKAGE_NAME         := $(name)
+PACKAGE_NAME         := svc-storage
 
-PUBLISH_PACKAGE_NAME := $(name)-client-grpc
+PUBLISH_PACKAGE_NAME := svc-storage-client-grpc
 DOCKER_PORT_REST     := 8000
 DOCKER_PORT_GRPC     := 50051
 HOST_PORT_REST       := 8003
