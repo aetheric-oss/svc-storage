@@ -21,3 +21,5 @@ tput
 vertiport
 vertiports
 yapf
+commitlint
+healthcheck
