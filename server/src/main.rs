@@ -5,14 +5,12 @@ mod mem_db;
 ///module svc_storage generated from svc-storage.proto
 pub mod svc_storage {
     #![allow(unused_qualifications, missing_docs)]
-    include!("svc_storage.rs");
+    include!("grpc.rs");
 }
 
 use crate::mem_db::FLIGHT_PLANS;
-use dotenv::dotenv;
 use mem_db::{populate_data, AIRCRAFTS, PILOTS, VERTIPORTS};
-use std::env;
-use svc_storage::storage_server::{Storage, StorageServer};
+use svc_storage::storage_rpc_server::{StorageRpc, StorageRpcServer};
 use svc_storage::{
     Aircraft, AircraftFilter, Aircrafts, FlightPlan, FlightPlanFilter, FlightPlans, Id, Pilot,
     PilotFilter, Pilots, ReadyRequest, ReadyResponse, Vertiport, VertiportFilter, Vertiports,
@@ -24,7 +22,7 @@ use tonic::{transport::Server, Request, Response, Status};
 pub struct StorageImpl {}
 
 #[tonic::async_trait]
-impl Storage for StorageImpl {
+impl StorageRpc for StorageImpl {
     ///finds the first possible flight for customer location, flight type and requested time.
     /// Returns draft QueryFlightPlan which can be confirmed or cancelled.
 
@@ -180,23 +178,30 @@ impl Storage for StorageImpl {
 ///Main entry point: starts gRPC Server on specified address and port
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    //load env variables from .env file
-    dotenv().ok();
-    //parse socket address from env variable or take default value
-    let address = match env::var("GRPC_SOCKET_ADDR") {
-        Ok(val) => val,
-        Err(_) => "[::1]:50052".to_string(), // default value
-    };
-    let addr = address.parse()?;
-    let storage = StorageImpl::default();
+    // GRPC Server
+    let grpc_port = std::env::var("DOCKER_PORT_GRPC")
+        .unwrap_or_else(|_| "50051".to_string())
+        .parse::<u16>()
+        .unwrap_or(50051);
+
+    let full_grpc_addr = format!("[::]:{}", grpc_port).parse()?;
+
+    let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
+    health_reporter
+        .set_serving::<StorageRpcServer<StorageImpl>>()
+        .await;
+
+    let grpc_client = StorageImpl::default();
     //populate mem_db sample data
     populate_data();
     //start server
+    println!("Starting gRPC server at: {}", full_grpc_addr);
     Server::builder()
-        .add_service(StorageServer::new(storage))
-        .serve(addr)
+        .add_service(health_service)
+        .add_service(StorageRpcServer::new(grpc_client))
+        .serve(full_grpc_addr)
         .await?;
-    println!("gRPC server running at: {}", address);
+    println!("gRPC server running at: {}", full_grpc_addr);
 
     Ok(())
 }
