@@ -1,6 +1,6 @@
 [package]
-edition = "2021"               # Allowed values are 2015, 2018, 2021
-name    = "svc-storage-client"
+edition = "2021"                    # Allowed values are 2015, 2018, 2021
+name    = "svc-storage-client-grpc"
 version = "0.1.0"
 # Rust Editions: https://doc.rust-lang.org/edition-guide/index.html
 
@@ -14,9 +14,5 @@ tonic       = "0.8.1"
 [dev-dependencies]
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
 
-[lib]
-name = "svc_storage_client"
-path = "src/lib.rs"
-
 [[example]]
-name = "client"
+name = "grpc"

@@ -263,16 +263,16 @@ impl FlightPriority {
     }
 }
 /// Generated client implementations.
-pub mod storage_client {
+pub mod storage_rpc_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
     use tonic::codegen::http::Uri;
     ///Storage service
     #[derive(Debug, Clone)]
-    pub struct StorageClient<T> {
+    pub struct StorageRpcClient<T> {
         inner: tonic::client::Grpc<T>,
     }
-    impl StorageClient<tonic::transport::Channel> {
+    impl StorageRpcClient<tonic::transport::Channel> {
         /// Attempt to create a new client by connecting to a given endpoint.
         pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
         where
@@ -283,7 +283,7 @@ pub mod storage_client {
             Ok(Self::new(conn))
         }
     }
-    impl<T> StorageClient<T>
+    impl<T> StorageRpcClient<T>
     where
         T: tonic::client::GrpcService<tonic::body::BoxBody>,
         T::Error: Into<StdError>,
@@ -301,7 +301,7 @@ pub mod storage_client {
         pub fn with_interceptor<F>(
             inner: T,
             interceptor: F,
-        ) -> StorageClient<InterceptedService<T, F>>
+        ) -> StorageRpcClient<InterceptedService<T, F>>
         where
             F: tonic::service::Interceptor,
             T::ResponseBody: Default,
@@ -315,7 +315,7 @@ pub mod storage_client {
                 http::Request<tonic::body::BoxBody>,
             >>::Error: Into<StdError> + Send + Sync,
         {
-            StorageClient::new(InterceptedService::new(inner, interceptor))
+            StorageRpcClient::new(InterceptedService::new(inner, interceptor))
         }
         /// Compress requests with the given encoding.
         ///
@@ -346,9 +346,7 @@ pub mod storage_client {
                     )
                 })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/svc_storage.Storage/isReady",
-            );
+            let path = http::uri::PathAndQuery::from_static("/grpc.StorageRpc/isReady");
             self.inner.unary(request.into_request(), path, codec).await
         }
         pub async fn aircrafts(
@@ -366,7 +364,7 @@ pub mod storage_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/svc_storage.Storage/aircrafts",
+                "/grpc.StorageRpc/aircrafts",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
@@ -385,7 +383,7 @@ pub mod storage_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/svc_storage.Storage/aircraft_by_id",
+                "/grpc.StorageRpc/aircraft_by_id",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
@@ -404,7 +402,7 @@ pub mod storage_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/svc_storage.Storage/flight_plans",
+                "/grpc.StorageRpc/flight_plans",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
@@ -423,7 +421,7 @@ pub mod storage_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/svc_storage.Storage/flight_plan_by_id",
+                "/grpc.StorageRpc/flight_plan_by_id",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
@@ -441,9 +439,7 @@ pub mod storage_client {
                     )
                 })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/svc_storage.Storage/pilots",
-            );
+            let path = http::uri::PathAndQuery::from_static("/grpc.StorageRpc/pilots");
             self.inner.unary(request.into_request(), path, codec).await
         }
         pub async fn pilot_by_id(
@@ -461,7 +457,7 @@ pub mod storage_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/svc_storage.Storage/pilot_by_id",
+                "/grpc.StorageRpc/pilot_by_id",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
@@ -480,7 +476,7 @@ pub mod storage_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/svc_storage.Storage/vertiports",
+                "/grpc.StorageRpc/vertiports",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
@@ -499,7 +495,7 @@ pub mod storage_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/svc_storage.Storage/vertiport_by_id",
+                "/grpc.StorageRpc/vertiport_by_id",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
@@ -518,7 +514,7 @@ pub mod storage_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/svc_storage.Storage/insert_flight_plan",
+                "/grpc.StorageRpc/insert_flight_plan",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
@@ -537,7 +533,7 @@ pub mod storage_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/svc_storage.Storage/update_flight_plan_by_id",
+                "/grpc.StorageRpc/update_flight_plan_by_id",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
