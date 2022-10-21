@@ -263,12 +263,12 @@ impl FlightPriority {
     }
 }
 /// Generated server implementations.
-pub mod storage_server {
+pub mod storage_rpc_server {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
-    ///Generated trait containing gRPC methods that should be implemented for use with StorageServer.
+    ///Generated trait containing gRPC methods that should be implemented for use with StorageRpcServer.
     #[async_trait]
-    pub trait Storage: Send + Sync + 'static {
+    pub trait StorageRpc: Send + Sync + 'static {
         async fn is_ready(
             &self,
             request: tonic::Request<super::ReadyRequest>,
@@ -316,13 +316,13 @@ pub mod storage_server {
     }
     ///Storage service
     #[derive(Debug)]
-    pub struct StorageServer<T: Storage> {
+    pub struct StorageRpcServer<T: StorageRpc> {
         inner: _Inner<T>,
         accept_compression_encodings: EnabledCompressionEncodings,
         send_compression_encodings: EnabledCompressionEncodings,
     }
     struct _Inner<T>(Arc<T>);
-    impl<T: Storage> StorageServer<T> {
+    impl<T: StorageRpc> StorageRpcServer<T> {
         pub fn new(inner: T) -> Self {
             Self::from_arc(Arc::new(inner))
         }
@@ -356,9 +356,9 @@ pub mod storage_server {
             self
         }
     }
-    impl<T, B> tonic::codegen::Service<http::Request<B>> for StorageServer<T>
+    impl<T, B> tonic::codegen::Service<http::Request<B>> for StorageRpcServer<T>
     where
-        T: Storage,
+        T: StorageRpc,
         B: Body + Send + 'static,
         B::Error: Into<StdError> + Send + 'static,
     {
@@ -374,10 +374,10 @@ pub mod storage_server {
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
             let inner = self.inner.clone();
             match req.uri().path() {
-                "/svc_storage.Storage/isReady" => {
+                "/grpc.StorageRpc/isReady" => {
                     #[allow(non_camel_case_types)]
-                    struct isReadySvc<T: Storage>(pub Arc<T>);
-                    impl<T: Storage> tonic::server::UnaryService<super::ReadyRequest>
+                    struct isReadySvc<T: StorageRpc>(pub Arc<T>);
+                    impl<T: StorageRpc> tonic::server::UnaryService<super::ReadyRequest>
                     for isReadySvc<T> {
                         type Response = super::ReadyResponse;
                         type Future = BoxFuture<
@@ -410,10 +410,12 @@ pub mod storage_server {
                     };
                     Box::pin(fut)
                 }
-                "/svc_storage.Storage/aircrafts" => {
+                "/grpc.StorageRpc/aircrafts" => {
                     #[allow(non_camel_case_types)]
-                    struct aircraftsSvc<T: Storage>(pub Arc<T>);
-                    impl<T: Storage> tonic::server::UnaryService<super::AircraftFilter>
+                    struct aircraftsSvc<T: StorageRpc>(pub Arc<T>);
+                    impl<
+                        T: StorageRpc,
+                    > tonic::server::UnaryService<super::AircraftFilter>
                     for aircraftsSvc<T> {
                         type Response = super::Aircrafts;
                         type Future = BoxFuture<
@@ -446,10 +448,10 @@ pub mod storage_server {
                     };
                     Box::pin(fut)
                 }
-                "/svc_storage.Storage/aircraft_by_id" => {
+                "/grpc.StorageRpc/aircraft_by_id" => {
                     #[allow(non_camel_case_types)]
-                    struct aircraft_by_idSvc<T: Storage>(pub Arc<T>);
-                    impl<T: Storage> tonic::server::UnaryService<super::Id>
+                    struct aircraft_by_idSvc<T: StorageRpc>(pub Arc<T>);
+                    impl<T: StorageRpc> tonic::server::UnaryService<super::Id>
                     for aircraft_by_idSvc<T> {
                         type Response = super::Aircraft;
                         type Future = BoxFuture<
@@ -484,10 +486,12 @@ pub mod storage_server {
                     };
                     Box::pin(fut)
                 }
-                "/svc_storage.Storage/flight_plans" => {
+                "/grpc.StorageRpc/flight_plans" => {
                     #[allow(non_camel_case_types)]
-                    struct flight_plansSvc<T: Storage>(pub Arc<T>);
-                    impl<T: Storage> tonic::server::UnaryService<super::FlightPlanFilter>
+                    struct flight_plansSvc<T: StorageRpc>(pub Arc<T>);
+                    impl<
+                        T: StorageRpc,
+                    > tonic::server::UnaryService<super::FlightPlanFilter>
                     for flight_plansSvc<T> {
                         type Response = super::FlightPlans;
                         type Future = BoxFuture<
@@ -522,10 +526,10 @@ pub mod storage_server {
                     };
                     Box::pin(fut)
                 }
-                "/svc_storage.Storage/flight_plan_by_id" => {
+                "/grpc.StorageRpc/flight_plan_by_id" => {
                     #[allow(non_camel_case_types)]
-                    struct flight_plan_by_idSvc<T: Storage>(pub Arc<T>);
-                    impl<T: Storage> tonic::server::UnaryService<super::Id>
+                    struct flight_plan_by_idSvc<T: StorageRpc>(pub Arc<T>);
+                    impl<T: StorageRpc> tonic::server::UnaryService<super::Id>
                     for flight_plan_by_idSvc<T> {
                         type Response = super::FlightPlan;
                         type Future = BoxFuture<
@@ -560,10 +564,10 @@ pub mod storage_server {
                     };
                     Box::pin(fut)
                 }
-                "/svc_storage.Storage/pilots" => {
+                "/grpc.StorageRpc/pilots" => {
                     #[allow(non_camel_case_types)]
-                    struct pilotsSvc<T: Storage>(pub Arc<T>);
-                    impl<T: Storage> tonic::server::UnaryService<super::PilotFilter>
+                    struct pilotsSvc<T: StorageRpc>(pub Arc<T>);
+                    impl<T: StorageRpc> tonic::server::UnaryService<super::PilotFilter>
                     for pilotsSvc<T> {
                         type Response = super::Pilots;
                         type Future = BoxFuture<
@@ -596,10 +600,10 @@ pub mod storage_server {
                     };
                     Box::pin(fut)
                 }
-                "/svc_storage.Storage/pilot_by_id" => {
+                "/grpc.StorageRpc/pilot_by_id" => {
                     #[allow(non_camel_case_types)]
-                    struct pilot_by_idSvc<T: Storage>(pub Arc<T>);
-                    impl<T: Storage> tonic::server::UnaryService<super::Id>
+                    struct pilot_by_idSvc<T: StorageRpc>(pub Arc<T>);
+                    impl<T: StorageRpc> tonic::server::UnaryService<super::Id>
                     for pilot_by_idSvc<T> {
                         type Response = super::Pilot;
                         type Future = BoxFuture<
@@ -632,10 +636,12 @@ pub mod storage_server {
                     };
                     Box::pin(fut)
                 }
-                "/svc_storage.Storage/vertiports" => {
+                "/grpc.StorageRpc/vertiports" => {
                     #[allow(non_camel_case_types)]
-                    struct vertiportsSvc<T: Storage>(pub Arc<T>);
-                    impl<T: Storage> tonic::server::UnaryService<super::VertiportFilter>
+                    struct vertiportsSvc<T: StorageRpc>(pub Arc<T>);
+                    impl<
+                        T: StorageRpc,
+                    > tonic::server::UnaryService<super::VertiportFilter>
                     for vertiportsSvc<T> {
                         type Response = super::Vertiports;
                         type Future = BoxFuture<
@@ -668,10 +674,10 @@ pub mod storage_server {
                     };
                     Box::pin(fut)
                 }
-                "/svc_storage.Storage/vertiport_by_id" => {
+                "/grpc.StorageRpc/vertiport_by_id" => {
                     #[allow(non_camel_case_types)]
-                    struct vertiport_by_idSvc<T: Storage>(pub Arc<T>);
-                    impl<T: Storage> tonic::server::UnaryService<super::Id>
+                    struct vertiport_by_idSvc<T: StorageRpc>(pub Arc<T>);
+                    impl<T: StorageRpc> tonic::server::UnaryService<super::Id>
                     for vertiport_by_idSvc<T> {
                         type Response = super::Vertiport;
                         type Future = BoxFuture<
@@ -706,10 +712,10 @@ pub mod storage_server {
                     };
                     Box::pin(fut)
                 }
-                "/svc_storage.Storage/insert_flight_plan" => {
+                "/grpc.StorageRpc/insert_flight_plan" => {
                     #[allow(non_camel_case_types)]
-                    struct insert_flight_planSvc<T: Storage>(pub Arc<T>);
-                    impl<T: Storage> tonic::server::UnaryService<super::FlightPlan>
+                    struct insert_flight_planSvc<T: StorageRpc>(pub Arc<T>);
+                    impl<T: StorageRpc> tonic::server::UnaryService<super::FlightPlan>
                     for insert_flight_planSvc<T> {
                         type Response = super::FlightPlan;
                         type Future = BoxFuture<
@@ -744,10 +750,10 @@ pub mod storage_server {
                     };
                     Box::pin(fut)
                 }
-                "/svc_storage.Storage/update_flight_plan_by_id" => {
+                "/grpc.StorageRpc/update_flight_plan_by_id" => {
                     #[allow(non_camel_case_types)]
-                    struct update_flight_plan_by_idSvc<T: Storage>(pub Arc<T>);
-                    impl<T: Storage> tonic::server::UnaryService<super::FlightPlan>
+                    struct update_flight_plan_by_idSvc<T: StorageRpc>(pub Arc<T>);
+                    impl<T: StorageRpc> tonic::server::UnaryService<super::FlightPlan>
                     for update_flight_plan_by_idSvc<T> {
                         type Response = super::FlightPlan;
                         type Future = BoxFuture<
@@ -797,7 +803,7 @@ pub mod storage_server {
             }
         }
     }
-    impl<T: Storage> Clone for StorageServer<T> {
+    impl<T: StorageRpc> Clone for StorageRpcServer<T> {
         fn clone(&self) -> Self {
             let inner = self.inner.clone();
             Self {
@@ -807,7 +813,7 @@ pub mod storage_server {
             }
         }
     }
-    impl<T: Storage> Clone for _Inner<T> {
+    impl<T: StorageRpc> Clone for _Inner<T> {
         fn clone(&self) -> Self {
             Self(self.0.clone())
         }
@@ -817,7 +823,7 @@ pub mod storage_server {
             write!(f, "{:?}", self.0)
         }
     }
-    impl<T: Storage> tonic::server::NamedService for StorageServer<T> {
-        const NAME: &'static str = "svc_storage.Storage";
+    impl<T: StorageRpc> tonic::server::NamedService for StorageRpcServer<T> {
+        const NAME: &'static str = "grpc.StorageRpc";
     }
 }

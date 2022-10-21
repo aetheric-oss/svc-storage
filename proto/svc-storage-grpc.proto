@@ -1,9 +1,10 @@
 syntax = "proto3";
-package svc_storage;
+package grpc;
+
 import "google/protobuf/timestamp.proto";
 
 //Storage service
-service Storage {
+service StorageRpc {
     rpc isReady (ReadyRequest) returns (ReadyResponse);
     rpc aircrafts(AircraftFilter) returns (Aircrafts);
     rpc aircraft_by_id(Id) returns (Aircraft);
@@ -16,7 +17,6 @@ service Storage {
     rpc insert_flight_plan(FlightPlan) returns (FlightPlan);
     rpc update_flight_plan_by_id(FlightPlan) returns (FlightPlan);
     //rpc delete_flight_plan_by_id(id: Id)
-
 }
 
 //Id type for passing id only requests
@@ -194,4 +194,3 @@ message Pilots {
 message PilotFilter {
     //todo add filter parameters
 }
-
