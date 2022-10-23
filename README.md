@@ -52,3 +52,31 @@ If you are building a non-end product like a library, include `Cargo.lock` in `.
 If you are building an end product like a command line tool, check `Cargo.lock` to the git. 
 
 Read more about it [here](https://doc.rust-lang.org/cargo/guide/cargo-toml-vs-cargo-lock.html);
+
+## Cockroachdb
+The database connection requires TLS. When running cockroachdb in development, you will need to generate certificates which can be used by the server.
+
+### Cockroachdb key generation
+TODO: automate this so developers don't need to think about it. Can be a make target to check if the certs and keys dir exist and creates them if not present.
+
+```
+mkdir keys certs
+cockroach cert create-ca --certs-dir=certs --ca-key=keys/ca.key
+cockroach cert create-client root --certs-dir=certs --ca-key=keys/ca.key
+cockroach cert create-node localhost $(hostname) --certs-dir=certs --ca-key=keys/ca.key
+```
+
+### Required environment
+The following Cockroachdb related environment variables need to be exposed to the server
+
+```
+PG__USER=svc_storage
+PG__DBNAME=arrow
+PG__PASSWORD=arrow-dev
+PG__HOST=localhost
+PG__PORT=26257
+PG__SSLMODE=require
+DB_CA_CERT=certs/ca.crt
+```
+
+They will be read from a `.env` file if present.

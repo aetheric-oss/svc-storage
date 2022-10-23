@@ -1,6 +1,8 @@
 //! gRPC server implementation
 
-mod mem_db;
+mod common;
+mod memdb;
+mod postgres;
 
 ///module svc_storage generated from svc-storage.proto
 pub mod svc_storage {
@@ -8,8 +10,10 @@ pub mod svc_storage {
     include!("grpc.rs");
 }
 
-use crate::mem_db::FLIGHT_PLANS;
-use mem_db::{populate_data, AIRCRAFTS, PILOTS, VERTIPORTS};
+use crate::common::PostgresPool;
+
+///use crate::memdb::FLIGHT_PLANS;
+use memdb::{populate_data, AIRCRAFTS, FLIGHT_PLANS, PILOTS, VERTIPORTS};
 use svc_storage::storage_rpc_server::{StorageRpc, StorageRpcServer};
 use svc_storage::{
     Aircraft, AircraftFilter, Aircrafts, FlightPlan, FlightPlanFilter, FlightPlans, Id, Pilot,
@@ -178,6 +182,10 @@ impl StorageRpc for StorageImpl {
 ///Main entry point: starts gRPC Server on specified address and port
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Postgresql DB Connection
+    let pool = PostgresPool::from_config()?;
+    pool.readiness().await?;
+
     // GRPC Server
     let grpc_port = std::env::var("DOCKER_PORT_GRPC")
         .unwrap_or_else(|_| "50051".to_string())
@@ -192,7 +200,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await;
 
     let grpc_client = StorageImpl::default();
-    //populate mem_db sample data
+    //populate memdb sample data
     populate_data();
     //start server
     println!("Starting gRPC server at: {}", full_grpc_addr);
