@@ -1,0 +1,33 @@
+syntax = "proto3";
+package grpc.vertiport;
+
+import "google/protobuf/empty.proto";
+import "svc-storage-grpc.proto";
+
+//VertiportRpc service
+service VertiportRpc {
+    rpc vertiports(grpc.SearchFilter) returns (Vertiports);
+    rpc vertiport_by_id(grpc.Id) returns (Vertiport);
+    rpc insert_vertiport(VertiportData) returns (Vertiport);
+    rpc update_vertiport(Vertiport) returns (Vertiport);
+    rpc delete_vertiport(grpc.Id) returns (google.protobuf.Empty);
+}
+
+//Vertiport
+message Vertiport {
+    string id = 1;
+    VertiportData data = 2;
+}
+
+//VertiportData
+message VertiportData {
+    string label = 2;
+    float latitude = 3;
+    float longitude = 4;
+    //repeated string engineers = 5;
+    //uint32 elevation = 7;
+}
+//Vertiports
+message Vertiports {
+    repeated Vertiport vertiports = 1;
+}

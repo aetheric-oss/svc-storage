@@ -1,4 +1,3 @@
-Aircrafts
 chrono
 clippy
 codegen
@@ -32,3 +31,9 @@ serde
 thiserror
 DBNAME
 SSLMODE
+flightplan
+Vertipad
+vertipad
+VERTIPADS
+Vertipads
+vertipads

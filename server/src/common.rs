@@ -11,6 +11,14 @@ use serde::Deserialize;
 pub use crate::postgres::PostgresPool;
 pub use anyhow::{Error, Result};
 pub use log::warn;
+pub use uuid::Uuid;
+
+pub use crate::resources::base::{Id, SearchFilter};
+pub use crate::resources::flight_plan::{FlightPlan, FlightPlanData, FlightPlans, FlightStatus};
+pub use crate::resources::pilot::{Pilot, PilotData, Pilots};
+pub use crate::resources::vehicle::{Vehicle, VehicleData, VehicleType, Vehicles};
+pub use crate::resources::vertipad::{Vertipad, VertipadData, Vertipads};
+pub use crate::resources::vertiport::{Vertiport, VertiportData, Vertiports};
 
 pub static ERROR_GENERIC: &str = "Error";
 

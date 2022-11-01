@@ -1,0 +1,36 @@
+syntax = "proto3";
+package grpc.vertipad;
+
+import "google/protobuf/empty.proto";
+import "svc-storage-grpc.proto";
+
+//VertipadRpc service
+service VertipadRpc {
+    rpc vertipads(grpc.SearchFilter) returns (Vertipads);
+    rpc vertipad_by_id(grpc.Id) returns (Vertipad);
+    rpc insert_vertipad(VertipadData) returns (Vertipad);
+    rpc update_vertipad(Vertipad) returns (Vertipad);
+    rpc delete_vertipad(grpc.Id) returns (google.protobuf.Empty);
+}
+
+//Vertipad
+message Vertipad {
+    string id = 1;
+    VertipadData data = 2;
+}
+
+//VertipadData
+message VertipadData {
+    string id = 1;
+    //bool enabled = 2;
+    //bool charging_enabled = 3;
+    //float charging_rate_kw = 4;
+    //string restrictions = 5;
+    float latitude = 6;
+    float longitude = 7;
+    bool parked = 8;
+}
+//Vertipads
+message Vertipads {
+    repeated Vertipad vertipads = 1;
+}

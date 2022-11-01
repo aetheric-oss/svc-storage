@@ -1,0 +1,32 @@
+syntax = "proto3";
+package grpc.pilot;
+
+import "google/protobuf/empty.proto";
+import "svc-storage-grpc.proto";
+
+//PilotRpc service
+service PilotRpc {
+    rpc pilots(grpc.SearchFilter) returns (Pilots);
+    rpc pilot_by_id(grpc.Id) returns (Pilot);
+    rpc insert_pilot(PilotData) returns (Pilot);
+    rpc update_pilot(Pilot) returns (Pilot);
+    rpc delete_pilot(grpc.Id) returns (google.protobuf.Empty);
+}
+
+//Pilot
+message Pilot {
+    string id = 1;
+    PilotData data = 2;
+}
+
+//PilotData
+message PilotData {
+    string first_name = 1;
+    string last_name = 2;
+    /*string wallet_address = 4;
+    string type = 5;*/
+}
+//Pilots
+message Pilots {
+    repeated Pilot pilots = 1;
+}
