@@ -1,3 +1,18 @@
+## [Release 0.3.0-develop.0](https://github.com/Arrow-air/svc-storage/releases/tag/v0.3.0-develop.0)
+
+### ✨ Features
+
+- add cockroachdb backend ([`280c05f`](https://github.com/Arrow-air/svc-storage/commit/280c05f4cb513c3a8bc8ac38477cb2859832c590))
+-  **grpc:** implemented additional fields for grpc ([`e722fb1`](https://github.com/Arrow-air/svc-storage/commit/e722fb189299be5e2547cac1e5f4310503067828))
+-  **vehicle:** add schedule field ([`19b1c05`](https://github.com/Arrow-air/svc-storage/commit/19b1c05d4968b29c5d7666442ee03421b90036a3))
+
+### 🛠 Maintenance
+
+-  **ci:** update changelog ([`a38b5ac`](https://github.com/Arrow-air/svc-storage/commit/a38b5acf04e6ea5b079fa3f115c9832b3576d8ea))
+-  **ci:** update package version ([`b9f4120`](https://github.com/Arrow-air/svc-storage/commit/b9f4120da3a6d2d4bf15dc1f8d91b7967493f928))
+-  **ci:** update package version<br/><br/>[skip ci] ([`89ab9c8`](https://github.com/Arrow-air/svc-storage/commit/89ab9c84edf4faba8281316a0c143292f72f5b85))
+-  **grpc:** split up resources ([`1d21efa`](https://github.com/Arrow-air/svc-storage/commit/1d21efae4f9299885c08585c0c93f3b12b2d81b4))
+
 ## [Release 0.2.0-develop.0](https://github.com/Arrow-air/svc-storage/releases/tag/v0.2.0-develop.0)
 
 ### ✨ Features
