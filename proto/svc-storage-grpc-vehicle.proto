@@ -32,6 +32,7 @@ message Vehicle {
 message VehicleData {
     VehicleType vehicle_type = 1;
     string description = 2;
+    optional string schedule = 3;
     //string make = 2;
     //string model = 3;
     //uint32 passenger_capacity = 5;

@@ -25,7 +25,7 @@ message VertiportData {
     string description = 1;
     float latitude = 2;
     float longitude = 3;
-    string schedule = 4;
+    optional string schedule = 4;
     //repeated string engineers = 5;
     //uint32 elevation = 7;
 }

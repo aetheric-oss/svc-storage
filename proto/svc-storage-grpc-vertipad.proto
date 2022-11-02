@@ -29,7 +29,7 @@ message VertipadData {
     float longitude = 4;
     bool enabled = 5;
     bool occupied = 6;
-    string schedule = 7;
+    optional string schedule = 7;
     //bool charging_enabled = 3;
     //float charging_rate_kw = 4;
     //string restrictions = 5;

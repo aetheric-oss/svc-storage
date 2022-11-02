@@ -19,8 +19,8 @@ pub struct VertiportData {
     pub longitude: f32,
     /// repeated string engineers = 5;
     /// uint32 elevation = 7;
-    #[prost(string, tag="4")]
-    pub schedule: ::prost::alloc::string::String,
+    #[prost(string, optional, tag="4")]
+    pub schedule: ::core::option::Option<::prost::alloc::string::String>,
 }
 /// Vertiports
 #[derive(Eq)]

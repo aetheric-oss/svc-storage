@@ -14,6 +14,8 @@ pub struct Vehicle {
 pub struct VehicleData {
     #[prost(enumeration="VehicleType", tag="1")]
     pub vehicle_type: i32,
+    #[prost(string, tag="2")]
+    pub description: ::prost::alloc::string::String,
     /// string make = 2;
     /// string model = 3;
     /// uint32 passenger_capacity = 5;
@@ -27,8 +29,8 @@ pub struct VehicleData {
     /// float voltage_y = 13;
     /// float amperage_x = 14;
     /// float amperage_y = 15;
-    #[prost(string, tag="2")]
-    pub description: ::prost::alloc::string::String,
+    #[prost(string, optional, tag="3")]
+    pub schedule: ::core::option::Option<::prost::alloc::string::String>,
 }
 /// Vehicles
 #[derive(Eq)]

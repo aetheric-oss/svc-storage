@@ -27,8 +27,8 @@ pub struct VertipadData {
     /// bool charging_enabled = 3;
     /// float charging_rate_kw = 4;
     /// string restrictions = 5;
-    #[prost(string, tag="7")]
-    pub schedule: ::prost::alloc::string::String,
+    #[prost(string, optional, tag="7")]
+    pub schedule: ::core::option::Option<::prost::alloc::string::String>,
 }
 /// Vertipads
 #[derive(Eq)]

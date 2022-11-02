@@ -33,6 +33,7 @@ pub fn populate_data() {
         data: Some(VehicleData {
             description: "Arrow Spearhead 1".to_owned(),
             vehicle_type: VehicleType::VtolCargo as i32,
+            schedule: Some("".to_string()),
         }),
     });
     FLIGHT_PLANS.lock().unwrap().push(FlightPlan {
@@ -64,7 +65,7 @@ pub fn populate_data() {
             description: "Vertiport 1".to_string(),
             latitude: 37.77397,
             longitude: -122.43129,
-            schedule: "".to_string(),
+            schedule: Some("".to_string()),
         }),
     });
     PILOTS.lock().unwrap().push(Pilot {
