@@ -52,3 +52,58 @@ If you are building a non-end product like a library, include `Cargo.lock` in `.
 If you are building an end product like a command line tool, check `Cargo.lock` to the git. 
 
 Read more about it [here](https://doc.rust-lang.org/cargo/guide/cargo-toml-vs-cargo-lock.html);
+
+## Cockroachdb
+The database connection requires TLS. When running cockroachdb in development, you will need to generate certificates which can be used by the server.
+
+### Cockroachdb key generation
+TODO: automate this so developers don't need to think about it. Can be a make target to check if the certs and keys dir exist and creates them if not present.
+
+There's an open issue with SSL in our docker image, so it's currently not possible to run the example client with docker. If you want to run it manually, you can follow these steps:
+
+**Create database certs:**
+```
+mkdir certs
+mkdir keys
+docker run --rm -v $(pwd)/certs:/cockroach/certs -v $(pwd)/keys:/cockroach/keys -it cockroachdb/cockroach:v22.1.9 cert create-ca --certs-dir=/cockroach/certs --ca-key=/cockroach/keys/ca.key
+docker run --rm -v $(pwd)/certs:/cockroach/certs -v $(pwd)/keys:/cockroach/keys -it cockroachdb/cockroach:v22.1.9 cert create-client root --certs-dir=/cockroach/certs --ca-key=/cockroach/keys/ca.key
+docker run --rm -v $(pwd)/certs:/cockroach/certs -v $(pwd)/keys:/cockroach/keys -it cockroachdb/cockroach:v22.1.9 cert create-node localhost $(hostname) --certs-dir=/cockroach/certs --ca-key=/cockroach/keys/ca.key
+sudo cp certs/ca.crt /etc/ca-certificates/cockroachdb-ca.crt
+```
+**Set up your environment:**
+Create an .env file with the following contents (The password should be the password you will use for the svc_storage user):
+```
+PG__USER=svc_storage
+PG__DBNAME=arrow
+PG__PASSWORD="<your pass>"
+PG__HOST=localhost
+PG__PORT=26257
+PG__SSLMODE=require
+DB_CA_CERT=/etc/ca-certificates/cockroachdb-ca.crt
+SOURCE_PATH=.
+
+DOCKER_NAME=arrow-svc-storage
+PACKAGE_NAME=svc-storage
+
+PUBLISH_PACKAGE_NAME=svc-storage-client-grpc
+DOCKER_PORT_REST=8000
+DOCKER_PORT_GRPC=50051
+HOST_PORT_REST=8003
+HOST_PORT_GRPC=50003
+```
+**Start CockroachDB and create your database + user:**
+```
+source .env
+docker compose up -d cockroachdb
+docker exec -it arrow-svc-storage-example-cockroachdb sh
+cockroach sql --certs-dir /cockroach/certs/
+CREATE DATABASE arrow;
+CREATE USER svc_storage WITH PASSWORD '<your password>';
+GRANT ALL PRIVILEGES ON DATABASE arrow TO svc_storage;
+```
+
+Run the example:
+```
+cargo run &
+cargo run --example grpc
+```

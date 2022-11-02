@@ -7,15 +7,27 @@ version = "0.2.0-develop.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cargo-husky  = "1"
-chrono       = "0.4.19"
-dotenv       = "0.15.0"
-lazy_static  = "1.4.0"
-prost        = "0.11"
-prost-types  = "0.11.1"
-tokio        = { version = "1.0", features = ["macros", "rt-multi-thread"] }
-tonic        = "0.8.1"
-tonic-health = "0.7.1"
+anyhow              = "1.0"
+cargo-husky         = "1"
+chrono              = "0.4"
+config              = "0.13"
+deadpool            = "0.9"
+deadpool-postgres   = { version = "0.10", features = ["serde", "rt_tokio_1"] }
+dotenv              = "0.15"
+lazy_static         = "1.4"
+log                 = "0.4"
+native-tls          = "0.2"
+openssl             = "0.10"
+postgres-native-tls = "0.5"
+prost               = "0.11"
+prost-types         = "0.11"
+serde               = "1.0"
+thiserror           = "1.0"
+tokio               = { version = "1.0", features = ["macros", "rt-multi-thread"] }
+tokio-postgres      = { version = "0.7", features = ["with-uuid-1"] }
+tonic               = "0.8"
+tonic-health        = "0.7"
+uuid                = { version = "1.2", features = ["v4"] }
 
 [build-dependencies]
 tonic-build = "0.8"

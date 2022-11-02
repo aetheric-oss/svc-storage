@@ -1,4 +1,3 @@
-Aircrafts
 chrono
 clippy
 codegen
@@ -23,3 +22,19 @@ vertiports
 yapf
 commitlint
 healthcheck
+deadpool
+Cockroachdb
+cockroachdb
+codeowners
+commitlintrc
+serde
+thiserror
+DBNAME
+SSLMODE
+flightplan
+Vertipad
+vertipad
+VERTIPADS
+Vertipads
+vertipads
+Psql
