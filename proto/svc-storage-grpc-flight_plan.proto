@@ -3,6 +3,7 @@ package grpc.flight_plan;
 
 import "google/protobuf/empty.proto";
 import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
 import "svc-storage-grpc.proto";
 
 //FlightPlanRpc service
@@ -41,14 +42,14 @@ enum FlightPriority {
 
 //FlightPlan
 message FlightPlan {
-    //id
+    //id UUID v4
     string id = 1;
     //data
     FlightPlanData data = 2;
 }
 
 message UpdateFlightPlan {
-    //id
+    //id UUID v4
     string id = 1;
     FlightPlanData data = 2;
     google.protobuf.FieldMask mask = 3;
@@ -56,40 +57,42 @@ message UpdateFlightPlan {
 
 //FlightPlanData
 message FlightPlanData {
-    //pilot_id
-    string pilot_id = 2;
-    //vehicle_id
-    string vehicle_id = 3;
-    //cargo
-    repeated uint32 cargo = 4;
-    /*
+    //pilot_id UUID v4
+    string pilot_id = 1;
+    //vehicle_id UUID v4
+    string vehicle_id = 2;
+    //cargo weight per package
+    repeated uint32 cargo_weight = 3;
+    //flight_distance in meters
+    uint32 flight_distance = 4;
     //weather_conditions
     string weather_conditions = 5;
-    //departure_vertiport_id
+    //departure_vertiport_id UUID v4
     string departure_vertiport_id = 6;
-    //pad_id_departure
+    //departure_pad_id UUID v4
     string departure_pad_id = 7;
-    //destination_vertiport_id
+    //destination_vertiport_id UUID v4
     string destination_vertiport_id = 8;
-    //destination_pad_id
+    //destination_pad_id UUID v4
     string destination_pad_id = 9;
-    //estimated_departure
-    google.protobuf.Timestamp estimated_departure = 10;
-    //estimated_arrival
-    google.protobuf.Timestamp estimated_arrival = 11;
+    //scheduled_departure
+    google.protobuf.Timestamp scheduled_departure = 10;
+    //scheduled_arrival
+    google.protobuf.Timestamp scheduled_arrival = 11;
     //actual_departure
     optional google.protobuf.Timestamp actual_departure = 12;
     //actual_arrival
     optional google.protobuf.Timestamp actual_arrival = 13;
-    //flight_release_approval
+    //flight_release_approval date and time
     optional google.protobuf.Timestamp flight_release_approval = 14;
-    //flight_plan_submitted
+    //flight_plan_submitted date and time
     optional google.protobuf.Timestamp flight_plan_submitted = 15;
-     */
+    //approved_by UUID v4
+    optional string approved_by = 16;
     //flight_status
-    FlightStatus flight_status = 16;
+    FlightStatus flight_status = 17;
     //flightPriority
-    //FlightPriority flightPriority = 17;
+    FlightPriority flight_priority = 18;
 }
 
 //FlightPlans

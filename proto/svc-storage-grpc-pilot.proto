@@ -15,6 +15,7 @@ service PilotRpc {
 
 //Pilot
 message Pilot {
+    // UUID v4
     string id = 1;
     PilotData data = 2;
 }

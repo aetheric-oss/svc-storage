@@ -5,7 +5,9 @@ mod grpc_server {
     tonic::include_proto!("grpc.flight_plan");
 }
 pub use grpc_server::flight_plan_rpc_server::{FlightPlanRpc, FlightPlanRpcServer};
-pub use grpc_server::{FlightPlan, FlightPlanData, FlightPlans, FlightStatus, UpdateFlightPlan};
+pub use grpc_server::{
+    FlightPlan, FlightPlanData, FlightPlans, FlightPriority, FlightStatus, UpdateFlightPlan,
+};
 
 use crate::common::{Id, SearchFilter, Uuid};
 use crate::memdb::FLIGHT_PLANS;

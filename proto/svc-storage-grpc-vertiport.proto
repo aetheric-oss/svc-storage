@@ -15,15 +15,17 @@ service VertiportRpc {
 
 //Vertiport
 message Vertiport {
+    // id UUID v4
     string id = 1;
     VertiportData data = 2;
 }
 
 //VertiportData
 message VertiportData {
-    string label = 2;
-    float latitude = 3;
-    float longitude = 4;
+    string description = 1;
+    float latitude = 2;
+    float longitude = 3;
+    string schedule = 4;
     //repeated string engineers = 5;
     //uint32 elevation = 7;
 }

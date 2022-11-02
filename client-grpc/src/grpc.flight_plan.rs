@@ -2,7 +2,7 @@
 #[derive(Eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct FlightPlan {
-    /// id
+    /// id UUID v4
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
     /// data
@@ -11,7 +11,7 @@ pub struct FlightPlan {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateFlightPlan {
-    /// id
+    /// id UUID v4
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
     #[prost(message, optional, tag="2")]
@@ -23,45 +23,60 @@ pub struct UpdateFlightPlan {
 #[derive(Eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct FlightPlanData {
-    /// pilot_id
-    #[prost(string, tag="2")]
+    /// pilot_id UUID v4
+    #[prost(string, tag="1")]
     pub pilot_id: ::prost::alloc::string::String,
-    /// vehicle_id
-    #[prost(string, tag="3")]
+    /// vehicle_id UUID v4
+    #[prost(string, tag="2")]
     pub vehicle_id: ::prost::alloc::string::String,
-    /// cargo
-    ///
-    ///
-    /// //weather_conditions
-    /// string weather_conditions = 5;
-    /// //departure_vertiport_id
-    /// string departure_vertiport_id = 6;
-    /// //pad_id_departure
-    /// string departure_pad_id = 7;
-    /// //destination_vertiport_id
-    /// string destination_vertiport_id = 8;
-    /// //destination_pad_id
-    /// string destination_pad_id = 9;
-    /// //estimated_departure
-    /// google.protobuf.Timestamp estimated_departure = 10;
-    /// //estimated_arrival
-    /// google.protobuf.Timestamp estimated_arrival = 11;
-    /// //actual_departure
-    /// optional google.protobuf.Timestamp actual_departure = 12;
-    /// //actual_arrival
-    /// optional google.protobuf.Timestamp actual_arrival = 13;
-    /// //flight_release_approval
-    /// optional google.protobuf.Timestamp flight_release_approval = 14;
-    /// //flight_plan_submitted
-    /// optional google.protobuf.Timestamp flight_plan_submitted = 15;
-    #[prost(uint32, repeated, tag="4")]
-    pub cargo: ::prost::alloc::vec::Vec<u32>,
+    /// cargo weight per package
+    #[prost(uint32, repeated, tag="3")]
+    pub cargo_weight: ::prost::alloc::vec::Vec<u32>,
+    /// flight_distance in meters
+    #[prost(uint32, tag="4")]
+    pub flight_distance: u32,
+    /// weather_conditions
+    #[prost(string, tag="5")]
+    pub weather_conditions: ::prost::alloc::string::String,
+    /// departure_vertiport_id UUID v4
+    #[prost(string, tag="6")]
+    pub departure_vertiport_id: ::prost::alloc::string::String,
+    /// departure_pad_id UUID v4
+    #[prost(string, tag="7")]
+    pub departure_pad_id: ::prost::alloc::string::String,
+    /// destination_vertiport_id UUID v4
+    #[prost(string, tag="8")]
+    pub destination_vertiport_id: ::prost::alloc::string::String,
+    /// destination_pad_id UUID v4
+    #[prost(string, tag="9")]
+    pub destination_pad_id: ::prost::alloc::string::String,
+    /// scheduled_departure
+    #[prost(message, optional, tag="10")]
+    pub scheduled_departure: ::core::option::Option<::prost_types::Timestamp>,
+    /// scheduled_arrival
+    #[prost(message, optional, tag="11")]
+    pub scheduled_arrival: ::core::option::Option<::prost_types::Timestamp>,
+    /// actual_departure
+    #[prost(message, optional, tag="12")]
+    pub actual_departure: ::core::option::Option<::prost_types::Timestamp>,
+    /// actual_arrival
+    #[prost(message, optional, tag="13")]
+    pub actual_arrival: ::core::option::Option<::prost_types::Timestamp>,
+    /// flight_release_approval date and time
+    #[prost(message, optional, tag="14")]
+    pub flight_release_approval: ::core::option::Option<::prost_types::Timestamp>,
+    /// flight_plan_submitted date and time
+    #[prost(message, optional, tag="15")]
+    pub flight_plan_submitted: ::core::option::Option<::prost_types::Timestamp>,
+    /// approved_by UUID v4
+    #[prost(string, optional, tag="16")]
+    pub approved_by: ::core::option::Option<::prost::alloc::string::String>,
     /// flight_status
-    ///
-    /// flightPriority
-    /// FlightPriority flightPriority = 17;
-    #[prost(enumeration="FlightStatus", tag="16")]
+    #[prost(enumeration="FlightStatus", tag="17")]
     pub flight_status: i32,
+    /// flightPriority
+    #[prost(enumeration="FlightPriority", tag="18")]
+    pub flight_priority: i32,
 }
 /// FlightPlans
 #[derive(Eq)]

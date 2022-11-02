@@ -2,6 +2,7 @@
 #[derive(Eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Vertiport {
+    /// id UUID v4
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
     #[prost(message, optional, tag="2")]
@@ -10,14 +11,16 @@ pub struct Vertiport {
 /// VertiportData
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct VertiportData {
-    #[prost(string, tag="2")]
-    pub label: ::prost::alloc::string::String,
-    #[prost(float, tag="3")]
+    #[prost(string, tag="1")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(float, tag="2")]
     pub latitude: f32,
+    #[prost(float, tag="3")]
+    pub longitude: f32,
     /// repeated string engineers = 5;
     /// uint32 elevation = 7;
-    #[prost(float, tag="4")]
-    pub longitude: f32,
+    #[prost(string, tag="4")]
+    pub schedule: ::prost::alloc::string::String,
 }
 /// Vertiports
 #[derive(Eq)]

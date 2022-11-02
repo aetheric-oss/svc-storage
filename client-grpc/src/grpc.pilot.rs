@@ -2,6 +2,7 @@
 #[derive(Eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Pilot {
+    /// UUID v4
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
     #[prost(message, optional, tag="2")]

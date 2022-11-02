@@ -1,9 +1,10 @@
 use lazy_static::lazy_static;
 use std::sync::Mutex;
+use std::time::SystemTime;
 
 use crate::common::{
-    FlightPlan, FlightPlanData, FlightStatus, Pilot, PilotData, Uuid, Vehicle, VehicleData,
-    VehicleType, Vertipad, Vertiport, VertiportData,
+    FlightPlan, FlightPlanData, FlightPriority, FlightStatus, Pilot, PilotData, Uuid, Vehicle,
+    VehicleData, VehicleType, Vertipad, Vertiport, VertiportData,
 };
 
 lazy_static! {
@@ -22,6 +23,10 @@ lazy_static! {
 pub fn populate_data() {
     let vehicle_id = Uuid::new_v4();
     let pilot_id = Uuid::new_v4();
+    let departure_vertiport_id = Uuid::new_v4();
+    let departure_pad_id = Uuid::new_v4();
+    let destination_vertiport_id = Uuid::new_v4();
+    let destination_pad_id = Uuid::new_v4();
 
     VEHICLES.lock().unwrap().push(Vehicle {
         id: vehicle_id.to_string(),
@@ -36,15 +41,30 @@ pub fn populate_data() {
             flight_status: FlightStatus::Draft as i32,
             vehicle_id: vehicle_id.to_string(),
             pilot_id: pilot_id.to_string(),
-            cargo: vec![20],
+            cargo_weight: vec![20],
+            flight_distance: 6000,
+            weather_conditions: "Cloudy, low wind".to_string(),
+            departure_vertiport_id: departure_vertiport_id.to_string(),
+            departure_pad_id: departure_pad_id.to_string(),
+            destination_vertiport_id: destination_vertiport_id.to_string(),
+            destination_pad_id: destination_pad_id.to_string(),
+            scheduled_departure: Some(prost_types::Timestamp::from(SystemTime::now())),
+            scheduled_arrival: Some(prost_types::Timestamp::from(SystemTime::now())),
+            actual_departure: Some(prost_types::Timestamp::from(SystemTime::now())),
+            actual_arrival: Some(prost_types::Timestamp::from(SystemTime::now())),
+            flight_release_approval: Some(prost_types::Timestamp::from(SystemTime::now())),
+            flight_plan_submitted: Some(prost_types::Timestamp::from(SystemTime::now())),
+            approved_by: Some(pilot_id.to_string()),
+            flight_priority: FlightPriority::Low as i32,
         }),
     });
     VERTIPORTS.lock().unwrap().push(Vertiport {
         id: Uuid::new_v4().to_string(),
         data: Some(VertiportData {
-            label: "Vertiport 1".to_string(),
+            description: "Vertiport 1".to_string(),
             latitude: 37.77397,
             longitude: -122.43129,
+            schedule: "".to_string(),
         }),
     });
     PILOTS.lock().unwrap().push(Pilot {

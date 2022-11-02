@@ -2,6 +2,7 @@
 #[derive(Eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Vertipad {
+    /// id UUID v4
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
     #[prost(message, optional, tag="2")]
@@ -10,18 +11,24 @@ pub struct Vertipad {
 /// VertipadData
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct VertipadData {
+    /// vertiport_id UUID v4, all vertipads are part of a vertiport, even if the vertiport has only 1 pad
     #[prost(string, tag="1")]
-    pub id: ::prost::alloc::string::String,
-    /// bool enabled = 2;
+    pub vertiport_id: ::prost::alloc::string::String,
+    #[prost(string, tag="2")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(float, tag="3")]
+    pub latitude: f32,
+    #[prost(float, tag="4")]
+    pub longitude: f32,
+    #[prost(bool, tag="5")]
+    pub enabled: bool,
+    #[prost(bool, tag="6")]
+    pub occupied: bool,
     /// bool charging_enabled = 3;
     /// float charging_rate_kw = 4;
     /// string restrictions = 5;
-    #[prost(float, tag="6")]
-    pub latitude: f32,
-    #[prost(float, tag="7")]
-    pub longitude: f32,
-    #[prost(bool, tag="8")]
-    pub parked: bool,
+    #[prost(string, tag="7")]
+    pub schedule: ::prost::alloc::string::String,
 }
 /// Vertipads
 #[derive(Eq)]

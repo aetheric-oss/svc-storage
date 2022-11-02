@@ -2,12 +2,14 @@
 
 use prost_types::FieldMask;
 use std::env;
+use std::time::SystemTime;
+use uuid::Uuid;
 
 #[allow(unused_qualifications, missing_docs)]
 use svc_storage_client_grpc::client::{
     flight_plan_rpc_client::FlightPlanRpcClient, pilot_rpc_client::PilotRpcClient,
-    vehicle_rpc_client::VehicleRpcClient, FlightPlanData, FlightStatus, SearchFilter,
-    UpdateFlightPlan, VehicleType,
+    vehicle_rpc_client::VehicleRpcClient, FlightPlanData, FlightPriority, FlightStatus,
+    SearchFilter, UpdateFlightPlan, VehicleType,
 };
 
 /// Provide GRPC endpoint to use
@@ -82,15 +84,34 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         results_per_page: 50,
     };
 
+    let departure_vertiport_id = Uuid::new_v4();
+    let departure_pad_id = Uuid::new_v4();
+    let destination_vertiport_id = Uuid::new_v4();
+    let destination_pad_id = Uuid::new_v4();
+
     let _response = fp_client
         .flight_plans(tonic::Request::new(fp_filter.clone()))
         .await?;
     let insert_fp_res = fp_client
         .insert_flight_plan(tonic::Request::new(FlightPlanData {
             flight_status: FlightStatus::Draft as i32,
-            vehicle_id: vehicle_id,
-            pilot_id: pilot_id,
-            cargo: vec![20],
+            vehicle_id: vehicle_id.to_string(),
+            pilot_id: pilot_id.to_string(),
+            cargo_weight: vec![20],
+            flight_distance: 6000,
+            weather_conditions: "Cloudy, low wind".to_string(),
+            departure_vertiport_id: departure_vertiport_id.to_string(),
+            departure_pad_id: departure_pad_id.to_string(),
+            destination_vertiport_id: destination_vertiport_id.to_string(),
+            destination_pad_id: destination_pad_id.to_string(),
+            scheduled_departure: Some(prost_types::Timestamp::from(SystemTime::now())),
+            scheduled_arrival: Some(prost_types::Timestamp::from(SystemTime::now())),
+            actual_departure: Some(prost_types::Timestamp::from(SystemTime::now())),
+            actual_arrival: Some(prost_types::Timestamp::from(SystemTime::now())),
+            flight_release_approval: Some(prost_types::Timestamp::from(SystemTime::now())),
+            flight_plan_submitted: Some(prost_types::Timestamp::from(SystemTime::now())),
+            approved_by: Some(pilot_id.to_string()),
+            flight_priority: FlightPriority::Low as i32,
         }))
         .await?;
     let new_fp = insert_fp_res.into_inner().clone();

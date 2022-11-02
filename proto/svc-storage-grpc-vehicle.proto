@@ -23,6 +23,7 @@ enum VehicleType {
 
 //Vehicle
 message Vehicle {
+    // UUID v4
     string id = 1;
     VehicleData data = 2;
 }
