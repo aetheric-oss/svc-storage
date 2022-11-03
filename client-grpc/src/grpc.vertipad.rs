@@ -1,5 +1,5 @@
 /// Vertipad
-#[derive(Eq)]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Vertipad {
     /// id UUID v4
@@ -31,7 +31,6 @@ pub struct VertipadData {
     pub schedule: ::core::option::Option<::prost::alloc::string::String>,
 }
 /// Vertipads
-#[derive(Eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Vertipads {
     #[prost(message, repeated, tag="1")]

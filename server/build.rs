@@ -25,10 +25,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .type_attribute("FlightPlan", "#[derive(Eq)]")
         .type_attribute("FlightPlanData", "#[derive(Eq)]")
         .type_attribute("FlightPlans", "#[derive(Eq)]")
-        .type_attribute("Vertipad", "#[derive(Eq)]")
-        .type_attribute("Vertipads", "#[derive(Eq)]")
-        .type_attribute("Vertiport", "#[derive(Eq)]")
-        .type_attribute("Vertiports", "#[derive(Eq)]")
+        .type_attribute("Vertipad", "#[allow(clippy::derive_partial_eq_without_eq)]")
+        .type_attribute(
+            "Vertiport",
+            "#[allow(clippy::derive_partial_eq_without_eq)]",
+        )
         .type_attribute("ReadyRequest", "#[derive(Eq, Copy)]")
         .type_attribute("ReadyResponse", "#[derive(Eq, Copy)]");
 
