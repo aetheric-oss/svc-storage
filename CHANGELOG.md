@@ -1,3 +1,16 @@
+## [Release 0.4.0-develop.0](https://github.com/Arrow-air/svc-storage/releases/tag/v0.4.0-develop.0)
+
+### ✨ Features
+
+- added sample data and vertiport/pad client ([`42a4b6d`](https://github.com/Arrow-air/svc-storage/commit/42a4b6d0c18778c8159af716954b523b27e5f038))
+
+### 🛠 Maintenance
+
+-  **ci:** update changelog ([`84f6656`](https://github.com/Arrow-air/svc-storage/commit/84f665643a2149f44ae83167d00df094a020c8e1))
+-  **ci:** update package version ([`c59a62a`](https://github.com/Arrow-air/svc-storage/commit/c59a62a3381b5a54fe105a262a170bbc4aa36b9e))
+-  **ci:** update package version<br/><br/>[skip ci] ([`36f3322`](https://github.com/Arrow-air/svc-storage/commit/36f33229f926fd86553ac3e590751c588e183874))
+-  **ci:** fix release workflow ([`7961fb4`](https://github.com/Arrow-air/svc-storage/commit/7961fb425253c53c9076ea3c6ee763a17bea79f5))
+
 ## [Release 0.3.0-develop.0](https://github.com/Arrow-air/svc-storage/releases/tag/v0.3.0-develop.0)
 
 ### ✨ Features
