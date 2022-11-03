@@ -7,6 +7,8 @@ pub mod client {
     include!("grpc.flight_plan.rs");
     include!("grpc.pilot.rs");
     include!("grpc.vehicle.rs");
+    include!("grpc.vertiport.rs");
+    include!("grpc.vertipad.rs");
 }
 
 use crate::client::{Id, SearchFilter};

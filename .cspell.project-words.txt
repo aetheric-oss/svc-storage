@@ -38,3 +38,6 @@ VERTIPADS
 Vertipads
 vertipads
 Psql
+BYDAY
+DTSTART
+RRULE

@@ -8,8 +8,8 @@ use uuid::Uuid;
 #[allow(unused_qualifications, missing_docs)]
 use svc_storage_client_grpc::client::{
     flight_plan_rpc_client::FlightPlanRpcClient, pilot_rpc_client::PilotRpcClient,
-    vehicle_rpc_client::VehicleRpcClient, FlightPlanData, FlightPriority, FlightStatus,
-    SearchFilter, UpdateFlightPlan, VehicleType,
+    vehicle_rpc_client::VehicleRpcClient, vertiport_rpc_client::VertiportRpcClient, FlightPlanData,
+    FlightPriority, FlightStatus, SearchFilter, UpdateFlightPlan, VehicleType,
 };
 
 /// Provide GRPC endpoint to use
@@ -140,6 +140,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("update_fp_res={:?}", update_fp_res.into_inner());
     println!("RESPONSE Draft flights={:?}", response1.into_inner());
     println!("RESPONSE InFlight flights={:?}", response2.into_inner());
+
+    let mut vertiport_client = VertiportRpcClient::connect(grpc_endpoint.clone()).await?;
+    let vertiports = vertiport_client
+        .vertiports(tonic::Request::new(SearchFilter {
+            search_field: "".to_string(),
+            search_value: "".to_string(),
+            page_number: 1,
+            results_per_page: 50,
+        }))
+        .await?;
+    println!("RESPONSE Vertiports={:?}", vertiports.into_inner());
 
     Ok(())
 }
