@@ -162,7 +162,7 @@ jobs:
 
       - name: Build and publish client
         env:
-          PUBLISH_DRY_RUN: 0
+          PUBLISH_DRY_RUN: 1
         run: |
           make rust-publish
 
