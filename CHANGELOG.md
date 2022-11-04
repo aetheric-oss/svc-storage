@@ -1,3 +1,12 @@
+## [Release 0.4.0-develop.1](https://github.com/Arrow-air/svc-storage/releases/tag/v0.4.0-develop.1)
+
+### 🛠 Maintenance
+
+-  **ci:** update changelog ([`3ce44c8`](https://github.com/Arrow-air/svc-storage/commit/3ce44c8b5ba61b759322bff55ce3791c29e78a95))
+-  **ci:** update package version ([`adcce57`](https://github.com/Arrow-air/svc-storage/commit/adcce57e63719284cdd21dc53576d617d5c4cb57))
+-  **ci:** update package version<br/><br/>[skip ci] ([`4cc9613`](https://github.com/Arrow-air/svc-storage/commit/4cc96136955bcd9d7d090e6d52e5f4af25bec753))
+-  **ci:** publish dry run for now ([`f89a9f9`](https://github.com/Arrow-air/svc-storage/commit/f89a9f9ce8e8d69a6996774ee1f5ba1f8f7ba84e))
+
 ## [Release 0.4.0-develop.0](https://github.com/Arrow-air/svc-storage/releases/tag/v0.4.0-develop.0)
 
 ### ✨ Features
