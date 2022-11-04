@@ -27,6 +27,7 @@ impl VertiportRpc for VertiportImpl {
         let response = Vertiports {
             vertiports: VERTIPORTS.lock().unwrap().clone(),
         };
+        println!("{:?}", response);
         Ok(Response::new(response))
     }
 

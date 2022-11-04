@@ -35,7 +35,7 @@ fn generate_sample_vertiports() -> Vec<Vertiport> {
     let nodes = generate_nodes_near(&SAN_FRANCISCO, 25.0, 50);
     let node_ids: Vec<String> = nodes.iter().map(|node| node.uid.clone()).collect();
     println!("Generated vertiports ids: {}", node_ids.join(", "));
-    nodes
+    let mut output: Vec<Vertiport> = nodes
         .into_iter()
         .map(|node| Vertiport {
             id: node.uid.to_string(),
@@ -46,7 +46,29 @@ fn generate_sample_vertiports() -> Vec<Vertiport> {
                 schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
             }),
         })
-        .collect()
+        .collect();
+
+    output.push(Vertiport {
+        id: "ded63896-ca6b-42ea-b99d-73e0fe1587f0".into(),
+        data: Some(VertiportData {
+            description: "Vertiport Test A".to_string(),
+            latitude: -100.0,
+            longitude: 100.0,
+            schedule: None,
+        }),
+    });
+
+    output.push(Vertiport {
+        id: "0fc37762-c423-417c-94bc-5d6d452322b5".into(),
+        data: Some(VertiportData {
+            description: "Vertiport Test B".to_string(),
+            latitude: -101.0,
+            longitude: 102.0,
+            schedule: None,
+        }),
+    });
+
+    output
 }
 
 pub fn populate_data() {
@@ -66,7 +88,7 @@ pub fn populate_data() {
         }),
     });
     FLIGHT_PLANS.lock().unwrap().push(FlightPlan {
-        id: Uuid::new_v4().to_string(),
+        id: "0fc37762-c423-417c-94bc-5d6d452322d7".to_string(),
         data: Some(FlightPlanData {
             flight_status: FlightStatus::Draft as i32,
             vehicle_id: vehicle_id.to_string(),
