@@ -1,28 +1,28 @@
 //! # Common
 //!
-//! Commonly used libraries, made public for easy use in modules.
-//!
-//! Error handlers
+//! Commonly used libraries, functions and statics, made public for easy use in modules.
 
+use anyhow::Result;
 use config::{ConfigError, Environment};
 use dotenv::dotenv;
 use serde::Deserialize;
+use std::sync::atomic::{AtomicBool, Ordering};
+use tokio::task::JoinError;
 
-pub use crate::postgres::PostgresPool;
-pub use anyhow::{Error, Result};
-pub use log::warn;
+pub use crate::grpc::{Id, SearchFilter};
 pub use uuid::Uuid;
 
-pub use crate::resources::base::{Id, SearchFilter};
-pub use crate::resources::flight_plan::{
-    FlightPlan, FlightPlanData, FlightPlans, FlightPriority, FlightStatus,
-};
-pub use crate::resources::pilot::{Pilot, PilotData, Pilots};
-pub use crate::resources::vehicle::{Vehicle, VehicleData, VehicleType, Vehicles};
-pub use crate::resources::vertipad::{Vertipad, VertipadData, Vertipads};
-pub use crate::resources::vertiport::{Vertiport, VertiportData, Vertiports};
+pub const PSQL_LOG_TARGET: &str = "app::backend::psql";
+pub const MEMDB_LOG_TARGET: &str = "app::backend::memdb";
+pub const GRPC_LOG_TARGET: &str = "app::grpc";
 
-pub static ERROR_GENERIC: &str = "Error";
+pub static USE_PSQL_BACKEND: AtomicBool = AtomicBool::new(true);
+pub fn use_psql_set(value: bool) {
+    USE_PSQL_BACKEND.store(value, Ordering::SeqCst);
+}
+pub fn use_psql_get() -> bool {
+    USE_PSQL_BACKEND.load(Ordering::Relaxed)
+}
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
@@ -32,57 +32,41 @@ pub struct Config {
     pub db_ca_cert: String,
     pub db_client_cert: Option<String>,
     pub db_client_key: Option<String>,
+    pub docker_port_grpc: Option<u16>,
 }
 
 /// Crate Errors
 #[derive(thiserror::Error, Debug)]
 pub enum ArrErr {
-    #[error("configuration error")]
-    Config(#[from] ConfigError),
+    #[error("error: {0}")]
+    Error(String),
 
-    #[error("jobs error `{0}`")]
-    Jobs(String),
+    #[error("join error: {0}")]
+    JoinError(#[from] JoinError),
 
-    #[error("internal uri error `{0}`")]
-    InternalUri(String),
+    #[error("configuration error: {0}")]
+    ConfigError(#[from] ConfigError),
 
-    #[error("postgres config error")]
-    PostgresConfig(#[from] deadpool_postgres::ConfigError),
+    #[error("convert int error: {0}")]
+    IntError(#[from] std::num::TryFromIntError),
 
-    #[error("postgres pool error")]
-    PostgresPool(#[from] deadpool_postgres::PoolError),
-
-    #[error("postgres error")]
-    Postgres(#[from] deadpool_postgres::tokio_postgres::Error),
-}
-
-impl ArrErr {
-    pub fn jobs(message: &str) -> Self {
-        Self::Jobs(message.to_string())
-    }
-
-    pub fn internal_uri(uri: &str) -> Self {
-        Self::InternalUri(uri.to_string())
-    }
-}
-
-impl From<ArrErr> for tonic::Status {
-    fn from(err: ArrErr) -> Self {
-        // These errors come from modules like Postgres, where you
-        // probably wouldn't want to include error details in the
-        // response, log them here instead which will include
-        // tracing information from the request handler
-        //
-        // <https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html#error-handling>
-        // <https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html#which-events-to-log>
-        let err: Error = err.into();
-        log::warn!("{:#}", err);
-
-        tonic::Status::internal(ERROR_GENERIC)
-    }
+    #[error("create timestamp error: {0}")]
+    ProstTimestampError(#[from] prost_types::TimestampError),
 }
 
 impl Config {
+    // Default values for Config
+    pub fn new() -> Self {
+        Config {
+            pg: deadpool_postgres::Config::new(),
+            use_tls: true,
+            db_ca_cert: "".to_string(),
+            db_client_cert: None,
+            db_client_key: None,
+            docker_port_grpc: Some(50051),
+        }
+    }
+
     pub fn from_env() -> Result<Self, ConfigError> {
         dotenv().ok();
 

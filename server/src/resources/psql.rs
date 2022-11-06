@@ -1,7 +1,7 @@
 //! # Postgres implementation of base resources
 //!
 
-mod postgres
+mod postgres;
 
 /// Base
 pub struct Base {
