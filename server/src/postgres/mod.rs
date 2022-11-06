@@ -1,6 +1,8 @@
 //! # Postgres
 //!
 
+use crate::resources;
+
 use deadpool_postgres::{
     tokio_postgres::NoTls, ConfigError, ManagerConfig, Pool, RecyclingMethod, Runtime,
 };
@@ -15,11 +17,11 @@ use postgres_native_tls::MakeTlsConnector;
 
 /// Postgres Pool
 pub struct PostgresPool {
-    pool: Pool,
+    pub pool: Pool,
 }
 
 impl PostgresPool {
-    pub fn from_config() -> Result<Self, ConfigError> {
+    pub fn from_config() -> Result<PostgresPool, ConfigError> {
         let mut settings = Config::from_env().unwrap();
 
         settings.pg.manager = Some(ManagerConfig {
@@ -96,7 +98,7 @@ impl PostgresPool {
                 .unwrap()
         };
 
-        Ok(Self { pool })
+        Ok(PostgresPool { pool })
     }
 
     /// Returns an error if queries can not be served
@@ -121,3 +123,32 @@ impl fmt::Debug for PostgresPool {
         f.debug_struct("PostgresPool").finish()
     }
 }
+
+pub async fn create_db(pool: &Pool) -> Result<(), ArrErr> {
+    //Create our tables
+    resources::flight_plan::init_table(pool).await
+}
+
+pub async fn drop_db(pool: &Pool) -> Result<(), ArrErr> {
+    // Drop our tables
+    resources::flight_plan::drop_table(pool).await
+}
+
+pub async fn recreate_db(pool: &Pool) -> Result<(), ArrErr> {
+    drop_db(pool).await?;
+    create_db(pool).await?;
+
+    Ok(())
+}
+
+/*
+pub async trait CRUD<T, R> {
+    fn create(
+        pg: &PostgresPool,
+        data: HashMap<&str, &(dyn ToSql + Sync)>,
+        ) -> Result<R, ArrErr>;
+    fn read(mut self) -> Result<T, ArrErr>;
+    fn update(self, data: HashMap<&str, &(dyn ToSql + Sync)>) -> Result<T, ArrErr>;
+    fn delete(Option(mut self, id: Uuid)) -> Result<T, ArrErr>;
+}
+*/

@@ -38,15 +38,15 @@ pub struct FlightPlanData {
     /// weather_conditions
     #[prost(string, tag="5")]
     pub weather_conditions: ::prost::alloc::string::String,
-    /// departure_vertiport_id UUID v4
-    #[prost(string, tag="6")]
-    pub departure_vertiport_id: ::prost::alloc::string::String,
+    /// departure_vertiport_id UUID v4, only listed for get results, not needed for creation (known through pad_id)
+    #[prost(string, optional, tag="6")]
+    pub departure_vertiport_id: ::core::option::Option<::prost::alloc::string::String>,
     /// departure_pad_id UUID v4
     #[prost(string, tag="7")]
     pub departure_pad_id: ::prost::alloc::string::String,
-    /// destination_vertiport_id UUID v4
-    #[prost(string, tag="8")]
-    pub destination_vertiport_id: ::prost::alloc::string::String,
+    /// destination_vertiport_id UUID v4, only listed for get results, not needed for creation (known through pad_id)
+    #[prost(string, optional, tag="8")]
+    pub destination_vertiport_id: ::core::option::Option<::prost::alloc::string::String>,
     /// destination_pad_id UUID v4
     #[prost(string, tag="9")]
     pub destination_pad_id: ::prost::alloc::string::String,

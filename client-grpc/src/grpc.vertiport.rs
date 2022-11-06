@@ -23,6 +23,7 @@ pub struct VertiportData {
     pub schedule: ::core::option::Option<::prost::alloc::string::String>,
 }
 /// Vertiports
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Vertiports {
     #[prost(message, repeated, tag="1")]

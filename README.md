@@ -16,7 +16,7 @@ It's meant to be used only by other internal services via GRPC interface.
 
 Directory:
 - `server/src/`: Source Code and Unit Tests of the server
-- `client/src/`: Source Code and Unit Tests of the client
+- `client-grpc/src/`: Source Code and Unit Tests of the GRPC client
 - `tests/`: Integration Tests
 - `docs/`: Module Documentation
 

@@ -1,18 +1,15 @@
 //! # Common
 //!
-//! Commonly used libraries, made public for easy use in modules.
-//!
-//! Error handlers
+//! Commonly used libraries, functions and statics, made public for easy use in modules.
 
+use anyhow::{Error, Result};
 use config::{ConfigError, Environment};
+use deadpool_postgres::Pool;
 use dotenv::dotenv;
 use serde::Deserialize;
+use tokio::sync::OnceCell;
 
 pub use crate::postgres::PostgresPool;
-pub use anyhow::{Error, Result};
-pub use log::warn;
-pub use uuid::Uuid;
-
 pub use crate::resources::base::{Id, SearchFilter};
 pub use crate::resources::flight_plan::{
     FlightPlan, FlightPlanData, FlightPlans, FlightPriority, FlightStatus,
@@ -22,7 +19,17 @@ pub use crate::resources::vehicle::{Vehicle, VehicleData, VehicleType, Vehicles}
 pub use crate::resources::vertipad::{Vertipad, VertipadData, Vertipads};
 pub use crate::resources::vertiport::{Vertiport, VertiportData, Vertiports};
 
-pub static ERROR_GENERIC: &str = "Error";
+pub use uuid::Uuid;
+
+/// Create global variable to access our database pool
+pub static DB_POOL: OnceCell<Pool> = OnceCell::const_new();
+/// Shorthand function to clone database connection pool
+pub fn get_db_pool() -> Pool {
+    DB_POOL
+        .get()
+        .expect("Database pool not initialized")
+        .clone()
+}
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
@@ -37,33 +44,27 @@ pub struct Config {
 /// Crate Errors
 #[derive(thiserror::Error, Debug)]
 pub enum ArrErr {
-    #[error("configuration error")]
-    Config(#[from] ConfigError),
+    #[error("error: {0}")]
+    Error(String),
 
-    #[error("jobs error `{0}`")]
-    Jobs(String),
+    #[error("configuration error: {0}")]
+    ConfigError(#[from] ConfigError),
 
-    #[error("internal uri error `{0}`")]
-    InternalUri(String),
+    #[error("convert int error: {0}")]
+    IntError(#[from] std::num::TryFromIntError),
 
-    #[error("postgres config error")]
-    PostgresConfig(#[from] deadpool_postgres::ConfigError),
+    #[error("create timestamp error: {0}")]
+    ProstTimestampError(#[from] prost_types::TimestampError),
 
-    #[error("postgres pool error")]
-    PostgresPool(#[from] deadpool_postgres::PoolError),
+    #[error("postgres config error: {0}")]
+    PoolPostgresConfigError(#[from] deadpool_postgres::ConfigError),
+    #[error("postgres pool error: {0}")]
+    PoolPostgresError(#[from] deadpool_postgres::PoolError),
 
-    #[error("postgres error")]
-    Postgres(#[from] deadpool_postgres::tokio_postgres::Error),
-}
-
-impl ArrErr {
-    pub fn jobs(message: &str) -> Self {
-        Self::Jobs(message.to_string())
-    }
-
-    pub fn internal_uri(uri: &str) -> Self {
-        Self::InternalUri(uri.to_string())
-    }
+    #[error("error executing DB query: {0}")]
+    DBQueryError(#[from] tokio_postgres::Error),
+    #[error("error creating table: {0}")]
+    DBInitError(tokio_postgres::Error),
 }
 
 impl From<ArrErr> for tonic::Status {
@@ -78,7 +79,7 @@ impl From<ArrErr> for tonic::Status {
         let err: Error = err.into();
         log::warn!("{:#}", err);
 
-        tonic::Status::internal(ERROR_GENERIC)
+        tonic::Status::internal("error".to_string())
     }
 }
 

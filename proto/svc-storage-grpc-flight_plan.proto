@@ -67,12 +67,12 @@ message FlightPlanData {
     uint32 flight_distance = 4;
     //weather_conditions
     string weather_conditions = 5;
-    //departure_vertiport_id UUID v4
-    string departure_vertiport_id = 6;
+    //departure_vertiport_id UUID v4, only listed for get results, not needed for creation (known through pad_id)
+    optional string departure_vertiport_id = 6;
     //departure_pad_id UUID v4
     string departure_pad_id = 7;
-    //destination_vertiport_id UUID v4
-    string destination_vertiport_id = 8;
+    //destination_vertiport_id UUID v4, only listed for get results, not needed for creation (known through pad_id)
+    optional string destination_vertiport_id = 8;
     //destination_pad_id UUID v4
     string destination_pad_id = 9;
     //scheduled_departure

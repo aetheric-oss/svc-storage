@@ -3,14 +3,11 @@
 ///generates .rs files in src directory
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let proto_dir = "../proto";
-    let proto_files = [
-        &format!("{}/svc-storage-grpc.proto", proto_dir),
-        &format!("{}/svc-storage-grpc-flight_plan.proto", proto_dir),
-        &format!("{}/svc-storage-grpc-pilot.proto", proto_dir),
-        &format!("{}/svc-storage-grpc-vehicle.proto", proto_dir),
-        &format!("{}/svc-storage-grpc-vertiport.proto", proto_dir),
-        &format!("{}/svc-storage-grpc-vertipad.proto", proto_dir),
-    ];
+    let types = ["flight_plan", "pilot", "vehicle", "vertiport", "vertipad"];
+    let proto_files: Vec<String> = types
+        .into_iter()
+        .map(|x| format!("{}/svc-storage-grpc-{}.proto", proto_dir, x))
+        .collect();
 
     let server_config = tonic_build::configure()
         .emit_rerun_if_changed(true)
@@ -27,7 +24,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .type_attribute("FlightPlans", "#[derive(Eq)]")
         .type_attribute("Vertipad", "#[allow(clippy::derive_partial_eq_without_eq)]")
         .type_attribute(
+            "Vertipads",
+            "#[allow(clippy::derive_partial_eq_without_eq)]",
+        )
+        .type_attribute(
             "Vertiport",
+            "#[allow(clippy::derive_partial_eq_without_eq)]",
+        )
+        .type_attribute(
+            "Vertiports",
             "#[allow(clippy::derive_partial_eq_without_eq)]",
         )
         .type_attribute("ReadyRequest", "#[derive(Eq, Copy)]")
