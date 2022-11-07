@@ -41,3 +41,4 @@ Psql
 BYDAY
 DTSTART
 RRULE
+dockerenv
