@@ -1,3 +1,15 @@
+## [Release 0.5.0-develop.0](https://github.com/Arrow-air/svc-storage/releases/tag/v0.5.0-develop.0)
+
+### ✨ Features
+
+-  **ssl:** use client certificates for auth ([`e10161e`](https://github.com/Arrow-air/svc-storage/commit/e10161eb54bb47d7cec7056515198789b44747aa))
+
+### 🛠 Maintenance
+
+-  **ci:** update changelog ([`9a589a1`](https://github.com/Arrow-air/svc-storage/commit/9a589a16e8980c20a214436f05347a3adb0559ea))
+-  **ci:** update package version ([`438997d`](https://github.com/Arrow-air/svc-storage/commit/438997dedd3c4ef7afbfa414078466316f3f88a4))
+-  **ci:** update package version<br/><br/>[skip ci] ([`c449eb9`](https://github.com/Arrow-air/svc-storage/commit/c449eb9844686da0f3bd32c797cd137c6e971897))
+
 ## [Release 0.4.0-develop.2](https://github.com/Arrow-air/svc-storage/releases/tag/v0.4.0-develop.2)
 
 ### 🛠 Maintenance
