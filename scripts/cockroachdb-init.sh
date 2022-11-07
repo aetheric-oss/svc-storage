@@ -10,6 +10,14 @@ if [ ! -f "/.dockerenv" ]; then
 	exit 0
 fi
 
+# Function to get openssl when needed
+ensure_openssl() {
+	if [ "$(type -t openssl)" != "file" ]; then
+		echo Trying to obtain openssl to convert pk8 format.
+		microdnf -y install openssl
+	fi
+}
+
 # Do we have expected volume/mounts? Create dir if nothing's there.
 for d in "${SSL_DIR}" "${CERT_DIR}" "${KEY_DIR}"
 do
@@ -39,6 +47,17 @@ if [ ! -f "${CERT_DIR}/client.root.crt" ]; then
 	printf "%s\n" "Creating client root certificate...."
 	printf "%s\n" "cockroach cert create-client root --certs-dir=\"${CERT_DIR}\" --ca-key=\"${KEY_DIR}/ca.key\""
 	cockroach cert create-client root --certs-dir="${CERT_DIR}" --ca-key="${KEY_DIR}/ca.key"
+fi
+
+# svc-storage
+if [ ! -f "${CERT_DIR}/client.svc_storage.crt" ]; then
+	printf "%s\n" "Creating client svc_storage certificate...."
+	printf "%s\n" "cockroach cert create-client svc_storage --certs-dir=\"${CERT_DIR}\" --ca-key=\"${KEY_DIR}/ca.key\""
+	cockroach cert create-client svc_storage --certs-dir="${CERT_DIR}" --ca-key="${KEY_DIR}/ca.key"
+	# Convert pk8 to pem format
+	ensure_openssl
+	printf "%s\n" "openssl pkcs8 -topk8 -outform PEM -in \"${CERT_DIR}/client.svc_storage.key\" -out \"${CERT_DIR}/client.svc_storage.key.pk8\" -nocrypt"
+	openssl pkcs8 -topk8 -outform PEM -in "${CERT_DIR}/client.svc_storage.key" -out "${CERT_DIR}/client.svc_storage.key.pk8" -nocrypt
 fi
 
 # Node cert?

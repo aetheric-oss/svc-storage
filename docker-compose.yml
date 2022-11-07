@@ -19,9 +19,6 @@ services:
         source: scripts/cockroachdb-init.sh
         target: /scripts/cockroachdb-init.sh
         read_only: true
-    ports:
-      - 26257:26257
-      - 8080:8080
     entrypoint: ["/bin/sh", "-c"]
     command: ["/scripts/cockroachdb-init.sh"]
 
@@ -32,6 +29,9 @@ services:
       cockroachdb-init:
         condition: service_completed_successfully
     volumes:
+      - type: bind
+        source: scripts/init.sql
+        target: /docker-entrypoint-initdb.d/init.sql
       - type: volume
         source: cockroachdb
         target: /cockroach/cockroach-data
@@ -47,7 +47,7 @@ services:
     ports:
       - 26257:26257
       - 8080:8080
-    command: start-single-node --certs-dir=/cockroach/ssl/certs
+    command: start-single-node --certs-dir=/cockroach/ssl/certs --advertise-addr=cockroachdb
 
   web-server:
     container_name: ${DOCKER_NAME}-example-server
@@ -68,13 +68,15 @@ services:
     env_file:
       - .env
     environment:
+      - RUST_BACKTRACE
       - PG__USER
       - PG__DBNAME
-      - PG__PASSWORD
       - PG__HOST
       - PG__PORT
       - PG__SSLMODE
       - DB_CA_CERT
+      - DB_CLIENT_CERT
+      - DB_CLIENT_KEY
     depends_on:
       cockroachdb:
         condition: service_healthy
