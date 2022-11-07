@@ -1,3 +1,12 @@
+## [Release 0.4.0-develop.2](https://github.com/Arrow-air/svc-storage/releases/tag/v0.4.0-develop.2)
+
+### 🛠 Maintenance
+
+-  **ci:** update changelog ([`b9dac67`](https://github.com/Arrow-air/svc-storage/commit/b9dac6783486381040151a9a3167d9bc952acd4f))
+-  **ci:** update package version ([`e6eb1cb`](https://github.com/Arrow-air/svc-storage/commit/e6eb1cb02b55ba137b68fdb61b16c2b48d28fb4b))
+-  **ci:** update package version<br/><br/>[skip ci] ([`52bc15c`](https://github.com/Arrow-air/svc-storage/commit/52bc15ccd06edf7a0f50770d01850f6f5936dee5))
+-  **ssl:** fixed SSL breaking in docker ([`9f21e56`](https://github.com/Arrow-air/svc-storage/commit/9f21e565334c3918f6300d5d3d9d9203691db84d))
+
 ## [Release 0.4.0-develop.1](https://github.com/Arrow-air/svc-storage/releases/tag/v0.4.0-develop.1)
 
 ### 🛠 Maintenance
