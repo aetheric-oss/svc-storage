@@ -9,7 +9,8 @@ use crate::common::{ArrErr, Config};
 use std::fmt;
 use std::fs;
 
-use native_tls::{Certificate, TlsConnector};
+use native_tls::{Certificate, Identity, TlsConnector};
+
 use postgres_native_tls::MakeTlsConnector;
 
 /// Postgres Pool
@@ -26,14 +27,63 @@ impl PostgresPool {
         });
 
         let pool = if settings.use_tls {
-            let root_cert = fs::read(settings.db_ca_cert).expect("Unable to read db_ca_cert file");
-            let cert = Certificate::from_pem(&root_cert)
-                .expect("Unable to load Certificate from pem file");
-            let connector = TlsConnector::builder()
-                .add_root_certificate(cert)
-                .build()
-                .expect("Unable to connect with custom root certificate");
-            let connector = MakeTlsConnector::new(connector);
+            let root_cert_file = fs::read(settings.db_ca_cert.clone()).unwrap_or_else(|e| {
+                panic!(
+                    "Unable to read db_ca_cert file [{}]: {}",
+                    settings.db_ca_cert, e
+                )
+            });
+            let root_cert = Certificate::from_pem(&root_cert_file).unwrap_or_else(|e| {
+                panic!(
+                    "Unable to load Certificate from pem file [{}]: {}",
+                    settings.db_ca_cert, e
+                )
+            });
+            // If client cert and key are specified, try using it. Otherwise default to user/pass.
+            // Since the TlsConnector builder sucks
+            let builder = if settings.db_client_cert.is_some() && settings.db_client_key.is_some() {
+                let cert: String = settings.db_client_cert.unwrap();
+                let key: String = settings.db_client_key.unwrap();
+                let client_cert_file = fs::read(cert.clone()).unwrap_or_else(|e| {
+                    panic!(
+                        "Unable to read client certificate db_client_cert file [{}]: {}",
+                        cert, e
+                    )
+                });
+                let client_key_file = fs::read(key.clone()).unwrap_or_else(|e| {
+                    panic!(
+                        "Unable to read client key db_client_key file [{}]: {}",
+                        key, e
+                    )
+                });
+                TlsConnector::builder()
+                    .add_root_certificate(root_cert)
+                    .identity(
+                        Identity::from_pkcs8(&client_cert_file, &client_key_file).unwrap_or_else(
+                            |e| {
+                                panic!(
+                                    "Unable to create identity from specified cert[{}] and key[{}]: {}",
+                                    cert, key, e
+                                )
+                            },
+                        ),
+                    )
+                    .build()
+                    .unwrap_or_else(|e| {
+                        panic!("Unable to connect build connector custom ca and client certs: {}", e)
+                    })
+            } else {
+                TlsConnector::builder()
+                    .add_root_certificate(root_cert)
+                    .build()
+                    .unwrap_or_else(|e| {
+                        panic!(
+                            "Unable to connect build connector custom root ca cert: {}",
+                            e
+                        )
+                    })
+            };
+            let connector = MakeTlsConnector::new(builder);
 
             settings
                 .pg

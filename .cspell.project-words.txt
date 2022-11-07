@@ -42,3 +42,9 @@ BYDAY
 DTSTART
 RRULE
 dockerenv
+pkcs
+initdb
+microdnf
+nocrypt
+outform
+topk

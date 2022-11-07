@@ -30,6 +30,8 @@ pub struct Config {
     #[serde(default)]
     pub use_tls: bool,
     pub db_ca_cert: String,
+    pub db_client_cert: Option<String>,
+    pub db_client_key: Option<String>,
 }
 
 /// Crate Errors
