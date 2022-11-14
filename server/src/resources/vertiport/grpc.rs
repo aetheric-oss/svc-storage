@@ -8,9 +8,10 @@ mod grpc_server {
 pub use grpc_server::vertiport_rpc_server::{VertiportRpc, VertiportRpcServer};
 pub use grpc_server::{Vertiport, VertiportData, Vertiports};
 
-use crate::common::{Id, SearchFilter, Uuid};
+use crate::common::{Id, SearchFilter};
 use crate::memdb::VERTIPORTS;
 use tonic::{Request, Response, Status};
+use uuid::Uuid;
 
 ///Implementation of gRPC endpoints
 #[derive(Debug, Default, Copy, Clone)]

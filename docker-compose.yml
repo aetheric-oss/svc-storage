@@ -56,6 +56,9 @@ services:
       - ${HOST_PORT_REST}:${DOCKER_PORT_REST}
       - ${HOST_PORT_GRPC}:${DOCKER_PORT_GRPC}
     volumes:
+      - type: bind
+        source: log4rs.yaml
+        target: /log4rs.yaml
       - type: volume
         source: cockroachdb-ssl
         target: /cockroach/ssl
@@ -65,8 +68,7 @@ services:
       interval: 2s
       timeout: 1s
       retries: 3
-    env_file:
-      - .env
+    command: init_psql populate_memdb
     environment:
       - RUST_BACKTRACE
       - PG__USER
@@ -77,6 +79,7 @@ services:
       - DB_CA_CERT
       - DB_CLIENT_CERT
       - DB_CLIENT_KEY
+      - DOCKER_PORT_GRPC
     depends_on:
       cockroachdb:
         condition: service_healthy

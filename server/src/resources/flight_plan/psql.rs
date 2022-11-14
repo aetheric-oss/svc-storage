@@ -1,4 +1,8 @@
-use crate::common::ArrErr;
+use crate::{
+    postgres::*,
+    resources::flight_plan::{FlightPriority, FlightStatus},
+};
+
 use deadpool_postgres::Pool;
 use postgres_types::ToSql;
 use std::collections::HashMap;
@@ -7,33 +11,25 @@ use std::marker::Sync;
 use tokio_postgres::row::Row;
 use uuid::Uuid;
 
+use crate::{psql_debug, psql_error, psql_info};
+
 /// TODO:
 /// 1. we might want to create a separate table for schedules
-/// adding a 'schedule_id' field to the flight_plan table should replace the 'departure_pad_id', 'arrival_pad_id',
+/// adding a 'schedule_id' field to the flight_plan table should replace the 'departure_vertipad_id', 'arrival_pad_id',
 /// 'scheduled_departure', 'scheduled_arrival', 'actual_departure', 'actual_arrival' fields here.
 /// 2. Maybe move this to a separate service, we don't need this code in production
 pub async fn init_table(pool: &Pool) -> Result<(), ArrErr> {
     let mut client = pool.get().await.unwrap();
     let transaction = client.transaction().await?;
 
-    let drop_table = "DROP TABLE IF EXISTS flight_plan";
-
-    println!("{}", drop_table);
-    if let Err(e) = transaction.execute(drop_table, &[]).await {
-        eprintln!("Failed to drop flight_plan table: {e}");
-        match transaction.rollback().await {
-            Ok(_) => return Ok(()),
-            Err(e) => return Err(e.into()),
-        }
-    }
     let create_table = "CREATE TABLE IF NOT EXISTS flight_plan (
         flight_plan_id UUID DEFAULT uuid_generate_v4() NOT NULL,
         pilot_id UUID NOT NULL,
         vehicle_id UUID NOT NULL,
         flight_distance INTEGER NOT NULL,
         weather_conditions TEXT NOT NULL,
-        departure_pad_id UUID NOT NULL,
-        destination_pad_id UUID NOT NULL,
+        departure_vertipad_id UUID NOT NULL,
+        destination_vertipad_id UUID NOT NULL,
         scheduled_departure TIMESTAMP WITH TIME ZONE NOT NULL,
         scheduled_arrival TIMESTAMP WITH TIME ZONE NOT NULL,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -41,14 +37,17 @@ pub async fn init_table(pool: &Pool) -> Result<(), ArrErr> {
         actual_departure TIMESTAMP WITH TIME ZONE,
         actual_arrival TIMESTAMP WITH TIME ZONE,
         flight_release_approval TIMESTAMP WITH TIME ZONE,
+        flight_plan_submitted TIMESTAMP WITH TIME ZONE,
         approved_by UUID,
+        cargo_weight_g JSON,
         flight_status TEXT DEFAULT 'DRAFT',
+        flight_priority TEXT DEFAULT 'LOW',
         PRIMARY KEY (flight_plan_id)
     )";
 
-    println!("{}", create_table);
+    psql_debug!("{}", create_table);
     if let Err(e) = transaction.execute(create_table, &[]).await {
-        eprintln!("Failed to create flight_plan table: {e}");
+        psql_error!("Failed to create flight_plan table: {e}");
         match transaction.rollback().await {
             Ok(_) => return Ok(()),
             Err(e) => return Err(e.into()),
@@ -75,10 +74,11 @@ pub async fn drop_table(pool: &Pool) -> Result<(), ArrErr> {
     let transaction = client.transaction().await?;
 
     let drop_table = "DROP TABLE IF EXISTS flight_plan";
+    psql_debug!("{}", drop_table);
 
-    println!("{}", drop_table);
+    psql_info!("Dropping table [flight_plan].");
     if let Err(e) = transaction.execute(drop_table, &[]).await {
-        eprintln!("Failed to drop flight_plan table: {e}");
+        psql_error!("Failed to drop flight_plan table: {e}");
         match transaction.rollback().await {
             Ok(_) => return Ok(()),
             Err(e) => return Err(e.into()),
@@ -111,13 +111,14 @@ pub async fn create(
         fields.join(", "),
         inserts.join(", ")
     );
-    println!("{}", insert_sql);
+    psql_debug!("{}", insert_sql);
 
+    psql_info!("Inserting new entry for table [flight_plan].");
     let client = pool.get().await.unwrap();
     match client.query_one(insert_sql, &params[..]).await {
         Ok(row) => Ok(FlightPlanPsql {
             pool: pool.clone(),
-            id: Uuid::new_v4(),
+            id: row.get("flight_plan_id"),
             data: row,
         }),
         Err(e) => Err(e.into()),
@@ -131,9 +132,50 @@ pub async fn delete(pool: &Pool, id: Uuid) -> Result<(), ArrErr> {
         .await
         .unwrap();
 
-    println!("Deleting flight_plan row for: {}", id);
+    psql_info!("Deleting entry from table [flight_plan]. uuid: {}", id);
     match client.query_one(delete_sql, &[&id]).await {
         Ok(_) => Ok(()),
+        Err(e) => Err(e.into()),
+    }
+}
+
+pub async fn search(pool: &Pool, filter: &HashMap<String, String>) -> Result<Vec<Row>, ArrErr> {
+    let client = pool.get().await.unwrap();
+    let search_col = filter.get("column").unwrap();
+    let search_val = filter.get("value").unwrap();
+
+    // TODO: better error handling
+    let search_val = match search_col.as_str() {
+        "flight_status" => match FlightStatus::from_i32(search_val.parse().unwrap()) {
+            Some(status) => String::from(status.as_str_name()),
+            None => todo!(),
+        },
+        "flight_priority" => match FlightPriority::from_i32(search_val.parse().unwrap()) {
+            Some(status) => String::from(status.as_str_name()),
+            None => todo!(),
+        },
+        _ => search_val.to_string(),
+    };
+
+    let mut search_fields: Vec<&(dyn ToSql + Sync)> = vec![];
+    let mut search_query = String::from("");
+    if !search_col.is_empty() {
+        search_query = format!("WHERE flight_plan.{} = $1", search_col);
+        search_fields.push(&search_val);
+    }
+
+    let search_sql = &client
+        .prepare_cached(&format!("SELECT * FROM flight_plan WHERE {}", search_query))
+        .await
+        .unwrap();
+
+    psql_info!(
+        "Searching flight_plan rows for: {} = {}",
+        search_col,
+        search_val
+    );
+    match client.query(search_sql, &search_fields[..]).await {
+        Ok(rows) => Ok(rows),
         Err(e) => Err(e.into()),
     }
 }
@@ -159,10 +201,10 @@ impl FlightPlanPsql {
     pub async fn new(pool: &Pool, id: Uuid) -> Result<FlightPlanPsql, ArrErr> {
         let client = pool.get().await.unwrap();
         let stmt = client
-            .prepare_cached("SELECT * FROM flight_plan WHERE id = $1")
+            .prepare_cached("SELECT * FROM flight_plan WHERE flight_plan_id = $1")
             .await
             .unwrap();
-        match client.query_one(&stmt, &[&id.to_string()]).await {
+        match client.query_one(&stmt, &[&id]).await {
             Ok(row) => Ok(FlightPlanPsql {
                 pool: pool.clone(),
                 id,
@@ -179,7 +221,10 @@ impl FlightPlanPsql {
             .prepare_cached("SELECT * FROM flight_plan WHERE flight_plan_id = $1")
             .await
             .unwrap();
-        println!("Fetching row data for: {}", self.id);
+        psql_info!(
+            "Fetching row data for table [flight_plan]. uuid: {}",
+            self.id
+        );
         match client.query_one(select_sql, &[&self.id]).await {
             Ok(row) => {
                 self.data = row;
@@ -200,15 +245,17 @@ impl FlightPlanPsql {
             params.push(value);
             index += 1;
         }
+
         let update_sql = &format!(
             "UPDATE flight_plan SET {} WHERE flight_plan_id = ${}",
             updates.join(", "),
             index
         );
-        println!("{}", update_sql);
+        psql_debug!("{}", update_sql);
         params.push(&self.id);
-        println!("{:?}", &params);
+        psql_debug!("{:?}", &params);
 
+        psql_info!("Updating entry in table [flight_plan]. uuid: {}", self.id);
         let client = self.pool.get().await.unwrap();
         match client.execute(update_sql, &params[..]).await {
             Ok(_row) => self.read().await,

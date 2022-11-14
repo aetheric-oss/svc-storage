@@ -1,122 +1,88 @@
 //! gRPC server implementation
 
 mod common;
+mod grpc;
 mod memdb;
 mod postgres;
 mod resources;
 
-use crate::common::{get_db_pool, ArrErr, PostgresPool, DB_POOL};
-use crate::postgres::{create_db, recreate_db};
-use crate::resources::base::{StorageImpl, StorageRpcServer};
-use crate::resources::flight_plan::{FlightPlanImpl, FlightPlanRpcServer};
-use crate::resources::pilot::{PilotImpl, PilotRpcServer};
-use crate::resources::vehicle::{VehicleImpl, VehicleRpcServer};
-use crate::resources::vertipad::{VertipadImpl, VertipadRpcServer};
-use crate::resources::vertiport::{VertiportImpl, VertiportRpcServer};
+use crate::common::ArrErr;
+use crate::grpc::grpc_server;
+use crate::postgres::{create_db, get_psql_pool, init_psql_pool, recreate_db};
+use log::info;
 use std::env;
-use tonic::transport::Server;
 
 #[tokio::main]
 async fn main() -> Result<(), ArrErr> {
-    // Initialize global postgresql DB connection pool
-    let pg = PostgresPool::from_config()?;
-    pg.readiness().await?;
-    match DB_POOL.set(pg.pool) {
-        Ok(_) => (),
-        Err(_) => panic!("Failed to set DB_POOL"),
-    }
+    // Set up logger runtime -- needs access to log4rs.yaml
+    log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
+    /*
+    // Set up logger compile time
+    let config_str = include_str!("log4rs.yaml");
+    let config = serde_yaml::from_str(config_str).unwrap();
+    log4rs::init_raw_config(config).unwrap();
+    */
 
     // Check command line args
     let args: Vec<String> = env::args().collect();
-    let action = &args[1];
-    match action.as_str() {
-        "init_db" => {
-            println!("Found argument 'init_db'. Creating database schema now...");
-            create_db(&get_db_pool()).await?;
-            println!("Database creation completed, shutting down");
-            return Ok(());
+    for option in args.iter() {
+        if option == &args[0] {
+            // skip first arg, it's our own program name
+            continue;
         }
-        "rebuild_db" => {
-            println!("Found argument 'rebuild_db'. Rebuilding now...");
-            recreate_db(&get_db_pool()).await?;
-            println!("Rebuild completed, shutting down");
-            return Ok(());
-        }
-        "with_memdb" => {
-            //populate memdb sample data
-            println!("Found argument 'with_memdb'. populating data...");
-            memdb::populate_data().await;
-        }
-        _ => {
-            println!("Starting without arguments.");
-        }
+        apply_arg(option).await?;
+    }
+
+    if common::use_psql_get() {
+        info!("Running database initialization");
+        init_psql_pool().await?;
     }
 
     // Start GRPC Server
-    tokio::spawn(grpc_server());
+    tokio::spawn(grpc_server()).await?;
 
-    println!("Server shutdown.");
+    info!("Server shutdown.");
     Ok(())
 }
 
-/// Tokio signal handler that will wait for a user to press CTRL+C.
-/// We use this in our tonic `Server` method `serve_with_shutdown`.
-///
-/// # Arguments
-///
-/// # Examples
-///
-/// ```
-/// tonic::transport::Server::builder()
-///     .serve_with_shutdown(&"0.0.0.0:50051".parse().unwrap(), shutdown_signal())
-///     .await?;
-/// ```
-
-pub async fn shutdown_signal() {
-    tokio::signal::ctrl_c()
-        .await
-        .expect("Tokio signal ctrl-c received!");
-    println!("signal shutdown!");
-}
-
-/// Starts the grpc server for this microservice
-async fn grpc_server() {
-    // GRPC Server
-    let grpc_port = std::env::var("DOCKER_PORT_GRPC")
-        .unwrap_or_else(|_| "50051".to_string())
-        .parse::<u16>()
-        .unwrap_or(50051);
-
-    let full_grpc_addr = format!("[::]:{}", grpc_port).parse().unwrap();
-
-    let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
-    health_reporter
-        .set_serving::<StorageRpcServer<StorageImpl>>()
-        .await;
-    health_reporter
-        .set_serving::<VehicleRpcServer<VehicleImpl>>()
-        .await;
-    health_reporter
-        .set_serving::<FlightPlanRpcServer<FlightPlanImpl>>()
-        .await;
-    health_reporter
-        .set_serving::<VertipadRpcServer<VertipadImpl>>()
-        .await;
-    health_reporter
-        .set_serving::<VertiportRpcServer<VertiportImpl>>()
-        .await;
-
-    println!("Starting gRPC server at: {}", full_grpc_addr);
-    Server::builder()
-        .add_service(health_service)
-        .add_service(StorageRpcServer::new(StorageImpl::default()))
-        .add_service(VehicleRpcServer::new(VehicleImpl::default()))
-        .add_service(PilotRpcServer::new(PilotImpl::default()))
-        .add_service(FlightPlanRpcServer::new(FlightPlanImpl::default()))
-        .add_service(VertipadRpcServer::new(VertipadImpl::default()))
-        .add_service(VertiportRpcServer::new(VertiportImpl::default()))
-        .serve_with_shutdown(full_grpc_addr, shutdown_signal())
-        .await
-        .unwrap();
-    println!("gRPC server running at: {}", full_grpc_addr);
+/// Matches given arguments with known options
+async fn apply_arg(option: &str) -> Result<(), ArrErr> {
+    match option {
+        "init_psql" => {
+            init_psql_pool().await?;
+            info!(
+                "Found argument [{}]. Creating database schema now...",
+                option
+            );
+            create_db(&get_psql_pool()).await?;
+            info!("PSQL Database creation completed.");
+            Ok(())
+        }
+        "rebuild_psql" => {
+            init_psql_pool().await?;
+            info!("Found argument [{}]. Rebuilding now...", option);
+            recreate_db(&get_psql_pool()).await?;
+            info!("PSQL Rebuild completed.");
+            Ok(())
+        }
+        "populate_memdb" => {
+            //populate memdb sample data
+            info!("Found argument [{}]. populating data in memory...", option);
+            memdb::populate_data().await;
+            Ok(())
+        }
+        "memdb_only" => {
+            common::use_psql_set(false);
+            info!(
+                "Found argument [{}]. use_psql_BACKEND set to [{}]",
+                option,
+                common::use_psql_get()
+            );
+            Ok(())
+        }
+        _ => {
+            info!("Unknown argument {}, ignoring...", option);
+            Ok(())
+        }
+    }
 }

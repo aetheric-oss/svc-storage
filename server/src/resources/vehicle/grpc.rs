@@ -7,9 +7,10 @@ mod grpc_server {
 pub use grpc_server::vehicle_rpc_server::{VehicleRpc, VehicleRpcServer};
 pub use grpc_server::{Vehicle, VehicleData, VehicleType, Vehicles};
 
-use crate::common::{Id, SearchFilter, Uuid};
+use crate::common::{Id, SearchFilter};
 use crate::memdb::VEHICLES;
 use tonic::{Request, Response, Status};
+use uuid::Uuid;
 
 ///Implementation of gRPC endpoints
 #[derive(Debug, Default, Copy, Clone)]

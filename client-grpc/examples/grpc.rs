@@ -3,13 +3,15 @@
 use prost_types::FieldMask;
 use std::env;
 use std::time::SystemTime;
-use uuid::Uuid;
+use svc_storage_client_grpc::client::vertipad_rpc_client::VertipadRpcClient;
+use tonic::Status;
 
 #[allow(unused_qualifications, missing_docs)]
 use svc_storage_client_grpc::client::{
     flight_plan_rpc_client::FlightPlanRpcClient, pilot_rpc_client::PilotRpcClient,
-    vehicle_rpc_client::VehicleRpcClient, vertiport_rpc_client::VertiportRpcClient, FlightPlanData,
-    FlightPriority, FlightStatus, SearchFilter, UpdateFlightPlan, VehicleType,
+    vehicle_rpc_client::VehicleRpcClient, vertiport_rpc_client::VertiportRpcClient, FlightPlan,
+    FlightPlanData, FlightPriority, FlightStatus, Pilot, SearchFilter, UpdateFlightPlan, Vehicle,
+    VehicleType, Vertipad,
 };
 
 /// Provide GRPC endpoint to use
@@ -28,37 +30,15 @@ pub fn get_grpc_endpoint() -> String {
     format!("http://{}:{}", address, port)
 }
 
-/// Example svc-storage-client-grpc
+/// Example VehicleRpcClient
 /// Assuming the server is running, this method calls `client.vehicles` and
 /// should receive a valid response from the server
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn get_vehicles() -> Result<Vec<Vehicle>, Status> {
     let grpc_endpoint = get_grpc_endpoint();
-
-    println!(
-        "NOTE: Ensure the server is running on {} or this example will fail.",
-        grpc_endpoint
-    );
-
-    // Get a list of pilots and get the first returned pilot's id
-    let mut pilot_client = PilotRpcClient::connect(grpc_endpoint.clone()).await?;
-    println!("Pilot Client created");
-
-    let pilot_filter = SearchFilter {
-        search_field: "".to_string(),
-        search_value: "".to_string(),
-        page_number: 1,
-        results_per_page: 50,
-    };
-
-    let pilots = pilot_client
-        .pilots(tonic::Request::new(pilot_filter.clone()))
-        .await?;
-    let pilot = pilots.into_inner().pilots.pop();
-    let pilot_id = pilot.unwrap().id;
-
-    // Get a list of vehicles and get the first returned vehicle's id
-    let mut vehicle_client = VehicleRpcClient::connect(grpc_endpoint.clone()).await?;
+    println!("Using GRPC endpoint {}", grpc_endpoint);
+    let mut vehicle_client = VehicleRpcClient::connect(grpc_endpoint.clone())
+        .await
+        .unwrap();
     println!("Vehicle Client created");
 
     let vehicle_filter = SearchFilter {
@@ -68,14 +48,87 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         results_per_page: 50,
     };
 
-    let vehicles = vehicle_client
+    println!("Retrieving list of vehicles");
+    match vehicle_client
         .vehicles(tonic::Request::new(vehicle_filter.clone()))
-        .await?;
-    let vehicle = vehicles.into_inner().vehicles.pop();
-    let vehicle_id = vehicle.unwrap().id;
+        .await
+    {
+        Ok(res) => Ok(res.into_inner().vehicles),
+        Err(e) => Err(e),
+    }
+}
 
-    let mut fp_client = FlightPlanRpcClient::connect(grpc_endpoint.clone()).await?;
-    println!("Flight Plan Client created");
+/// Example PilotRpcClient
+/// Assuming the server is running, this method calls `client.pilots` and
+/// should receive a valid response from the server
+async fn get_pilots() -> Result<Vec<Pilot>, Status> {
+    let grpc_endpoint = get_grpc_endpoint();
+    let mut pilot_client = PilotRpcClient::connect(grpc_endpoint.clone())
+        .await
+        .unwrap();
+    println!("Pilot Client created");
+
+    let pilot_filter = SearchFilter {
+        search_field: "".to_string(),
+        search_value: "".to_string(),
+        page_number: 1,
+        results_per_page: 50,
+    };
+
+    println!("Retrieving list of pilots");
+    match pilot_client
+        .pilots(tonic::Request::new(pilot_filter.clone()))
+        .await
+    {
+        Ok(res) => Ok(res.into_inner().pilots),
+        Err(e) => Err(e),
+    }
+}
+
+/// Example VertipadRpcClient
+/// Assuming the server is running, this method calls `client.vertipads` and
+/// should receive a valid response from the server
+async fn get_vertipads() -> Result<Vec<Vertipad>, Status> {
+    let grpc_endpoint = get_grpc_endpoint();
+    let mut vertipad_client = VertipadRpcClient::connect(grpc_endpoint.clone())
+        .await
+        .unwrap();
+    println!("Vertipad Client created");
+
+    let vertipad_filter = SearchFilter {
+        search_field: "".to_string(),
+        search_value: "".to_string(),
+        page_number: 1,
+        results_per_page: 50,
+    };
+
+    println!("Retrieving list of vertipads");
+    match vertipad_client
+        .vertipads(tonic::Request::new(vertipad_filter.clone()))
+        .await
+    {
+        Ok(res) => Ok(res.into_inner().vertipads),
+        Err(e) => Err(e),
+    }
+}
+
+/// Example FlightPlanRpcClient
+/// Assuming the ser ver is running, this method plays a scenario:
+///   - get flight plans
+///   - insert new flight plan
+///   - update inserted flightplan status
+///   - get flight plans
+async fn flight_plan_scenario(
+    pilot_id: String,
+    vehicle_id: String,
+    mut vertipads: Vec<Vertipad>,
+) -> Result<Vec<FlightPlan>, Status> {
+    let grpc_endpoint = get_grpc_endpoint();
+    let mut flight_plan_client = match FlightPlanRpcClient::connect(grpc_endpoint.clone()).await {
+        Ok(res) => res,
+        Err(e) => panic!("Error creating client for FlightPlanRpcClient: {}", e),
+    };
+    println!("FlightPlan Client created");
 
     let mut fp_filter = SearchFilter {
         search_field: "flight_status".to_string(),
@@ -84,38 +137,56 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         results_per_page: 50,
     };
 
-    let departure_vertiport_id = Uuid::new_v4();
-    let departure_pad_id = Uuid::new_v4();
-    let destination_vertiport_id = Uuid::new_v4();
-    let destination_pad_id = Uuid::new_v4();
-
-    let _response = fp_client
+    println!("Retrieving list of flight plans");
+    let fps = match flight_plan_client
         .flight_plans(tonic::Request::new(fp_filter.clone()))
-        .await?;
-    let insert_fp_res = fp_client
+        .await
+    {
+        Ok(res) => Ok(res.into_inner().flight_plans),
+        Err(e) => Err(e),
+    };
+    println!("Flight Plans with status [Draft] found: {:?}", fps);
+
+    let departure_vertipad_id = match vertipads.pop() {
+        Some(vertipad) => vertipad.id,
+        None => panic!("No vertipad found.. exiting"),
+    };
+    let destination_vertipad_id = match vertipads.pop() {
+        Some(vertipad) => vertipad.id,
+        None => panic!("No vertipad found.. exiting"),
+    };
+
+    println!("Starting insert flight plan");
+    let new_fp = match flight_plan_client
         .insert_flight_plan(tonic::Request::new(FlightPlanData {
             flight_status: FlightStatus::Draft as i32,
-            vehicle_id: vehicle_id.to_string(),
-            pilot_id: pilot_id.to_string(),
-            cargo_weight: vec![20],
+            vehicle_id: vehicle_id,
+            pilot_id: pilot_id.clone(),
+            cargo_weight_g: vec![20],
             flight_distance: 6000,
             weather_conditions: "Cloudy, low wind".to_string(),
-            departure_vertiport_id: Some(departure_vertiport_id.to_string()),
-            departure_pad_id: departure_pad_id.to_string(),
-            destination_vertiport_id: Some(destination_vertiport_id.to_string()),
-            destination_pad_id: destination_pad_id.to_string(),
+            departure_vertipad_id: departure_vertipad_id.to_string(),
+            departure_vertiport_id: None,
+            destination_vertipad_id: destination_vertipad_id.to_string(),
+            destination_vertiport_id: None,
             scheduled_departure: Some(prost_types::Timestamp::from(SystemTime::now())),
             scheduled_arrival: Some(prost_types::Timestamp::from(SystemTime::now())),
             actual_departure: Some(prost_types::Timestamp::from(SystemTime::now())),
             actual_arrival: Some(prost_types::Timestamp::from(SystemTime::now())),
             flight_release_approval: Some(prost_types::Timestamp::from(SystemTime::now())),
             flight_plan_submitted: Some(prost_types::Timestamp::from(SystemTime::now())),
-            approved_by: Some(pilot_id.to_string()),
+            approved_by: Some(pilot_id.clone()),
             flight_priority: FlightPriority::Low as i32,
         }))
-        .await?;
-    let new_fp = insert_fp_res.into_inner().clone();
-    let update_fp_res = fp_client
+        .await
+    {
+        Ok(fp) => fp.into_inner(),
+        Err(e) => panic!("Something went wrong inserting the flight plan: {}", e),
+    };
+    println!("Created new flight plan: {:?}", new_fp);
+
+    println!("Starting update flight plan");
+    let update_fp_res = match flight_plan_client
         .update_flight_plan(tonic::Request::new(UpdateFlightPlan {
             id: new_fp.id.clone(),
             data: Some(FlightPlanData {
@@ -126,20 +197,58 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 paths: vec!["flight_status".to_string()],
             }),
         }))
-        .await?;
-    let response1 = fp_client
-        .flight_plans(tonic::Request::new(fp_filter.clone()))
-        .await?;
+        .await
+    {
+        Ok(fp) => fp.into_inner(),
+        Err(e) => panic!("Something went wrong updating the flight plan: {}", e),
+    };
+    println!("Update flight plan result: {:?}", update_fp_res);
 
     fp_filter.search_value = (FlightStatus::InFlight as i32).to_string();
-    let response2 = fp_client
+    match flight_plan_client
         .flight_plans(tonic::Request::new(fp_filter.clone()))
-        .await?;
+        .await
+    {
+        Ok(res) => {
+            let fps = res.into_inner().flight_plans;
+            println!("Flight Plans with status [InFlight] found: {:?}", fps);
+            Ok(fps)
+        }
+        Err(e) => Err(e),
+    }
+}
 
-    println!("insert_fp_res={:?}", new_fp);
-    println!("update_fp_res={:?}", update_fp_res.into_inner());
-    println!("RESPONSE Draft flights={:?}", response1.into_inner());
-    println!("RESPONSE InFlight flights={:?}", response2.into_inner());
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let grpc_endpoint = get_grpc_endpoint();
+
+    println!(
+        "NOTE: Ensure the server is running on {} or this example will fail.",
+        grpc_endpoint
+    );
+
+    // Get a list of vehicles and get the first returned vehicle id
+    let mut vehicles = get_vehicles().await?;
+    let vehicle_id = match vehicles.pop() {
+        Some(vehicle) => vehicle.id,
+        None => panic!("No vehicles found.. exiting"),
+    };
+
+    // Get a list of pilots and get the first returned pilot's id
+    let mut pilots = get_pilots().await?;
+    let pilot_id = match pilots.pop() {
+        Some(pilot) => pilot.id,
+        None => panic!("No pilots found.. exiting"),
+    };
+
+    // Get a list of vertipads
+    let vertipads = get_vertipads().await?;
+    if vertipads.len() == 0 {
+        panic!("No vertipads found.. exiting");
+    }
+
+    // Play flight plan scenario
+    let _result = flight_plan_scenario(pilot_id, vehicle_id, vertipads).await;
 
     let mut vertiport_client = VertiportRpcClient::connect(grpc_endpoint.clone()).await?;
     let vertiports = vertiport_client

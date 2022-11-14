@@ -67,34 +67,30 @@ TODO: Get rid of user/pass and use client certificates instead.
 **Set up your environment:**
 Create an .env file with the following contents (The password should be the password you will use for the svc_storage user):
 ```
+SOURCE_PATH=.
+DOCKER_NAME=arrow-svc-storage
+PACKAGE_NAME=svc-storage
+PUBLISH_PACKAGE_NAME=svc-storage-client-grpc
+
+# Used by the server to connect to the CockroachDB backend
 PG__USER=svc_storage
 PG__DBNAME=arrow
-PG__PASSWORD="<your pass>"
 PG__HOST=cockroachdb
 PG__PORT=26257
 PG__SSLMODE=require
 DB_CA_CERT=/cockroach/ssl/certs/ca.crt
-SOURCE_PATH=.
+DB_CLIENT_CERT=/cockroach/ssl/certs/client.svc_storage.crt
+DB_CLIENT_KEY=/cockroach/ssl/certs/client.svc_storage.key.pk8
 
-DOCKER_NAME=arrow-svc-storage
-PACKAGE_NAME=svc-storage
-
-PUBLISH_PACKAGE_NAME=svc-storage-client-grpc
+# Used by the server and docker compose to map the right ports
 DOCKER_PORT_REST=8000
 DOCKER_PORT_GRPC=50051
 HOST_PORT_REST=8003
 HOST_PORT_GRPC=50003
-```
-**Start CockroachDB and create your database + user:**
-```
-docker compose up -d cockroachdb
-docker exec -it arrow-svc-storage-example-cockroachdb sh
-cockroach sql --certs-dir /cockroach/certs/
-CREATE DATABASE arrow;
-CREATE USER svc_storage WITH PASSWORD '<your password>';
-GRANT ALL PRIVILEGES ON DATABASE arrow TO svc_storage;
-```
 
+# Used for the grpc client to know which port to connect to
+SERVER_PORT_GRPC=50003
+```
 Run the example:
 ```
 make rust-example-grpc

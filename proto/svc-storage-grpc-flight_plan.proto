@@ -61,20 +61,20 @@ message FlightPlanData {
     string pilot_id = 1;
     //vehicle_id UUID v4
     string vehicle_id = 2;
-    //cargo weight per package
-    repeated uint32 cargo_weight = 3;
+    //cargo weight in grams per package
+    repeated int64 cargo_weight_g = 3;
     //flight_distance in meters
-    uint32 flight_distance = 4;
+    int64 flight_distance = 4;
     //weather_conditions
     string weather_conditions = 5;
     //departure_vertiport_id UUID v4, only listed for get results, not needed for creation (known through pad_id)
     optional string departure_vertiport_id = 6;
-    //departure_pad_id UUID v4
-    string departure_pad_id = 7;
+    //departure_vertipad_id UUID v4
+    string departure_vertipad_id = 7;
     //destination_vertiport_id UUID v4, only listed for get results, not needed for creation (known through pad_id)
     optional string destination_vertiport_id = 8;
-    //destination_pad_id UUID v4
-    string destination_pad_id = 9;
+    //destination_vertipad_id UUID v4
+    string destination_vertipad_id = 9;
     //scheduled_departure
     google.protobuf.Timestamp scheduled_departure = 10;
     //scheduled_arrival

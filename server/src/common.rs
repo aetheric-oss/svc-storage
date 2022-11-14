@@ -2,33 +2,26 @@
 //!
 //! Commonly used libraries, functions and statics, made public for easy use in modules.
 
-use anyhow::{Error, Result};
+use anyhow::Result;
 use config::{ConfigError, Environment};
-use deadpool_postgres::Pool;
 use dotenv::dotenv;
 use serde::Deserialize;
-use tokio::sync::OnceCell;
+use std::sync::atomic::{AtomicBool, Ordering};
+use tokio::task::JoinError;
 
-pub use crate::postgres::PostgresPool;
-pub use crate::resources::base::{Id, SearchFilter};
-pub use crate::resources::flight_plan::{
-    FlightPlan, FlightPlanData, FlightPlans, FlightPriority, FlightStatus,
-};
-pub use crate::resources::pilot::{Pilot, PilotData, Pilots};
-pub use crate::resources::vehicle::{Vehicle, VehicleData, VehicleType, Vehicles};
-pub use crate::resources::vertipad::{Vertipad, VertipadData, Vertipads};
-pub use crate::resources::vertiport::{Vertiport, VertiportData, Vertiports};
-
+pub use crate::grpc::{Id, SearchFilter};
 pub use uuid::Uuid;
 
-/// Create global variable to access our database pool
-pub static DB_POOL: OnceCell<Pool> = OnceCell::const_new();
-/// Shorthand function to clone database connection pool
-pub fn get_db_pool() -> Pool {
-    DB_POOL
-        .get()
-        .expect("Database pool not initialized")
-        .clone()
+pub const PSQL_LOG_TARGET: &str = "app::backend::psql";
+pub const MEMDB_LOG_TARGET: &str = "app::backend::memdb";
+pub const GRPC_LOG_TARGET: &str = "app::grpc";
+
+pub static USE_PSQL_BACKEND: AtomicBool = AtomicBool::new(true);
+pub fn use_psql_set(value: bool) {
+    USE_PSQL_BACKEND.store(value, Ordering::SeqCst);
+}
+pub fn use_psql_get() -> bool {
+    USE_PSQL_BACKEND.load(Ordering::Relaxed)
 }
 
 #[derive(Debug, Deserialize)]
@@ -39,6 +32,7 @@ pub struct Config {
     pub db_ca_cert: String,
     pub db_client_cert: Option<String>,
     pub db_client_key: Option<String>,
+    pub docker_port_grpc: Option<u16>,
 }
 
 /// Crate Errors
@@ -46,6 +40,9 @@ pub struct Config {
 pub enum ArrErr {
     #[error("error: {0}")]
     Error(String),
+
+    #[error("join error: {0}")]
+    JoinError(#[from] JoinError),
 
     #[error("configuration error: {0}")]
     ConfigError(#[from] ConfigError),
@@ -55,35 +52,21 @@ pub enum ArrErr {
 
     #[error("create timestamp error: {0}")]
     ProstTimestampError(#[from] prost_types::TimestampError),
-
-    #[error("postgres config error: {0}")]
-    PoolPostgresConfigError(#[from] deadpool_postgres::ConfigError),
-    #[error("postgres pool error: {0}")]
-    PoolPostgresError(#[from] deadpool_postgres::PoolError),
-
-    #[error("error executing DB query: {0}")]
-    DBQueryError(#[from] tokio_postgres::Error),
-    #[error("error creating table: {0}")]
-    DBInitError(tokio_postgres::Error),
-}
-
-impl From<ArrErr> for tonic::Status {
-    fn from(err: ArrErr) -> Self {
-        // These errors come from modules like Postgres, where you
-        // probably wouldn't want to include error details in the
-        // response, log them here instead which will include
-        // tracing information from the request handler
-        //
-        // <https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html#error-handling>
-        // <https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html#which-events-to-log>
-        let err: Error = err.into();
-        log::warn!("{:#}", err);
-
-        tonic::Status::internal("error".to_string())
-    }
 }
 
 impl Config {
+    // Default values for Config
+    pub fn new() -> Self {
+        Config {
+            pg: deadpool_postgres::Config::new(),
+            use_tls: true,
+            db_ca_cert: "".to_string(),
+            db_client_cert: None,
+            db_client_key: None,
+            docker_port_grpc: Some(50051),
+        }
+    }
+
     pub fn from_env() -> Result<Self, ConfigError> {
         dotenv().ok();
 

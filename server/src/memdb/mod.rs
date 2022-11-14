@@ -1,14 +1,20 @@
+#[macro_use]
+pub mod macros;
+
+pub use crate::common::MEMDB_LOG_TARGET;
+pub use crate::resources::flight_plan::*;
+pub use crate::resources::pilot::*;
+pub use crate::resources::vehicle::*;
+pub use crate::resources::vertipad::*;
+pub use crate::resources::vertiport::*;
+
 use futures::lock::Mutex;
 use lazy_static::lazy_static;
 use ordered_float::OrderedFloat;
 use router::{generator::generate_nodes_near, location::Location};
 use std::collections::HashMap;
 use std::time::SystemTime;
-
-use crate::common::{
-    FlightPlan, FlightPlanData, FlightPriority, FlightStatus, Pilot, PilotData, Uuid, Vehicle,
-    VehicleData, VehicleType, Vertipad, Vertiport, VertiportData,
-};
+use uuid::Uuid;
 
 lazy_static! {
     pub static ref VEHICLES: Mutex<HashMap<String, Vehicle>> = Mutex::new(HashMap::new());
@@ -36,8 +42,9 @@ async fn generate_sample_vertiports() {
     };
     let nodes = generate_nodes_near(&SAN_FRANCISCO, 25.0, 50);
     let node_ids: Vec<String> = nodes.iter().map(|node| node.uid.clone()).collect();
-    println!("Generated vertiports ids: {}", node_ids.join(", "));
+    memdb_info!("Generated vertiports ids: {}", node_ids.join(", "));
     let mut vertiports = VERTIPORTS.lock().await;
+    let mut vertipads = VERTIPADS.lock().await;
     for node in nodes.into_iter() {
         vertiports.insert(
             node.uid.to_string(),
@@ -51,6 +58,23 @@ async fn generate_sample_vertiports() {
                 }),
             },
         );
+
+        let vertipad_id = Uuid::new_v4();
+        vertipads.insert(
+            vertipad_id.to_string(),
+            Vertipad {
+                id: vertipad_id.to_string(),
+                data: Some(VertipadData {
+                    vertiport_id: node.uid.to_string(),
+                    description: format!("First vertipad for {}", node.uid),
+                    latitude: node.location.latitude.into_inner(),
+                    longitude: node.location.longitude.into_inner(),
+                    enabled: true,
+                    occupied: false,
+                    schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
+                }),
+            },
+        );
     }
 }
 
@@ -59,9 +83,9 @@ pub async fn populate_data() {
     let pilot_id = Uuid::new_v4();
     let flight_plan_id = Uuid::new_v4().to_string();
     let departure_vertiport_id = Uuid::new_v4().to_string();
-    let departure_pad_id = Uuid::new_v4().to_string();
+    let departure_vertipad_id = Uuid::new_v4().to_string();
     let destination_vertiport_id = Uuid::new_v4().to_string();
-    let destination_pad_id = Uuid::new_v4().to_string();
+    let destination_vertipad_id = Uuid::new_v4().to_string();
 
     let mut vehicles = VEHICLES.lock().await;
     let id = vehicle_id.clone().to_string();
@@ -84,19 +108,19 @@ pub async fn populate_data() {
                 flight_status: FlightStatus::Draft as i32,
                 vehicle_id: vehicle_id.to_string(),
                 pilot_id: pilot_id.to_string(),
-                cargo_weight: vec![20],
+                cargo_weight_g: vec![20],
                 flight_distance: 6000,
                 weather_conditions: "Cloudy, low wind".to_string(),
                 departure_vertiport_id: Some(departure_vertiport_id.to_string()),
-                departure_pad_id: departure_pad_id.to_string(),
+                departure_vertipad_id: departure_vertipad_id.to_string(),
                 destination_vertiport_id: Some(destination_vertiport_id.to_string()),
-                destination_pad_id: destination_pad_id.to_string(),
-                scheduled_departure: Some(prost_types::Timestamp::from(SystemTime::now())),
-                scheduled_arrival: Some(prost_types::Timestamp::from(SystemTime::now())),
-                actual_departure: Some(prost_types::Timestamp::from(SystemTime::now())),
-                actual_arrival: Some(prost_types::Timestamp::from(SystemTime::now())),
-                flight_release_approval: Some(prost_types::Timestamp::from(SystemTime::now())),
-                flight_plan_submitted: Some(prost_types::Timestamp::from(SystemTime::now())),
+                destination_vertipad_id: destination_vertipad_id.to_string(),
+                scheduled_departure: Some(SystemTime::now().into()),
+                scheduled_arrival: Some(SystemTime::now().into()),
+                actual_departure: Some(SystemTime::now().into()),
+                actual_arrival: Some(SystemTime::now().into()),
+                flight_release_approval: Some(SystemTime::now().into()),
+                flight_plan_submitted: Some(SystemTime::now().into()),
                 approved_by: Some(pilot_id.to_string()),
                 flight_priority: FlightPriority::Low as i32,
             }),

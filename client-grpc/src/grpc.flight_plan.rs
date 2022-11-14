@@ -29,27 +29,27 @@ pub struct FlightPlanData {
     /// vehicle_id UUID v4
     #[prost(string, tag="2")]
     pub vehicle_id: ::prost::alloc::string::String,
-    /// cargo weight per package
-    #[prost(uint32, repeated, tag="3")]
-    pub cargo_weight: ::prost::alloc::vec::Vec<u32>,
+    /// cargo weight in grams per package
+    #[prost(int64, repeated, tag="3")]
+    pub cargo_weight_g: ::prost::alloc::vec::Vec<i64>,
     /// flight_distance in meters
-    #[prost(uint32, tag="4")]
-    pub flight_distance: u32,
+    #[prost(int64, tag="4")]
+    pub flight_distance: i64,
     /// weather_conditions
     #[prost(string, tag="5")]
     pub weather_conditions: ::prost::alloc::string::String,
     /// departure_vertiport_id UUID v4, only listed for get results, not needed for creation (known through pad_id)
     #[prost(string, optional, tag="6")]
     pub departure_vertiport_id: ::core::option::Option<::prost::alloc::string::String>,
-    /// departure_pad_id UUID v4
+    /// departure_vertipad_id UUID v4
     #[prost(string, tag="7")]
-    pub departure_pad_id: ::prost::alloc::string::String,
+    pub departure_vertipad_id: ::prost::alloc::string::String,
     /// destination_vertiport_id UUID v4, only listed for get results, not needed for creation (known through pad_id)
     #[prost(string, optional, tag="8")]
     pub destination_vertiport_id: ::core::option::Option<::prost::alloc::string::String>,
-    /// destination_pad_id UUID v4
+    /// destination_vertipad_id UUID v4
     #[prost(string, tag="9")]
-    pub destination_pad_id: ::prost::alloc::string::String,
+    pub destination_vertipad_id: ::prost::alloc::string::String,
     /// scheduled_departure
     #[prost(message, optional, tag="10")]
     pub scheduled_departure: ::core::option::Option<::prost_types::Timestamp>,
@@ -87,6 +87,7 @@ pub struct FlightPlans {
     pub flight_plans: ::prost::alloc::vec::Vec<FlightPlan>,
 }
 /// Flight Status Enum
+#[derive(num_derive::FromPrimitive)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum FlightStatus {
@@ -120,6 +121,7 @@ impl FlightStatus {
     }
 }
 /// Flight Priority Enum
+#[derive(num_derive::FromPrimitive)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum FlightPriority {

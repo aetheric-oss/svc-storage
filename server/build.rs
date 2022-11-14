@@ -19,6 +19,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .type_attribute("Pilot", "#[derive(Eq)]")
         .type_attribute("PilotData", "#[derive(Eq)]")
         .type_attribute("Pilots", "#[derive(Eq)]")
+        .type_attribute("FlightStatus", "#[derive(num_derive::FromPrimitive)]")
+        .type_attribute("FlightPriority", "#[derive(num_derive::FromPrimitive)]")
         .type_attribute("FlightPlan", "#[derive(Eq)]")
         .type_attribute("FlightPlanData", "#[derive(Eq)]")
         .type_attribute("FlightPlans", "#[derive(Eq)]")
