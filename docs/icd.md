@@ -23,7 +23,7 @@ Document | Description
 
 ## Frameworks
 
-See the Services ICD.
+See [High-Level Services ICD](https://github.com/Arrow-air/se-services/blob/develop/docs/icd.md).
 
 ## gRPC
 
@@ -39,11 +39,13 @@ These interfaces are defined in protocol buffer files:
 
 ### Integrated Authentication & Encryption
 
-See Services ICD.
+See [High-Level Services ICD](https://github.com/Arrow-air/se-services/blob/develop/docs/icd.md#space_invader-integrated-authentication--encryption).
 
 ### gRPC Server Methods ("Services")
 
 gRPC server methods are called "services", an unfortunate name clash with the broader concept of web services.
+
+Ⓘ ***A more detailed API description will be available in the next release***
 
 #### StorageRpc
 
