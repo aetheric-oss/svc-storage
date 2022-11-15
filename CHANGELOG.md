@@ -1,3 +1,19 @@
+## [Release 0.5.0-develop.1](https://github.com/Arrow-air/svc-storage/releases/tag/v0.5.0-develop.1)
+
+### 🛠 Maintenance
+
+-  **ci:** update changelog ([`f266ac6`](https://github.com/Arrow-air/svc-storage/commit/f266ac65297eb9558fab0c708e61c350773fcacf))
+-  **ci:** update package version ([`d357ac9`](https://github.com/Arrow-air/svc-storage/commit/d357ac9caef94d836c283b97bef0a7809093f1f8))
+-  **ci:** update package version<br/><br/>[skip ci] ([`dfe5f08`](https://github.com/Arrow-air/svc-storage/commit/dfe5f08853d3017c229a9cf194b82d54ed04f9c5))
+-  **ci:** .make/rust.mk - provisioned by terraform ([`f18dc5f`](https://github.com/Arrow-air/svc-storage/commit/f18dc5fe49971bd64b5f2c16c8c93a091b0494e4))
+-  **ci:** .github/workflows/release.yml - provisioned by terraform ([`55a1296`](https://github.com/Arrow-air/svc-storage/commit/55a129617b879c0b6b7bdceacec48875dcb078da))
+-  **ci:** .gitignore - provisioned by terraform ([`2f88f44`](https://github.com/Arrow-air/svc-storage/commit/2f88f44139261b807b3500b06fa238a1d51a0b68))
+
+### 📚 Documentation
+
+-  **icd:** adding icd documentation ([`28de630`](https://github.com/Arrow-air/svc-storage/commit/28de63002ce33c2bbe779f2a54a520cb8565c0bf))
+-  **icd:** added links and note about APIs ([`fd8adfc`](https://github.com/Arrow-air/svc-storage/commit/fd8adfc5cf128bc1c4bf3081184147d5b5f76c30))
+
 ## [Release 0.5.0-develop.0](https://github.com/Arrow-air/svc-storage/releases/tag/v0.5.0-develop.0)
 
 ### ✨ Features
