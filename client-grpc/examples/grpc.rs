@@ -1,17 +1,19 @@
 //! gRPC client implementation
 
+use ordered_float::OrderedFloat;
 use prost_types::FieldMask;
+use router::{generator::generate_nodes_near, location::Location};
 use std::env;
 use std::time::SystemTime;
-use svc_storage_client_grpc::client::vertipad_rpc_client::VertipadRpcClient;
 use tonic::Status;
 
 #[allow(unused_qualifications, missing_docs)]
 use svc_storage_client_grpc::client::{
     flight_plan_rpc_client::FlightPlanRpcClient, pilot_rpc_client::PilotRpcClient,
-    vehicle_rpc_client::VehicleRpcClient, vertiport_rpc_client::VertiportRpcClient, FlightPlan,
-    FlightPlanData, FlightPriority, FlightStatus, Pilot, SearchFilter, UpdateFlightPlan, Vehicle,
-    VehicleType, Vertipad,
+    vehicle_rpc_client::VehicleRpcClient, vertipad_rpc_client::VertipadRpcClient,
+    vertiport_rpc_client::VertiportRpcClient, FlightPlan, FlightPlanData, FlightPriority,
+    FlightStatus, Pilot, SearchFilter, UpdateFlightPlan, UpdateVertipad, Vehicle, VehicleType,
+    Vertipad, VertipadData,
 };
 
 /// Provide GRPC endpoint to use
@@ -89,6 +91,19 @@ async fn get_pilots() -> Result<Vec<Pilot>, Status> {
 /// Assuming the server is running, this method calls `client.vertipads` and
 /// should receive a valid response from the server
 async fn get_vertipads() -> Result<Vec<Vertipad>, Status> {
+    const CAL_WORKDAYS_8AM_6PM: &str = "\
+DTSTART:20221020T180000Z;DURATION:PT14H
+RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR
+DTSTART:20221022T000000Z;DURATION:PT24H
+RRULE:FREQ=WEEKLY;BYDAY=SA,SU";
+
+    const SAN_FRANCISCO: Location = Location {
+        latitude: OrderedFloat(37.7749),
+        longitude: OrderedFloat(-122.4194),
+        altitude_meters: OrderedFloat(0.0),
+    };
+    let mut nodes = generate_nodes_near(&SAN_FRANCISCO, 25.0, 50);
+
     let grpc_endpoint = get_grpc_endpoint();
     let mut vertipad_client = VertipadRpcClient::connect(grpc_endpoint.clone())
         .await
@@ -96,18 +111,76 @@ async fn get_vertipads() -> Result<Vec<Vertipad>, Status> {
     println!("Vertipad Client created");
 
     let vertipad_filter = SearchFilter {
-        search_field: "".to_string(),
-        search_value: "".to_string(),
+        search_field: "occupied".to_string(),
+        search_value: "false".to_string(),
         page_number: 1,
         results_per_page: 50,
     };
+
+    println!("Retrieving list of vertipads");
+    let vertipads = match vertipad_client
+        .vertipads(tonic::Request::new(vertipad_filter.clone()))
+        .await
+    {
+        Ok(res) => Ok(res.into_inner().vertipads),
+        Err(e) => Err(e),
+    };
+    println!("Vertipads found: {:?}", vertipads);
+
+    println!("Starting insert vertipad");
+    let mut x = OrderedFloat(-122.4194);
+    let mut y = OrderedFloat(37.7746);
+    if let Some(node) = nodes.pop() {
+        x = node.location.longitude;
+        y = node.location.latitude;
+    }
+    let vertiport_id = "5f3e94e1-0782-40f6-bfca-e2a4f4cd8d05";
+    let new_vertipad = match vertipad_client
+        .insert_vertipad(tonic::Request::new(VertipadData {
+            vertiport_id: vertiport_id.to_string(),
+            description: format!("First vertipad for {}", vertiport_id),
+            latitude: x.into_inner().into(),
+            longitude: y.into_inner().into(),
+            enabled: true,
+            occupied: false,
+            schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
+        }))
+        .await
+    {
+        Ok(fp) => fp.into_inner(),
+        Err(e) => panic!("Something went wrong inserting the vertipad: {}", e),
+    };
+    println!("Created new vertipad: {:?}", new_vertipad);
+
+    println!("Starting update vertipad");
+    let update_vertipad_res = match vertipad_client
+        .update_vertipad(tonic::Request::new(UpdateVertipad {
+            id: new_vertipad.id.clone(),
+            data: Some(VertipadData {
+                occupied: true,
+                ..new_vertipad.clone().data.unwrap()
+            }),
+            mask: Some(FieldMask {
+                paths: vec!["first_name".to_string()],
+            }),
+        }))
+        .await
+    {
+        Ok(fp) => fp.into_inner(),
+        Err(e) => panic!("Something went wrong updating the vertipad: {}", e),
+    };
+    println!("Update vertipad result: {:?}", update_vertipad_res);
 
     println!("Retrieving list of vertipads");
     match vertipad_client
         .vertipads(tonic::Request::new(vertipad_filter.clone()))
         .await
     {
-        Ok(res) => Ok(res.into_inner().vertipads),
+        Ok(res) => {
+            let vertipads = res.into_inner().vertipads;
+            println!("Vertipads found: {:?}", vertipads);
+            Ok(vertipads)
+        }
         Err(e) => Err(e),
     }
 }

@@ -67,8 +67,8 @@ async fn generate_sample_vertiports() {
                 data: Some(VertipadData {
                     vertiport_id: node.uid.to_string(),
                     description: format!("First vertipad for {}", node.uid),
-                    latitude: node.location.latitude.into_inner(),
-                    longitude: node.location.longitude.into_inner(),
+                    latitude: node.location.latitude.into_inner().into(),
+                    longitude: node.location.longitude.into_inner().into(),
                     enabled: true,
                     occupied: false,
                     schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
