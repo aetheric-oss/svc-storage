@@ -3,7 +3,14 @@
 ///generates .rs files in src directory
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let proto_dir = "../proto";
-    let types = ["flight_plan", "pilot", "vehicle", "vertiport", "vertipad"];
+    let types = [
+        "flight_plan",
+        "pilot",
+        "vehicle",
+        "vertiport",
+        "vertipad",
+        "user",
+    ];
     let proto_files: Vec<String> = types
         .into_iter()
         .map(|x| format!("{}/svc-storage-grpc-{}.proto", proto_dir, x))
@@ -19,6 +26,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .type_attribute("Pilot", "#[derive(Eq)]")
         .type_attribute("PilotData", "#[derive(Eq)]")
         .type_attribute("Pilots", "#[derive(Eq)]")
+        .type_attribute("User", "#[derive(Eq)]")
+        .type_attribute("UserData", "#[derive(Eq)]")
+        .type_attribute("Users", "#[derive(Eq)]")
+        .type_attribute("AuthMethod", "#[derive(num_derive::FromPrimitive)]")
         .type_attribute("FlightStatus", "#[derive(num_derive::FromPrimitive)]")
         .type_attribute("FlightPriority", "#[derive(num_derive::FromPrimitive)]")
         .type_attribute("FlightPlan", "#[derive(Eq)]")

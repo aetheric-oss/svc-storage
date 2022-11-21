@@ -1,7 +1,4 @@
-use crate::{
-    postgres::*,
-    resources::flight_plan::{FlightPriority, FlightStatus},
-};
+use crate::{postgres::*, resources::user::AuthMethod};
 
 use deadpool_postgres::Pool;
 use postgres_types::ToSql;
@@ -13,53 +10,30 @@ use uuid::Uuid;
 
 use crate::{psql_debug, psql_error, psql_info};
 
-/// TODO:
-/// 1. we might want to create a separate table for schedules
-/// adding a 'schedule_id' field to the flight_plan table should replace the 'departure_vertipad_id', 'arrival_pad_id',
-/// 'scheduled_departure', 'scheduled_arrival', 'actual_departure', 'actual_arrival' fields here.
-/// 2. Maybe move this to a separate service, we don't need this code in production
 pub async fn init_table(pool: &Pool) -> Result<(), ArrErr> {
     let mut client = pool.get().await.unwrap();
     let transaction = client.transaction().await?;
 
-    let create_table = "CREATE TABLE IF NOT EXISTS flight_plan (
-        flight_plan_id UUID DEFAULT uuid_generate_v4() NOT NULL,
-        pilot_id UUID NOT NULL REFERENCES pilot(pilot_id),
-        vehicle_id UUID NOT NULL,
-        flight_distance INTEGER NOT NULL,
-        weather_conditions TEXT NOT NULL,
-        departure_vertipad_id UUID NOT NULL,
-        destination_vertipad_id UUID NOT NULL,
-        scheduled_departure TIMESTAMP WITH TIME ZONE NOT NULL,
-        scheduled_arrival TIMESTAMP WITH TIME ZONE NOT NULL,
+    let create_table = r#"CREATE TABLE IF NOT EXISTS "user" (
+        user_id UUID DEFAULT uuid_generate_v4() NOT NULL,
+        first_name TEXT NOT NULL,
+        last_name TEXT NOT NULL,
+        auth_method TEXT NOT NULL DEFAULT 'GOOGLE_SSO',
+        last_logged_in TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
-        actual_departure TIMESTAMP WITH TIME ZONE,
-        actual_arrival TIMESTAMP WITH TIME ZONE,
-        flight_release_approval TIMESTAMP WITH TIME ZONE,
-        flight_plan_submitted TIMESTAMP WITH TIME ZONE,
-        approved_by UUID,
-        cargo_weight_g JSON,
-        flight_status TEXT DEFAULT 'DRAFT',
-        flight_priority TEXT DEFAULT 'LOW',
-        PRIMARY KEY (flight_plan_id)
-    )";
+        deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+        PRIMARY KEY (user_id)
+    )"#;
 
     psql_debug!("{}", create_table);
     if let Err(e) = transaction.execute(create_table, &[]).await {
-        psql_error!("Failed to create flight_plan table: {e}");
+        psql_error!("Failed to create user table: {e}");
         match transaction.rollback().await {
             Ok(_) => return Ok(()),
             Err(e) => return Err(e.into()),
         }
     }
-
-    // Potential indices we want to set
-    /*
-    let stmt = "CREATE INDEX IF NOT EXISTS flight_plan_vehicle_id_idx ON flight_plan (vehicle_id)";
-    let stmt = "CREATE INDEX IF NOT EXISTS flight_plan_pilot_id_idx ON flight_plan (pilot_id)";
-    let stmt = "CREATE INDEX IF NOT EXISTS flight_plan_flight_status_idx ON flight_plan (flight_status)";
-    */
 
     match transaction.commit().await {
         Ok(_) => Ok(()),
@@ -73,12 +47,12 @@ pub async fn drop_table(pool: &Pool) -> Result<(), ArrErr> {
     let mut client = pool.get().await.unwrap();
     let transaction = client.transaction().await?;
 
-    let drop_table = "DROP TABLE IF EXISTS flight_plan";
+    let drop_table = r#"DROP TABLE IF EXISTS "user""#;
     psql_debug!("{}", drop_table);
 
-    psql_info!("Dropping table [flight_plan].");
+    psql_info!("Dropping table [user].");
     if let Err(e) = transaction.execute(drop_table, &[]).await {
-        psql_error!("Failed to drop flight_plan table: {e}");
+        psql_error!("Failed to drop user table: {e}");
         match transaction.rollback().await {
             Ok(_) => return Ok(()),
             Err(e) => return Err(e.into()),
@@ -94,7 +68,7 @@ pub async fn drop_table(pool: &Pool) -> Result<(), ArrErr> {
 pub async fn create(
     pool: &Pool,
     data: HashMap<&str, &(dyn ToSql + Sync)>,
-) -> Result<FlightPlanPsql, ArrErr> {
+) -> Result<UserPsql, ArrErr> {
     let mut params = vec![];
     let mut inserts = vec![];
     let mut fields = vec![];
@@ -107,18 +81,18 @@ pub async fn create(
         index += 1;
     }
     let insert_sql = &format!(
-        "INSERT INTO flight_plan ({}) VALUES ({}) RETURNING flight_plan_id",
+        r#"INSERT INTO "user" ({}) VALUES ({}) RETURNING user_id"#,
         fields.join(", "),
         inserts.join(", ")
     );
     psql_debug!("{}", insert_sql);
 
-    psql_info!("Inserting new entry for table [flight_plan].");
+    psql_info!("Inserting new entry for table [user].");
     let client = pool.get().await.unwrap();
     match client.query_one(insert_sql, &params[..]).await {
-        Ok(row) => Ok(FlightPlanPsql {
+        Ok(row) => Ok(UserPsql {
             pool: pool.clone(),
-            id: row.get("flight_plan_id"),
+            id: row.get("user_id"),
             data: row,
         }),
         Err(e) => Err(e.into()),
@@ -128,11 +102,11 @@ pub async fn create(
 pub async fn delete(pool: &Pool, id: Uuid) -> Result<(), ArrErr> {
     let client = pool.get().await.unwrap();
     let delete_sql = &client
-        .prepare_cached("DELETE FROM flight_plan WHERE flight_plan_id = $1")
+        .prepare_cached(r#"UPDATE "user" SET deleted_at = NOW() WHERE pilot_id = $1"#)
         .await
         .unwrap();
 
-    psql_info!("Deleting entry from table [flight_plan]. uuid: {}", id);
+    psql_info!("Updating [deleted_at] field for [user]. uuid: {}", id);
     match client.query_one(delete_sql, &[&id]).await {
         Ok(_) => Ok(()),
         Err(e) => Err(e.into()),
@@ -146,66 +120,58 @@ pub async fn search(pool: &Pool, filter: &HashMap<String, String>) -> Result<Vec
 
     // TODO: better error handling
     let search_val = match search_col.as_str() {
-        "flight_status" => match FlightStatus::from_i32(search_val.parse().unwrap()) {
-            Some(status) => String::from(status.as_str_name()),
+        "auth_method" => match AuthMethod::from_i32(search_val.parse().unwrap()) {
+            Some(status) => status.as_str_name(),
             None => todo!(),
         },
-        "flight_priority" => match FlightPriority::from_i32(search_val.parse().unwrap()) {
-            Some(status) => String::from(status.as_str_name()),
-            None => todo!(),
-        },
-        _ => search_val.to_string(),
+        _ => search_val,
     };
 
-    let mut search_fields: Vec<&(dyn ToSql + Sync)> = vec![];
-    let mut search_query = String::from("");
-    if !search_col.is_empty() {
-        search_query = format!("WHERE flight_plan.{} = $1", search_col);
-        search_fields.push(&search_val);
-    }
-
     let search_sql = &client
-        .prepare_cached(&format!("SELECT * FROM flight_plan WHERE {}", search_query))
+        .prepare_cached(&format!(
+            r#"SELECT * FROM "user" WHERE deleted_at = NULL and {} = $1"#,
+            search_col
+        ))
         .await
         .unwrap();
 
-    psql_info!(
-        "Searching flight_plan rows for: {} = {}",
-        search_col,
-        search_val
-    );
-    match client.query(search_sql, &search_fields[..]).await {
+    psql_info!("Searching user rows for: {} = {}", search_col, search_val);
+    match client.query(search_sql, &[&search_val]).await {
         Ok(rows) => Ok(rows),
         Err(e) => Err(e.into()),
     }
 }
 
-/// Flight Plan PostgreSQL object
-pub struct FlightPlanPsql {
+/// User PostgreSQL object
+pub struct UserPsql {
     /// CockroachDB database connection pool
     pool: Pool,
     /// Unique id
     pub id: Uuid,
-    /// Flight Plan data as stored in the database
+    /// User data as stored in the database
     pub data: Row,
 }
-
-impl fmt::Debug for FlightPlanPsql {
+impl AsRef<UserPsql> for UserPsql {
+    fn as_ref(&self) -> &Self {
+        self
+    }
+}
+impl fmt::Debug for UserPsql {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("FlightPlanPsql").finish()
+        f.debug_struct("UserPsql").finish()
     }
 }
 
-impl FlightPlanPsql {
+impl UserPsql {
     //TODO: implement shared memcache here
-    pub async fn new(pool: &Pool, id: Uuid) -> Result<FlightPlanPsql, ArrErr> {
+    pub async fn new(pool: &Pool, id: Uuid) -> Result<UserPsql, ArrErr> {
         let client = pool.get().await.unwrap();
         let stmt = client
-            .prepare_cached("SELECT * FROM flight_plan WHERE flight_plan_id = $1")
+            .prepare_cached(r#"SELECT * FROM "user" WHERE user_id = $1"#)
             .await
             .unwrap();
         match client.query_one(&stmt, &[&id]).await {
-            Ok(row) => Ok(FlightPlanPsql {
+            Ok(row) => Ok(UserPsql {
                 pool: pool.clone(),
                 id,
                 data: row,
@@ -218,13 +184,10 @@ impl FlightPlanPsql {
     pub async fn read(mut self) -> Result<Self, ArrErr> {
         let client = self.pool.get().await.unwrap();
         let select_sql = &client
-            .prepare_cached("SELECT * FROM flight_plan WHERE flight_plan_id = $1")
+            .prepare_cached(r#"SELECT * FROM "user" WHERE user_id = $1"#)
             .await
             .unwrap();
-        psql_info!(
-            "Fetching row data for table [flight_plan]. uuid: {}",
-            self.id
-        );
+        psql_info!("Fetching row data for table [user]. uuid: {}", self.id);
         match client.query_one(select_sql, &[&self.id]).await {
             Ok(row) => {
                 self.data = row;
@@ -247,7 +210,7 @@ impl FlightPlanPsql {
         }
 
         let update_sql = &format!(
-            "UPDATE flight_plan SET {} WHERE flight_plan_id = ${}",
+            r#"UPDATE "user" SET {} WHERE user_id = ${}"#,
             updates.join(", "),
             index
         );
@@ -255,7 +218,7 @@ impl FlightPlanPsql {
         params.push(&self.id);
         psql_debug!("{:?}", &params);
 
-        psql_info!("Updating entry in table [flight_plan]. uuid: {}", self.id);
+        psql_info!("Updating entry in table [user]. uuid: {}", self.id);
         let client = self.pool.get().await.unwrap();
         match client.execute(update_sql, &params[..]).await {
             Ok(_row) => self.read().await,

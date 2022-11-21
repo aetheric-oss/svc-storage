@@ -1,52 +1,83 @@
-/// Pilot
+/// User
 #[derive(Eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Pilot {
+pub struct User {
     /// UUID v4
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
     #[prost(message, optional, tag="2")]
-    pub data: ::core::option::Option<PilotData>,
+    pub data: ::core::option::Option<UserData>,
 }
-/// PilotData
+/// UserData
 #[derive(Eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct PilotData {
+pub struct UserData {
     #[prost(string, tag="1")]
     pub first_name: ::prost::alloc::string::String,
-    /// string wallet_address = 4;
-    /// string type = 5;
     #[prost(string, tag="2")]
     pub last_name: ::prost::alloc::string::String,
+    #[prost(enumeration="AuthMethod", tag="3")]
+    pub auth_method: i32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct UpdatePilot {
+pub struct UpdateUser {
     /// id UUID v4
     #[prost(string, tag="1")]
     pub id: ::prost::alloc::string::String,
     #[prost(message, optional, tag="2")]
-    pub data: ::core::option::Option<PilotData>,
+    pub data: ::core::option::Option<UserData>,
     #[prost(message, optional, tag="3")]
     pub mask: ::core::option::Option<::prost_types::FieldMask>,
 }
-/// Pilots
+/// Users
 #[derive(Eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Pilots {
+pub struct Users {
     #[prost(message, repeated, tag="1")]
-    pub pilots: ::prost::alloc::vec::Vec<Pilot>,
+    pub users: ::prost::alloc::vec::Vec<User>,
+}
+/// Login Auth Method Enum
+#[derive(num_derive::FromPrimitive)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AuthMethod {
+    /// GOOGLE_SSO -- user uses Google account to log in (Google associated email account will be stored at first login)
+    GoogleSso = 0,
+    /// PASSWORD -- user uses a self chosen password to log in (requires a verified e-mail address)
+    Password = 1,
+    /// ONETIME_PASSWORD -- user requests login link every time they want to log in (requires a verified e-mail address)
+    OnetimePassword = 2,
+    /// WEB3 -- user uses a crypto wallet to login (Public wallet address will be stored at first login)
+    Web3 = 3,
+    /// APPLE ID -- user uses Apple ID account to log in (Apple associated email account will be stored at first login)
+    AppleIdSso = 4,
+}
+impl AuthMethod {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            AuthMethod::GoogleSso => "GOOGLE_SSO",
+            AuthMethod::Password => "PASSWORD",
+            AuthMethod::OnetimePassword => "ONETIME_PASSWORD",
+            AuthMethod::Web3 => "WEB3",
+            AuthMethod::AppleIdSso => "APPLE_ID_SSO",
+        }
+    }
 }
 /// Generated client implementations.
-pub mod pilot_rpc_client {
+pub mod user_rpc_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
     use tonic::codegen::http::Uri;
-    ///PilotRpc service
+    ///UserRpc service
     #[derive(Debug, Clone)]
-    pub struct PilotRpcClient<T> {
+    pub struct UserRpcClient<T> {
         inner: tonic::client::Grpc<T>,
     }
-    impl PilotRpcClient<tonic::transport::Channel> {
+    impl UserRpcClient<tonic::transport::Channel> {
         /// Attempt to create a new client by connecting to a given endpoint.
         pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
         where
@@ -57,7 +88,7 @@ pub mod pilot_rpc_client {
             Ok(Self::new(conn))
         }
     }
-    impl<T> PilotRpcClient<T>
+    impl<T> UserRpcClient<T>
     where
         T: tonic::client::GrpcService<tonic::body::BoxBody>,
         T::Error: Into<StdError>,
@@ -75,7 +106,7 @@ pub mod pilot_rpc_client {
         pub fn with_interceptor<F>(
             inner: T,
             interceptor: F,
-        ) -> PilotRpcClient<InterceptedService<T, F>>
+        ) -> UserRpcClient<InterceptedService<T, F>>
         where
             F: tonic::service::Interceptor,
             T::ResponseBody: Default,
@@ -89,7 +120,7 @@ pub mod pilot_rpc_client {
                 http::Request<tonic::body::BoxBody>,
             >>::Error: Into<StdError> + Send + Sync,
         {
-            PilotRpcClient::new(InterceptedService::new(inner, interceptor))
+            UserRpcClient::new(InterceptedService::new(inner, interceptor))
         }
         /// Compress requests with the given encoding.
         ///
@@ -106,10 +137,10 @@ pub mod pilot_rpc_client {
             self.inner = self.inner.accept_compressed(encoding);
             self
         }
-        pub async fn pilots(
+        pub async fn users(
             &mut self,
             request: impl tonic::IntoRequest<super::super::SearchFilter>,
-        ) -> Result<tonic::Response<super::Pilots>, tonic::Status> {
+        ) -> Result<tonic::Response<super::Users>, tonic::Status> {
             self.inner
                 .ready()
                 .await
@@ -120,15 +151,13 @@ pub mod pilot_rpc_client {
                     )
                 })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/grpc.pilot.PilotRpc/pilots",
-            );
+            let path = http::uri::PathAndQuery::from_static("/grpc.user.UserRpc/users");
             self.inner.unary(request.into_request(), path, codec).await
         }
-        pub async fn pilot_by_id(
+        pub async fn user_by_id(
             &mut self,
             request: impl tonic::IntoRequest<super::super::Id>,
-        ) -> Result<tonic::Response<super::Pilot>, tonic::Status> {
+        ) -> Result<tonic::Response<super::User>, tonic::Status> {
             self.inner
                 .ready()
                 .await
@@ -140,14 +169,14 @@ pub mod pilot_rpc_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/grpc.pilot.PilotRpc/pilot_by_id",
+                "/grpc.user.UserRpc/user_by_id",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        pub async fn insert_pilot(
+        pub async fn insert_user(
             &mut self,
-            request: impl tonic::IntoRequest<super::PilotData>,
-        ) -> Result<tonic::Response<super::Pilot>, tonic::Status> {
+            request: impl tonic::IntoRequest<super::UserData>,
+        ) -> Result<tonic::Response<super::User>, tonic::Status> {
             self.inner
                 .ready()
                 .await
@@ -159,14 +188,14 @@ pub mod pilot_rpc_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/grpc.pilot.PilotRpc/insert_pilot",
+                "/grpc.user.UserRpc/insert_user",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        pub async fn update_pilot(
+        pub async fn update_user(
             &mut self,
-            request: impl tonic::IntoRequest<super::UpdatePilot>,
-        ) -> Result<tonic::Response<super::Pilot>, tonic::Status> {
+            request: impl tonic::IntoRequest<super::UpdateUser>,
+        ) -> Result<tonic::Response<super::User>, tonic::Status> {
             self.inner
                 .ready()
                 .await
@@ -178,11 +207,11 @@ pub mod pilot_rpc_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/grpc.pilot.PilotRpc/update_pilot",
+                "/grpc.user.UserRpc/update_user",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        pub async fn delete_pilot(
+        pub async fn delete_user(
             &mut self,
             request: impl tonic::IntoRequest<super::super::Id>,
         ) -> Result<tonic::Response<()>, tonic::Status> {
@@ -197,7 +226,7 @@ pub mod pilot_rpc_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/grpc.pilot.PilotRpc/delete_pilot",
+                "/grpc.user.UserRpc/delete_user",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }

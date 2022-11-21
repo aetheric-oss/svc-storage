@@ -4,6 +4,7 @@ pub mod macros;
 pub use crate::common::MEMDB_LOG_TARGET;
 pub use crate::resources::flight_plan::*;
 pub use crate::resources::pilot::*;
+pub use crate::resources::user::*;
 pub use crate::resources::vehicle::*;
 pub use crate::resources::vertipad::*;
 pub use crate::resources::vertiport::*;
@@ -22,6 +23,7 @@ lazy_static! {
     pub static ref VERTIPADS: Mutex<HashMap<String, Vertipad>> = Mutex::new(HashMap::new());
     pub static ref PILOTS: Mutex<HashMap<String, Pilot>> = Mutex::new(HashMap::new());
     pub static ref FLIGHT_PLANS: Mutex<HashMap<String, FlightPlan>> = Mutex::new(HashMap::new());
+    pub static ref USERS: Mutex<HashMap<String, User>> = Mutex::new(HashMap::new());
 }
 
 //pub static mut VEHICLES: Vec<Vehicle> = Vec::new();
@@ -87,18 +89,20 @@ pub async fn populate_data() {
     let destination_vertiport_id = Uuid::new_v4().to_string();
     let destination_vertipad_id = Uuid::new_v4().to_string();
 
+    memdb_info!("Inserting vehicle in memdb");
     let mut vehicles = VEHICLES.lock().await;
-    let id = vehicle_id.clone().to_string();
     let vehicle = Vehicle {
-        id: id.clone(),
+        id: vehicle_id.to_string(),
         data: Some(VehicleData {
             description: "Arrow Spearhead 1".to_owned(),
             vehicle_type: VehicleType::VtolCargo as i32,
             schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
         }),
     };
-    vehicles.insert(id.clone(), vehicle);
+    vehicles.insert(vehicle_id.to_string(), vehicle);
+    memdb_info!("pilots: {:?}", vehicles);
 
+    memdb_info!("Inserting flight_plan in memdb");
     let fp_id = flight_plan_id.clone().to_string();
     FLIGHT_PLANS.lock().await.insert(
         fp_id,
@@ -127,17 +131,17 @@ pub async fn populate_data() {
         },
     );
 
-    let p_id = pilot_id.clone().to_string();
-    PILOTS.lock().await.insert(
-        p_id,
-        Pilot {
-            id: pilot_id.to_string(),
-            data: Some(PilotData {
-                first_name: "John".to_string(),
-                last_name: "Doe".to_string(),
-            }),
-        },
-    );
+    memdb_info!("Inserting pilot in memdb");
+    let mut pilots = PILOTS.lock().await;
+    let pilot = Pilot {
+        id: pilot_id.to_string(),
+        data: Some(PilotData {
+            first_name: "John.".to_string(),
+            last_name: "Doe".to_string(),
+        }),
+    };
+    pilots.insert(pilot_id.to_string(), pilot);
+    memdb_info!("pilots: {:?}", pilots);
 
     generate_sample_vertiports().await;
 }

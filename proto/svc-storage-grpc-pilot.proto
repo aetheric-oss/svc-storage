@@ -2,6 +2,7 @@ syntax = "proto3";
 package grpc.pilot;
 
 import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
 import "svc-storage-grpc.proto";
 
 //PilotRpc service
@@ -9,7 +10,7 @@ service PilotRpc {
     rpc pilots(grpc.SearchFilter) returns (Pilots);
     rpc pilot_by_id(grpc.Id) returns (Pilot);
     rpc insert_pilot(PilotData) returns (Pilot);
-    rpc update_pilot(Pilot) returns (Pilot);
+    rpc update_pilot(UpdatePilot) returns (Pilot);
     rpc delete_pilot(grpc.Id) returns (google.protobuf.Empty);
 }
 
@@ -26,6 +27,12 @@ message PilotData {
     string last_name = 2;
     /*string wallet_address = 4;
     string type = 5;*/
+}
+message UpdatePilot {
+    //id UUID v4
+    string id = 1;
+    PilotData data = 2;
+    google.protobuf.FieldMask mask = 3;
 }
 //Pilots
 message Pilots {

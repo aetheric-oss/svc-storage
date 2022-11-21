@@ -4,13 +4,23 @@ mod grpc_server {
     #![allow(unused_qualifications, missing_docs)]
     tonic::include_proto!("grpc.pilot");
 }
-pub use grpc_server::pilot_rpc_server::{PilotRpc, PilotRpcServer};
-pub use grpc_server::{Pilot, PilotData, Pilots};
 
-use crate::common::{Id, SearchFilter};
+use super::PilotPsql;
+use crate::get_psql_pool;
+use crate::grpc::*;
+use crate::grpc_debug;
+use crate::grpc_error;
+use crate::memdb::MEMDB_LOG_TARGET;
 use crate::memdb::PILOTS;
-use tonic::{Request, Response, Status};
+use crate::memdb_info;
 use uuid::Uuid;
+
+pub use grpc_server::pilot_rpc_server::{PilotRpc, PilotRpcServer};
+pub use grpc_server::{Pilot, PilotData, Pilots, UpdatePilot};
+
+use postgres_types::ToSql;
+use std::collections::HashMap;
+use tonic::{Code, Request, Response, Status};
 
 ///Implementation of gRPC endpoints
 #[derive(Debug, Default, Copy, Clone)]
@@ -18,51 +28,284 @@ pub struct PilotImpl {}
 
 #[tonic::async_trait]
 impl PilotRpc for PilotImpl {
-    ///pilot_by_id // TODO implement. Currently returns arbitrary value
+    /// Takes an UUID string (pilot_id) to get the matching database record.
+    ///
+    /// # Arguments
+    /// * self - The PilotRpc struct
+    /// * request - Request<Id> GRPC request
+    ///
+    /// # Returns
+    /// * Result Pilot object or Status `not_found` if there was no pilot found for the given Id
+    ///
+    /// # Example
+    /// ```
+    /// use svc_storage_client_grpc::client::pilot_rpc_client::pilotRpcClient;
+    /// use svc_storage_client_grpc::client::Id;
+    ///
+    /// let mut pilot_client = pilotRpcClient::connect(grpc_endpoint.clone()).await.unwrap();
+    /// let result = match pilot_client.pilot_by_id(tonic::Request::new(Id {
+    ///     id: "54acfe06-dd9b-42e8-8cb4-12a2fb2fa693"
+    /// }))
+    /// .await
+    /// {
+    ///    Ok(pilot) => pilot.into_inner(),
+    ///    Err(e) => panic!("Something went wrong retrieving the pilot: {}", e),
+    /// };
+    /// ```
     async fn pilot_by_id(&self, request: Request<Id>) -> Result<Response<Pilot>, Status> {
         let id = request.into_inner().id;
-        match PILOTS.lock().await.get(&id) {
-            Some(pilot) => Ok(Response::new(pilot.clone())),
-            _ => Err(Status::not_found("Not found")),
+        grpc_debug!("[pilot_by_id] called for [{}]", id);
+        if let Some(pilot) = PILOTS.lock().await.get(&id) {
+            memdb_info!("Found entry for Pilot. uuid: {}", id);
+            Ok(Response::new(pilot.clone()))
+        } else {
+            let pool = get_psql_pool();
+            let data = PilotPsql::new(&pool, Uuid::try_parse(&id).unwrap()).await;
+            match data {
+                Ok(pilot) => Ok(Response::new(Pilot {
+                    id,
+                    data: Some(pilot.into()),
+                })),
+                Err(_) => Err(Status::not_found("Not found")),
+            }
         }
     }
 
-    ///pilots // TODO implement. Currently returns arbitrary value
-    async fn pilots(&self, _request: Request<SearchFilter>) -> Result<Response<Pilots>, Status> {
-        let response = Pilots {
-            pilots: PILOTS.lock().await.values().cloned().collect::<_>(),
-        };
-        Ok(Response::new(response))
+    /// Takes a `SearchFilter` object to search the database with the provided values.
+    ///
+    /// This method supports paged results. When the `search_field` and `search_value` are empty, no filters will be applied.
+    ///
+    /// # Arguments
+    /// * self  - The PilotRpc struct
+    /// * request - Request<SearchFilter> GRPC request
+    ///
+    /// # Returns
+    /// * Result Pilots object or Status `Code::Internal` if there was an error in the search query
+    ///
+    /// # Example
+    /// ```
+    /// use svc_storage_client_grpc::client::pilot_rpc_client::PilotRpcClient;
+    /// use svc_storage_client_grpc::client::SearchFilter;
+    ///
+    /// let mut pilot_client = PilotRpcClient::connect(grpc_endpoint.clone()).await.unwrap();
+    /// let result = match pilot_client.pilots(tonic::Request::new(SearchFilter {
+    ///     search_field: "",
+    ///     search_value: "",
+    ///     page_number: 1,
+    ///     results_per_page: 20
+    /// }))
+    /// .await
+    /// {
+    ///    Ok(pilots) => pilot.into_inner(),
+    ///    Err(e) => panic!("Something went wrong creating retrieving pilots: {}", e),
+    /// };
+    /// ```
+    async fn pilots(&self, request: Request<SearchFilter>) -> Result<Response<Pilots>, Status> {
+        grpc_debug!("[pilots] called.");
+        let filter = request.into_inner();
+        let mut filter_hash = HashMap::<String, String>::new();
+        filter_hash.insert("column".to_string(), filter.search_field);
+        filter_hash.insert("value".to_string(), filter.search_value);
+
+        let pool = get_psql_pool();
+        match super::psql::search(&pool, &filter_hash).await {
+            Ok(pilots) => Ok(Response::new(pilots.into())),
+            Err(e) => Err(Status::new(Code::Internal, e.to_string())),
+        }
     }
 
+    /// Takes an `PilotData` object to create a new pilot with the provided data.
+    ///
+    /// A new UUID will be generated by the database and returned as `id` as part of the returned `Pilot` object.
+    ///
+    /// # Arguments
+    /// * self  - The PilotRpc struct
+    /// * request - Request<PilotData> GRPC request
+    ///
+    /// # Returns
+    /// * Result Pilot object or Status `Code::Internal` if the pilot could not be inserted
+    ///
+    /// # Example
+    /// ```
+    /// use svc_storage_client_grpc::client::pilot_rpc_client::{PilotRpcClient, PilotData};
+    ///
+    /// let mut pilot_client = PilotRpcClient::connect(grpc_endpoint.clone()).await.unwrap();
+    /// let result = match pilot_client.insert_pilot(tonic::Request::new(PilotData {
+    ///     first_name: "John",
+    ///     last_name: "Doe",
+    ///     auth_method: 0
+    /// }))
+    /// .await
+    /// {
+    ///    Ok(pilot) => pilot.into_inner(),
+    ///    Err(e) => panic!("Something went wrong creating the pilot: {}", e),
+    /// };
+    /// ```
     async fn insert_pilot(&self, request: Request<PilotData>) -> Result<Response<Pilot>, Status> {
+        grpc_debug!("[insert_pilot] called.");
         let mut pilots = PILOTS.lock().await;
         let data = request.into_inner();
-        let pilot = Pilot {
-            id: Uuid::new_v4().to_string(),
-            data: Some(data),
-        };
-        pilots.insert(pilot.id.clone(), pilot.clone());
-        Ok(Response::new(pilot))
-    }
+        let pool = get_psql_pool();
 
-    async fn update_pilot(&self, request: Request<Pilot>) -> Result<Response<Pilot>, Status> {
-        let pilot = request.into_inner();
-        let id = pilot.id;
-        match PILOTS.lock().await.get_mut(&id) {
-            Some(pilot) => {
-                pilot.data = Some(PilotData {
-                    ..pilot.data.clone().unwrap()
-                });
-                println!("Pilot: {:?}", pilot);
-                Ok(Response::new(pilot.clone()))
+        let mut user_data = HashMap::<&str, &(dyn ToSql + Sync)>::new();
+        user_data.insert("first_name", &data.first_name);
+        user_data.insert("last_name", &data.last_name);
+
+        let user_id = match crate::resources::user::create(&pool, user_data).await {
+            Ok(user) => user.id,
+            Err(e) => {
+                return Err(Status::new(Code::Internal, e.to_string()));
             }
-            _ => Err(Status::not_found("Not found")),
+        };
+
+        let mut pilot_data = HashMap::<&str, &(dyn ToSql + Sync)>::new();
+        pilot_data.insert("user_id", &user_id);
+
+        match super::psql::create(&pool, pilot_data.clone()).await {
+            Ok(pilot) => {
+                let id = pilot.id.to_string();
+                let pilot = Pilot {
+                    id: id.clone(),
+                    data: Some(data.clone()),
+                };
+                pilots.insert(id, pilot.clone());
+                Ok(Response::new(pilot))
+            }
+            Err(e) => Err(Status::new(Code::Internal, e.to_string())),
         }
     }
+
+    /// Takes an UpdatePilot object to store new data to the database
+    ///
+    /// Since a pilot also holds user data, this function will take care of updating the underlying user fields as well.
+    /// A field mask can be provided to restrict updates to specific fields.
+    ///
+    /// # Arguments
+    /// * self  - The PilotRpc struct
+    /// * request - Request<UpdatePilot> GRPC request
+    ///
+    /// # Returns
+    /// * Result Pilot object or:
+    ///   - Status `not_found` if there was no pilot found for the given Id
+    ///   - Status `cancelled` if no data was provided in the UpdatePilot object
+    ///   - Status `Code::Internal` if the pilot could not be updated
+    ///
+    /// # Example
+    /// ```
+    /// use svc_storage_client_grpc::client::pilot_rpc_client::{PilotRpcClient, UpdatePilot};
+    ///
+    /// let mut pilot_client = PilotRpcClient::connect(grpc_endpoint.clone()).await.unwrap();
+    /// let updated_pilot = match pilot_client.update_pilot(tonic::Request::new(UpdatePilot {
+    ///     id: "54acfe06-dd9b-42e8-8cb4-12a2fb2fa693"
+    ///     data: Some(PilotData {
+    ///         first_name: "John",
+    ///         last_name: "Doe",
+    ///     }),
+    ///     mask: Some(FieldMask {
+    ///         paths: vec!["first_name".to_string()]
+    ///     })
+    /// }))
+    /// .await
+    /// {
+    ///    Ok(pilot) => pilot.into_inner(),
+    ///    Err(e) => panic!("Something went wrong updating the pilot info: {}", e),
+    /// };
+    /// ```
+    async fn update_pilot(&self, request: Request<UpdatePilot>) -> Result<Response<Pilot>, Status> {
+        grpc_debug!("[update_pilot] called.");
+        let pilot_req = request.into_inner();
+        let id = match Uuid::try_parse(&pilot_req.id) {
+            Ok(id) => id,
+            Err(_e) => Uuid::new_v4(),
+        };
+
+        let data = match pilot_req.data {
+            Some(data) => data,
+            None => {
+                grpc_error!("No data provided for update pilot with id: {}", id);
+                return Err(Status::cancelled("No data found for update pilot"));
+            }
+        };
+
+        let pool = get_psql_pool();
+        let pilot = match PilotPsql::new(&pool, id).await {
+            Ok(pilot) => pilot,
+            Err(e) => {
+                grpc_error!("Could not find pilot with id: {}. {}", id, e);
+                return Err(Status::not_found("Unknown pilot id"));
+            }
+        };
+
+        let mut user_data = HashMap::<&str, &(dyn ToSql + Sync)>::new();
+        user_data.insert("first_name", &data.first_name);
+        user_data.insert("last_name", &data.last_name);
+        let pilot_user = pilot.user.as_ref().unwrap();
+        let user = crate::resources::user::UserPsql::new(&pool, pilot_user.id).await?;
+        if let Err(e) = user.update(user_data.clone()).await {
+            Err(Status::new(Code::Internal, e.to_string()))
+        } else {
+            let mut pilot_data = HashMap::<&str, &(dyn ToSql + Sync)>::new();
+            let cur_date = chrono::offset::Utc::now();
+            pilot_data.insert("updated_at", &cur_date);
+            match pilot.update(pilot_data.clone()).await {
+                Ok(pilot_data) => {
+                    let result = Pilot {
+                        id: id.to_string(),
+                        data: Some(pilot_data.into()),
+                    };
+                    // Update cache
+                    let mut pilots = PILOTS.lock().await;
+                    pilots.insert(id.to_string(), result.clone());
+
+                    Ok(Response::new(result.clone()))
+                }
+                Err(e) => Err(Status::new(Code::Internal, e.to_string())),
+            }
+        }
+    }
+
+    /// Takes an UUID string (pilot_id) to set the matching pilot record a deleted in the database.
+    ///
+    /// The `deleted_at` column will be set to the current timestamp, indicating that the Pilot is not active anymore.
+    ///
+    /// # Arguments
+    /// * self  - The PilotRpc struct
+    /// * request - Request<Id> GRPC request
+    ///
+    /// # Returns
+    /// * Result empty or Status `Code::Internal` if the pilot could not be deleted
+    ///
+    /// # Example
+    /// ```
+    /// use svc_storage_client_grpc::client::pilot_rpc_client::PilotRpcClient;
+    /// use svc_storage_client_grpc::client::Id;
+    ///
+    /// let mut pilot_client = PilotRpcClient::connect(grpc_endpoint.clone()).await.unwrap();
+    /// let result = match pilot_client.delete_pilot(tonic::Request::new(Id {
+    ///     id: "54acfe06-dd9b-42e8-8cb4-12a2fb2fa693"
+    /// }))
+    /// .await
+    /// {
+    ///    Ok(pilot) => pilot.into_inner(),
+    ///    Err(e) => panic!("Something went wrong updating the pilot info: {}", e),
+    /// };
+    /// ```
     async fn delete_pilot(&self, request: Request<Id>) -> Result<Response<()>, Status> {
-        let mut pilots = PILOTS.lock().await;
-        pilots.remove(&request.into_inner().id);
-        Ok(Response::new(()))
+        let id = request.into_inner().id;
+        grpc_debug!("[delete_pilot] called for [{}]", id);
+        let pool = get_psql_pool();
+        let pilot = PilotPsql::new(&pool, Uuid::try_parse(&id).unwrap()).await?;
+        let user = pilot.user.as_ref().unwrap();
+
+        crate::resources::user::delete(&pool, user.id).await?;
+        match pilot.delete().await {
+            Ok(_) => {
+                // Update cache
+                let mut pilots = PILOTS.lock().await;
+                pilots.remove(&id);
+                Ok(Response::new(()))
+            }
+            Err(e) => Err(Status::new(Code::Internal, e.to_string())),
+        }
     }
 }
