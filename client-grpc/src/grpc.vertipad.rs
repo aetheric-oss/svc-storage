@@ -16,10 +16,10 @@ pub struct VertipadData {
     pub vertiport_id: ::prost::alloc::string::String,
     #[prost(string, tag="2")]
     pub description: ::prost::alloc::string::String,
-    #[prost(float, tag="3")]
-    pub latitude: f32,
-    #[prost(float, tag="4")]
-    pub longitude: f32,
+    #[prost(double, tag="3")]
+    pub latitude: f64,
+    #[prost(double, tag="4")]
+    pub longitude: f64,
     #[prost(bool, tag="5")]
     pub enabled: bool,
     #[prost(bool, tag="6")]
@@ -29,6 +29,16 @@ pub struct VertipadData {
     /// string restrictions = 5;
     #[prost(string, optional, tag="7")]
     pub schedule: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateVertipad {
+    /// id UUID v4
+    #[prost(string, tag="1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(message, optional, tag="2")]
+    pub data: ::core::option::Option<VertipadData>,
+    #[prost(message, optional, tag="3")]
+    pub mask: ::core::option::Option<::prost_types::FieldMask>,
 }
 /// Vertipads
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -166,7 +176,7 @@ pub mod vertipad_rpc_client {
         }
         pub async fn update_vertipad(
             &mut self,
-            request: impl tonic::IntoRequest<super::Vertipad>,
+            request: impl tonic::IntoRequest<super::UpdateVertipad>,
         ) -> Result<tonic::Response<super::Vertipad>, tonic::Status> {
             self.inner
                 .ready()

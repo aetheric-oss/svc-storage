@@ -6,27 +6,7 @@
 -  **flight_plan:** psql <-> grpc conversions ([`6d4e026`](https://github.com/Arrow-air/svc-storage/commit/6d4e026542331b6cc551f5ba9af7ed75342cfb54))
 -  **env:** add repo specific .env file ([`84597c4`](https://github.com/Arrow-air/svc-storage/commit/84597c46530eb531109e1a1aad3333dbe2cb9899))
 
-### 🛠 Maintenance
-
--  **ci:** .commitlintrc.yml - provisioned by terraform ([`2b2db01`](https://github.com/Arrow-air/svc-storage/commit/2b2db0199c04d0a559c5e92f3eb99644c7e7e6be))
--  **ci:** makefile - provisioned by terraform ([`d052c82`](https://github.com/Arrow-air/svc-storage/commit/d052c82d83913d14fd810f043223f084f4d35b17))
--  **ci:** .make/docker.mk - provisioned by terraform ([`b354503`](https://github.com/Arrow-air/svc-storage/commit/b3545039999da1351ac4dfcc405d6924ac6179f9))
--  **ci:** .env.base.tftpl - provisioned by terraform ([`c333602`](https://github.com/Arrow-air/svc-storage/commit/c333602e29fa2861de06f2fc2559c53858d11c74))
--  **ci:** .make/env.mk - provisioned by terraform ([`d4030ea`](https://github.com/Arrow-air/svc-storage/commit/d4030ea734d3249aeac0e0629b43ac85414611bc))
--  **ci:** .env.base - provisioned by terraform ([`de9b3dc`](https://github.com/Arrow-air/svc-storage/commit/de9b3dc0f244e23c2568ae9cec1b706157bbeb18))
--  **ci:** .make/env.mk - provisioned by terraform ([`1a1686a`](https://github.com/Arrow-air/svc-storage/commit/1a1686a09cb7be1aa80e87bb0923a712fd2e907a))
--  **ci:** .make/env.mk - provisioned by terraform ([`50af1bc`](https://github.com/Arrow-air/svc-storage/commit/50af1bc5e3d88ab5c510c3403a6b7c74e1e022c5))
-
 ## [Release 0.5.0-develop.1](https://github.com/Arrow-air/svc-storage/releases/tag/v0.5.0-develop.1)
-
-### 🛠 Maintenance
-
--  **ci:** update changelog ([`f266ac6`](https://github.com/Arrow-air/svc-storage/commit/f266ac65297eb9558fab0c708e61c350773fcacf))
--  **ci:** update package version ([`d357ac9`](https://github.com/Arrow-air/svc-storage/commit/d357ac9caef94d836c283b97bef0a7809093f1f8))
--  **ci:** update package version<br/><br/>[skip ci] ([`dfe5f08`](https://github.com/Arrow-air/svc-storage/commit/dfe5f08853d3017c229a9cf194b82d54ed04f9c5))
--  **ci:** .make/rust.mk - provisioned by terraform ([`f18dc5f`](https://github.com/Arrow-air/svc-storage/commit/f18dc5fe49971bd64b5f2c16c8c93a091b0494e4))
--  **ci:** .github/workflows/release.yml - provisioned by terraform ([`55a1296`](https://github.com/Arrow-air/svc-storage/commit/55a129617b879c0b6b7bdceacec48875dcb078da))
--  **ci:** .gitignore - provisioned by terraform ([`2f88f44`](https://github.com/Arrow-air/svc-storage/commit/2f88f44139261b807b3500b06fa238a1d51a0b68))
 
 ### 📚 Documentation
 
