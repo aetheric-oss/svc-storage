@@ -1,3 +1,22 @@
+## [Release 0.6.0-develop.0](https://github.com/Arrow-air/svc-storage/releases/tag/v0.6.0-develop.0)
+
+### ✨ Features
+
+-  **psql:** add flight_plan psql functions ([`b067d7c`](https://github.com/Arrow-air/svc-storage/commit/b067d7c1f4683fdad8977360589a4cd8b16883ab))
+-  **flight_plan:** psql <-> grpc conversions ([`6d4e026`](https://github.com/Arrow-air/svc-storage/commit/6d4e026542331b6cc551f5ba9af7ed75342cfb54))
+-  **env:** add repo specific .env file ([`84597c4`](https://github.com/Arrow-air/svc-storage/commit/84597c46530eb531109e1a1aad3333dbe2cb9899))
+
+### 🛠 Maintenance
+
+-  **ci:** .commitlintrc.yml - provisioned by terraform ([`2b2db01`](https://github.com/Arrow-air/svc-storage/commit/2b2db0199c04d0a559c5e92f3eb99644c7e7e6be))
+-  **ci:** makefile - provisioned by terraform ([`d052c82`](https://github.com/Arrow-air/svc-storage/commit/d052c82d83913d14fd810f043223f084f4d35b17))
+-  **ci:** .make/docker.mk - provisioned by terraform ([`b354503`](https://github.com/Arrow-air/svc-storage/commit/b3545039999da1351ac4dfcc405d6924ac6179f9))
+-  **ci:** .env.base.tftpl - provisioned by terraform ([`c333602`](https://github.com/Arrow-air/svc-storage/commit/c333602e29fa2861de06f2fc2559c53858d11c74))
+-  **ci:** .make/env.mk - provisioned by terraform ([`d4030ea`](https://github.com/Arrow-air/svc-storage/commit/d4030ea734d3249aeac0e0629b43ac85414611bc))
+-  **ci:** .env.base - provisioned by terraform ([`de9b3dc`](https://github.com/Arrow-air/svc-storage/commit/de9b3dc0f244e23c2568ae9cec1b706157bbeb18))
+-  **ci:** .make/env.mk - provisioned by terraform ([`1a1686a`](https://github.com/Arrow-air/svc-storage/commit/1a1686a09cb7be1aa80e87bb0923a712fd2e907a))
+-  **ci:** .make/env.mk - provisioned by terraform ([`50af1bc`](https://github.com/Arrow-air/svc-storage/commit/50af1bc5e3d88ab5c510c3403a6b7c74e1e022c5))
+
 ## [Release 0.5.0-develop.1](https://github.com/Arrow-air/svc-storage/releases/tag/v0.5.0-develop.1)
 
 ### 🛠 Maintenance
