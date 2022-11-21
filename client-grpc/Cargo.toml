@@ -3,7 +3,7 @@ description = "Arrow Storage service GRPC client"
 edition     = "2021"                              # Allowed values are 2015, 2018, 2021
 license     = ""
 name        = "svc-storage-client-grpc"
-version     = "0.5.0-develop.1"
+version     = "0.6.0-develop.0"
 # Rust Editions: https://doc.rust-lang.org/edition-guide/index.html
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
