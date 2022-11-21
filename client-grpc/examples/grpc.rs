@@ -3,14 +3,14 @@
 use prost_types::FieldMask;
 use std::env;
 use std::time::SystemTime;
-use svc_storage_client_grpc::client::vertipad_rpc_client::VertipadRpcClient;
 use tonic::Status;
 
 #[allow(unused_qualifications, missing_docs)]
 use svc_storage_client_grpc::client::{
     flight_plan_rpc_client::FlightPlanRpcClient, pilot_rpc_client::PilotRpcClient,
-    vehicle_rpc_client::VehicleRpcClient, vertiport_rpc_client::VertiportRpcClient, FlightPlan,
-    FlightPlanData, FlightPriority, FlightStatus, Pilot, SearchFilter, UpdateFlightPlan, Vehicle,
+    vehicle_rpc_client::VehicleRpcClient, vertipad_rpc_client::VertipadRpcClient,
+    vertiport_rpc_client::VertiportRpcClient, FlightPlan, FlightPlanData, FlightPriority,
+    FlightStatus, Pilot, PilotData, SearchFilter, UpdateFlightPlan, UpdatePilot, Vehicle,
     VehicleType, Vertipad,
 };
 
@@ -59,9 +59,12 @@ async fn get_vehicles() -> Result<Vec<Vehicle>, Status> {
 }
 
 /// Example PilotRpcClient
-/// Assuming the server is running, this method calls `client.pilots` and
-/// should receive a valid response from the server
-async fn get_pilots() -> Result<Vec<Pilot>, Status> {
+/// Assuming the server is running, this method plays a scenario:
+///   - get pilots
+///   - insert new pilot
+///   - update inserted pilot
+///   - get pilots
+async fn pilot_scenario() -> Result<Vec<Pilot>, Status> {
     let grpc_endpoint = get_grpc_endpoint();
     let mut pilot_client = PilotRpcClient::connect(grpc_endpoint.clone())
         .await
@@ -76,11 +79,57 @@ async fn get_pilots() -> Result<Vec<Pilot>, Status> {
     };
 
     println!("Retrieving list of pilots");
-    match pilot_client
+    let pilots = match pilot_client
         .pilots(tonic::Request::new(pilot_filter.clone()))
         .await
     {
         Ok(res) => Ok(res.into_inner().pilots),
+        Err(e) => Err(e),
+    };
+    println!("Pilots found: {:?}", pilots);
+
+    println!("Starting insert pilot");
+    let new_pilot = match pilot_client
+        .insert_pilot(tonic::Request::new(PilotData {
+            first_name: "John".to_string(),
+            last_name: "Joe".to_string(),
+        }))
+        .await
+    {
+        Ok(fp) => fp.into_inner(),
+        Err(e) => panic!("Something went wrong inserting the pilot: {}", e),
+    };
+    println!("Created new pilot: {:?}", new_pilot);
+
+    println!("Starting update pilot");
+    let update_pilot_res = match pilot_client
+        .update_pilot(tonic::Request::new(UpdatePilot {
+            id: new_pilot.id.clone(),
+            data: Some(PilotData {
+                first_name: "Johnny".to_string(),
+                ..new_pilot.clone().data.unwrap()
+            }),
+            mask: Some(FieldMask {
+                paths: vec!["first_name".to_string()],
+            }),
+        }))
+        .await
+    {
+        Ok(fp) => fp.into_inner(),
+        Err(e) => panic!("Something went wrong updating the pilot: {}", e),
+    };
+    println!("Update pilot result: {:?}", update_pilot_res);
+
+    println!("Retrieving list of pilots");
+    match pilot_client
+        .pilots(tonic::Request::new(pilot_filter.clone()))
+        .await
+    {
+        Ok(res) => {
+            let pilots = res.into_inner().pilots;
+            println!("Pilots found: {:?}", pilots);
+            Ok(pilots)
+        }
         Err(e) => Err(e),
     }
 }
@@ -113,7 +162,7 @@ async fn get_vertipads() -> Result<Vec<Vertipad>, Status> {
 }
 
 /// Example FlightPlanRpcClient
-/// Assuming the ser ver is running, this method plays a scenario:
+/// Assuming the server is running, this method plays a scenario:
 ///   - get flight plans
 ///   - insert new flight plan
 ///   - update inserted flightplan status
@@ -184,7 +233,6 @@ async fn flight_plan_scenario(
         Err(e) => panic!("Something went wrong inserting the flight plan: {}", e),
     };
     println!("Created new flight plan: {:?}", new_fp);
-
     println!("Starting update flight plan");
     let update_fp_res = match flight_plan_client
         .update_flight_plan(tonic::Request::new(UpdateFlightPlan {
@@ -235,7 +283,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Get a list of pilots and get the first returned pilot's id
-    let mut pilots = get_pilots().await?;
+    let mut pilots = pilot_scenario().await?;
     let pilot_id = match pilots.pop() {
         Some(pilot) => pilot.id,
         None => panic!("No pilots found.. exiting"),
