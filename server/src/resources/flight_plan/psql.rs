@@ -61,10 +61,9 @@ pub async fn init_table(pool: &Pool) -> Result<(), ArrErr> {
     let stmt = "CREATE INDEX IF NOT EXISTS flight_plan_flight_status_idx ON flight_plan (flight_status)";
     */
 
-    match transaction.commit().await {
-        Ok(_) => Ok(()),
-        Err(e) => Err(e.into()),
-    }
+    transaction.commit().await?;
+
+    Ok(())
 }
 
 /// TODO
@@ -84,11 +83,9 @@ pub async fn drop_table(pool: &Pool) -> Result<(), ArrErr> {
             Err(e) => return Err(e.into()),
         }
     }
+    transaction.commit().await?;
 
-    match transaction.commit().await {
-        Ok(_) => Ok(()),
-        Err(e) => Err(e.into()),
-    }
+    Ok(())
 }
 /// TODO: Make sure we only have valid fields in our HashMap keys
 pub async fn create(
@@ -115,44 +112,50 @@ pub async fn create(
 
     psql_info!("Inserting new entry for table [flight_plan].");
     let client = pool.get().await.unwrap();
-    match client.query_one(insert_sql, &params[..]).await {
-        Ok(row) => Ok(FlightPlanPsql {
-            pool: pool.clone(),
-            id: row.get("flight_plan_id"),
-            data: row,
-        }),
-        Err(e) => Err(e.into()),
-    }
+    let row = client.query_one(insert_sql, &params[..]).await?;
+
+    Ok(FlightPlanPsql {
+        pool: pool.clone(),
+        id: row.get("flight_plan_id"),
+        data: row,
+    })
 }
 
 pub async fn delete(pool: &Pool, id: Uuid) -> Result<(), ArrErr> {
     let client = pool.get().await.unwrap();
     let delete_sql = &client
         .prepare_cached("DELETE FROM flight_plan WHERE flight_plan_id = $1")
-        .await
-        .unwrap();
+        .await?;
 
     psql_info!("Deleting entry from table [flight_plan]. uuid: {}", id);
-    match client.query_one(delete_sql, &[&id]).await {
-        Ok(_) => Ok(()),
-        Err(e) => Err(e.into()),
-    }
+    client.query_one(delete_sql, &[&id]).await?;
+
+    Ok(())
 }
 
 pub async fn search(pool: &Pool, filter: &HashMap<String, String>) -> Result<Vec<Row>, ArrErr> {
     let client = pool.get().await.unwrap();
     let search_col = filter.get("column").unwrap();
     let search_val = filter.get("value").unwrap();
-
-    // TODO: better error handling
     let search_val = match search_col.as_str() {
         "flight_status" => match FlightStatus::from_i32(search_val.parse().unwrap()) {
             Some(status) => String::from(status.as_str_name()),
-            None => todo!(),
+            None => {
+                let err = format!("Can't convert [flight_status] to string for {}", search_val);
+                psql_error!("{}", err);
+                return Err(ArrErr::Error(err));
+            }
         },
         "flight_priority" => match FlightPriority::from_i32(search_val.parse().unwrap()) {
             Some(status) => String::from(status.as_str_name()),
-            None => todo!(),
+            None => {
+                let err = format!(
+                    "Can't convert [flight_priority] to string for {}",
+                    search_val
+                );
+                psql_error!("{}", err);
+                return Err(ArrErr::Error(err));
+            }
         },
         _ => search_val.to_string(),
     };
@@ -164,20 +167,18 @@ pub async fn search(pool: &Pool, filter: &HashMap<String, String>) -> Result<Vec
         search_fields.push(&search_val);
     }
 
-    let search_sql = &client
-        .prepare_cached(&format!("SELECT * FROM flight_plan WHERE {}", search_query))
-        .await
-        .unwrap();
+    search_query = format!(r#"SELECT * FROM flight_plan WHERE {}"#, search_query);
+    psql_debug!("{}", search_query);
+    let search_sql = &client.prepare_cached(&search_query).await?;
 
     psql_info!(
         "Searching flight_plan rows for: {} = {}",
         search_col,
         search_val
     );
-    match client.query(search_sql, &search_fields[..]).await {
-        Ok(rows) => Ok(rows),
-        Err(e) => Err(e.into()),
-    }
+    let rows = client.query(search_sql, &search_fields[..]).await?;
+
+    Ok(rows)
 }
 
 /// Flight Plan PostgreSQL object
@@ -202,16 +203,14 @@ impl FlightPlanPsql {
         let client = pool.get().await.unwrap();
         let stmt = client
             .prepare_cached("SELECT * FROM flight_plan WHERE flight_plan_id = $1")
-            .await
-            .unwrap();
-        match client.query_one(&stmt, &[&id]).await {
-            Ok(row) => Ok(FlightPlanPsql {
-                pool: pool.clone(),
-                id,
-                data: row,
-            }),
-            Err(e) => Err(e.into()),
-        }
+            .await?;
+        let row = client.query_one(&stmt, &[&id]).await?;
+
+        Ok(FlightPlanPsql {
+            pool: pool.clone(),
+            id,
+            data: row,
+        })
     }
 
     //TODO: implement shared memcache here
@@ -219,19 +218,15 @@ impl FlightPlanPsql {
         let client = self.pool.get().await.unwrap();
         let select_sql = &client
             .prepare_cached("SELECT * FROM flight_plan WHERE flight_plan_id = $1")
-            .await
-            .unwrap();
+            .await?;
         psql_info!(
             "Fetching row data for table [flight_plan]. uuid: {}",
             self.id
         );
-        match client.query_one(select_sql, &[&self.id]).await {
-            Ok(row) => {
-                self.data = row;
-                Ok(self)
-            }
-            Err(e) => Err(e.into()),
-        }
+        let row = client.query_one(select_sql, &[&self.id]).await?;
+        self.data = row;
+
+        Ok(self)
     }
 
     //TODO: flush shared memcache for this resource when memcache is implemented
@@ -257,10 +252,9 @@ impl FlightPlanPsql {
 
         psql_info!("Updating entry in table [flight_plan]. uuid: {}", self.id);
         let client = self.pool.get().await.unwrap();
-        match client.execute(update_sql, &params[..]).await {
-            Ok(_row) => self.read().await,
-            Err(e) => Err(e.into()),
-        }
+        client.execute(update_sql, &params[..]).await?;
+
+        self.read().await
     }
 
     //TODO: flush shared memcache for this resource when memcache is implemented
