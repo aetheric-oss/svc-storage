@@ -52,8 +52,8 @@ async fn generate_sample_vertiports() {
                 id: node.uid.to_string(),
                 data: Some(VertiportData {
                     description: "Vertiport ".to_string() + &node.uid,
-                    latitude: node.location.latitude.into_inner(),
-                    longitude: node.location.longitude.into_inner(),
+                    latitude: node.location.latitude.into_inner().into(),
+                    longitude: node.location.longitude.into_inner().into(),
                     schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
                 }),
             },
