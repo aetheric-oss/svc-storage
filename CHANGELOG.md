@@ -1,3 +1,14 @@
+## [Release 0.7.0-develop.0](https://github.com/Arrow-air/svc-storage/releases/tag/v0.7.0-develop.0)
+
+### ✨ Features
+
+-  **vertipad:** add grpc and psql resources ([`c520f2d`](https://github.com/Arrow-air/svc-storage/commit/c520f2db67576f04887a080b4079f855bd36f0a3))
+-  **example:** add vertipad scenario ([`7427e22`](https://github.com/Arrow-air/svc-storage/commit/7427e2221d22f1a87fda0bb308307aed0099f755))
+
+### 🐛 Fixes
+
+-  **flight_plan:** refactored return values and search ([`8f93cd4`](https://github.com/Arrow-air/svc-storage/commit/8f93cd419b82b7ab14c3aea3f68ed73bcaffa574))
+
 ## [Release 0.6.0-develop.0](https://github.com/Arrow-air/svc-storage/releases/tag/v0.6.0-develop.0)
 
 ### ✨ Features
