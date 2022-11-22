@@ -27,7 +27,7 @@ root:
 
 loggers:
   app::backend::psql:
-    level: info
+    level: debug
   app::backend::memdb:
     level: info
   app::grpc:
