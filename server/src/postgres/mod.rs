@@ -4,7 +4,7 @@
 pub mod macros;
 
 use crate::common::Config;
-use crate::resources::{flight_plan, vertipad};
+use crate::resources::{flight_plan, vertipad, vertiport};
 use anyhow::Error;
 use deadpool_postgres::{
     tokio_postgres::NoTls, ConfigError, ManagerConfig, Pool, PoolError, RecyclingMethod, Runtime,
@@ -146,6 +146,7 @@ impl fmt::Debug for PostgresPool {
 pub async fn create_db(pool: &Pool) -> Result<(), ArrErr> {
     psql_info!("Creating database tables.");
     //Create our tables (in the correct order)
+    vertiport::init_table(pool).await?;
     vertipad::init_table(pool).await?;
     flight_plan::init_table(pool).await
 }
@@ -154,7 +155,8 @@ pub async fn drop_db(pool: &Pool) -> Result<(), ArrErr> {
     psql_warn!("Dropping database tables.");
     // Drop our tables (in the correct order)
     flight_plan::drop_table(pool).await?;
-    vertipad::drop_table(pool).await
+    vertipad::drop_table(pool).await?;
+    vertiport::drop_table(pool).await
 }
 
 pub async fn recreate_db(pool: &Pool) -> Result<(), ArrErr> {
