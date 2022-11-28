@@ -1,3 +1,14 @@
+## [Release 0.7.0-develop.1](https://github.com/Arrow-air/svc-storage/releases/tag/v0.7.0-develop.1)
+
+### 🛠 Maintenance
+
+-  **ci:** .gitignore - provisioned by terraform ([`b9e1a69`](https://github.com/Arrow-air/svc-storage/commit/b9e1a690f3a2ecdac60ace877eff713b4236a32e))
+-  **ci:** .make/rust.mk - provisioned by terraform ([`8ee4e90`](https://github.com/Arrow-air/svc-storage/commit/8ee4e905c13ba88b244e8a127e678c303f7a468f))
+
+### 📚 Documentation
+
+-  **sdd:** adds SDD ([`1a80d4b`](https://github.com/Arrow-air/svc-storage/commit/1a80d4b96b417845a2a0e87ebca2f3bc14dfdcdd))
+
 ## [Release 0.7.0-develop.0](https://github.com/Arrow-air/svc-storage/releases/tag/v0.7.0-develop.0)
 
 ### ✨ Features
