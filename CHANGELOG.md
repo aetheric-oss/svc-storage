@@ -1,3 +1,9 @@
+## [Release 0.8.0-develop.0](https://github.com/Arrow-air/svc-storage/releases/tag/v0.8.0-develop.0)
+
+### ✨ Features
+
+-  **vertiport:** add grpc and psql resources (#17) ([`5942b06`](https://github.com/Arrow-air/svc-storage/commit/5942b063644eee9e460d2427eff7ec178b4ccd4d))
+
 ## [Release 0.7.0-develop.1](https://github.com/Arrow-air/svc-storage/releases/tag/v0.7.0-develop.1)
 
 ### 🛠 Maintenance
