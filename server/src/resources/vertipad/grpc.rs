@@ -211,11 +211,15 @@ impl VertipadRpc for VertipadImpl {
     /// let updated_vertipad = match vertipad_client.update_vertipad(tonic::Request::new(UpdateVertipad {
     ///     id: "54acfe06-dd9b-42e8-8cb4-12a2fb2fa693"
     ///     data: Some(VertipadData {
-    ///         first_name: "John",
-    ///         last_name: "Doe",
+    ///         description: format!("San Francisco's first"),
+    ///         latitude: 37.7749,
+    ///         longitude: -122.4194,
+    ///         enabled: true,
+    ///         occupied: false,
+    ///         schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
     ///     }),
     ///     mask: Some(FieldMask {
-    ///         paths: vec!["first_name".to_string()]
+    ///         paths: vec!["description".to_string()]
     ///     })
     /// }))
     /// .await

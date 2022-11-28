@@ -3,7 +3,7 @@ description = "Arrow Storage service GRPC client"
 edition     = "2021"                              # Allowed values are 2015, 2018, 2021
 license     = ""
 name        = "svc-storage-client-grpc"
-version     = "0.7.0-develop.1"
+version     = "0.8.0-develop.0"
 # Rust Editions: https://doc.rust-lang.org/edition-guide/index.html
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -12,11 +12,12 @@ version     = "0.7.0-develop.1"
 geo-types     = "0.7"
 num-derive    = "0.3"
 num-traits    = "0.2"
-ordered-float = "3.3.0"
+ordered-float = "3.3"
 prost         = "0.11"
-prost-types   = "0.11.1"
+prost-types   = "0.11"
 router        = { git = "https://github.com/Arrow-air/lib-router.git", branch = "develop" }
-tonic         = "0.8.1"
+tonic         = "0.8"
+uuid          = { version = "1.2", features = ["v4"] }
 
 [dev-dependencies]
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }

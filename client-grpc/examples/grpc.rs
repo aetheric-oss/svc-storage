@@ -13,7 +13,7 @@ use svc_storage_client_grpc::client::{
     vehicle_rpc_client::VehicleRpcClient, vertipad_rpc_client::VertipadRpcClient,
     vertiport_rpc_client::VertiportRpcClient, FlightPlan, FlightPlanData, FlightPriority,
     FlightStatus, Pilot, SearchFilter, UpdateFlightPlan, UpdateVertipad, Vehicle, VehicleType,
-    Vertipad, VertipadData,
+    Vertipad, VertipadData, Vertiport, VertiportData,
 };
 
 /// Provide GRPC endpoint to use
@@ -87,21 +87,22 @@ async fn get_pilots() -> Result<Vec<Pilot>, Status> {
     }
 }
 
-/// Example VertipadRpcClient
-/// Assuming the server is running, this method calls `client.vertipads` and
-/// should receive a valid response from the server
-async fn get_vertipads() -> Result<Vec<Vertipad>, Status> {
-    const CAL_WORKDAYS_8AM_6PM: &str = "\
+const CAL_WORKDAYS_8AM_6PM: &str = "\
 DTSTART:20221020T180000Z;DURATION:PT14H
 RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR
 DTSTART:20221022T000000Z;DURATION:PT24H
 RRULE:FREQ=WEEKLY;BYDAY=SA,SU";
 
-    const SAN_FRANCISCO: Location = Location {
-        latitude: OrderedFloat(37.7749),
-        longitude: OrderedFloat(-122.4194),
-        altitude_meters: OrderedFloat(0.0),
-    };
+const SAN_FRANCISCO: Location = Location {
+    latitude: OrderedFloat(37.7749),
+    longitude: OrderedFloat(-122.4194),
+    altitude_meters: OrderedFloat(0.0),
+};
+
+/// Example VertipadRpcClient
+/// Assuming the server is running, this method calls `client.vertipads` and
+/// should receive a valid response from the server
+async fn vertipad_scenario(mut vertiports: Vec<Vertiport>) -> Result<Vec<Vertipad>, Status> {
     let mut nodes = generate_nodes_near(&SAN_FRANCISCO, 25.0, 50);
 
     let grpc_endpoint = get_grpc_endpoint();
@@ -134,11 +135,31 @@ RRULE:FREQ=WEEKLY;BYDAY=SA,SU";
         x = node.location.longitude;
         y = node.location.latitude;
     }
-    let vertiport_id = "5f3e94e1-0782-40f6-bfca-e2a4f4cd8d05";
+    let vertiport_id = match vertiports.pop() {
+        Some(vertiport) => vertiport.id,
+        None => uuid::Uuid::new_v4().to_string(),
+    };
     let new_vertipad = match vertipad_client
         .insert_vertipad(tonic::Request::new(VertipadData {
-            vertiport_id: vertiport_id.to_string(),
-            description: format!("First vertipad for {}", vertiport_id),
+            vertiport_id: vertiport_id.clone(),
+            description: format!("First vertipad for {}", vertiport_id.clone()),
+            latitude: x.into_inner().into(),
+            longitude: y.into_inner().into(),
+            enabled: true,
+            occupied: false,
+            schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
+        }))
+        .await
+    {
+        Ok(fp) => fp.into_inner(),
+        Err(e) => panic!("Something went wrong inserting the vertipad: {}", e),
+    };
+    println!("Created new vertipad: {:?}", new_vertipad);
+
+    let new_vertipad = match vertipad_client
+        .insert_vertipad(tonic::Request::new(VertipadData {
+            vertiport_id: vertiport_id.clone(),
+            description: format!("Second vertipad for {}", vertiport_id.clone()),
             latitude: x.into_inner().into(),
             longitude: y.into_inner().into(),
             enabled: true,
@@ -171,6 +192,23 @@ RRULE:FREQ=WEEKLY;BYDAY=SA,SU";
     };
     println!("Update vertipad result: {:?}", update_vertipad_res);
 
+    let new_vertipad = match vertipad_client
+        .insert_vertipad(tonic::Request::new(VertipadData {
+            vertiport_id: vertiport_id.clone(),
+            description: format!("Third vertipad for {}", vertiport_id.clone()),
+            latitude: x.into_inner().into(),
+            longitude: y.into_inner().into(),
+            enabled: true,
+            occupied: false,
+            schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
+        }))
+        .await
+    {
+        Ok(fp) => fp.into_inner(),
+        Err(e) => panic!("Something went wrong inserting the vertipad: {}", e),
+    };
+    println!("Created new vertipad: {:?}", new_vertipad);
+
     println!("Retrieving list of vertipads");
     match vertipad_client
         .vertipads(tonic::Request::new(vertipad_filter.clone()))
@@ -181,6 +219,48 @@ RRULE:FREQ=WEEKLY;BYDAY=SA,SU";
             println!("Vertipads found: {:?}", vertipads);
             Ok(vertipads)
         }
+        Err(e) => Err(e),
+    }
+}
+
+async fn generate_sample_vertiports() -> Result<Vec<Vertiport>, Status> {
+    let grpc_endpoint = get_grpc_endpoint();
+    let mut vertiport_client = match VertiportRpcClient::connect(grpc_endpoint.clone()).await {
+        Ok(res) => res,
+        Err(e) => panic!("Error creating client for VertiportRpcClient: {}", e),
+    };
+    println!("Vertiport Client created");
+
+    let vertiport_filter = SearchFilter {
+        search_field: "".to_string(),
+        search_value: "".to_string(),
+        page_number: 1,
+        results_per_page: 50,
+    };
+    let nodes = generate_nodes_near(&SAN_FRANCISCO, 25.0, 50);
+    for node in nodes.into_iter() {
+        println!("Starting insert vertiport");
+        let new_vertiport = match vertiport_client
+            .insert_vertiport(tonic::Request::new(VertiportData {
+                description: "Vertiport ".to_string() + &node.uid,
+                latitude: node.location.latitude.into_inner().into(),
+                longitude: node.location.longitude.into_inner().into(),
+                schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
+            }))
+            .await
+        {
+            Ok(fp) => fp.into_inner(),
+            Err(e) => panic!("Something went wrong inserting the vertiport: {}", e),
+        };
+        println!("Created new vertiport: {:?}", new_vertiport);
+    }
+
+    println!("Retrieving list of vertiports");
+    match vertiport_client
+        .vertiports(tonic::Request::new(vertiport_filter.clone()))
+        .await
+    {
+        Ok(res) => Ok(res.into_inner().vertiports),
         Err(e) => Err(e),
     }
 }
@@ -314,11 +394,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         None => panic!("No pilots found.. exiting"),
     };
 
+    let vertiports = generate_sample_vertiports().await?;
+
     // Get a list of vertipads
-    let vertipads = get_vertipads().await?;
-    if vertipads.len() == 0 {
-        panic!("No vertipads found.. exiting");
-    }
+    let vertipads = vertipad_scenario(vertiports).await?;
 
     // Play flight plan scenario
     let _result = flight_plan_scenario(pilot_id, vehicle_id, vertipads).await;
