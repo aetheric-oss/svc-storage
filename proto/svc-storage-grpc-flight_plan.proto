@@ -10,8 +10,8 @@ import "svc-storage-grpc.proto";
 service FlightPlanRpc {
     rpc flight_plans(grpc.SearchFilter) returns (FlightPlans);
     rpc flight_plan_by_id(grpc.Id) returns (FlightPlan);
-    rpc insert_flight_plan(FlightPlanData) returns (FlightPlan);
-    rpc update_flight_plan(UpdateFlightPlan) returns (FlightPlan);
+    rpc insert_flight_plan(FlightPlanData) returns (FlightPlanResult);
+    rpc update_flight_plan(UpdateFlightPlan) returns (FlightPlanResult);
     rpc delete_flight_plan(grpc.Id) returns (google.protobuf.Empty);
 }
 
@@ -38,6 +38,11 @@ enum FlightPriority {
     HIGH = 1;
     //EMERGENCY
     EMERGENCY = 2;
+}
+
+message FlightPlanResult {
+    grpc.ValidationResult validation_result = 1;
+    optional FlightPlan flight_plan = 2;
 }
 
 //FlightPlan
@@ -98,5 +103,5 @@ message FlightPlanData {
 //FlightPlans
 message FlightPlans {
     //array/vector of flight items
-    repeated FlightPlan flightPlans = 1;
+    repeated FlightPlan list = 1;
 }
