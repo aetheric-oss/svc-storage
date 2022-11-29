@@ -988,7 +988,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f74e330193f90ec45e2b257fa3ef6df087784157ac1ad2c1e71c62837b03aa7"
 dependencies = [
  "num-traits",
- "serde",
 ]
 
 [[package]]
@@ -1141,12 +1140,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
-name = "piston-float"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad78bf43dcf80e8f950c92b84f938a0fc7590b7f6866fbcbeca781609c115590"
-
-[[package]]
 name = "pkg-config"
 version = "0.3.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1278,15 +1271,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "quaternion"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "098443236d1445368525aa1874295cb9d9fc7699b52907c78692f0b18bd8c216"
-dependencies = [
- "vecmath",
-]
-
-[[package]]
 name = "quote"
 version = "1.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1373,21 +1357,6 @@ dependencies = [
  "base64",
  "bitflags",
  "serde",
-]
-
-[[package]]
-name = "router"
-version = "0.1.0"
-source = "git+https://github.com/Arrow-air/lib-router.git?branch=develop#4f17ddf3ea30dac7e0fa2b16d8c56e2b809d4337"
-dependencies = [
- "cargo-husky",
- "ordered-float 3.3.0",
- "petgraph",
- "quaternion",
- "rand",
- "serde",
- "uuid",
- "vecmath",
 ]
 
 [[package]]
@@ -1591,7 +1560,7 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "svc-storage"
-version = "0.7.0-develop.0"
+version = "0.8.0-develop.0"
 dependencies = [
  "anyhow",
  "cargo-husky",
@@ -1615,7 +1584,6 @@ dependencies = [
  "postgres-types",
  "prost",
  "prost-types",
- "router",
  "serde",
  "serde_json",
  "serde_yaml 0.9.14",
@@ -1630,7 +1598,7 @@ dependencies = [
 
 [[package]]
 name = "svc-storage-client-grpc"
-version = "0.7.0-develop.0"
+version = "0.8.0-develop.0"
 dependencies = [
  "geo-types",
  "num-derive",
@@ -1638,7 +1606,6 @@ dependencies = [
  "ordered-float 3.3.0",
  "prost",
  "prost-types",
- "router",
  "tokio",
  "tonic",
  "uuid",
@@ -2064,19 +2031,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "feb41e78f93363bb2df8b0e86a2ca30eed7806ea16ea0c790d757cf93f79be83"
 dependencies = [
  "getrandom",
- "rand",
- "uuid-macro-internal",
-]
-
-[[package]]
-name = "uuid-macro-internal"
-version = "1.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44cc305b0c375fa2f078537bbe564516cb1946c1defa4041aa0e3f9cd5e07c4a"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
@@ -2084,15 +2038,6 @@ name = "vcpkg"
 version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
-
-[[package]]
-name = "vecmath"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "956ae1e0d85bca567dee1dcf87fb1ca2e792792f66f87dced8381f99cd91156a"
-dependencies = [
- "piston-float",
-]
 
 [[package]]
 name = "version_check"

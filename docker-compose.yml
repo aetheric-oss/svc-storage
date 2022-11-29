@@ -68,7 +68,7 @@ services:
       interval: 2s
       timeout: 1s
       retries: 3
-    command: rebuild_psql init_psql populate_memdb
+    command: rebuild_psql init_psql
     environment:
       - RUST_BACKTRACE
       - PG__USER
