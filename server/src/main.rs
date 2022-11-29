@@ -65,12 +65,6 @@ async fn apply_arg(option: &str) -> Result<(), ArrErr> {
             info!("PSQL Rebuild completed.");
             Ok(())
         }
-        "populate_memdb" => {
-            //populate memdb sample data
-            info!("Found argument [{}]. populating data in memory...", option);
-            memdb::populate_data().await;
-            Ok(())
-        }
         "memdb_only" => {
             common::use_psql_set(false);
             info!(

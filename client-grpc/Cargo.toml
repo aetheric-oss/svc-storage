@@ -15,7 +15,6 @@ num-traits    = "0.2"
 ordered-float = "3.3"
 prost         = "0.11"
 prost-types   = "0.11"
-router        = { git = "https://github.com/Arrow-air/lib-router.git", branch = "develop" }
 tonic         = "0.8"
 uuid          = { version = "1.2", features = ["v4"] }
 
