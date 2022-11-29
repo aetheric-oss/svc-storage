@@ -1,3 +1,9 @@
+## [Release 0.8.0-develop.1](https://github.com/Arrow-air/svc-storage/releases/tag/v0.8.0-develop.1)
+
+### 📚 Documentation
+
+- add readme section to troubleshoot macos tls issue ([`8475ab9`](https://github.com/Arrow-air/svc-storage/commit/8475ab91ff1e512bf7c50bba097d73996e2718c5))
+
 ## [Release 0.8.0-develop.0](https://github.com/Arrow-air/svc-storage/releases/tag/v0.8.0-develop.0)
 
 ### ✨ Features
