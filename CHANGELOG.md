@@ -1,3 +1,9 @@
+## [Release 0.8.1-develop.0](https://github.com/Arrow-air/svc-storage/releases/tag/v0.8.1-develop.0)
+
+### 🐛 Fixes
+
+- remove lib-router dependency (#21) ([`b50497c`](https://github.com/Arrow-air/svc-storage/commit/b50497cbeec58cd1fb54d0230288baa407e592f4))
+
 ## [Release 0.8.0-develop.1](https://github.com/Arrow-air/svc-storage/releases/tag/v0.8.0-develop.1)
 
 ### 📚 Documentation
