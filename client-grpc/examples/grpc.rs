@@ -2,10 +2,10 @@
 
 use ordered_float::OrderedFloat;
 use prost_types::FieldMask;
-use router::{generator::generate_nodes_near, location::Location};
 use std::env;
 use std::time::SystemTime;
 use tonic::Status;
+use uuid::Uuid;
 
 #[allow(unused_qualifications, missing_docs)]
 use svc_storage_client_grpc::client::{
@@ -93,18 +93,10 @@ RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR
 DTSTART:20221022T000000Z;DURATION:PT24H
 RRULE:FREQ=WEEKLY;BYDAY=SA,SU";
 
-const SAN_FRANCISCO: Location = Location {
-    latitude: OrderedFloat(37.7749),
-    longitude: OrderedFloat(-122.4194),
-    altitude_meters: OrderedFloat(0.0),
-};
-
 /// Example VertipadRpcClient
 /// Assuming the server is running, this method calls `client.vertipads` and
 /// should receive a valid response from the server
 async fn vertipad_scenario(mut vertiports: Vec<Vertiport>) -> Result<Vec<Vertipad>, Status> {
-    let mut nodes = generate_nodes_near(&SAN_FRANCISCO, 25.0, 50);
-
     let grpc_endpoint = get_grpc_endpoint();
     let mut vertipad_client = VertipadRpcClient::connect(grpc_endpoint.clone())
         .await
@@ -129,12 +121,8 @@ async fn vertipad_scenario(mut vertiports: Vec<Vertiport>) -> Result<Vec<Vertipa
     println!("Vertipads found: {:?}", vertipads);
 
     println!("Starting insert vertipad");
-    let mut x = OrderedFloat(-122.4194);
-    let mut y = OrderedFloat(37.7746);
-    if let Some(node) = nodes.pop() {
-        x = node.location.longitude;
-        y = node.location.latitude;
-    }
+    let x = OrderedFloat(-122.4194);
+    let y = OrderedFloat(37.7746);
     let vertiport_id = match vertiports.pop() {
         Some(vertiport) => vertiport.id,
         None => uuid::Uuid::new_v4().to_string(),
@@ -237,23 +225,20 @@ async fn generate_sample_vertiports() -> Result<Vec<Vertiport>, Status> {
         page_number: 1,
         results_per_page: 50,
     };
-    let nodes = generate_nodes_near(&SAN_FRANCISCO, 25.0, 50);
-    for node in nodes.into_iter() {
-        println!("Starting insert vertiport");
-        let new_vertiport = match vertiport_client
-            .insert_vertiport(tonic::Request::new(VertiportData {
-                description: "Vertiport ".to_string() + &node.uid,
-                latitude: node.location.latitude.into_inner().into(),
-                longitude: node.location.longitude.into_inner().into(),
-                schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
-            }))
-            .await
-        {
-            Ok(fp) => fp.into_inner(),
-            Err(e) => panic!("Something went wrong inserting the vertiport: {}", e),
-        };
-        println!("Created new vertiport: {:?}", new_vertiport);
-    }
+    let x = OrderedFloat(-122.4194);
+    let y = OrderedFloat(37.7746);
+    match vertiport_client
+        .insert_vertiport(tonic::Request::new(VertiportData {
+            description: "Vertiport ".to_string(),
+            latitude: x.into_inner().into(),
+            longitude: y.into_inner().into(),
+            schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
+        }))
+        .await
+    {
+        Ok(fp) => fp.into_inner(),
+        Err(e) => panic!("Something went wrong inserting the vertiport: {}", e),
+    };
 
     println!("Retrieving list of vertiports");
     match vertiport_client
@@ -380,19 +365,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         grpc_endpoint
     );
 
-    // Get a list of vehicles and get the first returned vehicle id
-    let mut vehicles = get_vehicles().await?;
-    let vehicle_id = match vehicles.pop() {
-        Some(vehicle) => vehicle.id,
-        None => panic!("No vehicles found.. exiting"),
-    };
-
-    // Get a list of pilots and get the first returned pilot's id
-    let mut pilots = get_pilots().await?;
-    let pilot_id = match pilots.pop() {
-        Some(pilot) => pilot.id,
-        None => panic!("No pilots found.. exiting"),
-    };
+    // Get a list of vehicles
+    let _vehicles = get_vehicles().await?;
+    let vehicle_id = Uuid::new_v4().to_string();
+    // Get a list of pilots
+    let _pilots = get_pilots().await?;
+    let pilot_id = Uuid::new_v4().to_string();
 
     let vertiports = generate_sample_vertiports().await?;
 

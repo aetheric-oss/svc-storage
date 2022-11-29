@@ -167,7 +167,7 @@ pub async fn search(pool: &Pool, filter: &HashMap<String, String>) -> Result<Vec
         search_fields.push(&search_val);
     }
 
-    search_query = format!(r#"SELECT * FROM flight_plan WHERE {}"#, search_query);
+    search_query = format!(r#"SELECT * FROM flight_plan {}"#, search_query);
     psql_debug!("{}", search_query);
     let search_sql = &client.prepare_cached(&search_query).await?;
 
