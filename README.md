@@ -95,3 +95,23 @@ Run the example:
 ```
 make rust-example-grpc
 ```
+
+
+### MacOS troubleshooting
+
+1. Currently, the `make build` command does not work on MacOS with M1 processor so running the example will fail.
+As a workaround we can start only the cockroachdb with `docker-compose up cockroachdb` and then `cargo run` to start the svc-storage server.
+
+2. The other problem on MacOS is that it doesn't trust automatically generated cockroachdb certificates. (Errors like "certificate not trusted" or "bad certificate")
+As a workaround we need to add/change these env variables in .env file
+```
+PG__HOST=localhost
+PG__SSLMODE=disable
+USE_TLS=false
+```
+and then modify the `docker-compose.yml` file and replace line
+`command: start-single-node --certs-dir=/cockroach/ssl/certs --advertise-addr=cockroachdb`
+with:
+`command: start-single-node --insecure --advertise-addr=cockroachdb`
+
+This will run the cockroachdb and svc-storage without TLS using username/password.
