@@ -1,5 +1,6 @@
 //! gRPC server implementation
 
+mod arrow_traits;
 mod common;
 mod grpc;
 mod memdb;

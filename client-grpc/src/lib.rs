@@ -1,5 +1,7 @@
 //! Exposes svc-storage Client Functions
 
+pub mod arrow_traits;
+
 /// Client Library: Client Functions, Structs
 pub mod client {
     #![allow(unused_qualifications, missing_docs)]

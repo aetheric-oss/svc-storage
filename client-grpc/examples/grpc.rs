@@ -4,6 +4,7 @@ use ordered_float::OrderedFloat;
 use prost_types::FieldMask;
 use std::env;
 use std::time::SystemTime;
+use svc_storage_client_grpc::arrow_traits::{ArrowData, ArrowType};
 use tonic::Status;
 use uuid::Uuid;
 
@@ -391,5 +392,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
     println!("RESPONSE Vertiports={:?}", vertiports.into_inner());
 
+    test_new_traits();
+
     Ok(())
+}
+
+async fn test_new_traits() {
+    let vertiports: Vec<Vertiport> = Vec::new();
+    let fps: Vec<FlightPlan> = Vec::new();
+    let combined_types: Vec<Box<dyn ArrowType>> = vec![
+        Box::new(Vertiport {
+            id: "11".to_string(),
+            data: None,
+        }),
+        Box::new(FlightPlan {
+            id: "22".to_string(),
+            data: None,
+        }),
+    ];
+    let combined_ids: Vec<String> = combined_types.iter().map(|x| x.get_id()).collect();
+    let combined_data: Vec<Option<Box<dyn ArrowData>>> =
+        combined_types.iter().map(|x| x.get_data()).collect();
+    println!("Combined ids: {:?}", combined_ids);
+    //println!("Combined data: {:?}", combined_data); todo needs extra work https://stackoverflow.com/questions/50040596/how-do-i-derive-a-trait-for-another-trait
 }

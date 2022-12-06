@@ -1,5 +1,75 @@
 //! build script to generate .rs from .proto
 
+use std::fs;
+const CLIENT_OUT_DIR: &str = "../client-grpc/src/";
+const SERVER_OUT_DIR: &str = "src/";
+const ARROW_TRAITS_FILE_NAME: &str = "arrow_traits.rs";
+
+fn generate_arrow_wrapper_traits() {
+    let arrow_types: Vec<&str> = vec![
+        "FlightPlan",
+        "Vertiport",
+        /*"Pilot",
+        "Vehicle",
+        "Vertipad",*/
+    ];
+    //todo dynamic imports, server needs extra handling because of "::flight_plan::"
+    let server_import = "use crate::resources::flight_plan::{FlightPlan, FlightPlanData};
+use crate::resources::vertiport::{Vertiport, VertiportData};";
+    let client_import =
+        "use crate::client::{FlightPlan, FlightPlanData, Vertiport, VertiportData};";
+    let mut data: String = "
+pub trait ArrowData {
+    
+}
+
+pub trait ArrowType {
+    fn get_id(&self) -> String;
+    fn get_data(&self) -> Option<Box<dyn ArrowData>>;
+    /*fn create(&self) -> Self;
+    fn update(&self) -> Self;
+    fn delete(&self) -> Self;*/
+}
+
+
+"
+    .to_string();
+    for arrow_type in arrow_types.iter() {
+        data = data.to_owned()
+            + "impl ArrowType for "
+            + arrow_type
+            + " {
+    fn get_id(&self) -> String {
+        self.id.clone()
+    }
+
+    fn get_data(&self) -> Option<Box<dyn ArrowData>> {
+        if !self.data.is_some() {
+            return None;
+        }
+        Some(Box::new(self.data.clone().unwrap()))
+    }
+}
+
+impl ArrowData for "
+            + arrow_type
+            + "Data {
+   
+}";
+    }
+
+    fs::write(
+        CLIENT_OUT_DIR.to_owned() + ARROW_TRAITS_FILE_NAME,
+        client_import.to_owned() + &*data.clone(),
+    )
+    .expect("Unable to write file");
+    fs::write(
+        SERVER_OUT_DIR.to_owned() + ARROW_TRAITS_FILE_NAME,
+        server_import.to_owned() + &*data,
+    )
+    .expect("Unable to write file");
+}
+
 ///generates .rs files in src directory
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let proto_dir = "../proto";
@@ -43,14 +113,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client_config = server_config.clone();
 
     client_config
-        .build_server(false)
-        .out_dir("../client-grpc/src/")
+        .out_dir(CLIENT_OUT_DIR)
         .compile(&proto_files, &[proto_dir])?;
 
     // Build the Server
     server_config
         .build_client(false)
         .compile(&proto_files, &[proto_dir])?;
+
+    // generate_arrow_wrapper_traits
+    generate_arrow_wrapper_traits();
 
     Ok(())
 }
