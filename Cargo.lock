@@ -1560,7 +1560,7 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "svc-storage"
-version = "0.8.0-develop.0"
+version = "0.1.0"
 dependencies = [
  "anyhow",
  "cargo-husky",
@@ -1598,7 +1598,7 @@ dependencies = [
 
 [[package]]
 name = "svc-storage-client-grpc"
-version = "0.8.0-develop.0"
+version = "0.1.0"
 dependencies = [
  "geo-types",
  "num-derive",
