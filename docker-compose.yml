@@ -1,0 +1,108 @@
+---
+version: '3.6'
+volumes:
+  cockroachdb:
+  cockroachdb-ssl:
+
+services:
+  cockroachdb-init:
+    container_name: ${DOCKER_NAME}-example-cockroachdb-init
+    image: cockroachdb/cockroach:latest-v22.1
+    volumes:
+      - type: volume
+        source: cockroachdb
+        target: /cockroach/cockroach-data
+      - type: volume
+        source: cockroachdb-ssl
+        target: /cockroach/ssl
+      - type: bind
+        source: scripts/cockroachdb-init.sh
+        target: /scripts/cockroachdb-init.sh
+        read_only: true
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["/scripts/cockroachdb-init.sh"]
+
+  cockroachdb:
+    container_name: ${DOCKER_NAME}-example-cockroachdb
+    image: cockroachdb/cockroach:latest-v22.1
+    depends_on:
+      cockroachdb-init:
+        condition: service_completed_successfully
+    volumes:
+      - type: bind
+        source: scripts/init.sql
+        target: /docker-entrypoint-initdb.d/init.sql
+      - type: volume
+        source: cockroachdb
+        target: /cockroach/cockroach-data
+      - type: volume
+        source: cockroachdb-ssl
+        target: /cockroach/ssl
+        read_only: true
+    healthcheck:
+      test: "curl -sf http://localhost:8080 > /dev/null"
+      interval: 2s
+      timeout: 1s
+      retries: 3
+    ports:
+      - 26257:26257
+      - 8080:8080
+    command: start-single-node --certs-dir=/cockroach/ssl/certs --advertise-addr=cockroachdb
+
+  web-server:
+    container_name: ${DOCKER_NAME}-example-server
+    image: ${PACKAGE_NAME}:latest
+    ports:
+      - ${HOST_PORT_REST}:${DOCKER_PORT_REST}
+      - ${HOST_PORT_GRPC}:${DOCKER_PORT_GRPC}
+    volumes:
+      - type: bind
+        source: log4rs.yaml
+        target: /log4rs.yaml
+      - type: volume
+        source: cockroachdb-ssl
+        target: /cockroach/ssl
+        read_only: true
+    healthcheck:
+      test: ["CMD", "grpc_health_probe", "-addr", "localhost:${DOCKER_PORT_GRPC}"]
+      interval: 2s
+      timeout: 1s
+      retries: 3
+    command: rebuild_psql init_psql
+    environment:
+      - RUST_BACKTRACE
+      - PG__USER
+      - PG__DBNAME
+      - PG__HOST
+      - PG__PORT
+      - PG__SSLMODE
+      - DB_CA_CERT
+      - DB_CLIENT_CERT
+      - DB_CLIENT_KEY
+      - DOCKER_PORT_GRPC
+    depends_on:
+      cockroachdb:
+        condition: service_healthy
+
+  example:
+    links:
+      - cockroachdb
+      - web-server
+    depends_on:
+      web-server:
+        condition: service_healthy
+    container_name: ${DOCKER_NAME}-example
+    image: ${RUST_IMAGE_NAME}:${RUST_IMAGE_TAG}
+    volumes:
+      - type: bind
+        source: "${SOURCE_PATH}/"
+        target: "/usr/src/app"
+      - type: bind
+        source: "${SOURCE_PATH}/.cargo/registry"
+        target: "/usr/local/cargo/registry"
+    environment:
+      - SERVER_HOSTNAME
+      - SERVER_PORT_GRPC
+      - SERVER_PORT_REST
+      - EXAMPLE_TARGET
+    command: cargo run --manifest-path "${CARGO_MANIFEST_PATH}" --example "${EXAMPLE_TARGET}"

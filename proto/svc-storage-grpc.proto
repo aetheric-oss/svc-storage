@@ -1,0 +1,36 @@
+syntax = "proto3";
+package grpc;
+
+//Storage service
+service StorageRpc {
+    rpc isReady (ReadyRequest) returns (ReadyResponse);
+}
+
+//Id type for passing id only requests
+message Id {
+    //id
+    string id = 1;
+}
+
+// Ready Request
+message ReadyRequest {
+    // No arguments
+}
+
+// Ready Response
+message ReadyResponse {
+    // ready
+    bool ready = 1;
+}
+
+//SearchFilter
+message SearchFilter {
+    // search_field
+    string search_field = 1;
+    // search_value
+    string search_value = 2;
+    // page_number
+    int32 page_number = 3;  // Which page number do we want?
+    // results_per_page
+    int32 results_per_page = 4;  // Number of results to return per page.
+}

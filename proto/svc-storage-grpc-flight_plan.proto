@@ -1,0 +1,102 @@
+syntax = "proto3";
+package grpc.flight_plan;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "svc-storage-grpc.proto";
+
+//FlightPlanRpc service
+service FlightPlanRpc {
+    rpc flight_plans(grpc.SearchFilter) returns (FlightPlans);
+    rpc flight_plan_by_id(grpc.Id) returns (FlightPlan);
+    rpc insert_flight_plan(FlightPlanData) returns (FlightPlan);
+    rpc update_flight_plan(UpdateFlightPlan) returns (FlightPlan);
+    rpc delete_flight_plan(grpc.Id) returns (google.protobuf.Empty);
+}
+
+//Flight Status Enum
+enum FlightStatus {
+    //READY
+    READY = 0;
+    //BOARDING
+    BOARDING = 1;
+    //IN_FLIGHT
+    IN_FLIGHT = 3;
+    //FINISHED
+    FINISHED = 4;
+    //CANCELLED
+    CANCELLED = 5;
+    //DRAFT
+    DRAFT = 6;
+}
+//Flight Priority Enum
+enum FlightPriority {
+    //LOW
+    LOW = 0;
+    //HIGH
+    HIGH = 1;
+    //EMERGENCY
+    EMERGENCY = 2;
+}
+
+//FlightPlan
+message FlightPlan {
+    //id UUID v4
+    string id = 1;
+    //data
+    FlightPlanData data = 2;
+}
+
+message UpdateFlightPlan {
+    //id UUID v4
+    string id = 1;
+    FlightPlanData data = 2;
+    google.protobuf.FieldMask mask = 3;
+}
+
+//FlightPlanData
+message FlightPlanData {
+    //pilot_id UUID v4
+    string pilot_id = 1;
+    //vehicle_id UUID v4
+    string vehicle_id = 2;
+    //cargo weight in grams per package
+    repeated int64 cargo_weight_g = 3;
+    //flight_distance in meters
+    int64 flight_distance = 4;
+    //weather_conditions
+    string weather_conditions = 5;
+    //departure_vertiport_id UUID v4, only listed for get results, not needed for creation (known through pad_id)
+    optional string departure_vertiport_id = 6;
+    //departure_vertipad_id UUID v4
+    string departure_vertipad_id = 7;
+    //destination_vertiport_id UUID v4, only listed for get results, not needed for creation (known through pad_id)
+    optional string destination_vertiport_id = 8;
+    //destination_vertipad_id UUID v4
+    string destination_vertipad_id = 9;
+    //scheduled_departure
+    google.protobuf.Timestamp scheduled_departure = 10;
+    //scheduled_arrival
+    google.protobuf.Timestamp scheduled_arrival = 11;
+    //actual_departure
+    optional google.protobuf.Timestamp actual_departure = 12;
+    //actual_arrival
+    optional google.protobuf.Timestamp actual_arrival = 13;
+    //flight_release_approval date and time
+    optional google.protobuf.Timestamp flight_release_approval = 14;
+    //flight_plan_submitted date and time
+    optional google.protobuf.Timestamp flight_plan_submitted = 15;
+    //approved_by UUID v4
+    optional string approved_by = 16;
+    //flight_status
+    FlightStatus flight_status = 17;
+    //flightPriority
+    FlightPriority flight_priority = 18;
+}
+
+//FlightPlans
+message FlightPlans {
+    //array/vector of flight items
+    repeated FlightPlan flightPlans = 1;
+}

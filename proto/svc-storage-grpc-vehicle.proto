@@ -1,0 +1,53 @@
+syntax = "proto3";
+package grpc.vehicle;
+
+import "google/protobuf/empty.proto";
+import "svc-storage-grpc.proto";
+
+//VehicleRpc service
+service VehicleRpc {
+    rpc vehicles(grpc.SearchFilter) returns (Vehicles);
+    rpc vehicle_by_id(grpc.Id) returns (Vehicle);
+    rpc insert_vehicle(VehicleData) returns (Vehicle);
+    rpc update_vehicle(Vehicle) returns (Vehicle);
+    rpc delete_vehicle(grpc.Id) returns (google.protobuf.Empty);
+}
+
+//Vehicle Type Enum
+enum VehicleType {
+    //VTOL_CARGO
+    VTOL_CARGO = 0;
+    //VTOL_PASSENGER
+    VTOL_PASSENGER = 1;
+}
+
+//Vehicle
+message Vehicle {
+    // UUID v4
+    string id = 1;
+    VehicleData data = 2;
+}
+
+//VehicleData
+message VehicleData {
+    VehicleType vehicle_type = 1;
+    string description = 2;
+    optional string schedule = 3;
+    //string make = 2;
+    //string model = 3;
+    //uint32 passenger_capacity = 5;
+    //google.protobuf.Timestamp end_lifespan = 6;
+    //google.protobuf.Timestamp next_maintenance = 7;
+    //google.protobuf.Timestamp last_maintenance = 8;
+    //google.protobuf.Timestamp last_location_update = 9;
+    //float last_location_latitude = 10;
+    //float last_location_longitude = 11;
+    //float voltage_x = 12;
+    //float voltage_y = 13;
+    //float amperage_x = 14;
+    //float amperage_y = 15;
+}
+//Vehicles
+message Vehicles {
+    repeated Vehicle vehicles = 1;
+}
