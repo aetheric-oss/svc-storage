@@ -1,8 +1,8 @@
 [package]
-edition = "2021"        # Allowed values are 2015, 2018, 2021
-name    = "svc-storage"
-version = "0.2.0"
-# Rust Editions: https://doc.rust-lang.org/edition-guide/index.html
+description = "Arrow storage service GRPC server"
+keywords    = ["vtol", "server", "storage"]       # max 5
+name        = "svc-storage"
+version     = "0.9.0-develop.9"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
