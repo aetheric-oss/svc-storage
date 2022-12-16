@@ -9,7 +9,6 @@ CARGO_INCREMENTAL   ?= 1
 RUSTC_BOOTSTRAP     ?= 0
 RELEASE_TARGET      ?= x86_64-unknown-linux-musl
 PUBLISH_DRY_RUN     ?= 1
-CRATES_API_TOKEN    ?= ""
 
 # function with a generic template to run docker with the required values
 # Accepts $1 = command to run, $2 = additional command flags (optional)
@@ -69,7 +68,7 @@ rust-release: check-cargo-registry rust-docker-pull
 rust-publish: check-cargo-registry rust-docker-pull
 	@echo "$(CYAN)Running cargo publish --package $(PUBLISH_PACKAGE_NAME)...$(SGR0)"
 ifeq ("$(PUBLISH_DRY_RUN)", "0")
-	@$(call cargo_run,publish,--package $(PUBLISH_PACKAGE_NAME) --target $(RELEASE_TARGET) --token $(CRATES_API_TOKEN))
+	@echo $(call cargo_run,publish,--package $(PUBLISH_PACKAGE_NAME) --target $(RELEASE_TARGET))
 else
 	@$(call cargo_run,publish,--dry-run --package $(PUBLISH_PACKAGE_NAME) --target $(RELEASE_TARGET))
 endif
@@ -97,7 +96,7 @@ rust-example-%: check-cargo-registry rust-docker-pull
 		-e SERVER_PORT_GRPC=$(DOCKER_PORT_GRPC) \
 		-e SERVER_PORT_REST=$(DOCKER_PORT_REST) \
 		-e SERVER_HOSTNAME=$(DOCKER_NAME)-example-server \
-		example && docker compose down
+		example --remove-orphans && docker compose down
 
 rust-clippy: check-cargo-registry rust-docker-pull
 	@echo "$(CYAN)Running clippy...$(SGR0)"
