@@ -1,42 +1,46 @@
 /// Vertiport
 #[allow(clippy::derive_partial_eq_without_eq)]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Vertiport {
     /// id UUID v4
-    #[prost(string, tag="1")]
+    #[prost(string, tag = "1")]
     pub id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag="2")]
+    #[prost(message, optional, tag = "2")]
     pub data: ::core::option::Option<VertiportData>,
 }
 /// VertiportData
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct VertiportData {
-    #[prost(string, tag="1")]
+    #[prost(string, tag = "1")]
     pub description: ::prost::alloc::string::String,
-    #[prost(double, tag="2")]
+    #[prost(double, tag = "2")]
     pub latitude: f64,
-    #[prost(double, tag="3")]
+    #[prost(double, tag = "3")]
     pub longitude: f64,
     /// repeated string engineers = 5;
     /// uint32 elevation = 7;
-    #[prost(string, optional, tag="4")]
+    #[prost(string, optional, tag = "4")]
     pub schedule: ::core::option::Option<::prost::alloc::string::String>,
 }
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateVertiport {
     /// id UUID v4
-    #[prost(string, tag="1")]
+    #[prost(string, tag = "1")]
     pub id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag="2")]
+    #[prost(message, optional, tag = "2")]
     pub data: ::core::option::Option<VertiportData>,
-    #[prost(message, optional, tag="3")]
+    #[prost(message, optional, tag = "3")]
     pub mask: ::core::option::Option<::prost_types::FieldMask>,
 }
 /// Vertiports
 #[allow(clippy::derive_partial_eq_without_eq)]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Vertiports {
-    #[prost(message, repeated, tag="1")]
+    #[prost(message, repeated, tag = "1")]
     pub vertiports: ::prost::alloc::vec::Vec<Vertiport>,
 }
 /// Generated client implementations.
@@ -44,7 +48,7 @@ pub mod vertiport_rpc_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
     use tonic::codegen::http::Uri;
-    ///VertiportRpc service
+    /// VertiportRpc service
     #[derive(Debug, Clone)]
     pub struct VertiportRpcClient<T> {
         inner: tonic::client::Grpc<T>,
