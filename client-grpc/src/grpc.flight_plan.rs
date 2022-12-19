@@ -1,89 +1,93 @@
 /// FlightPlan
 #[derive(Eq)]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct FlightPlan {
     /// id UUID v4
-    #[prost(string, tag="1")]
+    #[prost(string, tag = "1")]
     pub id: ::prost::alloc::string::String,
     /// data
-    #[prost(message, optional, tag="2")]
+    #[prost(message, optional, tag = "2")]
     pub data: ::core::option::Option<FlightPlanData>,
 }
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateFlightPlan {
     /// id UUID v4
-    #[prost(string, tag="1")]
+    #[prost(string, tag = "1")]
     pub id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag="2")]
+    #[prost(message, optional, tag = "2")]
     pub data: ::core::option::Option<FlightPlanData>,
-    #[prost(message, optional, tag="3")]
+    #[prost(message, optional, tag = "3")]
     pub mask: ::core::option::Option<::prost_types::FieldMask>,
 }
 /// FlightPlanData
 #[derive(Eq)]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct FlightPlanData {
     /// pilot_id UUID v4
-    #[prost(string, tag="1")]
+    #[prost(string, tag = "1")]
     pub pilot_id: ::prost::alloc::string::String,
     /// vehicle_id UUID v4
-    #[prost(string, tag="2")]
+    #[prost(string, tag = "2")]
     pub vehicle_id: ::prost::alloc::string::String,
     /// cargo weight in grams per package
-    #[prost(int64, repeated, tag="3")]
+    #[prost(int64, repeated, tag = "3")]
     pub cargo_weight_g: ::prost::alloc::vec::Vec<i64>,
     /// flight_distance in meters
-    #[prost(int64, tag="4")]
+    #[prost(int64, tag = "4")]
     pub flight_distance: i64,
     /// weather_conditions
-    #[prost(string, tag="5")]
+    #[prost(string, tag = "5")]
     pub weather_conditions: ::prost::alloc::string::String,
     /// departure_vertiport_id UUID v4, only listed for get results, not needed for creation (known through pad_id)
-    #[prost(string, optional, tag="6")]
+    #[prost(string, optional, tag = "6")]
     pub departure_vertiport_id: ::core::option::Option<::prost::alloc::string::String>,
     /// departure_vertipad_id UUID v4
-    #[prost(string, tag="7")]
+    #[prost(string, tag = "7")]
     pub departure_vertipad_id: ::prost::alloc::string::String,
     /// destination_vertiport_id UUID v4, only listed for get results, not needed for creation (known through pad_id)
-    #[prost(string, optional, tag="8")]
+    #[prost(string, optional, tag = "8")]
     pub destination_vertiport_id: ::core::option::Option<::prost::alloc::string::String>,
     /// destination_vertipad_id UUID v4
-    #[prost(string, tag="9")]
+    #[prost(string, tag = "9")]
     pub destination_vertipad_id: ::prost::alloc::string::String,
     /// scheduled_departure
-    #[prost(message, optional, tag="10")]
+    #[prost(message, optional, tag = "10")]
     pub scheduled_departure: ::core::option::Option<::prost_types::Timestamp>,
     /// scheduled_arrival
-    #[prost(message, optional, tag="11")]
+    #[prost(message, optional, tag = "11")]
     pub scheduled_arrival: ::core::option::Option<::prost_types::Timestamp>,
     /// actual_departure
-    #[prost(message, optional, tag="12")]
+    #[prost(message, optional, tag = "12")]
     pub actual_departure: ::core::option::Option<::prost_types::Timestamp>,
     /// actual_arrival
-    #[prost(message, optional, tag="13")]
+    #[prost(message, optional, tag = "13")]
     pub actual_arrival: ::core::option::Option<::prost_types::Timestamp>,
     /// flight_release_approval date and time
-    #[prost(message, optional, tag="14")]
+    #[prost(message, optional, tag = "14")]
     pub flight_release_approval: ::core::option::Option<::prost_types::Timestamp>,
     /// flight_plan_submitted date and time
-    #[prost(message, optional, tag="15")]
+    #[prost(message, optional, tag = "15")]
     pub flight_plan_submitted: ::core::option::Option<::prost_types::Timestamp>,
     /// approved_by UUID v4
-    #[prost(string, optional, tag="16")]
+    #[prost(string, optional, tag = "16")]
     pub approved_by: ::core::option::Option<::prost::alloc::string::String>,
     /// flight_status
-    #[prost(enumeration="FlightStatus", tag="17")]
+    #[prost(enumeration = "FlightStatus", tag = "17")]
     pub flight_status: i32,
     /// flightPriority
-    #[prost(enumeration="FlightPriority", tag="18")]
+    #[prost(enumeration = "FlightPriority", tag = "18")]
     pub flight_priority: i32,
 }
 /// FlightPlans
 #[derive(Eq)]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct FlightPlans {
     /// array/vector of flight items
-    #[prost(message, repeated, tag="1")]
+    #[prost(message, repeated, tag = "1")]
     pub flight_plans: ::prost::alloc::vec::Vec<FlightPlan>,
 }
 /// Flight Status Enum
@@ -150,7 +154,7 @@ pub mod flight_plan_rpc_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
     use tonic::codegen::http::Uri;
-    ///FlightPlanRpc service
+    /// FlightPlanRpc service
     #[derive(Debug, Clone)]
     pub struct FlightPlanRpcClient<T> {
         inner: tonic::client::Grpc<T>,
