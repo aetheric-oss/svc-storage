@@ -1,20 +1,22 @@
 /// Vehicle
 #[derive(Eq)]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Vehicle {
     /// UUID v4
-    #[prost(string, tag="1")]
+    #[prost(string, tag = "1")]
     pub id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag="2")]
+    #[prost(message, optional, tag = "2")]
     pub data: ::core::option::Option<VehicleData>,
 }
 /// VehicleData
 #[derive(Eq)]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct VehicleData {
-    #[prost(enumeration="VehicleType", tag="1")]
+    #[prost(enumeration = "VehicleType", tag = "1")]
     pub vehicle_type: i32,
-    #[prost(string, tag="2")]
+    #[prost(string, tag = "2")]
     pub description: ::prost::alloc::string::String,
     /// string make = 2;
     /// string model = 3;
@@ -29,14 +31,15 @@ pub struct VehicleData {
     /// float voltage_y = 13;
     /// float amperage_x = 14;
     /// float amperage_y = 15;
-    #[prost(string, optional, tag="3")]
+    #[prost(string, optional, tag = "3")]
     pub schedule: ::core::option::Option<::prost::alloc::string::String>,
 }
 /// Vehicles
 #[derive(Eq)]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Vehicles {
-    #[prost(message, repeated, tag="1")]
+    #[prost(message, repeated, tag = "1")]
     pub vehicles: ::prost::alloc::vec::Vec<Vehicle>,
 }
 /// Vehicle Type Enum
@@ -59,13 +62,21 @@ impl VehicleType {
             VehicleType::VtolPassenger => "VTOL_PASSENGER",
         }
     }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "VTOL_CARGO" => Some(Self::VtolCargo),
+            "VTOL_PASSENGER" => Some(Self::VtolPassenger),
+            _ => None,
+        }
+    }
 }
 /// Generated client implementations.
 pub mod vehicle_rpc_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
     use tonic::codegen::http::Uri;
-    ///VehicleRpc service
+    /// VehicleRpc service
     #[derive(Debug, Clone)]
     pub struct VehicleRpcClient<T> {
         inner: tonic::client::Grpc<T>,

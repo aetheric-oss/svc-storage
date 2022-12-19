@@ -1,53 +1,74 @@
 /// Id type for passing id only requests
 #[derive(Eq)]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Id {
     /// id
-    #[prost(string, tag="1")]
+    #[prost(string, tag = "1")]
     pub id: ::prost::alloc::string::String,
 }
 /// Ready Request
 ///
 /// No arguments
 #[derive(Eq, Copy)]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ReadyRequest {
-}
+pub struct ReadyRequest {}
 /// Ready Response
 #[derive(Eq, Copy)]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ReadyResponse {
     /// ready
-    #[prost(bool, tag="1")]
+    #[prost(bool, tag = "1")]
     pub ready: bool,
 }
 /// SearchFilter
 #[derive(Eq)]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SearchFilter {
     /// search_field
-    #[prost(string, tag="1")]
+    #[prost(string, tag = "1")]
     pub search_field: ::prost::alloc::string::String,
     /// search_value
-    #[prost(string, tag="2")]
+    #[prost(string, tag = "2")]
     pub search_value: ::prost::alloc::string::String,
     /// page_number
     ///
     /// Which page number do we want?
-    #[prost(int32, tag="3")]
+    #[prost(int32, tag = "3")]
     pub page_number: i32,
     /// results_per_page
     ///
     /// Number of results to return per page.
-    #[prost(int32, tag="4")]
+    #[prost(int32, tag = "4")]
     pub results_per_page: i32,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ValidationError {
+    /// validated field
+    #[prost(string, tag = "1")]
+    pub field: ::prost::alloc::string::String,
+    /// error message
+    #[prost(string, tag = "2")]
+    pub error: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ValidationResult {
+    #[prost(bool, tag = "1")]
+    pub success: bool,
+    #[prost(message, repeated, tag = "2")]
+    pub errors: ::prost::alloc::vec::Vec<ValidationError>,
 }
 /// Generated client implementations.
 pub mod storage_rpc_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
     use tonic::codegen::http::Uri;
-    ///Storage service
+    /// Storage service
     #[derive(Debug, Clone)]
     pub struct StorageRpcClient<T> {
         inner: tonic::client::Grpc<T>,
