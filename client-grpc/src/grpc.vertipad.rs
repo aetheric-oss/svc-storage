@@ -1,50 +1,54 @@
 /// Vertipad
 #[allow(clippy::derive_partial_eq_without_eq)]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Vertipad {
     /// id UUID v4
-    #[prost(string, tag="1")]
+    #[prost(string, tag = "1")]
     pub id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag="2")]
+    #[prost(message, optional, tag = "2")]
     pub data: ::core::option::Option<VertipadData>,
 }
 /// VertipadData
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct VertipadData {
     /// vertiport_id UUID v4, all vertipads are part of a vertiport, even if the vertiport has only 1 pad
-    #[prost(string, tag="1")]
+    #[prost(string, tag = "1")]
     pub vertiport_id: ::prost::alloc::string::String,
-    #[prost(string, tag="2")]
+    #[prost(string, tag = "2")]
     pub description: ::prost::alloc::string::String,
-    #[prost(double, tag="3")]
+    #[prost(double, tag = "3")]
     pub latitude: f64,
-    #[prost(double, tag="4")]
+    #[prost(double, tag = "4")]
     pub longitude: f64,
-    #[prost(bool, tag="5")]
+    #[prost(bool, tag = "5")]
     pub enabled: bool,
-    #[prost(bool, tag="6")]
+    #[prost(bool, tag = "6")]
     pub occupied: bool,
     /// bool charging_enabled = 3;
     /// float charging_rate_kw = 4;
     /// string restrictions = 5;
-    #[prost(string, optional, tag="7")]
+    #[prost(string, optional, tag = "7")]
     pub schedule: ::core::option::Option<::prost::alloc::string::String>,
 }
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateVertipad {
     /// id UUID v4
-    #[prost(string, tag="1")]
+    #[prost(string, tag = "1")]
     pub id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag="2")]
+    #[prost(message, optional, tag = "2")]
     pub data: ::core::option::Option<VertipadData>,
-    #[prost(message, optional, tag="3")]
+    #[prost(message, optional, tag = "3")]
     pub mask: ::core::option::Option<::prost_types::FieldMask>,
 }
 /// Vertipads
 #[allow(clippy::derive_partial_eq_without_eq)]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Vertipads {
-    #[prost(message, repeated, tag="1")]
+    #[prost(message, repeated, tag = "1")]
     pub vertipads: ::prost::alloc::vec::Vec<Vertipad>,
 }
 /// Generated client implementations.
@@ -52,7 +56,7 @@ pub mod vertipad_rpc_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
     use tonic::codegen::http::Uri;
-    ///VertipadRpc service
+    /// VertipadRpc service
     #[derive(Debug, Clone)]
     pub struct VertipadRpcClient<T> {
         inner: tonic::client::Grpc<T>,

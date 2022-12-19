@@ -23,10 +23,13 @@ pub fn ts_to_dt(ts: &Timestamp) -> Result<DateTime<Utc>, ArrErr> {
         Err(e) => return Err(ArrErr::from(e)),
     };
 
-    Ok(DateTime::<Utc>::from_utc(
-        NaiveDateTime::from_timestamp(seconds, nanos),
-        Utc,
-    ))
+    let dt = NaiveDateTime::from_timestamp_opt(seconds, nanos);
+    match dt {
+        Some(dt) => Ok(DateTime::<Utc>::from_utc(dt, Utc)),
+        None => Err(ArrErr::Error(
+            "failed to convert timestamp to date time".to_string(),
+        )),
+    }
 }
 
 /// Convert a chrono::DateTime::<Utc> (used by postgres)
