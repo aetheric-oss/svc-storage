@@ -1,29 +1,32 @@
 /// Pilot
 #[derive(Eq)]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Pilot {
     /// UUID v4
-    #[prost(string, tag="1")]
+    #[prost(string, tag = "1")]
     pub id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag="2")]
+    #[prost(message, optional, tag = "2")]
     pub data: ::core::option::Option<PilotData>,
 }
 /// PilotData
 #[derive(Eq)]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PilotData {
-    #[prost(string, tag="1")]
+    #[prost(string, tag = "1")]
     pub first_name: ::prost::alloc::string::String,
     /// string wallet_address = 4;
     /// string type = 5;
-    #[prost(string, tag="2")]
+    #[prost(string, tag = "2")]
     pub last_name: ::prost::alloc::string::String,
 }
 /// Pilots
 #[derive(Eq)]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Pilots {
-    #[prost(message, repeated, tag="1")]
+    #[prost(message, repeated, tag = "1")]
     pub pilots: ::prost::alloc::vec::Vec<Pilot>,
 }
 /// Generated client implementations.
@@ -31,7 +34,7 @@ pub mod pilot_rpc_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
     use tonic::codegen::http::Uri;
-    ///PilotRpc service
+    /// PilotRpc service
     #[derive(Debug, Clone)]
     pub struct PilotRpcClient<T> {
         inner: tonic::client::Grpc<T>,
