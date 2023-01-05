@@ -496,3 +496,154 @@ sequenceDiagram
         end
     end
 ```
+
+### Data model CockroachDB
+
+| Value (left) | Value (right) | Meaning                       |
+| ------------ | ------------- | ----------------------------- |
+| \|o          | o\|           | Zero or one                   |
+| \|\|         | \|\|          | Exactly one                   |
+| }o           | o{            | Zero or more (no upper limit) |
+| }\|          | \|{           | One or more (no upper limit)  |
+
+```mermaid
+erDiagram
+    flight_plan {
+        uuid flight_plan_id PK
+        uuid pilot_id FK
+        uuid vehicle_id FK
+        integer flight_distance
+        text weather_conditions
+        uuid departure_vertipad_id FK
+        uuid destination_vertipad_id FK
+        timestamp scheduled_departure
+        timestamp scheduled_arrival
+        timestamp actual_departure "Optional"
+        timestamp actual_arrival "Optional"
+        timestamp flight_release_approval "Optional"
+        timestamp flight_plan_submitted "Optional"
+        uuid approved_by FK "Optional"
+        json cargo_weight_g "Optional"
+        text flight_status "Optional"
+        text flight_priority "Optional"
+        timestamp created_at "Default NOW"
+        timestamp updated_at "Default NOW"
+        timestamp archived_at "Default NULL"
+    }
+    vertiport {
+        uuid vertiport_id PK
+        text description
+        float longitude
+        float latitude
+        text schedule "Optional"
+        timestamp created_at "Default NOW"
+        timestamp updated_at "Default NOW"
+        timestamp deleted_at "Default NULL"
+    }
+    vertipad {
+        uuid vertipad_id PK
+        text description
+        uuid vertiport_id FK
+        float longitude
+        float latitude
+        text schedule "Optional"
+        bool enabled "Default true"
+        bool occupied "Default false"
+        timestamp created_at "Default NOW"
+        timestamp updated_at "Default NOW"
+        timestamp deleted_at "Default NULL"
+    }
+    user {
+        uuid user_id PK
+        text first_name
+        text last_name
+        text auth_method "Default GOOGLE_SSO"
+        text auth_username "Unique"
+        timestamp last_logged_in
+        timestamp created_at "Default NOW"
+        timestamp updated_at "Default NOW"
+        timestamp deleted_at "Default NULL"
+    }
+    contact {
+        uuid contact_id PK
+        text name
+        text email "Optional"
+        text phone_number "Optional"
+        uuid address_id "Optional"
+    }
+    pilot {
+        uuid pilot_id PK
+        uuid user_id FK
+        timestamp created_at "Default NOW"
+        timestamp updated_at "Default NOW"
+        timestamp deleted_at "Default NULL"
+    }
+    pilot_certificate {
+        uuid pilot_id FK
+        uuid certificate_id FK
+        timestamp obtained_at
+        timestamp expires_at "Default NULL"
+    }
+    certificate {
+        uuid certificate_id PK
+        text name
+        text authority_name
+        text certificate_code "Unique"
+    }
+    address {
+        uuid address_id PK
+        text country
+        text postal_code "Unique with house_nr + house_nr_add"
+        integer house_nr
+        text house_nr_add "Optional"
+        text street
+        text city
+        text state "Optional"
+    }
+    asset_supplier {
+        uuid asset_supplier_id PK
+        text name
+        text description
+        uuid main_address_id FK
+        uuid main_contact_id FK
+        text main_email "Optional"
+        text main_phone_number "Optional"
+        text website "Optional"
+        text logo_path "Optional"
+        timestamp created_at "Default NOW"
+        timestamp updated_at "Default NOW"
+        timestamp deleted_at "Default NULL"
+    }
+    asset_supplier_user {
+        uuid asset_supplier_id FK
+        uuid user_id FK
+        uuid contact_id FK "Optional"
+        string user_type "Default RO_USER"
+    }
+    asset_supplier_address {
+        uuid asset_supplier_id FK
+        uuid address_id FK
+        string description
+    }
+
+    flight_plan |{--|| vertipad : departure_vertipad_id
+    flight_plan |{--|| vertipad : destination_vertipad_id
+    flight_plan |{--|| pilot : pilot_id
+    flight_plan o{--|| user : approved_by
+
+    vertipad |{--|| vertiport : vertiport_id
+
+    pilot |{--|| user : user_id
+    pilot_certificate o{--}| pilot : pilot_id
+    pilot_certificate o{--}o certificate : certificate_id
+
+    contact o{--|| address : address_id
+
+    asset_supplier |{--|| contact : main_contact_id
+    asset_supplier |{--|| address : main_address_id
+    asset_supplier_user o{--}o contact : contact_id
+    asset_supplier_user |{--}| asset_supplier : asset_supplier_id
+    asset_supplier_user |{--}| user : user_id
+    asset_supplier_address o{--}o asset_supplier : asset_supplier_id
+    asset_supplier_address o{--}o address : address_id
+```
