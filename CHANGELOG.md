@@ -1,3 +1,16 @@
+## [Release 0.9.0-develop.1](https://github.com/Arrow-air/svc-storage/releases/tag/v0.9.0-develop.1)
+
+### 🛠 Maintenance
+
+-  **ci:** license - provisioned by terraform ([`9e4b1ab`](https://github.com/Arrow-air/svc-storage/commit/9e4b1ab230ad43d64484407d16367d11cb35f219))
+-  **ci:** .env.base - provisioned by terraform ([`55a95a3`](https://github.com/Arrow-air/svc-storage/commit/55a95a3a5a787d0b0746bb1be029fbb018aea2b0))
+-  **ci:** .make/rust.mk - provisioned by terraform ([`c16804c`](https://github.com/Arrow-air/svc-storage/commit/c16804c4881bd8c3a6340c93e096177b16d5e324))
+-  **checks:** sanity check fixes ([`003554f`](https://github.com/Arrow-air/svc-storage/commit/003554ff83ea26f4d9302b5edd39f482c50ac81d))
+
+### 📚 Documentation
+
+-  **readme:** add license notice and additional info ([`43ab80d`](https://github.com/Arrow-air/svc-storage/commit/43ab80d2db71bb00bc8a6a87a39bc8ecd30e595d))
+
 ## [Release 0.9.0-develop.0](https://github.com/Arrow-air/svc-storage/releases/tag/v0.9.0-develop.0)
 
 ### ✨ Features
