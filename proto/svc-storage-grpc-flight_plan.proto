@@ -10,8 +10,8 @@ import "svc-storage-grpc.proto";
 service FlightPlanRpc {
     rpc flight_plans(grpc.SearchFilter) returns (FlightPlans);
     rpc flight_plan_by_id(grpc.Id) returns (FlightPlan);
-    rpc insert_flight_plan(FlightPlanData) returns (FlightPlan);
-    rpc update_flight_plan(UpdateFlightPlan) returns (FlightPlan);
+    rpc insert_flight_plan(FlightPlanData) returns (FlightPlanResult);
+    rpc update_flight_plan(UpdateFlightPlan) returns (FlightPlanResult);
     rpc delete_flight_plan(grpc.Id) returns (google.protobuf.Empty);
 }
 
@@ -40,6 +40,11 @@ enum FlightPriority {
     EMERGENCY = 2;
 }
 
+message FlightPlanResult {
+    grpc.ValidationResult validation_result = 1;
+    optional FlightPlan flight_plan = 2;
+}
+
 //FlightPlan
 message FlightPlan {
     //id UUID v4
@@ -62,9 +67,9 @@ message FlightPlanData {
     //vehicle_id UUID v4
     string vehicle_id = 2;
     //cargo weight in grams per package
-    repeated int64 cargo_weight_g = 3;
+    repeated int64 cargo_weight_grams = 3;
     //flight_distance in meters
-    int64 flight_distance = 4;
+    int64 flight_distance_meters = 4;
     //weather_conditions
     string weather_conditions = 5;
     //departure_vertiport_id UUID v4, only listed for get results, not needed for creation (known through pad_id)
@@ -98,5 +103,5 @@ message FlightPlanData {
 //FlightPlans
 message FlightPlans {
     //array/vector of flight items
-    repeated FlightPlan flightPlans = 1;
+    repeated FlightPlan list = 1;
 }

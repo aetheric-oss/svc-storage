@@ -17,9 +17,6 @@ pub const MEMDB_LOG_TARGET: &str = "app::backend::memdb";
 pub const GRPC_LOG_TARGET: &str = "app::grpc";
 
 pub static USE_PSQL_BACKEND: AtomicBool = AtomicBool::new(true);
-pub fn use_psql_set(value: bool) {
-    USE_PSQL_BACKEND.store(value, Ordering::SeqCst);
-}
 pub fn use_psql_get() -> bool {
     USE_PSQL_BACKEND.load(Ordering::Relaxed)
 }
@@ -52,6 +49,12 @@ pub enum ArrErr {
 
     #[error("create timestamp error: {0}")]
     ProstTimestampError(#[from] prost_types::TimestampError),
+
+    #[error("io error: {0}")]
+    IoError(#[from] std::io::Error),
+
+    #[error("uuid error: {0}")]
+    UuidError(#[from] uuid::Error),
 }
 
 impl Config {
