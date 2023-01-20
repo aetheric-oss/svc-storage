@@ -131,8 +131,8 @@ async fn vertipad_scenario(mut vertiports: Vec<Vertiport>) -> Result<Vec<Vertipa
         .insert_vertipad(tonic::Request::new(VertipadData {
             vertiport_id: vertiport_id.clone(),
             description: format!("First vertipad for {}", vertiport_id.clone()),
-            latitude: x.into_inner().into(),
-            longitude: y.into_inner().into(),
+            latitude: x.into(),
+            longitude: y.into(),
             enabled: true,
             occupied: false,
             schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
@@ -148,8 +148,8 @@ async fn vertipad_scenario(mut vertiports: Vec<Vertiport>) -> Result<Vec<Vertipa
         .insert_vertipad(tonic::Request::new(VertipadData {
             vertiport_id: vertiport_id.clone(),
             description: format!("Second vertipad for {}", vertiport_id.clone()),
-            latitude: x.into_inner().into(),
-            longitude: y.into_inner().into(),
+            latitude: x.into(),
+            longitude: y.into(),
             enabled: true,
             occupied: false,
             schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
@@ -184,8 +184,8 @@ async fn vertipad_scenario(mut vertiports: Vec<Vertiport>) -> Result<Vec<Vertipa
         .insert_vertipad(tonic::Request::new(VertipadData {
             vertiport_id: vertiport_id.clone(),
             description: format!("Third vertipad for {}", vertiport_id.clone()),
-            latitude: x.into_inner().into(),
-            longitude: y.into_inner().into(),
+            latitude: x.into(),
+            longitude: y.into(),
             enabled: true,
             occupied: false,
             schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
@@ -280,7 +280,7 @@ async fn flight_plan_scenario(
         .flight_plans(tonic::Request::new(fp_filter.clone()))
         .await
     {
-        Ok(res) => Ok(res.into_inner().flight_plans),
+        Ok(res) => Ok(res.into_inner().list),
         Err(e) => Err(e),
     };
     println!("Flight Plans with status [Draft] found: {:?}", fps);
@@ -295,13 +295,13 @@ async fn flight_plan_scenario(
     };
 
     println!("Starting insert flight plan");
-    let new_fp = match flight_plan_client
+    let fp_result = match flight_plan_client
         .insert_flight_plan(tonic::Request::new(FlightPlanData {
             flight_status: FlightStatus::Draft as i32,
-            vehicle_id: vehicle_id,
+            vehicle_id,
             pilot_id: pilot_id.clone(),
-            cargo_weight_g: vec![20],
-            flight_distance: 6000,
+            cargo_weight_grams: vec![20],
+            flight_distance_meters: 6000,
             weather_conditions: "Cloudy, low wind".to_string(),
             departure_vertipad_id: departure_vertipad_id.to_string(),
             departure_vertiport_id: None,
@@ -321,26 +321,29 @@ async fn flight_plan_scenario(
         Ok(fp) => fp.into_inner(),
         Err(e) => panic!("Something went wrong inserting the flight plan: {}", e),
     };
-    println!("Created new flight plan: {:?}", new_fp);
 
     println!("Starting update flight plan");
-    let update_fp_res = match flight_plan_client
-        .update_flight_plan(tonic::Request::new(UpdateFlightPlan {
-            id: new_fp.id.clone(),
-            data: Some(FlightPlanData {
-                flight_status: FlightStatus::InFlight as i32,
-                ..new_fp.clone().data.unwrap()
-            }),
-            mask: Some(FieldMask {
-                paths: vec!["flight_status".to_string()],
-            }),
-        }))
-        .await
-    {
-        Ok(fp) => fp.into_inner(),
-        Err(e) => panic!("Something went wrong updating the flight plan: {}", e),
-    };
-    println!("Update flight plan result: {:?}", update_fp_res);
+    if fp_result.flight_plan.is_some() {
+        let new_fp = fp_result.flight_plan.unwrap();
+        println!("Created new flight plan: {:?}", new_fp);
+        let update_fp_res = match flight_plan_client
+            .update_flight_plan(tonic::Request::new(UpdateFlightPlan {
+                id: new_fp.id.clone(),
+                data: Some(FlightPlanData {
+                    flight_status: FlightStatus::InFlight as i32,
+                    ..new_fp.clone().data.unwrap()
+                }),
+                mask: Some(FieldMask {
+                    paths: vec!["flight_status".to_string()],
+                }),
+            }))
+            .await
+        {
+            Ok(fp) => fp.into_inner(),
+            Err(e) => panic!("Something went wrong updating the flight plan: {}", e),
+        };
+        println!("Update flight plan result: {:?}", update_fp_res);
+    }
 
     fp_filter.search_value = (FlightStatus::InFlight as i32).to_string();
     match flight_plan_client
@@ -348,7 +351,7 @@ async fn flight_plan_scenario(
         .await
     {
         Ok(res) => {
-            let fps = res.into_inner().flight_plans;
+            let fps = res.into_inner().list;
             println!("Flight Plans with status [InFlight] found: {:?}", fps);
             Ok(fps)
         }

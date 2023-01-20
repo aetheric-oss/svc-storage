@@ -34,3 +34,15 @@ message SearchFilter {
     // results_per_page
     int32 results_per_page = 4;  // Number of results to return per page.
 }
+
+message ValidationError {
+    // validated field
+    string field = 1;
+    // error message
+    string error = 2;
+}
+
+message ValidationResult {
+    bool success = 1;
+    repeated ValidationError errors = 2;
+}
