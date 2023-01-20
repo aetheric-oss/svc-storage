@@ -21,7 +21,7 @@ appenders:
       kind: json
 
 root:
-  level: warn
+  level: debug
   appenders:
     - stdout
 
