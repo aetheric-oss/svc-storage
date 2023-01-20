@@ -21,7 +21,7 @@ use crate::common::ArrErr;
 use crate::grpc::get_runtime_handle;
 use crate::memdb::VertipadPsql;
 use crate::postgres::{get_psql_pool, PsqlFieldType, PsqlJsonValue};
-use crate::resources::base::dt_to_ts;
+use lib_common::time::datetime_to_timestamp;
 
 use super::base::{FieldDefinition, Resource, ResourceDefinition};
 
@@ -84,55 +84,37 @@ impl TryFrom<Row> for FlightPlanData {
         //TODO: handling of conversion errors
         let flight_plan_submitted: Option<DateTime<Utc>> = fp.get("flight_plan_submitted");
         let flight_plan_submitted = match flight_plan_submitted {
-            Some(val) => match dt_to_ts(&val) {
-                Ok(ts) => Some(ts),
-                Err(_e) => None,
-            },
+            Some(val) => datetime_to_timestamp(&val),
             None => None,
         };
 
         let scheduled_departure: Option<DateTime<Utc>> = fp.get("scheduled_departure");
         let scheduled_departure = match scheduled_departure {
-            Some(val) => match dt_to_ts(&val) {
-                Ok(ts) => Some(ts),
-                Err(_e) => None,
-            },
+            Some(val) => datetime_to_timestamp(&val),
             None => None,
         };
 
         let scheduled_arrival: Option<DateTime<Utc>> = fp.get("scheduled_arrival");
         let scheduled_arrival = match scheduled_arrival {
-            Some(val) => match dt_to_ts(&val) {
-                Ok(ts) => Some(ts),
-                Err(_e) => None,
-            },
+            Some(val) => datetime_to_timestamp(&val),
             None => None,
         };
 
         let actual_departure: Option<DateTime<Utc>> = fp.get("actual_departure");
         let actual_departure = match actual_departure {
-            Some(val) => match dt_to_ts(&val) {
-                Ok(ts) => Some(ts),
-                Err(_e) => None,
-            },
+            Some(val) => datetime_to_timestamp(&val),
             None => None,
         };
 
         let actual_arrival: Option<DateTime<Utc>> = fp.get("actual_arrival");
         let actual_arrival = match actual_arrival {
-            Some(val) => match dt_to_ts(&val) {
-                Ok(ts) => Some(ts),
-                Err(_e) => None,
-            },
+            Some(val) => datetime_to_timestamp(&val),
             None => None,
         };
 
         let flight_release_approval: Option<DateTime<Utc>> = fp.get("flight_release_approval");
         let flight_release_approval = match flight_release_approval {
-            Some(val) => match dt_to_ts(&val) {
-                Ok(ts) => Some(ts),
-                Err(_e) => None,
-            },
+            Some(val) => datetime_to_timestamp(&val),
             None => None,
         };
 

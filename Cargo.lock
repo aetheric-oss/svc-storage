@@ -206,6 +206,7 @@ dependencies = [
  "js-sys",
  "num-integer",
  "num-traits",
+ "serde",
  "time",
  "wasm-bindgen",
  "winapi",
@@ -841,6 +842,16 @@ dependencies = [
  "cfg-if",
  "ryu",
  "static_assertions",
+]
+
+[[package]]
+name = "lib-common"
+version = "0.1.0"
+source = "git+https://github.com/Arrow-air/lib-common.git?branch=develop#af2e621aee2cd0a68008acf6d45178927f7e25e0"
+dependencies = [
+ "cargo-husky",
+ "chrono",
+ "prost-types",
 ]
 
 [[package]]
@@ -1810,6 +1821,7 @@ dependencies = [
  "futures",
  "geo-types",
  "lazy_static",
+ "lib-common",
  "log",
  "log4rs",
  "native-tls",

@@ -1,5 +1,5 @@
 //! Base
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use log::error;
 use prost_types::Timestamp;
 use std::collections::HashMap;
@@ -9,6 +9,7 @@ use uuid::Uuid;
 use crate::common::ArrErr;
 use crate::grpc::{GrpcField, GrpcFieldOption, Id, ValidationError};
 use crate::postgres::{PsqlFieldType, PsqlJsonValue};
+use lib_common::time::timestamp_to_datetime;
 
 #[derive(Clone, Debug)]
 pub struct ResourceDefinition {
@@ -144,17 +145,6 @@ impl From<GrpcFieldOption> for Option<GrpcField> {
     }
 }
 
-/// Convert a chrono::DateTime::<Utc> (used by postgres)
-/// into a prost_types::Timestamp (used by grpc)
-pub fn dt_to_ts(dt: &DateTime<Utc>) -> Result<Timestamp, ArrErr> {
-    let seconds = dt.timestamp();
-    let nanos: i32 = match dt.timestamp_subsec_nanos().try_into() {
-        Ok(n) => n,
-        Err(e) => return Err(ArrErr::from(e)),
-    };
-
-    Ok(Timestamp { seconds, nanos })
-}
 /// Convert a string (used by grpc) into a Uuid (used by postgres).
 /// Creates an error entry in the errors list if a conversion was not possible.
 pub fn validate_uuid(
@@ -180,24 +170,13 @@ pub fn validate_dt(
     value: &Timestamp,
     errors: &mut Vec<ValidationError>,
 ) -> Option<DateTime<Utc>> {
-    let seconds = value.seconds;
-    let nanos: u32 = match value.nanos.try_into() {
-        Ok(n) => n,
-        Err(e) => {
-            let error = format!("Could not convert [{}] to DateTime<Utc>: {}", field, e);
-            error!("{}", error);
-            errors.push(ValidationError { field, error });
-            return None;
-        }
-    };
-
-    let dt = NaiveDateTime::from_timestamp_opt(seconds, nanos);
+    let dt = timestamp_to_datetime(value);
     match dt {
-        Some(dt) => Some(DateTime::<Utc>::from_utc(dt, Utc)),
+        Some(dt) => Some(dt),
         None => {
             let error = format!(
-                "Could not convert [{}] to NaiveDateTime::from_timestamp_opt({}, {})",
-                field, seconds, nanos
+                "Could not convert [{}] to NaiveDateTime::from_timestamp_opt({})",
+                field, value
             );
             error!("{}", error);
             errors.push(ValidationError { field, error });
