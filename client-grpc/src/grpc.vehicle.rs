@@ -62,6 +62,14 @@ impl VehicleType {
             VehicleType::VtolPassenger => "VTOL_PASSENGER",
         }
     }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "VTOL_CARGO" => Some(Self::VtolCargo),
+            "VTOL_PASSENGER" => Some(Self::VtolPassenger),
+            _ => None,
+        }
+    }
 }
 /// Generated client implementations.
 pub mod vehicle_rpc_client {
