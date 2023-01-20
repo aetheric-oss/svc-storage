@@ -45,6 +45,24 @@ pub struct SearchFilter {
     #[prost(int32, tag = "4")]
     pub results_per_page: i32,
 }
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ValidationError {
+    /// validated field
+    #[prost(string, tag = "1")]
+    pub field: ::prost::alloc::string::String,
+    /// error message
+    #[prost(string, tag = "2")]
+    pub error: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ValidationResult {
+    #[prost(bool, tag = "1")]
+    pub success: bool,
+    #[prost(message, repeated, tag = "2")]
+    pub errors: ::prost::alloc::vec::Vec<ValidationError>,
+}
 /// Generated client implementations.
 pub mod storage_rpc_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
