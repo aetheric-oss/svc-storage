@@ -11,4 +11,4 @@ pub mod client {
     include!("grpc.vertipad.rs");
 }
 
-use crate::client::{Id, SearchFilter};
+use crate::client::{Id, SearchFilter, ValidationResult};
