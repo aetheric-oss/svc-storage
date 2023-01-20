@@ -54,24 +54,15 @@ async fn apply_arg(option: &str) -> Result<(), ArrErr> {
                 "Found argument [{}]. Creating database schema now...",
                 option
             );
-            create_db(&get_psql_pool()).await?;
+            create_db().await?;
             info!("PSQL Database creation completed.");
             Ok(())
         }
         "rebuild_psql" => {
             init_psql_pool().await?;
             info!("Found argument [{}]. Rebuilding now...", option);
-            recreate_db(&get_psql_pool()).await?;
+            recreate_db().await?;
             info!("PSQL Rebuild completed.");
-            Ok(())
-        }
-        "memdb_only" => {
-            common::use_psql_set(false);
-            info!(
-                "Found argument [{}]. use_psql_BACKEND set to [{}]",
-                option,
-                common::use_psql_get()
-            );
             Ok(())
         }
         _ => {

@@ -1,3 +1,11 @@
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FlightPlanResult {
+    #[prost(message, optional, tag = "1")]
+    pub validation_result: ::core::option::Option<super::ValidationResult>,
+    #[prost(message, optional, tag = "2")]
+    pub flight_plan: ::core::option::Option<FlightPlan>,
+}
 /// FlightPlan
 #[derive(Eq)]
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -34,10 +42,10 @@ pub struct FlightPlanData {
     pub vehicle_id: ::prost::alloc::string::String,
     /// cargo weight in grams per package
     #[prost(int64, repeated, tag = "3")]
-    pub cargo_weight_g: ::prost::alloc::vec::Vec<i64>,
+    pub cargo_weight_grams: ::prost::alloc::vec::Vec<i64>,
     /// flight_distance in meters
     #[prost(int64, tag = "4")]
-    pub flight_distance: i64,
+    pub flight_distance_meters: i64,
     /// weather_conditions
     #[prost(string, tag = "5")]
     pub weather_conditions: ::prost::alloc::string::String,
@@ -88,7 +96,7 @@ pub struct FlightPlanData {
 pub struct FlightPlans {
     /// array/vector of flight items
     #[prost(message, repeated, tag = "1")]
-    pub flight_plans: ::prost::alloc::vec::Vec<FlightPlan>,
+    pub list: ::prost::alloc::vec::Vec<FlightPlan>,
 }
 /// Flight Status Enum
 #[derive(num_derive::FromPrimitive)]
@@ -123,6 +131,18 @@ impl FlightStatus {
             FlightStatus::Draft => "DRAFT",
         }
     }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "READY" => Some(Self::Ready),
+            "BOARDING" => Some(Self::Boarding),
+            "IN_FLIGHT" => Some(Self::InFlight),
+            "FINISHED" => Some(Self::Finished),
+            "CANCELLED" => Some(Self::Cancelled),
+            "DRAFT" => Some(Self::Draft),
+            _ => None,
+        }
+    }
 }
 /// Flight Priority Enum
 #[derive(num_derive::FromPrimitive)]
@@ -146,6 +166,15 @@ impl FlightPriority {
             FlightPriority::Low => "LOW",
             FlightPriority::High => "HIGH",
             FlightPriority::Emergency => "EMERGENCY",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOW" => Some(Self::Low),
+            "HIGH" => Some(Self::High),
+            "EMERGENCY" => Some(Self::Emergency),
+            _ => None,
         }
     }
 }
@@ -260,7 +289,7 @@ pub mod flight_plan_rpc_client {
         pub async fn insert_flight_plan(
             &mut self,
             request: impl tonic::IntoRequest<super::FlightPlanData>,
-        ) -> Result<tonic::Response<super::FlightPlan>, tonic::Status> {
+        ) -> Result<tonic::Response<super::FlightPlanResult>, tonic::Status> {
             self.inner
                 .ready()
                 .await
@@ -279,7 +308,7 @@ pub mod flight_plan_rpc_client {
         pub async fn update_flight_plan(
             &mut self,
             request: impl tonic::IntoRequest<super::UpdateFlightPlan>,
-        ) -> Result<tonic::Response<super::FlightPlan>, tonic::Status> {
+        ) -> Result<tonic::Response<super::FlightPlanResult>, tonic::Status> {
             self.inner
                 .ready()
                 .await
