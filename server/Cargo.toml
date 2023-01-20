@@ -1,10 +1,17 @@
 [package]
-edition = "2021"            # Allowed values are 2015, 2018, 2021
-name    = "svc-storage"
-version = "0.9.0-develop.1"
-# Rust Editions: https://doc.rust-lang.org/edition-guide/index.html
+description = "Arrow storage service GRPC server"
+edition     = "2021"                                                       # Allowed values are 2015, 2018, 2021
+homepage    = "https://www.arrowair.com/docs/documentation/services/intro"
+keywords    = ["vtol", "server", "storage"]                                # max 5
+license     = "BUSL-1.1"
+name        = "svc-storage"
+repository  = "https://github.com/Arrow-air/svc-storage"
+version     = "0.9.0-develop.1"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+categories = [
+  "aerospace::drones",
+  "aerospace::protocols",
+] # max 5 -- https://crates.io/category_slugs
 
 [features]
 vendored-openssl = ['openssl/vendored']
@@ -20,6 +27,7 @@ dotenv              = "0.15"
 futures             = "0.3"
 geo-types           = "0.7"
 lazy_static         = "1.4"
+lib-common          = { git = "https://github.com/Arrow-air/lib-common.git", branch = "develop" }
 log                 = "0.4"
 native-tls          = "0.2"
 num-derive          = "0.3"
@@ -30,6 +38,7 @@ ordered-float       = "3.3.0"
 postgres-native-tls = "0.5"
 prost               = "0.11"
 prost-types         = "0.11"
+router              = { git = "https://github.com/Arrow-air/lib-router.git", branch = "main" }
 serde               = "1.0"
 serde_json          = "1.0"
 serde_yaml          = "0.9"
