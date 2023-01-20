@@ -76,10 +76,10 @@ impl TryFrom<Row> for FlightPlanData {
         })?;
         let destination_vertiport_id = data.id;
 
-        let cargo_weight_g = PsqlJsonValue {
-            value: fp.get("cargo_weight_g"),
+        let cargo_weight_grams = PsqlJsonValue {
+            value: fp.get("cargo_weight_grams"),
         };
-        let cargo_weight_g: Vec<i64> = cargo_weight_g.into();
+        let cargo_weight_grams: Vec<i64> = cargo_weight_grams.into();
 
         //TODO: handling of conversion errors
         let flight_plan_submitted: Option<DateTime<Utc>> = fp.get("flight_plan_submitted");
@@ -121,7 +121,7 @@ impl TryFrom<Row> for FlightPlanData {
         Ok(FlightPlanData {
             pilot_id: pilot_id.to_string(),
             vehicle_id: vehicle_id.to_string(),
-            flight_distance: fp.get("flight_distance"),
+            flight_distance_meters: fp.get("flight_distance_meters"),
             weather_conditions: fp.get("weather_conditions"),
             departure_vertiport_id: Some(departure_vertiport_id.to_string()),
             departure_vertipad_id: departure_vertipad_id.to_string(),
@@ -133,7 +133,7 @@ impl TryFrom<Row> for FlightPlanData {
             actual_arrival,
             flight_release_approval,
             flight_plan_submitted,
-            cargo_weight_g,
+            cargo_weight_grams,
             approved_by: Some(approved_by.to_string()),
             flight_status: FlightStatus::from_str(fp.get("flight_status"))
                 .unwrap()
@@ -191,11 +191,11 @@ impl Resource for FlightPlan {
                     FieldDefinition::new(PsqlFieldType::Uuid, true),
                 ),
                 (
-                    "cargo_weight_g".to_string(),
+                    "cargo_weight_grams".to_string(),
                     FieldDefinition::new(PsqlFieldType::Json, true),
                 ),
                 (
-                    "flight_distance".to_string(),
+                    "flight_distance_meters".to_string(),
                     FieldDefinition::new(PsqlFieldType::Integer, true),
                 ),
                 (

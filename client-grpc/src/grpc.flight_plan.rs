@@ -42,10 +42,10 @@ pub struct FlightPlanData {
     pub vehicle_id: ::prost::alloc::string::String,
     /// cargo weight in grams per package
     #[prost(int64, repeated, tag = "3")]
-    pub cargo_weight_g: ::prost::alloc::vec::Vec<i64>,
+    pub cargo_weight_grams: ::prost::alloc::vec::Vec<i64>,
     /// flight_distance in meters
     #[prost(int64, tag = "4")]
-    pub flight_distance: i64,
+    pub flight_distance_meters: i64,
     /// weather_conditions
     #[prost(string, tag = "5")]
     pub weather_conditions: ::prost::alloc::string::String,

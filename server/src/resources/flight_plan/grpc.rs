@@ -37,8 +37,8 @@ impl GrpcDataObjectType for FlightPlanData {
         match key {
             "pilot_id" => Ok(GrpcField::String(self.pilot_id.clone())), //::prost::alloc::string::String,
             "vehicle_id" => Ok(GrpcField::String(self.vehicle_id.clone())), //::prost::alloc::string::String,
-            "cargo_weight_g" => Ok(GrpcField::I64List(self.cargo_weight_g.clone())), //::prost::alloc::vec::Vec<i64>,
-            "flight_distance" => Ok(GrpcField::I64(self.flight_distance)),           //i64,
+            "cargo_weight_grams" => Ok(GrpcField::I64List(self.cargo_weight_grams.clone())), //::prost::alloc::vec::Vec<i64>,
+            "flight_distance_meters" => Ok(GrpcField::I64(self.flight_distance_meters)),     //i64,
             "weather_conditions" => Ok(GrpcField::String(self.weather_conditions.clone())), //::prost::alloc::string::String,
             "departure_vertiport_id" => Ok(GrpcField::Option(GrpcFieldOption::String(
                 self.departure_vertiport_id.clone(),
