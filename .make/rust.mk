@@ -48,6 +48,10 @@ rust-docker-pull:
 	@echo "  $(BOLD)rust-clippy$(SGR0)      -- Run 'cargo clippy --all -- -D warnings'"
 	@echo "  $(BOLD)rust-fmt$(SGR0)         -- Run 'cargo fmt --all -- --check' to check rust file formats."
 	@echo "  $(BOLD)rust-tidy$(SGR0)        -- Run 'cargo fmt --all' to fix rust file formats if needed."
+	@echo "  $(BOLD)rust-doc$(SGR0)         -- Run 'cargo doc --all' to produce rust documentation."
+	@echo "  $(BOLD)rust-openapi$(SGR0)     -- Run 'cargo run -- --api ./out/$(PACKAGE_NAME)-openapi.json'."
+	@echo "  $(BOLD)rust-validate-openapi$(SGR0) -- Run validation on the ./out/$(PACKAGE_NAME)-openapi.json."
+	@echo "  $(BOLD)rust-grpc-api$(SGR0)    -- Generate a $(PACKAGE_NAME)-grpc-api.json from proto/*.proto files."
 	@echo "  $(CYAN)Combined targets$(SGR0)"
 	@echo "  $(BOLD)rust-test-all$(SGR0)    -- Run targets: rust-build rust-check rust-test rust-clippy rust-fmt"
 	@echo "  $(BOLD)rust-all$(SGR0)         -- Run targets; rust-clean rust-test-all rust-release"
@@ -97,7 +101,7 @@ rust-example-%: check-cargo-registry rust-docker-pull
 		-e SERVER_PORT_GRPC=$(DOCKER_PORT_GRPC) \
 		-e SERVER_PORT_REST=$(DOCKER_PORT_REST) \
 		-e SERVER_HOSTNAME=$(DOCKER_NAME)-example-server \
-		example && docker compose down
+		example --remove-orphans && docker compose down
 
 rust-clippy: check-cargo-registry rust-docker-pull
 	@echo "$(CYAN)Running clippy...$(SGR0)"
@@ -110,6 +114,10 @@ rust-fmt: check-cargo-registry rust-docker-pull
 rust-tidy: check-cargo-registry rust-docker-pull
 	@echo "$(CYAN)Running rust file formatting fixes...$(SGR0)"
 	@$(call cargo_run,fmt,--all)
+
+rust-doc: check-cargo-registry rust-docker-pull
+	@echo "$(CYAN)Running cargo doc...$(SGR0)"
+	@$(call cargo_run,doc,--no-deps)
 
 rust-openapi: check-cargo-registry rust-docker-pull rust-build
 	@echo "$(CYAN)Generating openapi documentation...$(SGR0)"
@@ -134,5 +142,5 @@ rust-grpc-api:
 		pseudomuto/protoc-gen-doc \
 		--doc_opt=json,$(PACKAGE_NAME)-grpc-api.json
 
-rust-test-all: rust-build rust-check rust-test rust-clippy rust-fmt
+rust-test-all: rust-build rust-check rust-test rust-clippy rust-fmt rust-doc
 rust-all: rust-clean rust-test-all rust-release
