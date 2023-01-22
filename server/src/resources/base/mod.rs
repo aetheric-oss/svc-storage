@@ -1,15 +1,76 @@
 //! Base
 use chrono::{DateTime, Utc};
+use core::fmt::Debug;
+use lib_common::time::timestamp_to_datetime;
 use log::error;
 use prost_types::Timestamp;
 use std::collections::HashMap;
+use std::marker::PhantomData;
 use std::time::SystemTime;
 use uuid::Uuid;
 
 use crate::common::ArrErr;
-use crate::grpc::{GrpcField, GrpcFieldOption, Id, ValidationError};
-use crate::postgres::{PsqlFieldType, PsqlJsonValue};
-use lib_common::time::timestamp_to_datetime;
+use crate::grpc::{
+    GrpcDataObjectType, GrpcField, GrpcFieldOption, Id, ValidationError, ValidationResult,
+};
+use crate::postgres::{PsqlFieldType, PsqlJsonValue, PsqlObjectType, PsqlResourceType};
+
+pub trait Resource {
+    /// Allows us to implement the resource definition used for simple insert and update queries
+    fn get_definition() -> ResourceDefinition;
+    /// This function should be implemented for the resources where applicable (example implementation can be found in the flight_plan module).
+    fn get_enum_string_val(field: &str, value: i32) -> Option<String> {
+        let _field = field;
+        let _value = value;
+        None
+    }
+    /// This function should be implemented for the resources where applicable (example implementation can be found in the flight_plan module).
+    fn get_table_indices() -> Vec<String> {
+        vec![]
+    }
+}
+
+pub trait GenericObjectType<T>
+where
+    Self: PsqlResourceType + Resource,
+    T: GrpcDataObjectType,
+{
+    fn get_id(&self) -> Option<String> {
+        None
+    }
+    fn get_data(&self) -> Option<T> {
+        None
+    }
+    fn set_id(&mut self, id: String);
+    fn set_data(&mut self, data: T);
+
+    fn try_get_id(&self) -> Result<String, ArrErr> {
+        match self.get_id() {
+            Some(id) => Ok(id),
+            None => {
+                let error =
+                    "No id provided for GenericResource when calling [try_get_id]".to_string();
+                error!("{}", error);
+                Err(ArrErr::Error(error))
+            }
+        }
+    }
+
+    fn try_get_uuid(&self) -> Result<Uuid, ArrErr> {
+        Uuid::parse_str(&self.try_get_id()?).map_err(ArrErr::from)
+    }
+    fn try_get_data(&self) -> Result<T, ArrErr> {
+        match self.get_data() {
+            Some(data) => Ok(data),
+            None => {
+                let error =
+                    "No data provided for GenericResource when calling [try_get_data]".to_string();
+                error!("{}", error);
+                Err(ArrErr::Error(error))
+            }
+        }
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct ResourceDefinition {
@@ -17,11 +78,46 @@ pub struct ResourceDefinition {
     pub psql_id_col: String,
     pub fields: HashMap<String, FieldDefinition>,
 }
-pub trait Resource {
-    /// Allows us to implement the resource definition used for simple insert and update queries
-    fn get_definition() -> ResourceDefinition;
-    /// This function should be implemented for the resources where applicable (example implementation can be found in the flight_plan module).
-    fn get_enum_string_val(field: &str, value: i32) -> Option<String>;
+
+#[derive(Clone)]
+pub struct GenericResource<T>
+where
+    Self: GenericObjectType<T>,
+    T: GrpcDataObjectType + prost::Message,
+{
+    pub id: Option<String>,
+    pub data: Option<T>,
+    pub mask: Option<::prost_types::FieldMask>,
+}
+impl<T: GrpcDataObjectType> PsqlObjectType<T> for GenericResource<T> where Self: GenericObjectType<T>
+{}
+impl<T: GrpcDataObjectType> PsqlResourceType for GenericResource<T> where Self: GenericObjectType<T> {}
+impl<T: GrpcDataObjectType + prost::Message> GenericObjectType<T> for GenericResource<T>
+where
+    Self: Resource,
+{
+    fn get_id(&self) -> Option<String> {
+        self.id.clone()
+    }
+    fn get_data(&self) -> Option<T> {
+        self.data.clone()
+    }
+    fn set_id(&mut self, id: String) {
+        self.id = Some(id)
+    }
+    fn set_data(&mut self, data: T) {
+        self.data = Some(data)
+    }
+}
+
+pub struct GenericResourceResult<T, U>
+where
+    T: GenericObjectType<U>,
+    U: GrpcDataObjectType,
+{
+    pub phantom: PhantomData<U>,
+    pub resource: Option<T>,
+    pub validation_result: ValidationResult,
 }
 
 #[derive(Clone, Debug)]
@@ -75,6 +171,34 @@ impl TryFrom<Id> for Uuid {
     type Error = ArrErr;
     fn try_from(id: Id) -> Result<Self, ArrErr> {
         Uuid::try_parse(&id.id).map_err(ArrErr::UuidError)
+    }
+}
+
+impl<T> From<Id> for GenericResource<T>
+where
+    Self: GenericObjectType<T>,
+    T: GrpcDataObjectType + prost::Message,
+{
+    fn from(id: Id) -> Self {
+        Self {
+            id: Some(id.id),
+            data: None,
+            mask: None,
+        }
+    }
+}
+
+impl<T> From<T> for GenericResource<T>
+where
+    Self: GenericObjectType<T>,
+    T: GrpcDataObjectType + prost::Message,
+{
+    fn from(obj: T) -> Self {
+        Self {
+            id: None,
+            data: Some(obj),
+            mask: None,
+        }
     }
 }
 
@@ -145,7 +269,7 @@ impl From<GrpcFieldOption> for Option<GrpcField> {
     }
 }
 
-/// Convert a string (used by grpc) into a Uuid (used by postgres).
+/// Convert a `string` (used by grpc) into a `Uuid` (used by postgres).
 /// Creates an error entry in the errors list if a conversion was not possible.
 pub fn validate_uuid(
     field: String,
@@ -163,7 +287,7 @@ pub fn validate_uuid(
     }
 }
 
-/// Convert a prost_types::Timestamp (used by grpc) into a chrono::DateTime::<Utc> (used by postgres).
+/// Convert a `prost_types::Timestamp` (used by grpc) into a `chrono::DateTime::<Utc>` (used by postgres).
 /// Creates an error entry in the errors list if a conversion was not possible.
 pub fn validate_dt(
     field: String,

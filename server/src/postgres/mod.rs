@@ -2,11 +2,13 @@
 pub mod macros;
 
 pub use crate::common::{ArrErr, PSQL_LOG_TARGET};
-use crate::resources::base::{validate_dt, validate_enum, validate_uuid, Resource};
+use crate::resources::base::{
+    validate_dt, validate_enum, validate_uuid, GenericObjectType, GenericResource, Resource,
+};
 
 use anyhow::Error;
 use deadpool_postgres::{tokio_postgres::NoTls, ManagerConfig, Pool, RecyclingMethod, Runtime};
-use flight_plan::FlightPlan;
+use flight_plan::FlightPlanData;
 use native_tls::{Certificate, Identity, TlsConnector};
 use postgres_native_tls::MakeTlsConnector;
 use postgres_types::ToSql;
@@ -18,9 +20,7 @@ use tokio_postgres::Row;
 use uuid::Uuid;
 
 use crate::common::Config;
-use crate::grpc::{
-    GrpcDataObjectType, GrpcField, GrpcObjectType, ValidationError, ValidationResult,
-};
+use crate::grpc::{GrpcDataObjectType, GrpcField, ValidationError, ValidationResult};
 use crate::resources::{flight_plan, vertipad, vertiport};
 
 pub type PsqlData = HashMap<String, Box<dyn ToSql + Sync + Send>>;
@@ -211,9 +211,8 @@ impl PostgresPool {
 
     /// Wraps returning a client from pool to set ready metric
     /// ```
-    ///     self.check().await?;
-    ///     Ok(())
-    /// }
+    /// self.check().await?;
+    /// Ok(())
     /// ```
     async fn check(&self) -> Result<(), ArrErr> {
         let client = self.pool.get().await?;
@@ -250,10 +249,9 @@ pub async fn init_psql_pool() -> Result<(), ArrErr> {
 }
 
 #[tonic::async_trait]
-pub trait PsqlResourceType<T>
+pub trait PsqlResourceType
 where
-    Self: Resource + prost::Message,
-    T: GrpcDataObjectType,
+    Self: Resource,
 {
     /// Constructs the create table query for the resource
     fn _get_create_table_query() -> String {
@@ -295,6 +293,25 @@ where
         )
     }
 
+    async fn _init_table_indices() -> Result<(), ArrErr> {
+        let queries = Self::get_table_indices();
+        if queries.is_empty() {
+            // Nothing to do
+            return Ok(());
+        }
+
+        let mut client = get_psql_pool().get().await?;
+        let transaction = client.transaction().await?;
+        for index_query in queries {
+            psql_debug!("{}", index_query);
+            if let Err(e) = transaction.execute(&index_query, &[]).await {
+                psql_error!("Failed to create indices for table [flight_plan]: {}", e);
+                return transaction.rollback().await.map_err(ArrErr::from);
+            }
+        }
+        transaction.commit().await.map_err(ArrErr::from)
+    }
+
     /// Create table with specified columns using the resource's `psql_definition`
     async fn init_table() -> Result<(), ArrErr> {
         let mut client = get_psql_pool().get().await?;
@@ -307,12 +324,7 @@ where
             return transaction.rollback().await.map_err(ArrErr::from);
         }
         transaction.commit().await?;
-        Self::init_table_indices().await
-    }
-
-    /// Allows creation of extra indices on the resource table if needed
-    async fn init_table_indices() -> Result<(), ArrErr> {
-        Ok(())
+        Self::_init_table_indices().await
     }
 
     /// Drops the entire table for the resource
@@ -439,7 +451,10 @@ where
     /// Generic create function based on resource definition and provided data.
     /// The data will be validated first, returning all possible errors at once.
     /// If no validation errors are found, a new row will be inserted in the database and the new UUID will be returned.
-    async fn create<'a>(data: &T) -> Result<(Option<Uuid>, ValidationResult), ArrErr> {
+    async fn create<'a, T>(data: &T) -> Result<(Option<Uuid>, ValidationResult), ArrErr>
+    where
+        T: GrpcDataObjectType,
+    {
         let (psql_data, validation_result) = Self::validate(data)?;
 
         if !validation_result.success {
@@ -490,7 +505,10 @@ where
 
     /// Validates the given data against the resource definition.
     /// Includes mandatory checks and type checks.
-    fn validate(data: &T) -> Result<(PsqlData, ValidationResult), ArrErr> {
+    fn validate<T>(data: &T) -> Result<(PsqlData, ValidationResult), ArrErr>
+    where
+        T: GrpcDataObjectType,
+    {
         let definition = Self::get_definition();
 
         let mut converted: PsqlData = PsqlData::new();
@@ -591,24 +609,21 @@ where
 }
 
 /// Generic trait for the Arrow Resources that are stored in the CockroachDB backend.
-/// TODO: use #![feature(async_fn_in_trait)] once available: https://blog.rust-lang.org/inside-rust/2022/11/17/async-fn-in-trait-nightly.html
+/// TODO: use `#![feature(async_fn_in_trait)]` once available: <https://blog.rust-lang.org/inside-rust/2022/11/17/async-fn-in-trait-nightly.html>
 #[tonic::async_trait]
 pub trait PsqlObjectType<T>
 where
-    Self: Resource + PsqlResourceType<T> + GrpcObjectType<T>,
+    Self: GenericObjectType<T> + Send,
     T: GrpcDataObjectType,
 {
     //TODO: implement shared memcache here
     async fn read(&self) -> Result<Row, ArrErr> {
-        let id = self.get_uuid()?;
+        let id = self.try_get_uuid()?;
         Self::get_by_id(&id).await
     }
 
     //TODO: flush shared memcache for this resource when memcache is implemented
-    async fn update<'a>(&self, data: &T) -> Result<(Option<Row>, ValidationResult), ArrErr>
-    where
-        Self: Sized,
-    {
+    async fn update<'a>(&self, data: &T) -> Result<(Option<Row>, ValidationResult), ArrErr> {
         let (psql_data, validation_result) = Self::validate(data)?;
 
         if !validation_result.success {
@@ -616,7 +631,7 @@ where
         }
 
         let definition = Self::get_definition();
-        let id = self.get_uuid()?;
+        let id = self.try_get_uuid()?;
         let mut params: Vec<&(dyn ToSql + Sync)> = vec![];
         let mut updates = vec![];
         let mut index = 1;
@@ -667,7 +682,7 @@ where
     async fn delete(&self) -> Result<(), ArrErr> {
         let definition = Self::get_definition();
 
-        let id = self.get_uuid()?;
+        let id = self.try_get_uuid()?;
         psql_info!(
             "Deleting entry from table [{}]. uuid: {}",
             definition.psql_table,
@@ -703,7 +718,7 @@ pub async fn create_db() -> Result<(), ArrErr> {
     psql_info!("Creating database tables.");
     vertiport::init_table(&get_psql_pool()).await?;
     vertipad::init_table(&get_psql_pool()).await?;
-    FlightPlan::init_table().await
+    GenericResource::<FlightPlanData>::init_table().await
 }
 
 /// If we want to recreate the database tables created by this module, we will want to drop the existing tables first.
@@ -711,7 +726,7 @@ pub async fn create_db() -> Result<(), ArrErr> {
 pub async fn drop_db() -> Result<(), ArrErr> {
     psql_warn!("Dropping database tables.");
     // Drop our tables (in the correct order)
-    FlightPlan::drop_table().await?;
+    GenericResource::<FlightPlanData>::drop_table().await?;
     vertipad::drop_table(&get_psql_pool()).await?;
     vertiport::drop_table(&get_psql_pool()).await
 }

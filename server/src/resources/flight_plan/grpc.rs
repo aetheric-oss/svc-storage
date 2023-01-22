@@ -5,33 +5,71 @@ mod grpc_server {
     tonic::include_proto!("grpc.flight_plan");
 }
 
-use std::collections::HashMap;
-
+use core::fmt::Debug;
 pub use grpc_server::flight_plan_rpc_server::{FlightPlanRpc, FlightPlanRpcServer};
 pub use grpc_server::{
     FlightPlan, FlightPlanData, FlightPlans, FlightPriority, FlightStatus, UpdateFlightPlan,
 };
-use tonic::{Code, Request, Response, Status};
+use tonic::{Request, Response, Status};
 
 use crate::grpc::{
     ArrErr, GrpcDataObjectType, GrpcField, GrpcFieldOption, GrpcObjectType, Id, SearchFilter,
-    ValidationResult, GRPC_LOG_TARGET,
+    ValidationResult,
 };
-use crate::memdb::FLIGHT_PLANS;
-use crate::memdb::MEMDB_LOG_TARGET;
-use crate::postgres::{PsqlObjectType, PsqlResourceType};
-use crate::{grpc_debug, grpc_error, memdb_info};
+use crate::resources::base::{GenericObjectType, GenericResource, GenericResourceResult};
 
 use self::grpc_server::FlightPlanResult;
 
-impl GrpcObjectType<FlightPlanData> for FlightPlan {
-    fn get_id(&self) -> String {
-        self.id.clone()
-    }
-    fn get_data(&self) -> Option<FlightPlanData> {
-        self.data.clone()
+impl From<FlightPlan> for GenericResource<FlightPlanData> {
+    fn from(obj: FlightPlan) -> Self {
+        Self {
+            id: Some(obj.id),
+            data: obj.data,
+            mask: None,
+        }
     }
 }
+impl From<GenericResource<FlightPlanData>> for FlightPlan {
+    fn from(obj: GenericResource<FlightPlanData>) -> Self {
+        let id = obj.try_get_id();
+        match id {
+            Ok(id) => Self {
+                id,
+                data: obj.get_data(),
+            },
+            Err(e) => {
+                panic!("Can't convert GenericResource<FlightPlanData> into FlightPlan without an 'id': {e}")
+            }
+        }
+    }
+}
+impl From<UpdateFlightPlan> for GenericResource<FlightPlanData> {
+    fn from(obj: UpdateFlightPlan) -> Self {
+        Self {
+            id: Some(obj.id),
+            data: obj.data,
+            mask: obj.mask,
+        }
+    }
+}
+impl From<GenericResourceResult<GenericResource<FlightPlanData>, FlightPlanData>>
+    for FlightPlanResult
+{
+    fn from(obj: GenericResourceResult<GenericResource<FlightPlanData>, FlightPlanData>) -> Self {
+        let fp = match obj.resource {
+            Some(obj) => {
+                let res: FlightPlan = obj.into();
+                Some(res)
+            }
+            None => None,
+        };
+        Self {
+            validation_result: Some(obj.validation_result),
+            flight_plan: fp,
+        }
+    }
+}
+
 impl GrpcDataObjectType for FlightPlanData {
     fn get_field_value(&self, key: &str) -> Result<GrpcField, ArrErr> {
         match key {
@@ -85,160 +123,47 @@ impl GrpcDataObjectType for FlightPlanData {
 #[derive(Clone, Default, Debug)]
 pub struct FlightPlanImpl {}
 
+/*
+impl<T, U> GrpcObjectType<T, U> for FlightPlanImpl
+where
+    T: GenericObjectType<U> + PsqlObjectType<U> + PsqlResourceType + Resource + prost::Message + From<Id> + From<Row> + Clone,
+    U: GrpcDataObjectType + From<Row> {}
+ */
+
+impl GrpcObjectType<GenericResource<FlightPlanData>, FlightPlanData> for FlightPlanImpl {}
+
 #[tonic::async_trait]
 impl FlightPlanRpc for FlightPlanImpl {
     async fn flight_plan_by_id(
         &self,
         request: Request<Id>,
     ) -> Result<Response<FlightPlan>, Status> {
-        let id = request.into_inner();
-        let uuid = id.clone().try_into()?;
-        let id = id.id;
-        if let Some(fp) = FLIGHT_PLANS.lock().await.get(&id) {
-            memdb_info!("Found entry for FlightPlan. uuid: {}", id);
-            Ok(Response::new(fp.clone()))
-        } else {
-            let fp = FlightPlan::get_by_id(&uuid).await;
-            match fp {
-                Ok(fp) => Ok(Response::new(FlightPlan {
-                    id,
-                    data: Some(fp.try_into()?),
-                })),
-                Err(_) => Err(Status::not_found("Not found")),
-            }
-        }
+        self.get_by_id::<FlightPlan>(request).await
     }
 
     async fn flight_plans(
         &self,
         request: Request<SearchFilter>,
     ) -> Result<Response<FlightPlans>, Status> {
-        let filter = request.into_inner();
-        let mut filter_hash = HashMap::<String, String>::new();
-        filter_hash.insert("column".to_string(), filter.search_field);
-        filter_hash.insert("value".to_string(), filter.search_value);
-
-        match FlightPlan::search(&filter_hash).await {
-            Ok(fps) => Ok(Response::new(fps.try_into()?)),
-            Err(e) => Err(Status::new(Code::Internal, e.to_string())),
-        }
+        self.get_all_with_filter::<FlightPlans>(request).await
     }
 
     async fn insert_flight_plan(
         &self,
         request: Request<FlightPlanData>,
     ) -> Result<Response<FlightPlanResult>, Status> {
-        let mut fps = FLIGHT_PLANS.lock().await;
-        let data = request.into_inner();
-        grpc_debug!("Inserting new flight_plan with data {:?}", data);
-        let (id, validation_result) = FlightPlan::create(&data).await?;
-        if let Some(id) = id {
-            let fp = FlightPlan::get_by_id(&id).await?;
-            let fp_obj = FlightPlan {
-                id: id.to_string(),
-                data: Some(fp.try_into()?),
-            };
-            let result = FlightPlanResult {
-                validation_result: Some(validation_result),
-                flight_plan: Some(fp_obj.clone()),
-            };
-            fps.insert(id.to_string(), fp_obj);
-            Ok(Response::new(result))
-        } else {
-            let error = "Error inserting new flight_plan";
-            grpc_error!("{}", error);
-            grpc_debug!("{:?}", data);
-            grpc_debug!("{:?}", validation_result);
-            let result = FlightPlanResult {
-                validation_result: Some(validation_result),
-                flight_plan: None,
-            };
-            Ok(Response::new(result))
-        }
+        self.insert::<FlightPlanResult>(request).await
     }
 
     async fn update_flight_plan(
         &self,
         request: Request<UpdateFlightPlan>,
     ) -> Result<Response<FlightPlanResult>, Status> {
-        let mut fps = FLIGHT_PLANS.lock().await;
-        let fp_req = request.into_inner();
-        let id = fp_req.id;
-        let uuid = Id { id: id.clone() }.try_into()?;
-        let mut fp_obj: FlightPlan = match fps.get(&id.clone()) {
-            Some(fp) => {
-                memdb_info!("Found entry for FlightPlan. uuid: {}", id);
-                fp.clone()
-            }
-            None => {
-                let fp = FlightPlan::get_by_id(&uuid).await?;
-                FlightPlan {
-                    id,
-                    data: Some(fp.try_into()?),
-                }
-            }
-        };
-
-        let data = match fp_req.data {
-            Some(data) => data,
-            None => {
-                let err = format!(
-                    "No data provided for update flight_plan with id: {}",
-                    fp_obj.get_id()
-                );
-                grpc_error!("{}", err);
-                return Err(Status::cancelled(err));
-            }
-        };
-
-        let (data, validation_result) = fp_obj.update(&data).await?;
-        if let Some(data) = data {
-            fp_obj.data = Some(data.try_into()?);
-            let result = FlightPlanResult {
-                validation_result: Some(validation_result),
-                flight_plan: Some(fp_obj.clone()),
-            };
-            fps.insert(fp_obj.get_id(), fp_obj.clone());
-            Ok(Response::new(result))
-        } else {
-            let error = "Error inserting new flight_plan";
-            grpc_error!("{}", error);
-            grpc_debug!("{:?}", data);
-            grpc_debug!("{:?}", validation_result);
-            let result = FlightPlanResult {
-                validation_result: Some(validation_result),
-                flight_plan: None,
-            };
-            Ok(Response::new(result))
-        }
+        self.update::<FlightPlanResult, UpdateFlightPlan>(request)
+            .await
     }
 
     async fn delete_flight_plan(&self, request: Request<Id>) -> Result<Response<()>, Status> {
-        let id = request.into_inner();
-        let uuid = id.clone().try_into()?;
-        let id = id.id;
-        let fp_obj: FlightPlan = match FLIGHT_PLANS.lock().await.get(&id.clone()) {
-            Some(fp) => {
-                memdb_info!("Found entry for FlightPlan. uuid: {}", id);
-                fp.clone()
-            }
-            None => {
-                let fp = FlightPlan::get_by_id(&uuid).await?;
-                FlightPlan {
-                    id,
-                    data: Some(fp.try_into()?),
-                }
-            }
-        };
-
-        match fp_obj.delete().await {
-            Ok(_) => {
-                // Update cache
-                let mut fps = FLIGHT_PLANS.lock().await;
-                fps.remove(&fp_obj.get_id());
-                Ok(Response::new(()))
-            }
-            Err(e) => Err(Status::new(Code::Internal, e.to_string())),
-        }
+        self.delete(request).await
     }
 }
