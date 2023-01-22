@@ -10,16 +10,20 @@ pub use grpc_server::storage_rpc_server::{StorageRpc, StorageRpcServer};
 pub use grpc_server::{
     Id, ReadyRequest, ReadyResponse, SearchFilter, ValidationError, ValidationResult,
 };
-use uuid::Uuid;
+use tokio_postgres::Row;
 
 pub use crate::common::{ArrErr, GRPC_LOG_TARGET};
+use crate::postgres::{PsqlObjectType, PsqlResourceType};
+use crate::resources::base::{GenericObjectType, GenericResourceResult};
 
 use anyhow::Error;
 use prost_types::Timestamp;
+use std::collections::HashMap;
 use std::fmt::Debug;
+use std::marker::PhantomData;
 use tokio::runtime::{Handle, Runtime};
 use tonic::transport::Server;
-use tonic::{Request, Response, Status};
+use tonic::{Code, Request, Response, Status};
 
 use crate::common::Config;
 use crate::resources::flight_plan::{FlightPlanImpl, FlightPlanRpcServer};
@@ -46,28 +50,141 @@ pub enum GrpcFieldOption {
     Timestamp(Option<Timestamp>),
     None,
 }
-pub trait GrpcDataObjectType: prost::Message + Clone {
-    fn get_field_value(&self, key: &str) -> Result<GrpcField, ArrErr>;
-}
-pub trait GrpcObjectType<T>: prost::Message + Clone
+
+#[tonic::async_trait]
+pub trait GrpcObjectType<T, U>
 where
-    T: GrpcDataObjectType,
+    T: GenericObjectType<U> + PsqlResourceType + From<Id> + Clone + Sync + Send,
+    U: GrpcDataObjectType + TryFrom<Row>,
+    Status: From<<U as TryFrom<Row>>::Error>,
 {
-    fn get_id(&self) -> String;
-    fn get_uuid(&self) -> Result<Uuid, ArrErr> {
-        Uuid::parse_str(&self.get_id()).map_err(ArrErr::from)
-    }
-    fn get_data(&self) -> Option<T>;
-    fn try_get_data(&self) -> Result<T, ArrErr> {
-        match self.get_data() {
-            Some(data) => Ok(data),
-            None => {
-                let error =
-                    "No data provided for ArrowResource when calling [get_data]".to_string();
-                Err(ArrErr::Error(error))
+    async fn get_by_id<V>(&self, request: Request<Id>) -> Result<Response<V>, Status>
+    where
+        V: From<T>,
+    {
+        let id: Id = request.into_inner();
+        let mut resource: T = id.into();
+        let obj: Result<Row, ArrErr> = T::get_by_id(&resource.try_get_uuid()?).await;
+        match obj {
+            Ok(obj) => {
+                resource.set_data(obj.try_into()?);
+                Ok(Response::new(resource.into()))
             }
+            Err(_) => Err(Status::not_found("Not found")),
         }
     }
+
+    async fn get_all_with_filter<V>(
+        &self,
+        request: Request<SearchFilter>,
+    ) -> Result<Response<V>, Status>
+    where
+        V: TryFrom<Vec<Row>>,
+        Status: From<<V as TryFrom<Vec<Row>>>::Error>,
+    {
+        let filter: SearchFilter = request.into_inner();
+        let mut filter_hash = HashMap::<String, String>::new();
+        filter_hash.insert("column".to_string(), filter.search_field);
+        filter_hash.insert("value".to_string(), filter.search_value);
+
+        match T::search(&filter_hash).await {
+            Ok(rows) => Ok(Response::new(rows.try_into()?)),
+            Err(e) => Err(Status::new(Code::Internal, e.to_string())),
+        }
+    }
+
+    async fn insert<V>(&self, request: Request<U>) -> Result<Response<V>, Status>
+    where
+        T: From<U>,
+        U: 'async_trait,
+        V: From<GenericResourceResult<T, U>>,
+    {
+        let data = request.into_inner();
+        let mut resource: T = data.into();
+        grpc_debug!("Inserting with data {:?}", resource.try_get_data()?);
+        let (id, validation_result) = T::create(&resource.try_get_data()?).await?;
+        if let Some(id) = id {
+            resource.set_id(id.to_string());
+            let obj: T = resource;
+            let result = GenericResourceResult::<T, U> {
+                phantom: PhantomData,
+                validation_result,
+                resource: Some(obj),
+            };
+            Ok(Response::new(result.into()))
+        } else {
+            let error = "Error calling insert function";
+            grpc_error!("{}", error);
+            grpc_debug!("{:?}", resource.try_get_data()?);
+            grpc_debug!("{:?}", validation_result);
+            let result = GenericResourceResult::<T, U> {
+                phantom: PhantomData,
+                validation_result,
+                resource: None,
+            };
+            Ok(Response::new(result.into()))
+        }
+    }
+
+    async fn update<V, W>(&self, request: Request<W>) -> Result<Response<V>, Status>
+    where
+        T: From<W> + PsqlObjectType<U>,
+        V: From<GenericResourceResult<T, U>>,
+        W: Send,
+    {
+        let req: T = request.into_inner().into();
+        let id: Id = Id {
+            id: req.try_get_id()?,
+        };
+        let mut resource: T = id.into();
+
+        let data = match req.get_data() {
+            Some(data) => data,
+            None => {
+                let err = format!("No data provided for update with id: {}", req.try_get_id()?);
+                grpc_error!("{}", err);
+                return Err(Status::cancelled(err));
+            }
+        };
+
+        let (data, validation_result) = resource.update(&data).await?;
+        if let Some(data) = data {
+            resource.set_data(data.try_into()?);
+            let result = GenericResourceResult {
+                phantom: PhantomData,
+                validation_result,
+                resource: Some(resource),
+            };
+            Ok(Response::new(result.into()))
+        } else {
+            let error = "Error calling update function";
+            grpc_error!("{}", error);
+            grpc_debug!("{:?}", data);
+            grpc_debug!("{:?}", validation_result);
+            let result = GenericResourceResult {
+                phantom: PhantomData,
+                validation_result,
+                resource: None,
+            };
+            Ok(Response::new(result.into()))
+        }
+    }
+
+    async fn delete(&self, request: Request<Id>) -> Result<Response<()>, Status>
+    where
+        T: PsqlObjectType<U>,
+    {
+        let id: Id = request.into_inner();
+        let resource: T = id.into();
+        match resource.delete().await {
+            Ok(_) => Ok(Response::new(())),
+            Err(e) => Err(Status::new(Code::Internal, e.to_string())),
+        }
+    }
+}
+
+pub trait GrpcDataObjectType: prost::Message + Clone {
+    fn get_field_value(&self, key: &str) -> Result<GrpcField, ArrErr>;
 }
 
 #[derive(Debug, Default, Copy, Clone)]
