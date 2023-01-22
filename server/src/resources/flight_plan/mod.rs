@@ -6,7 +6,7 @@ mod psql;
 
 pub use grpc::{
     FlightPlan, FlightPlanData, FlightPlanImpl, FlightPlanRpcServer, FlightPlans, FlightPriority,
-    FlightStatus,
+    FlightStatus, UpdateFlightPlan,
 };
 
 use chrono::{DateTime, Utc};
@@ -23,7 +23,7 @@ use crate::memdb::VertipadPsql;
 use crate::postgres::{get_psql_pool, PsqlFieldType, PsqlJsonValue};
 use lib_common::time::datetime_to_timestamp;
 
-use super::base::{FieldDefinition, Resource, ResourceDefinition};
+use super::base::{FieldDefinition, GenericResource, Resource, ResourceDefinition};
 
 impl TryFrom<Vec<Row>> for FlightPlans {
     type Error = ArrErr;
@@ -176,7 +176,7 @@ impl FromStr for FlightPriority {
     }
 }
 
-impl Resource for FlightPlan {
+impl Resource for GenericResource<FlightPlanData> {
     fn get_definition() -> ResourceDefinition {
         ResourceDefinition {
             psql_table: String::from("flight_plan"),
@@ -273,5 +273,14 @@ impl Resource for FlightPlan {
             }
             _ => None,
         }
+    }
+
+    fn get_table_indices() -> Vec<String> {
+        [
+            r#"ALTER TABLE flight_plan ADD CONSTRAINT fk_departure_vertipad_id FOREIGN KEY(departure_vertipad_id) REFERENCES vertipad(vertipad_id)"#.to_string(),
+            r#"ALTER TABLE flight_plan ADD CONSTRAINT fk_destination_vertipad_id FOREIGN KEY(destination_vertipad_id) REFERENCES vertipad(vertipad_id)"#.to_string(),
+            r#"CREATE INDEX IF NOT EXISTS flight_plan_flight_status_idx ON flight_plan (flight_status)"#.to_string(),
+            r#"CREATE INDEX IF NOT EXISTS flight_plan_flight_priority_idx ON flight_plan (flight_priority)"#.to_string(),
+        ].to_vec()
     }
 }
