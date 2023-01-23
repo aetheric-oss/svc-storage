@@ -65,12 +65,11 @@ where
         let id: Id = request.into_inner();
         let mut resource: T = id.into();
         let obj: Result<Row, ArrErr> = T::get_by_id(&resource.try_get_uuid()?).await;
-        match obj {
-            Ok(obj) => {
-                resource.set_data(obj.try_into()?);
-                Ok(Response::new(resource.into()))
-            }
-            Err(_) => Err(Status::not_found("Not found")),
+        if let Ok(obj) = obj {
+            resource.set_data(obj.try_into()?);
+            Ok(Response::new(resource.into()))
+        } else {
+            Err(Status::not_found("Not found"))
         }
     }
 
