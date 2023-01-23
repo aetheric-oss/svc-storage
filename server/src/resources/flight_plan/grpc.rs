@@ -20,55 +20,9 @@ use crate::resources::base::{GenericObjectType, GenericResource, GenericResource
 
 use self::grpc_server::FlightPlanResult;
 
-impl From<FlightPlan> for GenericResource<FlightPlanData> {
-    fn from(obj: FlightPlan) -> Self {
-        Self {
-            id: Some(obj.id),
-            data: obj.data,
-            mask: None,
-        }
-    }
-}
-impl From<GenericResource<FlightPlanData>> for FlightPlan {
-    fn from(obj: GenericResource<FlightPlanData>) -> Self {
-        let id = obj.try_get_id();
-        match id {
-            Ok(id) => Self {
-                id,
-                data: obj.get_data(),
-            },
-            Err(e) => {
-                panic!("Can't convert GenericResource<FlightPlanData> into FlightPlan without an 'id': {e}")
-            }
-        }
-    }
-}
-impl From<UpdateFlightPlan> for GenericResource<FlightPlanData> {
-    fn from(obj: UpdateFlightPlan) -> Self {
-        Self {
-            id: Some(obj.id),
-            data: obj.data,
-            mask: obj.mask,
-        }
-    }
-}
-impl From<GenericResourceResult<GenericResource<FlightPlanData>, FlightPlanData>>
-    for FlightPlanResult
-{
-    fn from(obj: GenericResourceResult<GenericResource<FlightPlanData>, FlightPlanData>) -> Self {
-        let fp = match obj.resource {
-            Some(obj) => {
-                let res: FlightPlan = obj.into();
-                Some(res)
-            }
-            None => None,
-        };
-        Self {
-            validation_result: Some(obj.validation_result),
-            flight_plan: fp,
-        }
-    }
-}
+use crate::build_generic_resource_impl_from;
+use paste::paste;
+build_generic_resource_impl_from!(FlightPlan, flight_plan);
 
 impl GrpcDataObjectType for FlightPlanData {
     fn get_field_value(&self, key: &str) -> Result<GrpcField, ArrErr> {
@@ -122,13 +76,6 @@ impl GrpcDataObjectType for FlightPlanData {
 ///Implementation of gRPC endpoints
 #[derive(Clone, Default, Debug)]
 pub struct FlightPlanImpl {}
-
-/*
-impl<T, U> GrpcObjectType<T, U> for FlightPlanImpl
-where
-    T: GenericObjectType<U> + PsqlObjectType<U> + PsqlResourceType + Resource + prost::Message + From<Id> + From<Row> + Clone,
-    U: GrpcDataObjectType + From<Row> {}
- */
 
 impl GrpcObjectType<GenericResource<FlightPlanData>, FlightPlanData> for FlightPlanImpl {}
 
