@@ -329,3 +329,62 @@ pub fn validate_enum(
         }
     }
 }
+
+/// Generates `From` trait implementations for GenericResource into and from Grpc defined Resource
+#[macro_export]
+macro_rules! build_generic_resource_impl_from
+{
+    ($resource:ident, $resource_key:tt) => {
+        paste! {
+            impl From<$resource> for GenericResource<[<$resource Data>]> {
+                fn from(obj: $resource) -> Self {
+                    Self {
+                        id: Some(obj.id),
+                        data: obj.data,
+                        mask: None,
+                    }
+                }
+            }
+            impl From<GenericResource<[<$resource Data>]>> for $resource {
+                fn from(obj: GenericResource<[<$resource Data>]>) -> Self {
+                    let id = obj.try_get_id();
+                    match id {
+                        Ok(id) => Self {
+                            id,
+                            data: obj.get_data(),
+                        },
+                        Err(e) => {
+                            panic!("Can't convert GenericResource<{}Data> into {} without an 'id': {e}", stringify!($resource), stringify!($resource))
+                        }
+                    }
+                }
+            }
+            impl From<[<Update $resource>]> for GenericResource<[<$resource Data>]> {
+                fn from(obj: [<Update $resource>]) -> Self {
+                    Self {
+                        id: Some(obj.id),
+                        data: obj.data,
+                        mask: obj.mask,
+                    }
+                }
+            }
+            impl From<GenericResourceResult<GenericResource<[<$resource Data>]>, [<$resource Data>]>>
+                for [<$resource Result>]
+            {
+                fn from(obj: GenericResourceResult<GenericResource<[<$resource Data>]>, [<$resource Data>]>) -> Self {
+                    let res = match obj.resource {
+                        Some(obj) => {
+                            let res: $resource = obj.into();
+                            Some(res)
+                        }
+                        None => None,
+                    };
+                    Self {
+                        validation_result: Some(obj.validation_result),
+                        $resource_key: res,
+                    }
+                }
+            }
+        }
+    }
+}
