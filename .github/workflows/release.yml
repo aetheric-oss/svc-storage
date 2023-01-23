@@ -11,8 +11,6 @@ on:
       - 'develop'
 
 env:
-  REGISTRY: ghcr.io
-  PACKAGE_NAME: ${{ github.repository }}
   TERM: xterm
 
 jobs:
@@ -27,16 +25,6 @@ jobs:
     concurrency:
       group: release-${{ github.head_ref || 'main' }}
     steps:
-      - name: Set up environment based on branch
-        run: |
-          if [ "$GITHUB_REF_NAME" == "main" ]
-          then
-            echo "PUBLISH_DRY_RUN=0" >> $GITHUB_ENV
-          else
-            echo "CUSTOM_RELEASE_RULES=fix:prerelease,feat:prerelease,chore:prerelease" >> $GITHUB_ENV
-            echo "PUBLISH_DRY_RUN=1" >> $GITHUB_ENV
-          fi
-
       - name: Import Arrow bot's GPG key for signing commits
         id: import-gpg
         uses: crazy-max/ghaction-import-gpg@v4
@@ -54,6 +42,13 @@ jobs:
           token: ${{ secrets.COMMITBOT_GITHUB_TOKEN }}
           fetch-depth: 0
 
+      - name: Set up environment based on branch
+        run: |
+          if [ "$GITHUB_REF_NAME" != "main" ]
+          then
+            echo "CUSTOM_RELEASE_RULES=fix:prerelease,feat:prerelease,chore:prerelease" >> $GITHUB_ENV
+          fi
+
       - name: Determine new Tag
         uses: mathieudutour/github-tag-action@v6.1
         id: tag_version
@@ -63,38 +58,10 @@ jobs:
           dry_run: true
           custom_release_rules: "${{ env.CUSTOM_RELEASE_RULES }}"
 
-      - name: Generate Changelog
-        id: changelog
-        uses: mrchief/universal-changelog-action@v1.3.2
-        with:
-          previousReleaseTagNameOrSha: ${{ steps.tag_version.outputs.previous_tag }}
-          nextReleaseTagName: ${{ github.sha }}
-          nextReleaseName: "Release ${{ steps.tag_version.outputs.new_version }}"
-
-      - name: Update CHANGELOG.md
-        if: ${{ env.GITHUB_REF_NAME == 'main' }}
+      - name: Automatic Rebase Autosquash
+        if: ${{ github.ref_name == 'develop' }}
         run: |
-          cat - CHANGELOG.md > temp <<'CHANGELOG.md-EOF'
-          ${{ steps.changelog.outputs.changelog }}
-          CHANGELOG.md-EOF
-          sed -i 's/releases\/tag\/${{ github.sha }}/releases\/tag\/${{ steps.tag_version.outputs.new_tag }}/g' temp
-          mv temp CHANGELOG.md
-
-      - name: Update package version
-        run: |
-          cargo install cargo-edit
-          cargo set-version ${{ steps.tag_version.outputs.new_version }}
-          cargo update
-          make toml-tidy
-          cargo update
-
-      - name: Commit and push release updates
-        env:
-          CHANGED_FILES: "Cargo.lock client-grpc/Cargo.toml server/Cargo.toml CHANGELOG.md"
-          MESSAGE: "ci - update release files\n\n[skip ci]"
-        run: |
-          git commit $CHANGED_FILES -m "$MESSAGE"
-          git push
+          git rebase -i --autosquash origin/main
         env:
           GIT_AUTHOR_NAME: ${{ steps.import-gpg.outputs.name }}
           GIT_AUTHOR_EMAIL: ${{ steps.import-gpg.outputs.email }}
@@ -105,65 +72,79 @@ jobs:
           # https://git-scm.com/docs/git-config#Documentation/git-config.txt-sequenceeditor
           GIT_SEQUENCE_EDITOR: ':'
 
-      - name: Push New Tag
-        uses: mathieudutour/github-tag-action@v6.0
+      - name: Generate Changelog
+        id: changelog
+        uses: mrchief/universal-changelog-action@v1.3.2
+        with:
+          previousReleaseTagNameOrSha: ${{ steps.tag_version.outputs.previous_tag }}
+          nextReleaseTagName: ${{ github.sha }}
+          nextReleaseName: "Release ${{ steps.tag_version.outputs.new_version }}"
+
+      - name: Update CHANGELOG.md
+        if: ${{ github.ref_name == 'main' }}
+        run: |
+          cat - CHANGELOG.md > temp <<'CHANGELOG.md-EOF'
+          ${{ steps.changelog.outputs.changelog }}
+          CHANGELOG.md-EOF
+          sed -i 's/releases\/tag\/${{ github.sha }}/releases\/tag\/${{ steps.tag_version.outputs.new_tag }}/g' temp
+          mv temp CHANGELOG.md
+
+      - name: Update package version
+        if: ${{ github.ref_name == 'main' }}
+        run: |
+          cargo install cargo-edit
+          cargo set-version ${{ steps.tag_version.outputs.new_version }}
+          cargo update
+          make toml-tidy
+          cargo update
+
+      - name: Commit and push release updates
+        if: ${{ github.ref_name == 'main' }}
+        env:
+          CHANGED_FILES: ".terraform_init Cargo.lock client-grpc/Cargo.toml server/Cargo.toml CHANGELOG.md"
+          RELEASE_COMMIT_MESSAGE: "ci: update release files\n\n[skip ci]"
+          GIT_AUTHOR_NAME: ${{ steps.import-gpg.outputs.name }}
+          GIT_AUTHOR_EMAIL: ${{ steps.import-gpg.outputs.email }}
+          GIT_COMMITTER_NAME: ${{ steps.import-gpg.outputs.name }}
+          GIT_COMMITTER_EMAIL: ${{ steps.import-gpg.outputs.email }}
+          # git rebase with auto squash will be a noop if not run in interactive mode.
+          # using ':' or 'true' as the sequence editor allows us to automatically apply the squash actions
+          # https://git-scm.com/docs/git-config#Documentation/git-config.txt-sequenceeditor
+          GIT_SEQUENCE_EDITOR: ':'
+        run: |
+          echo "${{ steps.tag_version.outputs.new_tag }}" >> .terraform_init
+          git commit $CHANGED_FILES -m "$RELEASE_COMMIT_MESSAGE"
+
+      - name: Push any changes
+        run: |
+          git push -f
+
+      - name: Set and Push New Tag
+        uses: mathieudutour/github-tag-action@v6.1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           custom_tag: ${{ steps.tag_version.outputs.new_version }}
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-        with:
-          platforms: 'amd64,arm64'
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: ghcr.io/${{ env.PACKAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}},value=${{ steps.tag_version.outputs.new_tag }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ steps.tag_version.outputs.new_tag }}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v3
-        with:
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/amd64,linux/arm64
-          build-args: |
-            PACKAGE_NAME=${{ github.event.repository.name }}
-
-      - name: Clean Checkout
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ github.ref_name }}
-
-      - name: Build and publish client
-        run: |
-          make rust-publish
 
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.COMMITBOT_GITHUB_TOKEN }}
         with:
           tag_name: ${{ steps.tag_version.outputs.new_tag }}
           release_name: Release ${{ steps.tag_version.outputs.new_version }}
           body: ${{ steps.changelog.outputs.changelog }}
           draft: false
-          prerelease: ${{ env.GITHUB_REF_NAME == 'develop' }}
+          prerelease: ${{ github.ref_name == 'develop' }}
+
+      - name: Rebase develop branch
+        if: ${{ github.ref_name == 'main' }}
+        run: |
+          git checkout develop
+          git pull --rebase origin main
+          git push -f
+        env:
+          GIT_AUTHOR_NAME: ${{ steps.import-gpg.outputs.name }}
+          GIT_AUTHOR_EMAIL: ${{ steps.import-gpg.outputs.email }}
+          GIT_COMMITTER_NAME: ${{ steps.import-gpg.outputs.name }}
+          GIT_COMMITTER_EMAIL: ${{ steps.import-gpg.outputs.email }}
