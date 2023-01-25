@@ -7,14 +7,15 @@ use std::time::SystemTime;
 use tonic::Status;
 use uuid::Uuid;
 
-#[allow(unused_qualifications, missing_docs)]
 use svc_storage_client_grpc::client::{
-    flight_plan_rpc_client::FlightPlanRpcClient, pilot_rpc_client::PilotRpcClient,
-    vehicle_rpc_client::VehicleRpcClient, vertipad_rpc_client::VertipadRpcClient,
-    vertiport_rpc_client::VertiportRpcClient, FlightPlan, FlightPlanData, FlightPriority,
-    FlightStatus, Pilot, SearchFilter, UpdateFlightPlan, UpdateVertipad, Vehicle, VehicleType,
-    Vertipad, VertipadData, Vertiport, VertiportData,
+    pilot_rpc_client::PilotRpcClient, vehicle_rpc_client::VehicleRpcClient,
+    vertipad_rpc_client::VertipadRpcClient, Pilot, SearchFilter, UpdateVertipad, Vehicle,
+    VehicleType, Vertipad, VertipadData,
 };
+use svc_storage_client_grpc::flight_plan::{self, FlightPriority, FlightStatus};
+use svc_storage_client_grpc::vertiport;
+use svc_storage_client_grpc::FlightPlanClient;
+use svc_storage_client_grpc::VertiportClient;
 
 /// Provide GRPC endpoint to use
 pub fn get_grpc_endpoint() -> String {
@@ -96,7 +97,9 @@ RRULE:FREQ=WEEKLY;BYDAY=SA,SU";
 /// Example VertipadRpcClient
 /// Assuming the server is running, this method calls `client.vertipads` and
 /// should receive a valid response from the server
-async fn vertipad_scenario(mut vertiports: Vec<Vertiport>) -> Result<Vec<Vertipad>, Status> {
+async fn vertipad_scenario(
+    mut vertiports: Vec<vertiport::Object>,
+) -> Result<Vec<Vertipad>, Status> {
     let grpc_endpoint = get_grpc_endpoint();
     let mut vertipad_client = VertipadRpcClient::connect(grpc_endpoint.clone())
         .await
@@ -211,9 +214,9 @@ async fn vertipad_scenario(mut vertiports: Vec<Vertiport>) -> Result<Vec<Vertipa
     }
 }
 
-async fn generate_sample_vertiports() -> Result<Vec<Vertiport>, Status> {
+async fn generate_sample_vertiports() -> Result<Vec<vertiport::Object>, Status> {
     let grpc_endpoint = get_grpc_endpoint();
-    let mut vertiport_client = match VertiportRpcClient::connect(grpc_endpoint.clone()).await {
+    let mut vertiport_client = match VertiportClient::connect(grpc_endpoint.clone()).await {
         Ok(res) => res,
         Err(e) => panic!("Error creating client for VertiportRpcClient: {}", e),
     };
@@ -228,8 +231,9 @@ async fn generate_sample_vertiports() -> Result<Vec<Vertiport>, Status> {
     let x = OrderedFloat(-122.4194);
     let y = OrderedFloat(37.7746);
     match vertiport_client
-        .insert_vertiport(tonic::Request::new(VertiportData {
-            description: "Vertiport ".to_string(),
+        .insert(tonic::Request::new(vertiport::Data {
+            name: "My favorite port".to_string(),
+            description: "Open during workdays and work hours only".to_string(),
             latitude: x.into_inner().into(),
             longitude: y.into_inner().into(),
             schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
@@ -242,10 +246,10 @@ async fn generate_sample_vertiports() -> Result<Vec<Vertiport>, Status> {
 
     println!("Retrieving list of vertiports");
     match vertiport_client
-        .vertiports(tonic::Request::new(vertiport_filter.clone()))
+        .get_all_with_filter(tonic::Request::new(vertiport_filter.clone()))
         .await
     {
-        Ok(res) => Ok(res.into_inner().vertiports),
+        Ok(res) => Ok(res.into_inner().list),
         Err(e) => Err(e),
     }
 }
@@ -260,9 +264,9 @@ async fn flight_plan_scenario(
     pilot_id: String,
     vehicle_id: String,
     mut vertipads: Vec<Vertipad>,
-) -> Result<Vec<FlightPlan>, Status> {
+) -> Result<Vec<flight_plan::Object>, Status> {
     let grpc_endpoint = get_grpc_endpoint();
-    let mut flight_plan_client = match FlightPlanRpcClient::connect(grpc_endpoint.clone()).await {
+    let mut flight_plan_client = match FlightPlanClient::connect(grpc_endpoint.clone()).await {
         Ok(res) => res,
         Err(e) => panic!("Error creating client for FlightPlanRpcClient: {}", e),
     };
@@ -277,7 +281,7 @@ async fn flight_plan_scenario(
 
     println!("Retrieving list of flight plans");
     let fps = match flight_plan_client
-        .flight_plans(tonic::Request::new(fp_filter.clone()))
+        .get_all_with_filter(tonic::Request::new(fp_filter.clone()))
         .await
     {
         Ok(res) => Ok(res.into_inner().list),
@@ -296,7 +300,7 @@ async fn flight_plan_scenario(
 
     println!("Starting insert flight plan");
     let fp_result = match flight_plan_client
-        .insert_flight_plan(tonic::Request::new(FlightPlanData {
+        .insert(tonic::Request::new(flight_plan::Data {
             flight_status: FlightStatus::Draft as i32,
             vehicle_id,
             pilot_id: pilot_id.to_string().clone(),
@@ -323,13 +327,13 @@ async fn flight_plan_scenario(
     };
 
     println!("Starting update flight plan");
-    if fp_result.flight_plan.is_some() {
-        let new_fp = fp_result.flight_plan.unwrap();
+    if fp_result.object.is_some() {
+        let new_fp = fp_result.object.unwrap();
         println!("Created new flight plan: {:?}", new_fp);
         let update_fp_res = match flight_plan_client
-            .update_flight_plan(tonic::Request::new(UpdateFlightPlan {
+            .update(tonic::Request::new(flight_plan::UpdateObject {
                 id: new_fp.id.clone(),
-                data: Some(FlightPlanData {
+                data: Some(flight_plan::Data {
                     flight_status: FlightStatus::InFlight as i32,
                     ..new_fp.clone().data.unwrap()
                 }),
@@ -347,7 +351,7 @@ async fn flight_plan_scenario(
 
     fp_filter.search_value = (FlightStatus::InFlight as i32).to_string();
     match flight_plan_client
-        .flight_plans(tonic::Request::new(fp_filter.clone()))
+        .get_all_with_filter(tonic::Request::new(fp_filter.clone()))
         .await
     {
         Ok(res) => {
@@ -383,9 +387,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Play flight plan scenario
     let _result = flight_plan_scenario(pilot_id, vehicle_id, vertipads).await;
 
-    let mut vertiport_client = VertiportRpcClient::connect(grpc_endpoint.clone()).await?;
+    let mut vertiport_client = VertiportClient::connect(grpc_endpoint.clone()).await?;
     let vertiports = vertiport_client
-        .vertiports(tonic::Request::new(SearchFilter {
+        .get_all_with_filter(tonic::Request::new(SearchFilter {
             search_field: "".to_string(),
             search_value: "".to_string(),
             page_number: 1,
