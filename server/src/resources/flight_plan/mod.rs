@@ -1,63 +1,62 @@
 //! Flight Plans
 
 // Expose module resources
-mod grpc;
-mod psql;
-
-pub use grpc::{
-    FlightPlan, FlightPlanData, FlightPlanImpl, FlightPlanRpcServer, FlightPlans, FlightPriority,
-    FlightStatus, UpdateFlightPlan,
-};
+pub(crate) use grpc_server::rpc_service_server::*;
+pub(crate) use grpc_server::*;
 
 use chrono::{DateTime, Utc};
+use core::fmt::Debug;
 use log::debug;
 use std::collections::HashMap;
 use std::str::FromStr;
 use tokio::task;
 use tokio_postgres::row::Row;
+use tokio_postgres::types::Type as PsqlFieldType;
+use tonic::{Request, Status};
 use uuid::Uuid;
+
+use lib_common::time::datetime_to_timestamp;
 
 use crate::common::ArrErr;
 use crate::grpc::get_runtime_handle;
+use crate::grpc::{
+    GrpcDataObjectType, GrpcField, GrpcFieldOption, GrpcObjectType, Id, SearchFilter,
+    ValidationResult,
+};
 use crate::memdb::VertipadPsql;
-use crate::postgres::{get_psql_pool, PsqlFieldType, PsqlJsonValue};
-use lib_common::time::datetime_to_timestamp;
+use crate::postgres::{get_psql_pool, PsqlJsonValue};
+use crate::resources::base::{
+    FieldDefinition, GenericObjectType, GenericResource, GenericResourceResult, Resource,
+    ResourceDefinition,
+};
 
-use super::base::{FieldDefinition, GenericResource, Resource, ResourceDefinition};
-
-impl TryFrom<Vec<Row>> for FlightPlans {
-    type Error = ArrErr;
-
-    fn try_from(fps: Vec<Row>) -> Result<Self, ArrErr> {
-        debug!("Converting Vec<Row> to FlightPlans: {:?}", fps);
-        let mut res: Vec<FlightPlan> = Vec::with_capacity(fps.len());
-
-        let iter = fps.into_iter();
-        for fp in iter {
-            let fp_id: Uuid = fp.get("flight_plan_id");
-            let flight_plan = FlightPlan {
-                id: fp_id.to_string(),
-                data: Some(fp.try_into()?),
-            };
-            res.push(flight_plan);
-        }
-        Ok(FlightPlans { list: res })
-    }
+mod grpc_server {
+    #![allow(unused_qualifications, missing_docs)]
+    tonic::include_proto!("grpc.flight_plan");
 }
 
-impl TryFrom<Row> for FlightPlanData {
+// Generate `From` trait implementations for GenericResource into and from Grpc defined Resource
+crate::build_generic_resource_impl_from!();
+
+// Generate grpc server implementations
+crate::build_grpc_resource_impl!(flight_plan);
+crate::build_grpc_server_generic_impl!();
+
+impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
-    fn try_from(fp: Row) -> Result<Self, ArrErr> {
-        debug!("Converting Row to FlightPlanData: {:?}", fp);
-        let pilot_id: Uuid = fp.get("pilot_id");
-        let vehicle_id: Uuid = fp.get("vehicle_id");
-        let departure_vertipad_id: Uuid = fp.get("departure_vertipad_id");
-        let destination_vertipad_id: Uuid = fp.get("destination_vertipad_id");
-        let approved_by: Uuid = fp.get("approved_by");
+    fn try_from(row: Row) -> Result<Self, ArrErr> {
+        debug!("Converting Row to flight_plan::Data: {:?}", row);
+        let pilot_id: String = row.get::<&str, Uuid>("pilot_id").to_string();
+        let vehicle_id: String = row.get::<&str, Uuid>("vehicle_id").to_string();
+        let departure_vertipad_id: String =
+            row.get::<&str, Uuid>("departure_vertipad_id").to_string();
+        let destination_vertipad_id: String =
+            row.get::<&str, Uuid>("destination_vertipad_id").to_string();
+        let approved_by: String = row.get::<&str, Uuid>("approved_by").to_string();
 
         let handle = get_runtime_handle();
-        let vertipad_id = fp.get("departure_vertipad_id");
+        let vertipad_id = row.get("departure_vertipad_id");
         let data = task::block_in_place(move || {
             handle.block_on(async move {
                 let pool = get_psql_pool();
@@ -67,7 +66,7 @@ impl TryFrom<Row> for FlightPlanData {
         let departure_vertiport_id = data.id;
 
         let handle = get_runtime_handle();
-        let vertipad_id = fp.get("destination_vertipad_id");
+        let vertipad_id = row.get("destination_vertipad_id");
         let data = task::block_in_place(move || {
             handle.block_on(async move {
                 let pool = get_psql_pool();
@@ -77,56 +76,56 @@ impl TryFrom<Row> for FlightPlanData {
         let destination_vertiport_id = data.id;
 
         let cargo_weight_grams = PsqlJsonValue {
-            value: fp.get("cargo_weight_grams"),
+            value: row.get("cargo_weight_grams"),
         };
         let cargo_weight_grams: Vec<i64> = cargo_weight_grams.into();
 
         //TODO: handling of conversion errors
-        let flight_plan_submitted: Option<DateTime<Utc>> = fp.get("flight_plan_submitted");
+        let flight_plan_submitted: Option<DateTime<Utc>> = row.get("flight_plan_submitted");
         let flight_plan_submitted = match flight_plan_submitted {
             Some(val) => datetime_to_timestamp(&val),
             None => None,
         };
 
-        let scheduled_departure: Option<DateTime<Utc>> = fp.get("scheduled_departure");
+        let scheduled_departure: Option<DateTime<Utc>> = row.get("scheduled_departure");
         let scheduled_departure = match scheduled_departure {
             Some(val) => datetime_to_timestamp(&val),
             None => None,
         };
 
-        let scheduled_arrival: Option<DateTime<Utc>> = fp.get("scheduled_arrival");
+        let scheduled_arrival: Option<DateTime<Utc>> = row.get("scheduled_arrival");
         let scheduled_arrival = match scheduled_arrival {
             Some(val) => datetime_to_timestamp(&val),
             None => None,
         };
 
-        let actual_departure: Option<DateTime<Utc>> = fp.get("actual_departure");
+        let actual_departure: Option<DateTime<Utc>> = row.get("actual_departure");
         let actual_departure = match actual_departure {
             Some(val) => datetime_to_timestamp(&val),
             None => None,
         };
 
-        let actual_arrival: Option<DateTime<Utc>> = fp.get("actual_arrival");
+        let actual_arrival: Option<DateTime<Utc>> = row.get("actual_arrival");
         let actual_arrival = match actual_arrival {
             Some(val) => datetime_to_timestamp(&val),
             None => None,
         };
 
-        let flight_release_approval: Option<DateTime<Utc>> = fp.get("flight_release_approval");
+        let flight_release_approval: Option<DateTime<Utc>> = row.get("flight_release_approval");
         let flight_release_approval = match flight_release_approval {
             Some(val) => datetime_to_timestamp(&val),
             None => None,
         };
 
-        Ok(FlightPlanData {
-            pilot_id: pilot_id.to_string(),
-            vehicle_id: vehicle_id.to_string(),
-            flight_distance_meters: fp.get("flight_distance_meters"),
-            weather_conditions: fp.get("weather_conditions"),
+        Ok(Data {
+            pilot_id,
+            vehicle_id,
+            flight_distance_meters: row.get("flight_distance_meters"),
+            weather_conditions: row.get("weather_conditions"),
             departure_vertiport_id: Some(departure_vertiport_id.to_string()),
-            departure_vertipad_id: departure_vertipad_id.to_string(),
+            departure_vertipad_id,
             destination_vertiport_id: Some(destination_vertiport_id.to_string()),
-            destination_vertipad_id: destination_vertipad_id.to_string(),
+            destination_vertipad_id,
             scheduled_departure,
             scheduled_arrival,
             actual_departure,
@@ -134,11 +133,11 @@ impl TryFrom<Row> for FlightPlanData {
             flight_release_approval,
             flight_plan_submitted,
             cargo_weight_grams,
-            approved_by: Some(approved_by.to_string()),
-            flight_status: FlightStatus::from_str(fp.get("flight_status"))
+            approved_by: Some(approved_by),
+            flight_status: FlightStatus::from_str(row.get("flight_status"))
                 .unwrap()
                 .into(),
-            flight_priority: FlightPriority::from_str(fp.get("flight_priority"))
+            flight_priority: FlightPriority::from_str(row.get("flight_priority"))
                 .unwrap()
                 .into(),
         })
@@ -176,7 +175,7 @@ impl FromStr for FlightPriority {
     }
 }
 
-impl Resource for GenericResource<FlightPlanData> {
+impl Resource for GenericResource<Data> {
     fn get_definition() -> ResourceDefinition {
         ResourceDefinition {
             psql_table: String::from("flight_plan"),
@@ -184,78 +183,78 @@ impl Resource for GenericResource<FlightPlanData> {
             fields: HashMap::from([
                 (
                     "pilot_id".to_string(),
-                    FieldDefinition::new(PsqlFieldType::Uuid, true),
+                    FieldDefinition::new(PsqlFieldType::UUID, true),
                 ),
                 (
                     "vehicle_id".to_string(),
-                    FieldDefinition::new(PsqlFieldType::Uuid, true),
+                    FieldDefinition::new(PsqlFieldType::UUID, true),
                 ),
                 (
                     "cargo_weight_grams".to_string(),
-                    FieldDefinition::new(PsqlFieldType::Json, true),
+                    FieldDefinition::new(PsqlFieldType::JSON, true),
                 ),
                 (
                     "flight_distance_meters".to_string(),
-                    FieldDefinition::new(PsqlFieldType::Integer, true),
+                    FieldDefinition::new(PsqlFieldType::INT8, true),
                 ),
                 (
                     "weather_conditions".to_string(),
-                    FieldDefinition::new(PsqlFieldType::Text, true),
+                    FieldDefinition::new(PsqlFieldType::TEXT, true),
                 ),
                 (
                     "departure_vertipad_id".to_string(),
-                    FieldDefinition::new(PsqlFieldType::Uuid, true),
+                    FieldDefinition::new(PsqlFieldType::UUID, true),
                 ),
                 (
                     "destination_vertipad_id".to_string(),
-                    FieldDefinition::new(PsqlFieldType::Uuid, true),
+                    FieldDefinition::new(PsqlFieldType::UUID, true),
                 ),
                 (
                     "scheduled_departure".to_string(),
-                    FieldDefinition::new(PsqlFieldType::Datetime, true),
+                    FieldDefinition::new(PsqlFieldType::TIMESTAMPTZ, true),
                 ),
                 (
                     "scheduled_arrival".to_string(),
-                    FieldDefinition::new(PsqlFieldType::Datetime, true),
+                    FieldDefinition::new(PsqlFieldType::TIMESTAMPTZ, true),
                 ),
                 (
                     "actual_departure".to_string(),
-                    FieldDefinition::new(PsqlFieldType::Datetime, false),
+                    FieldDefinition::new(PsqlFieldType::TIMESTAMPTZ, false),
                 ),
                 (
                     "actual_arrival".to_string(),
-                    FieldDefinition::new(PsqlFieldType::Datetime, false),
+                    FieldDefinition::new(PsqlFieldType::TIMESTAMPTZ, false),
                 ),
                 (
                     "flight_release_approval".to_string(),
-                    FieldDefinition::new(PsqlFieldType::Datetime, false),
+                    FieldDefinition::new(PsqlFieldType::TIMESTAMPTZ, false),
                 ),
                 (
                     "flight_plan_submitted".to_string(),
-                    FieldDefinition::new(PsqlFieldType::Datetime, false),
+                    FieldDefinition::new(PsqlFieldType::TIMESTAMPTZ, false),
                 ),
                 (
                     "approved_by".to_string(),
-                    FieldDefinition::new(PsqlFieldType::Uuid, false),
+                    FieldDefinition::new(PsqlFieldType::UUID, false),
                 ),
                 (
                     "flight_status".to_string(),
-                    FieldDefinition::new(PsqlFieldType::Enum, true)
+                    FieldDefinition::new(PsqlFieldType::ANYENUM, true)
                         .set_default(String::from("'DRAFT'")),
                 ),
                 (
                     "flight_priority".to_string(),
-                    FieldDefinition::new(PsqlFieldType::Enum, true)
+                    FieldDefinition::new(PsqlFieldType::ANYENUM, true)
                         .set_default(String::from("'LOW'")),
                 ),
                 (
                     "created_at".to_string(),
-                    FieldDefinition::new_internal(PsqlFieldType::Datetime, true)
+                    FieldDefinition::new_internal(PsqlFieldType::TIMESTAMPTZ, true)
                         .set_default(String::from("CURRENT_TIMESTAMP")),
                 ),
                 (
                     "updated_at".to_string(),
-                    FieldDefinition::new_internal(PsqlFieldType::Datetime, true)
+                    FieldDefinition::new_internal(PsqlFieldType::TIMESTAMPTZ, true)
                         .set_default(String::from("CURRENT_TIMESTAMP")),
                 ),
             ]),
@@ -282,5 +281,54 @@ impl Resource for GenericResource<FlightPlanData> {
             r#"CREATE INDEX IF NOT EXISTS flight_plan_flight_status_idx ON flight_plan (flight_status)"#.to_string(),
             r#"CREATE INDEX IF NOT EXISTS flight_plan_flight_priority_idx ON flight_plan (flight_priority)"#.to_string(),
         ].to_vec()
+    }
+}
+
+impl GrpcDataObjectType for Data {
+    fn get_field_value(&self, key: &str) -> Result<GrpcField, ArrErr> {
+        match key {
+            "pilot_id" => Ok(GrpcField::String(self.pilot_id.clone())), //::prost::alloc::string::String,
+            "vehicle_id" => Ok(GrpcField::String(self.vehicle_id.clone())), //::prost::alloc::string::String,
+            "cargo_weight_grams" => Ok(GrpcField::I64List(self.cargo_weight_grams.clone())), //::prost::alloc::vec::Vec<i64>,
+            "flight_distance_meters" => Ok(GrpcField::I64(self.flight_distance_meters)),     //i64,
+            "weather_conditions" => Ok(GrpcField::String(self.weather_conditions.clone())), //::prost::alloc::string::String,
+            "departure_vertiport_id" => Ok(GrpcField::Option(GrpcFieldOption::String(
+                self.departure_vertiport_id.clone(),
+            ))), //::core::option::Option<::prost::alloc::string::String>,
+            "departure_vertipad_id" => Ok(GrpcField::String(self.departure_vertipad_id.clone())), //::prost::alloc::string::String,
+            "destination_vertiport_id" => Ok(GrpcField::Option(GrpcFieldOption::String(
+                self.destination_vertiport_id.clone(),
+            ))), //::core::option::Option<::prost::alloc::string::String>,
+            "destination_vertipad_id" => {
+                Ok(GrpcField::String(self.destination_vertipad_id.clone()))
+            } //::prost::alloc::string::String,
+            "scheduled_departure" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
+                self.scheduled_departure.clone(),
+            ))), //::core::option::Option<::prost_types::Timestamp>,
+            "scheduled_arrival" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
+                self.scheduled_arrival.clone(),
+            ))), //::core::option::Option<::prost_types::Timestamp>,
+            "actual_departure" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
+                self.actual_departure.clone(),
+            ))), //::core::option::Option<::prost_types::Timestamp>,
+            "actual_arrival" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
+                self.actual_arrival.clone(),
+            ))), //::core::option::Option<::prost_types::Timestamp>,
+            "flight_release_approval" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
+                self.flight_release_approval.clone(),
+            ))), //::core::option::Option<::prost_types::Timestamp>,
+            "flight_plan_submitted" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
+                self.flight_plan_submitted.clone(),
+            ))), //::core::option::Option<::prost_types::Timestamp>,
+            "approved_by" => Ok(GrpcField::Option(GrpcFieldOption::String(
+                self.approved_by.clone(),
+            ))), //::core::option::Option<::prost::alloc::string::String>,
+            "flight_status" => Ok(GrpcField::I32(self.flight_status)), //i32,
+            "flight_priority" => Ok(GrpcField::I32(self.flight_priority)), //i32,
+            _ => Err(ArrErr::Error(format!(
+                "Invalid key specified [{}], no such field found",
+                key
+            ))),
+        }
     }
 }
