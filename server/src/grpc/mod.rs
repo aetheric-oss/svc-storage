@@ -21,6 +21,7 @@ use prost_types::Timestamp;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::marker::PhantomData;
+use std::time::SystemTime;
 use tokio::runtime::{Handle, Runtime};
 use tonic::transport::Server;
 use tonic::{Code, Request, Response, Status};
@@ -38,6 +39,7 @@ pub enum GrpcField {
     I64List(Vec<i64>),
     I64(i64),
     I32(i32),
+    I16(i16),
     Timestamp(Timestamp),
     Option(GrpcFieldOption),
 }
@@ -47,6 +49,7 @@ pub enum GrpcFieldOption {
     I64List(Option<Vec<i64>>),
     I64(Option<i64>),
     I32(Option<i32>),
+    I16(Option<i16>),
     Timestamp(Option<Timestamp>),
     None,
 }
@@ -214,6 +217,79 @@ impl From<ArrErr> for Status {
         grpc_warn!("{:#}", err);
 
         tonic::Status::internal("error".to_string())
+    }
+}
+
+impl From<GrpcField> for String {
+    fn from(field: GrpcField) -> Self {
+        match field {
+            GrpcField::String(field) => field,
+            _ => format!("{:?}", field),
+        }
+    }
+}
+impl From<GrpcField> for Vec<i64> {
+    fn from(field: GrpcField) -> Self {
+        match field {
+            GrpcField::I64List(field) => field,
+            GrpcField::I64(field) => vec![field],
+            _ => vec![],
+        }
+    }
+}
+impl From<GrpcField> for i64 {
+    fn from(field: GrpcField) -> Self {
+        match field {
+            GrpcField::I64(field) => field,
+            _ => 0,
+        }
+    }
+}
+impl From<GrpcField> for f64 {
+    fn from(field: GrpcField) -> Self {
+        match field {
+            GrpcField::F64(field) => field,
+            _ => 0.0,
+        }
+    }
+}
+impl From<GrpcField> for i32 {
+    fn from(field: GrpcField) -> Self {
+        match field {
+            GrpcField::I32(field) => field,
+            _ => 0,
+        }
+    }
+}
+impl From<GrpcField> for i16 {
+    fn from(field: GrpcField) -> Self {
+        match field {
+            GrpcField::I16(field) => field,
+            _ => 0,
+        }
+    }
+}
+impl From<GrpcField> for Timestamp {
+    fn from(field: GrpcField) -> Self {
+        match field {
+            GrpcField::Timestamp(field) => field,
+            _ => Timestamp::from(SystemTime::now()),
+        }
+    }
+}
+
+impl From<GrpcFieldOption> for Option<GrpcField> {
+    fn from(field: GrpcFieldOption) -> Self {
+        match field {
+            GrpcFieldOption::String(field) => field.map(GrpcField::String),
+            GrpcFieldOption::I64List(field) => field.map(GrpcField::I64List),
+            GrpcFieldOption::I64(field) => field.map(GrpcField::I64),
+            GrpcFieldOption::F64(field) => field.map(GrpcField::F64),
+            GrpcFieldOption::I32(field) => field.map(GrpcField::I32),
+            GrpcFieldOption::I16(field) => field.map(GrpcField::I16),
+            GrpcFieldOption::Timestamp(field) => field.map(GrpcField::Timestamp),
+            GrpcFieldOption::None => None,
+        }
     }
 }
 
