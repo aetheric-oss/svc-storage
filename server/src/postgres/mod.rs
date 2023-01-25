@@ -16,6 +16,7 @@ use serde_json::{json, Value as JsonValue};
 use std::fmt::Debug;
 use std::{collections::HashMap, fs};
 use tokio::sync::OnceCell;
+use tokio_postgres::types::Type as PsqlFieldType;
 use tokio_postgres::Row;
 use uuid::Uuid;
 
@@ -27,27 +28,6 @@ pub type PsqlData = HashMap<String, Box<dyn ToSql + Sync + Send>>;
 #[derive(Debug)]
 pub struct PsqlJsonValue {
     pub value: JsonValue,
-}
-#[derive(Clone, Debug)]
-pub enum PsqlFieldType {
-    Datetime,
-    Integer,
-    Enum,
-    Uuid,
-    Text,
-    Json,
-}
-impl PsqlFieldType {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            PsqlFieldType::Datetime => "datetime",
-            PsqlFieldType::Integer => "integer",
-            PsqlFieldType::Enum => "enum",
-            PsqlFieldType::Uuid => "uuid",
-            PsqlFieldType::Text => "text",
-            PsqlFieldType::Json => "json",
-        }
-    }
 }
 
 /// Create global variable to access our database pool
@@ -271,9 +251,13 @@ where
             let mut field_sql = format!(r#""{}""#, key);
 
             match field.field_type {
-                PsqlFieldType::Datetime => field_sql.push_str(" TIMESTAMP WITH TIME ZONE"),
-                PsqlFieldType::Enum => field_sql.push_str(" TEXT"),
-                _ => field_sql.push_str(&format!(" {}", field.field_type.as_str().to_uppercase())),
+                PsqlFieldType::TIMESTAMPTZ => field_sql.push_str(" TIMESTAMP WITH TIME ZONE"),
+                PsqlFieldType::ANYENUM => field_sql.push_str(" TEXT"),
+                PsqlFieldType::INT2 => field_sql.push_str(" SMALLINT"),
+                PsqlFieldType::INT4 => field_sql.push_str(" INTEGER"),
+                PsqlFieldType::INT8 => field_sql.push_str(" BIGINT"),
+                PsqlFieldType::NUMERIC => field_sql.push_str(" DOUBLE PRECISION"),
+                _ => field_sql.push_str(&format!(" {}", field.field_type.name().to_uppercase())),
             }
 
             if field.has_default() {
@@ -406,7 +390,7 @@ where
             };
 
             search_val = match col_definition.field_type {
-                PsqlFieldType::Enum => {
+                PsqlFieldType::ANYENUM => {
                     let int_val: i32 = val.parse().unwrap();
                     match Self::get_enum_string_val(search_col, int_val) {
                         Some(string_val) => string_val,
@@ -558,37 +542,53 @@ where
             // Validate fields based on their type.
             // Add any errors to our errors map, so they can all be returned at once.
             match field.field_type {
-                PsqlFieldType::Uuid => {
+                PsqlFieldType::UUID => {
                     let val: String = val_to_validate.into();
                     let uuid = validate_uuid(key.to_string(), &val, &mut errors);
                     if let Some(val) = uuid {
                         converted.insert(key, Box::new(val));
                     }
                 }
-                PsqlFieldType::Datetime => {
+                PsqlFieldType::TIMESTAMPTZ => {
                     let date = validate_dt(key.to_string(), &val_to_validate.into(), &mut errors);
                     if let Some(val) = date {
                         converted.insert(key, Box::new(val));
                     }
                 }
-                PsqlFieldType::Enum => {
+                PsqlFieldType::ANYENUM => {
                     let string_value = Self::get_enum_string_val(&key, val_to_validate.into());
                     let val = validate_enum(key.to_string(), string_value, &mut errors);
                     if let Some(val) = val {
                         converted.insert(key, Box::new(val));
                     }
                 }
-                PsqlFieldType::Text => {
+                PsqlFieldType::TEXT => {
                     let val: String = val_to_validate.into();
                     converted.insert(key, Box::new(val));
                 }
-                PsqlFieldType::Integer => {
+                PsqlFieldType::INT2 => {
+                    let val: i16 = val_to_validate.into();
+                    converted.insert(key, Box::new(val));
+                }
+                PsqlFieldType::INT8 => {
                     let val: i64 = val_to_validate.into();
                     converted.insert(key, Box::new(val));
                 }
-                PsqlFieldType::Json => {
+                PsqlFieldType::NUMERIC => {
+                    let val: f64 = val_to_validate.into();
+                    converted.insert(key, Box::new(val));
+                }
+                PsqlFieldType::JSON => {
                     let val: Vec<i64> = val_to_validate.into();
                     converted.insert(key, Box::new(json!(val)));
+                }
+                _ => {
+                    let error = format!(
+                        "Conversion errors found in fields for table [{}], unknown field type [{}], return without updating.",
+                        definition.psql_table, field.field_type.name()
+                    );
+                    psql_error!("{}", error);
+                    return Err(ArrErr::Error(error));
                 }
             }
         }
