@@ -299,7 +299,7 @@ async fn flight_plan_scenario(
         .insert_flight_plan(tonic::Request::new(FlightPlanData {
             flight_status: FlightStatus::Draft as i32,
             vehicle_id,
-            pilot_id: pilot_id.clone(),
+            pilot_id: pilot_id.to_string().clone(),
             cargo_weight_grams: vec![20],
             flight_distance_meters: 6000,
             weather_conditions: "Cloudy, low wind".to_string(),
