@@ -27,17 +27,18 @@ use tonic::transport::Server;
 use tonic::{Code, Request, Response, Status};
 
 use crate::common::Config;
-use crate::resources::flight_plan::{FlightPlanImpl, FlightPlanRpcServer};
+use crate::resources::flight_plan;
 use crate::resources::pilot::{PilotImpl, PilotRpcServer};
 use crate::resources::vehicle::{VehicleImpl, VehicleRpcServer};
 use crate::resources::vertipad::{VertipadImpl, VertipadRpcServer};
-use crate::resources::vertiport::{VertiportImpl, VertiportRpcServer};
+use crate::resources::vertiport;
 
 #[derive(Debug, Clone)]
 pub enum GrpcField {
     String(String),
     I64List(Vec<i64>),
     I64(i64),
+    F64(f64),
     I32(i32),
     I16(i16),
     Timestamp(Timestamp),
@@ -48,6 +49,7 @@ pub enum GrpcFieldOption {
     String(Option<String>),
     I64List(Option<Vec<i64>>),
     I64(Option<i64>),
+    F64(Option<f64>),
     I32(Option<i32>),
     I16(Option<i16>),
     Timestamp(Option<Timestamp>),
@@ -61,22 +63,24 @@ where
     U: GrpcDataObjectType + TryFrom<Row>,
     Status: From<<U as TryFrom<Row>>::Error>,
 {
-    async fn get_by_id<V>(&self, request: Request<Id>) -> Result<Response<V>, Status>
+    async fn generic_get_by_id<V>(&self, request: Request<Id>) -> Result<Response<V>, Status>
     where
         V: From<T>,
     {
         let id: Id = request.into_inner();
-        let mut resource: T = id.into();
+        let mut resource: T = id.clone().into();
         let obj: Result<Row, ArrErr> = T::get_by_id(&resource.try_get_uuid()?).await;
         if let Ok(obj) = obj {
             resource.set_data(obj.try_into()?);
             Ok(Response::new(resource.into()))
         } else {
-            Err(Status::not_found("Not found"))
+            let error = format!("No resource found for specified uuid: {}", id.id);
+            grpc_error!("{}", error);
+            Err(Status::new(Code::NotFound, error))
         }
     }
 
-    async fn get_all_with_filter<V>(
+    async fn generic_get_all_with_filter<V>(
         &self,
         request: Request<SearchFilter>,
     ) -> Result<Response<V>, Status>
@@ -95,7 +99,7 @@ where
         }
     }
 
-    async fn insert<V>(&self, request: Request<U>) -> Result<Response<V>, Status>
+    async fn generic_insert<V>(&self, request: Request<U>) -> Result<Response<V>, Status>
     where
         T: From<U>,
         U: 'async_trait,
@@ -128,7 +132,7 @@ where
         }
     }
 
-    async fn update<V, W>(&self, request: Request<W>) -> Result<Response<V>, Status>
+    async fn generic_update<V, W>(&self, request: Request<W>) -> Result<Response<V>, Status>
     where
         T: From<W> + PsqlObjectType<U>,
         V: From<GenericResourceResult<T, U>>,
@@ -172,7 +176,7 @@ where
         }
     }
 
-    async fn delete(&self, request: Request<Id>) -> Result<Response<()>, Status>
+    async fn generic_delete(&self, request: Request<Id>) -> Result<Response<()>, Status>
     where
         T: PsqlObjectType<U>,
     {
@@ -318,13 +322,13 @@ pub async fn grpc_server() {
         .set_serving::<VehicleRpcServer<VehicleImpl>>()
         .await;
     health_reporter
-        .set_serving::<FlightPlanRpcServer<FlightPlanImpl>>()
+        .set_serving::<flight_plan::RpcServiceServer<flight_plan::GrpcServer>>()
         .await;
     health_reporter
         .set_serving::<VertipadRpcServer<VertipadImpl>>()
         .await;
     health_reporter
-        .set_serving::<VertiportRpcServer<VertiportImpl>>()
+        .set_serving::<vertiport::RpcServiceServer<vertiport::GrpcServer>>()
         .await;
 
     grpc_info!("Starting GRPC servers on {}.", full_grpc_addr);
@@ -333,9 +337,13 @@ pub async fn grpc_server() {
         .add_service(StorageRpcServer::new(StorageImpl::default()))
         .add_service(VehicleRpcServer::new(VehicleImpl::default()))
         .add_service(PilotRpcServer::new(PilotImpl::default()))
-        .add_service(FlightPlanRpcServer::new(FlightPlanImpl::default()))
+        .add_service(flight_plan::RpcServiceServer::new(
+            flight_plan::GrpcServer::default(),
+        ))
         .add_service(VertipadRpcServer::new(VertipadImpl::default()))
-        .add_service(VertiportRpcServer::new(VertiportImpl::default()))
+        .add_service(vertiport::RpcServiceServer::new(
+            vertiport::GrpcServer::default(),
+        ))
         .serve_with_shutdown(full_grpc_addr, shutdown_signal())
         .await
         .unwrap();

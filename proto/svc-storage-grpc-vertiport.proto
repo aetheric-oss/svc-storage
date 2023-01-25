@@ -5,40 +5,44 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/field_mask.proto";
 import "svc-storage-grpc.proto";
 
-//VertiportRpc service
-service VertiportRpc {
-    rpc vertiports(grpc.SearchFilter) returns (Vertiports);
-    rpc vertiport_by_id(grpc.Id) returns (Vertiport);
-    rpc insert_vertiport(VertiportData) returns (Vertiport);
-    rpc update_vertiport(UpdateVertiport) returns (Vertiport);
-    rpc delete_vertiport(grpc.Id) returns (google.protobuf.Empty);
+//Vertiport gRPC service
+service RpcService {
+    rpc get_all_with_filter(grpc.SearchFilter) returns (List);
+    rpc get_by_id(grpc.Id) returns (Object);
+    rpc insert(Data) returns (Response);
+    rpc update(UpdateObject) returns (Response);
+    rpc delete(grpc.Id) returns (google.protobuf.Empty);
 }
 
-//Vertiport
-message Vertiport {
-    // id UUID v4
+message Response {
+    grpc.ValidationResult validation_result = 1;
+    optional Object object = 2;
+}
+
+message Object {
+    //id UUID v4
     string id = 1;
-    VertiportData data = 2;
+    //data
+    Data data = 2;
 }
 
-//VertiportData
-message VertiportData {
-    string description = 1;
-    double latitude = 2;
-    double longitude = 3;
-    optional string schedule = 4;
-    //repeated string engineers = 5;
-    //uint32 elevation = 7;
-}
-
-message UpdateVertiport {
-    // id UUID v4
+message UpdateObject {
+    //id UUID v4
     string id = 1;
-    VertiportData data = 2;
+    Data data = 2;
     google.protobuf.FieldMask mask = 3;
 }
 
-//Vertiports
-message Vertiports {
-    repeated Vertiport vertiports = 1;
+message Data {
+    string name = 1;
+    string description = 2;
+    double latitude = 3;
+    double longitude = 4;
+    optional string schedule = 5;
+    //repeated string engineers = 6;
+    //uint32 elevation = 7;
+}
+
+message List {
+    repeated Object list = 1;
 }
