@@ -6,14 +6,12 @@ use log::error;
 use prost_types::Timestamp;
 use std::collections::HashMap;
 use std::marker::PhantomData;
-use std::time::SystemTime;
+use tokio_postgres::types::Type as PsqlFieldType;
 use uuid::Uuid;
 
 use crate::common::ArrErr;
-use crate::grpc::{
-    GrpcDataObjectType, GrpcField, GrpcFieldOption, Id, ValidationError, ValidationResult,
-};
-use crate::postgres::{PsqlFieldType, PsqlJsonValue, PsqlObjectType, PsqlResourceType};
+use crate::grpc::{GrpcDataObjectType, Id, ValidationError, ValidationResult};
+use crate::postgres::{PsqlJsonValue, PsqlObjectType, PsqlResourceType};
 
 pub trait Resource {
     /// Allows us to implement the resource definition used for simple insert and update queries
@@ -214,61 +212,6 @@ impl From<PsqlJsonValue> for Vec<i64> {
     }
 }
 
-impl From<GrpcField> for String {
-    fn from(field: GrpcField) -> Self {
-        match field {
-            GrpcField::String(field) => field,
-            _ => format!("{:?}", field),
-        }
-    }
-}
-impl From<GrpcField> for Vec<i64> {
-    fn from(field: GrpcField) -> Self {
-        match field {
-            GrpcField::I64List(field) => field,
-            GrpcField::I64(field) => vec![field],
-            _ => vec![],
-        }
-    }
-}
-impl From<GrpcField> for i64 {
-    fn from(field: GrpcField) -> Self {
-        match field {
-            GrpcField::I64(field) => field,
-            _ => 0,
-        }
-    }
-}
-impl From<GrpcField> for i32 {
-    fn from(field: GrpcField) -> Self {
-        match field {
-            GrpcField::I32(field) => field,
-            _ => 0,
-        }
-    }
-}
-impl From<GrpcField> for Timestamp {
-    fn from(field: GrpcField) -> Self {
-        match field {
-            GrpcField::Timestamp(field) => field,
-            _ => Timestamp::from(SystemTime::now()),
-        }
-    }
-}
-
-impl From<GrpcFieldOption> for Option<GrpcField> {
-    fn from(field: GrpcFieldOption) -> Self {
-        match field {
-            GrpcFieldOption::String(field) => field.map(GrpcField::String),
-            GrpcFieldOption::I64List(field) => field.map(GrpcField::I64List),
-            GrpcFieldOption::I64(field) => field.map(GrpcField::I64),
-            GrpcFieldOption::I32(field) => field.map(GrpcField::I32),
-            GrpcFieldOption::Timestamp(field) => field.map(GrpcField::Timestamp),
-            GrpcFieldOption::None => None,
-        }
-    }
-}
-
 /// Convert a `string` (used by grpc) into a `Uuid` (used by postgres).
 /// Creates an error entry in the errors list if a conversion was not possible.
 pub fn validate_uuid(
@@ -330,61 +273,130 @@ pub fn validate_enum(
     }
 }
 
+/// Generates gRPC server implementations
+#[macro_export]
+macro_rules! build_grpc_resource_impl {
+    ($resource:tt) => {
+        ///Implementation of gRPC endpoints
+        #[derive(Clone, Default, Debug)]
+        pub struct GrpcServer {}
+
+        impl GrpcObjectType<GenericResource<Data>, Data> for GrpcServer {}
+
+        impl TryFrom<Vec<Row>> for List {
+            type Error = ArrErr;
+
+            fn try_from(rows: Vec<Row>) -> Result<Self, ArrErr> {
+                debug!("Converting Vec<Row> to List: {:?}", rows);
+                let mut res: Vec<Object> = Vec::with_capacity(rows.len());
+
+                for row in rows.into_iter() {
+                    let id: Uuid = row.get(format!("{}_id", stringify!($resource)).as_str());
+                    let converted = Object {
+                        id: id.to_string(),
+                        data: Some(row.try_into()?),
+                    };
+                    res.push(converted);
+                }
+                Ok(List { list: res })
+            }
+        }
+    };
+}
+/// Generates gRPC server generic function implementations
+#[macro_export]
+macro_rules! build_grpc_server_generic_impl {
+    () => {
+        #[tonic::async_trait]
+        impl RpcService for GrpcServer {
+            async fn get_by_id(
+                &self,
+                request: Request<Id>,
+            ) -> Result<tonic::Response<Object>, Status> {
+                self.generic_get_by_id(request).await
+            }
+
+            async fn get_all_with_filter(
+                &self,
+                request: Request<SearchFilter>,
+            ) -> Result<tonic::Response<List>, Status> {
+                self.generic_get_all_with_filter::<List>(request).await
+            }
+
+            async fn insert(
+                &self,
+                request: Request<Data>,
+            ) -> Result<tonic::Response<Response>, Status> {
+                self.generic_insert::<Response>(request).await
+            }
+
+            async fn update(
+                &self,
+                request: Request<UpdateObject>,
+            ) -> Result<tonic::Response<Response>, Status> {
+                self.generic_update::<Response, UpdateObject>(request).await
+            }
+
+            async fn delete(&self, request: Request<Id>) -> Result<tonic::Response<()>, Status> {
+                self.generic_delete(request).await
+            }
+        }
+    };
+}
+
 /// Generates `From` trait implementations for GenericResource into and from Grpc defined Resource
 #[macro_export]
-macro_rules! build_generic_resource_impl_from
-{
-    ($resource:ident, $resource_key:tt) => {
-        paste! {
-            impl From<$resource> for GenericResource<[<$resource Data>]> {
-                fn from(obj: $resource) -> Self {
-                    Self {
-                        id: Some(obj.id),
-                        data: obj.data,
-                        mask: None,
-                    }
+macro_rules! build_generic_resource_impl_from {
+    () => {
+        impl From<Object> for GenericResource<Data> {
+            fn from(obj: Object) -> Self {
+                Self {
+                    id: Some(obj.id),
+                    data: obj.data,
+                    mask: None,
                 }
             }
-            impl From<GenericResource<[<$resource Data>]>> for $resource {
-                fn from(obj: GenericResource<[<$resource Data>]>) -> Self {
-                    let id = obj.try_get_id();
-                    match id {
-                        Ok(id) => Self {
-                            id,
-                            data: obj.get_data(),
-                        },
-                        Err(e) => {
-                            panic!("Can't convert GenericResource<{}Data> into {} without an 'id': {e}", stringify!($resource), stringify!($resource))
-                        }
-                    }
-                }
-            }
-            impl From<[<Update $resource>]> for GenericResource<[<$resource Data>]> {
-                fn from(obj: [<Update $resource>]) -> Self {
-                    Self {
-                        id: Some(obj.id),
-                        data: obj.data,
-                        mask: obj.mask,
-                    }
-                }
-            }
-            impl From<GenericResourceResult<GenericResource<[<$resource Data>]>, [<$resource Data>]>>
-                for [<$resource Result>]
-            {
-                fn from(obj: GenericResourceResult<GenericResource<[<$resource Data>]>, [<$resource Data>]>) -> Self {
-                    let res = match obj.resource {
-                        Some(obj) => {
-                            let res: $resource = obj.into();
-                            Some(res)
-                        }
-                        None => None,
-                    };
-                    Self {
-                        validation_result: Some(obj.validation_result),
-                        $resource_key: res,
+        }
+        impl From<GenericResource<Data>> for Object {
+            fn from(obj: GenericResource<Data>) -> Self {
+                let id = obj.try_get_id();
+                match id {
+                    Ok(id) => Self {
+                        id,
+                        data: obj.get_data(),
+                    },
+                    Err(e) => {
+                        panic!(
+                            "Can't convert GenericResource<Data> into {} without an 'id': {e}",
+                            stringify!(Object)
+                        )
                     }
                 }
             }
         }
-    }
+        impl From<UpdateObject> for GenericResource<Data> {
+            fn from(obj: UpdateObject) -> Self {
+                Self {
+                    id: Some(obj.id),
+                    data: obj.data,
+                    mask: obj.mask,
+                }
+            }
+        }
+        impl From<GenericResourceResult<GenericResource<Data>, Data>> for Response {
+            fn from(obj: GenericResourceResult<GenericResource<Data>, Data>) -> Self {
+                let res = match obj.resource {
+                    Some(obj) => {
+                        let res: Object = obj.into();
+                        Some(res)
+                    }
+                    None => None,
+                };
+                Self {
+                    validation_result: Some(obj.validation_result),
+                    object: res,
+                }
+            }
+        }
+    };
 }
