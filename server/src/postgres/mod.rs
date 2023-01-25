@@ -8,7 +8,6 @@ use crate::resources::base::{
 
 use anyhow::Error;
 use deadpool_postgres::{tokio_postgres::NoTls, ManagerConfig, Pool, RecyclingMethod, Runtime};
-use flight_plan::FlightPlanData;
 use native_tls::{Certificate, Identity, TlsConnector};
 use postgres_native_tls::MakeTlsConnector;
 use postgres_types::ToSql;
@@ -716,9 +715,9 @@ where
 /// This function makes sure the tables will be created in the correct order
 pub async fn create_db() -> Result<(), ArrErr> {
     psql_info!("Creating database tables.");
-    vertiport::init_table(&get_psql_pool()).await?;
+    GenericResource::<vertiport::Data>::init_table().await?;
     vertipad::init_table(&get_psql_pool()).await?;
-    GenericResource::<FlightPlanData>::init_table().await
+    GenericResource::<flight_plan::Data>::init_table().await
 }
 
 /// If we want to recreate the database tables created by this module, we will want to drop the existing tables first.
@@ -726,9 +725,9 @@ pub async fn create_db() -> Result<(), ArrErr> {
 pub async fn drop_db() -> Result<(), ArrErr> {
     psql_warn!("Dropping database tables.");
     // Drop our tables (in the correct order)
-    GenericResource::<FlightPlanData>::drop_table().await?;
+    GenericResource::<flight_plan::Data>::drop_table().await?;
     vertipad::drop_table(&get_psql_pool()).await?;
-    vertiport::drop_table(&get_psql_pool()).await
+    GenericResource::<vertiport::Data>::drop_table().await
 }
 
 /// Recreate the database by dropping all tables first (if they exist) and recreating them again
