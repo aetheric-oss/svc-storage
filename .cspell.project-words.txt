@@ -60,3 +60,5 @@ Lotte
 owlot
 Stuckee
 datetime
+ANYENUM
+TIMESTAMPTZ
