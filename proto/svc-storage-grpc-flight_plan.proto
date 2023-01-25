@@ -6,13 +6,13 @@ import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 import "svc-storage-grpc.proto";
 
-//FlightPlanRpc service
-service FlightPlanRpc {
-    rpc flight_plans(grpc.SearchFilter) returns (FlightPlans);
-    rpc flight_plan_by_id(grpc.Id) returns (FlightPlan);
-    rpc insert_flight_plan(FlightPlanData) returns (FlightPlanResult);
-    rpc update_flight_plan(UpdateFlightPlan) returns (FlightPlanResult);
-    rpc delete_flight_plan(grpc.Id) returns (google.protobuf.Empty);
+//Flight Plan gRPC service
+service RpcService {
+    rpc get_all_with_filter(grpc.SearchFilter) returns (List);
+    rpc get_by_id(grpc.Id) returns (Object);
+    rpc insert(Data) returns (Response);
+    rpc update(UpdateObject) returns (Response);
+    rpc delete(grpc.Id) returns (google.protobuf.Empty);
 }
 
 //Flight Status Enum
@@ -40,28 +40,26 @@ enum FlightPriority {
     EMERGENCY = 2;
 }
 
-message FlightPlanResult {
+message Response {
     grpc.ValidationResult validation_result = 1;
-    optional FlightPlan flight_plan = 2;
+    optional Object object = 2;
 }
 
-//FlightPlan
-message FlightPlan {
+message Object {
     //id UUID v4
     string id = 1;
     //data
-    FlightPlanData data = 2;
+    Data data = 2;
 }
 
-message UpdateFlightPlan {
+message UpdateObject {
     //id UUID v4
     string id = 1;
-    FlightPlanData data = 2;
+    Data data = 2;
     google.protobuf.FieldMask mask = 3;
 }
 
-//FlightPlanData
-message FlightPlanData {
+message Data {
     //pilot_id UUID v4
     string pilot_id = 1;
     //vehicle_id UUID v4
@@ -100,8 +98,7 @@ message FlightPlanData {
     FlightPriority flight_priority = 18;
 }
 
-//FlightPlans
-message FlightPlans {
+message List {
     //array/vector of flight items
-    repeated FlightPlan list = 1;
+    repeated Object list = 1;
 }
