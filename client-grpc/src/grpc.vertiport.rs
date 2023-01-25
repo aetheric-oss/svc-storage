@@ -1,59 +1,65 @@
-/// Vertiport
-#[allow(clippy::derive_partial_eq_without_eq)]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Vertiport {
+pub struct Response {
+    #[prost(message, optional, tag = "1")]
+    pub validation_result: ::core::option::Option<super::ValidationResult>,
+    #[prost(message, optional, tag = "2")]
+    pub object: ::core::option::Option<Object>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Object {
+    /// id UUID v4
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    /// data
+    #[prost(message, optional, tag = "2")]
+    pub data: ::core::option::Option<Data>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UpdateObject {
     /// id UUID v4
     #[prost(string, tag = "1")]
     pub id: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "2")]
-    pub data: ::core::option::Option<VertiportData>,
+    pub data: ::core::option::Option<Data>,
+    #[prost(message, optional, tag = "3")]
+    pub mask: ::core::option::Option<::prost_types::FieldMask>,
 }
-/// VertiportData
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct VertiportData {
+pub struct Data {
     #[prost(string, tag = "1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
     pub description: ::prost::alloc::string::String,
-    #[prost(double, tag = "2")]
-    pub latitude: f64,
     #[prost(double, tag = "3")]
+    pub latitude: f64,
+    #[prost(double, tag = "4")]
     pub longitude: f64,
-    /// repeated string engineers = 5;
+    /// repeated string engineers = 6;
     /// uint32 elevation = 7;
-    #[prost(string, optional, tag = "4")]
+    #[prost(string, optional, tag = "5")]
     pub schedule: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct UpdateVertiport {
-    /// id UUID v4
-    #[prost(string, tag = "1")]
-    pub id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "2")]
-    pub data: ::core::option::Option<VertiportData>,
-    #[prost(message, optional, tag = "3")]
-    pub mask: ::core::option::Option<::prost_types::FieldMask>,
-}
-/// Vertiports
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Vertiports {
+pub struct List {
     #[prost(message, repeated, tag = "1")]
-    pub vertiports: ::prost::alloc::vec::Vec<Vertiport>,
+    pub list: ::prost::alloc::vec::Vec<Object>,
 }
 /// Generated client implementations.
-pub mod vertiport_rpc_client {
+pub mod rpc_service_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
     use tonic::codegen::http::Uri;
-    /// VertiportRpc service
+    /// Vertiport gRPC service
     #[derive(Debug, Clone)]
-    pub struct VertiportRpcClient<T> {
+    pub struct RpcServiceClient<T> {
         inner: tonic::client::Grpc<T>,
     }
-    impl VertiportRpcClient<tonic::transport::Channel> {
+    impl RpcServiceClient<tonic::transport::Channel> {
         /// Attempt to create a new client by connecting to a given endpoint.
         pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
         where
@@ -64,7 +70,7 @@ pub mod vertiport_rpc_client {
             Ok(Self::new(conn))
         }
     }
-    impl<T> VertiportRpcClient<T>
+    impl<T> RpcServiceClient<T>
     where
         T: tonic::client::GrpcService<tonic::body::BoxBody>,
         T::Error: Into<StdError>,
@@ -82,7 +88,7 @@ pub mod vertiport_rpc_client {
         pub fn with_interceptor<F>(
             inner: T,
             interceptor: F,
-        ) -> VertiportRpcClient<InterceptedService<T, F>>
+        ) -> RpcServiceClient<InterceptedService<T, F>>
         where
             F: tonic::service::Interceptor,
             T::ResponseBody: Default,
@@ -96,7 +102,7 @@ pub mod vertiport_rpc_client {
                 http::Request<tonic::body::BoxBody>,
             >>::Error: Into<StdError> + Send + Sync,
         {
-            VertiportRpcClient::new(InterceptedService::new(inner, interceptor))
+            RpcServiceClient::new(InterceptedService::new(inner, interceptor))
         }
         /// Compress requests with the given encoding.
         ///
@@ -113,10 +119,10 @@ pub mod vertiport_rpc_client {
             self.inner = self.inner.accept_compressed(encoding);
             self
         }
-        pub async fn vertiports(
+        pub async fn get_all_with_filter(
             &mut self,
             request: impl tonic::IntoRequest<super::super::SearchFilter>,
-        ) -> Result<tonic::Response<super::Vertiports>, tonic::Status> {
+        ) -> Result<tonic::Response<super::List>, tonic::Status> {
             self.inner
                 .ready()
                 .await
@@ -128,14 +134,14 @@ pub mod vertiport_rpc_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/grpc.vertiport.VertiportRpc/vertiports",
+                "/grpc.vertiport.RpcService/get_all_with_filter",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        pub async fn vertiport_by_id(
+        pub async fn get_by_id(
             &mut self,
             request: impl tonic::IntoRequest<super::super::Id>,
-        ) -> Result<tonic::Response<super::Vertiport>, tonic::Status> {
+        ) -> Result<tonic::Response<super::Object>, tonic::Status> {
             self.inner
                 .ready()
                 .await
@@ -147,14 +153,14 @@ pub mod vertiport_rpc_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/grpc.vertiport.VertiportRpc/vertiport_by_id",
+                "/grpc.vertiport.RpcService/get_by_id",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        pub async fn insert_vertiport(
+        pub async fn insert(
             &mut self,
-            request: impl tonic::IntoRequest<super::VertiportData>,
-        ) -> Result<tonic::Response<super::Vertiport>, tonic::Status> {
+            request: impl tonic::IntoRequest<super::Data>,
+        ) -> Result<tonic::Response<super::Response>, tonic::Status> {
             self.inner
                 .ready()
                 .await
@@ -166,14 +172,14 @@ pub mod vertiport_rpc_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/grpc.vertiport.VertiportRpc/insert_vertiport",
+                "/grpc.vertiport.RpcService/insert",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        pub async fn update_vertiport(
+        pub async fn update(
             &mut self,
-            request: impl tonic::IntoRequest<super::UpdateVertiport>,
-        ) -> Result<tonic::Response<super::Vertiport>, tonic::Status> {
+            request: impl tonic::IntoRequest<super::UpdateObject>,
+        ) -> Result<tonic::Response<super::Response>, tonic::Status> {
             self.inner
                 .ready()
                 .await
@@ -185,11 +191,11 @@ pub mod vertiport_rpc_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/grpc.vertiport.VertiportRpc/update_vertiport",
+                "/grpc.vertiport.RpcService/update",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        pub async fn delete_vertiport(
+        pub async fn delete(
             &mut self,
             request: impl tonic::IntoRequest<super::super::Id>,
         ) -> Result<tonic::Response<()>, tonic::Status> {
@@ -204,7 +210,7 @@ pub mod vertiport_rpc_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/grpc.vertiport.VertiportRpc/delete_vertiport",
+                "/grpc.vertiport.RpcService/delete",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
