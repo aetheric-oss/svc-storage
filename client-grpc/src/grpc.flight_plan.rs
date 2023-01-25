@@ -1,39 +1,35 @@
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct FlightPlanResult {
+pub struct Response {
     #[prost(message, optional, tag = "1")]
     pub validation_result: ::core::option::Option<super::ValidationResult>,
     #[prost(message, optional, tag = "2")]
-    pub flight_plan: ::core::option::Option<FlightPlan>,
+    pub object: ::core::option::Option<Object>,
 }
-/// FlightPlan
-#[derive(Eq)]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct FlightPlan {
+pub struct Object {
     /// id UUID v4
     #[prost(string, tag = "1")]
     pub id: ::prost::alloc::string::String,
     /// data
     #[prost(message, optional, tag = "2")]
-    pub data: ::core::option::Option<FlightPlanData>,
+    pub data: ::core::option::Option<Data>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct UpdateFlightPlan {
+pub struct UpdateObject {
     /// id UUID v4
     #[prost(string, tag = "1")]
     pub id: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "2")]
-    pub data: ::core::option::Option<FlightPlanData>,
+    pub data: ::core::option::Option<Data>,
     #[prost(message, optional, tag = "3")]
     pub mask: ::core::option::Option<::prost_types::FieldMask>,
 }
-/// FlightPlanData
-#[derive(Eq)]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct FlightPlanData {
+pub struct Data {
     /// pilot_id UUID v4
     #[prost(string, tag = "1")]
     pub pilot_id: ::prost::alloc::string::String,
@@ -89,14 +85,12 @@ pub struct FlightPlanData {
     #[prost(enumeration = "FlightPriority", tag = "18")]
     pub flight_priority: i32,
 }
-/// FlightPlans
-#[derive(Eq)]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct FlightPlans {
+pub struct List {
     /// array/vector of flight items
     #[prost(message, repeated, tag = "1")]
-    pub list: ::prost::alloc::vec::Vec<FlightPlan>,
+    pub list: ::prost::alloc::vec::Vec<Object>,
 }
 /// Flight Status Enum
 #[derive(num_derive::FromPrimitive)]
@@ -179,16 +173,16 @@ impl FlightPriority {
     }
 }
 /// Generated client implementations.
-pub mod flight_plan_rpc_client {
+pub mod rpc_service_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
     use tonic::codegen::http::Uri;
-    /// FlightPlanRpc service
+    /// Flight Plan gRPC service
     #[derive(Debug, Clone)]
-    pub struct FlightPlanRpcClient<T> {
+    pub struct RpcServiceClient<T> {
         inner: tonic::client::Grpc<T>,
     }
-    impl FlightPlanRpcClient<tonic::transport::Channel> {
+    impl RpcServiceClient<tonic::transport::Channel> {
         /// Attempt to create a new client by connecting to a given endpoint.
         pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
         where
@@ -199,7 +193,7 @@ pub mod flight_plan_rpc_client {
             Ok(Self::new(conn))
         }
     }
-    impl<T> FlightPlanRpcClient<T>
+    impl<T> RpcServiceClient<T>
     where
         T: tonic::client::GrpcService<tonic::body::BoxBody>,
         T::Error: Into<StdError>,
@@ -217,7 +211,7 @@ pub mod flight_plan_rpc_client {
         pub fn with_interceptor<F>(
             inner: T,
             interceptor: F,
-        ) -> FlightPlanRpcClient<InterceptedService<T, F>>
+        ) -> RpcServiceClient<InterceptedService<T, F>>
         where
             F: tonic::service::Interceptor,
             T::ResponseBody: Default,
@@ -231,7 +225,7 @@ pub mod flight_plan_rpc_client {
                 http::Request<tonic::body::BoxBody>,
             >>::Error: Into<StdError> + Send + Sync,
         {
-            FlightPlanRpcClient::new(InterceptedService::new(inner, interceptor))
+            RpcServiceClient::new(InterceptedService::new(inner, interceptor))
         }
         /// Compress requests with the given encoding.
         ///
@@ -248,10 +242,10 @@ pub mod flight_plan_rpc_client {
             self.inner = self.inner.accept_compressed(encoding);
             self
         }
-        pub async fn flight_plans(
+        pub async fn get_all_with_filter(
             &mut self,
             request: impl tonic::IntoRequest<super::super::SearchFilter>,
-        ) -> Result<tonic::Response<super::FlightPlans>, tonic::Status> {
+        ) -> Result<tonic::Response<super::List>, tonic::Status> {
             self.inner
                 .ready()
                 .await
@@ -263,14 +257,14 @@ pub mod flight_plan_rpc_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/grpc.flight_plan.FlightPlanRpc/flight_plans",
+                "/grpc.flight_plan.RpcService/get_all_with_filter",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        pub async fn flight_plan_by_id(
+        pub async fn get_by_id(
             &mut self,
             request: impl tonic::IntoRequest<super::super::Id>,
-        ) -> Result<tonic::Response<super::FlightPlan>, tonic::Status> {
+        ) -> Result<tonic::Response<super::Object>, tonic::Status> {
             self.inner
                 .ready()
                 .await
@@ -282,14 +276,14 @@ pub mod flight_plan_rpc_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/grpc.flight_plan.FlightPlanRpc/flight_plan_by_id",
+                "/grpc.flight_plan.RpcService/get_by_id",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        pub async fn insert_flight_plan(
+        pub async fn insert(
             &mut self,
-            request: impl tonic::IntoRequest<super::FlightPlanData>,
-        ) -> Result<tonic::Response<super::FlightPlanResult>, tonic::Status> {
+            request: impl tonic::IntoRequest<super::Data>,
+        ) -> Result<tonic::Response<super::Response>, tonic::Status> {
             self.inner
                 .ready()
                 .await
@@ -301,14 +295,14 @@ pub mod flight_plan_rpc_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/grpc.flight_plan.FlightPlanRpc/insert_flight_plan",
+                "/grpc.flight_plan.RpcService/insert",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        pub async fn update_flight_plan(
+        pub async fn update(
             &mut self,
-            request: impl tonic::IntoRequest<super::UpdateFlightPlan>,
-        ) -> Result<tonic::Response<super::FlightPlanResult>, tonic::Status> {
+            request: impl tonic::IntoRequest<super::UpdateObject>,
+        ) -> Result<tonic::Response<super::Response>, tonic::Status> {
             self.inner
                 .ready()
                 .await
@@ -320,11 +314,11 @@ pub mod flight_plan_rpc_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/grpc.flight_plan.FlightPlanRpc/update_flight_plan",
+                "/grpc.flight_plan.RpcService/update",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        pub async fn delete_flight_plan(
+        pub async fn delete(
             &mut self,
             request: impl tonic::IntoRequest<super::super::Id>,
         ) -> Result<tonic::Response<()>, tonic::Status> {
@@ -339,7 +333,7 @@ pub mod flight_plan_rpc_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/grpc.flight_plan.FlightPlanRpc/delete_flight_plan",
+                "/grpc.flight_plan.RpcService/delete",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
