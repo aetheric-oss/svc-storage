@@ -30,7 +30,7 @@ use crate::common::Config;
 use crate::resources::flight_plan;
 use crate::resources::pilot::{PilotImpl, PilotRpcServer};
 use crate::resources::vehicle::{VehicleImpl, VehicleRpcServer};
-use crate::resources::vertipad::{VertipadImpl, VertipadRpcServer};
+use crate::resources::vertipad;
 use crate::resources::vertiport;
 
 #[derive(Debug, Clone)]
@@ -40,6 +40,8 @@ pub enum GrpcField {
     I64(i64),
     F64(f64),
     I32(i32),
+    F32(f32),
+    Bool(bool),
     I16(i16),
     Timestamp(Timestamp),
     Option(GrpcFieldOption),
@@ -51,6 +53,8 @@ pub enum GrpcFieldOption {
     I64(Option<i64>),
     F64(Option<f64>),
     I32(Option<i32>),
+    F32(Option<f32>),
+    Bool(Option<bool>),
     I16(Option<i16>),
     Timestamp(Option<Timestamp>),
     None,
@@ -325,7 +329,7 @@ pub async fn grpc_server() {
         .set_serving::<flight_plan::RpcServiceServer<flight_plan::GrpcServer>>()
         .await;
     health_reporter
-        .set_serving::<VertipadRpcServer<VertipadImpl>>()
+        .set_serving::<vertipad::RpcServiceServer<vertipad::GrpcServer>>()
         .await;
     health_reporter
         .set_serving::<vertiport::RpcServiceServer<vertiport::GrpcServer>>()
@@ -340,7 +344,9 @@ pub async fn grpc_server() {
         .add_service(flight_plan::RpcServiceServer::new(
             flight_plan::GrpcServer::default(),
         ))
-        .add_service(VertipadRpcServer::new(VertipadImpl::default()))
+        .add_service(vertipad::RpcServiceServer::new(
+            vertipad::GrpcServer::default(),
+        ))
         .add_service(vertiport::RpcServiceServer::new(
             vertiport::GrpcServer::default(),
         ))
