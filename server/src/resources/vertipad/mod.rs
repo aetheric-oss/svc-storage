@@ -1,54 +1,131 @@
-//! Vertipads
+//! Vertiport
 
-// Expose grpc resources
-mod grpc;
-mod psql;
+// Expose module resources
+pub(crate) use grpc_server::rpc_service_server::*;
+pub(crate) use grpc_server::*;
 
-pub use grpc::{Vertipad, VertipadData, VertipadImpl, VertipadRpcServer, Vertipads};
-pub use psql::{create, delete, drop_table, init_table, search, VertipadPsql};
-
+use core::fmt::Debug;
+use log::debug;
+use std::collections::HashMap;
 use tokio_postgres::row::Row;
+use tokio_postgres::types::Type as PsqlFieldType;
+use tonic::{Request, Status};
 use uuid::Uuid;
 
-use crate::{grpc::GRPC_LOG_TARGET, grpc_debug};
+use crate::common::ArrErr;
+use crate::grpc::{
+    GrpcDataObjectType, GrpcField, GrpcFieldOption, GrpcObjectType, Id, SearchFilter,
+    ValidationResult,
+};
+use crate::resources::base::{
+    FieldDefinition, GenericObjectType, GenericResource, GenericResourceResult, Resource,
+    ResourceDefinition,
+};
 
-impl From<Vec<Row>> for Vertipads {
-    fn from(vertipads: Vec<Row>) -> Self {
-        grpc_debug!("Converting Vec<Row> to Vertipads: {:?}", vertipads);
-        let mut res: Vec<Vertipad> = Vec::with_capacity(vertipads.len());
-        let iter = vertipads.into_iter();
-        for vertipad in iter {
-            let vertipad_id: Uuid = vertipad.get("vertipad_id");
-            let vertipad = Vertipad {
-                id: vertipad_id.to_string(),
-                data: Some(vertipad.into()),
-            };
-            res.push(vertipad);
+mod grpc_server {
+    #![allow(unused_qualifications, missing_docs)]
+    tonic::include_proto!("grpc.vertipad");
+}
+
+// Generate `From` trait implementations for GenericResource into and from Grpc defined Resource
+crate::build_generic_resource_impl_from!();
+
+// Generate grpc server implementations
+crate::build_grpc_resource_impl!(vertipad);
+crate::build_grpc_server_generic_impl!();
+
+impl Resource for GenericResource<Data> {
+    fn get_definition() -> ResourceDefinition {
+        ResourceDefinition {
+            psql_table: String::from("vertipad"),
+            psql_id_col: String::from("vertipad_id"),
+            fields: HashMap::from([
+                (
+                    "name".to_string(),
+                    FieldDefinition::new(PsqlFieldType::TEXT, true),
+                ),
+                (
+                    "longitude".to_string(),
+                    FieldDefinition::new(PsqlFieldType::NUMERIC, true),
+                ),
+                (
+                    "latitude".to_string(),
+                    FieldDefinition::new(PsqlFieldType::NUMERIC, true),
+                ),
+                (
+                    "schedule".to_string(),
+                    FieldDefinition::new(PsqlFieldType::TEXT, true),
+                ),
+                (
+                    "enabled".to_string(),
+                    FieldDefinition::new(PsqlFieldType::BOOL, true).set_default(true.to_string()),
+                ),
+                (
+                    "occupied".to_string(),
+                    FieldDefinition::new(PsqlFieldType::BOOL, true).set_default(false.to_string()),
+                ),
+                (
+                    "created_at".to_string(),
+                    FieldDefinition::new_internal(PsqlFieldType::TIMESTAMPTZ, true)
+                        .set_default(String::from("CURRENT_TIMESTAMP")),
+                ),
+                (
+                    "updated_at".to_string(),
+                    FieldDefinition::new_internal(PsqlFieldType::TIMESTAMPTZ, true)
+                        .set_default(String::from("CURRENT_TIMESTAMP")),
+                ),
+                (
+                    "deleted_at".to_string(),
+                    FieldDefinition::new_internal(PsqlFieldType::TIMESTAMPTZ, true)
+                        .set_default(String::from("CURRENT_TIMESTAMP")),
+                ),
+            ]),
         }
-        Vertipads { vertipads: res }
+    }
+
+    fn get_table_indices() -> Vec<String> {
+        [
+            r#"ALTER TABLE vertipad ADD CONSTRAINT fk_vertiport_id FOREIGN KEY(vertiport_id) REFERENCES vertiport(vertiport_id)"#.to_owned(),
+            r#"CREATE INDEX IF NOT EXISTS vertipad_occupied_idx ON vertipad(occupied)"#.to_owned(),
+        ].to_vec()
     }
 }
 
-/// Converting a postgresql Row object into a GRPC VertipadData object
-impl From<Row> for VertipadData {
-    fn from(vertipad: Row) -> Self {
-        let vertiport_id: Uuid = vertipad.get("vertiport_id");
-        let schedule: Option<String> = vertipad.get("schedule");
-        VertipadData {
+impl GrpcDataObjectType for Data {
+    fn get_field_value(&self, key: &str) -> Result<GrpcField, ArrErr> {
+        match key {
+            "vertiport_id" => Ok(GrpcField::String(self.vertiport_id.clone())),
+            "name" => Ok(GrpcField::String(self.name.clone())), // ::prost::alloc::string::String,
+            "latitude" => Ok(GrpcField::F64(self.latitude)),    // f64,
+            "longitude" => Ok(GrpcField::F64(self.longitude)),  // f64,
+            "schedule" => Ok(GrpcField::Option(GrpcFieldOption::String(
+                self.schedule.clone(),
+            ))), // ::core::option::Option<::prost::alloc::string::String>,
+            "enabled" => Ok(GrpcField::Bool(self.enabled)),
+            "occupied" => Ok(GrpcField::Bool(self.occupied)),
+            _ => Err(ArrErr::Error(format!(
+                "Invalid key specified [{}], no such field found",
+                key
+            ))),
+        }
+    }
+}
+
+impl TryFrom<Row> for Data {
+    type Error = ArrErr;
+
+    fn try_from(row: Row) -> Result<Self, ArrErr> {
+        debug!("Converting Row to vertipad::Data: {:?}", row);
+        let vertiport_id: Uuid = row.get("vertiport_id");
+        let schedule: Option<String> = row.get("schedule");
+        Ok(Data {
             vertiport_id: vertiport_id.to_string(),
-            description: vertipad.get("description"),
-            latitude: vertipad.get("latitude"),
-            longitude: vertipad.get("longitude"),
-            enabled: vertipad.get("enabled"),
-            occupied: vertipad.get("occupied"),
+            name: row.get("name"),
+            latitude: row.get("latitude"),
+            longitude: row.get("longitude"),
             schedule,
-        }
-    }
-}
-
-/// Converting the VertipadPsql.data (Row) object into a GRPC VertipadData object
-impl From<VertipadPsql> for VertipadData {
-    fn from(vertipad: VertipadPsql) -> Self {
-        vertipad.data.into()
+            enabled: row.get("enabled"),
+            occupied: row.get("occupied"),
+        })
     }
 }
