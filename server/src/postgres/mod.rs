@@ -716,7 +716,7 @@ where
 pub async fn create_db() -> Result<(), ArrErr> {
     psql_info!("Creating database tables.");
     GenericResource::<vertiport::Data>::init_table().await?;
-    vertipad::init_table(&get_psql_pool()).await?;
+    GenericResource::<vertipad::Data>::init_table().await?;
     GenericResource::<flight_plan::Data>::init_table().await
 }
 
@@ -726,7 +726,7 @@ pub async fn drop_db() -> Result<(), ArrErr> {
     psql_warn!("Dropping database tables.");
     // Drop our tables (in the correct order)
     GenericResource::<flight_plan::Data>::drop_table().await?;
-    vertipad::drop_table(&get_psql_pool()).await?;
+    GenericResource::<vertipad::Data>::drop_table().await
     GenericResource::<vertiport::Data>::drop_table().await
 }
 

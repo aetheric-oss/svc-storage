@@ -8,7 +8,7 @@ mod resources;
 
 use crate::common::ArrErr;
 use crate::grpc::grpc_server;
-use crate::postgres::{create_db, get_psql_pool, init_psql_pool, recreate_db};
+use crate::postgres::{create_db, init_psql_pool, recreate_db};
 use log::info;
 use std::env;
 

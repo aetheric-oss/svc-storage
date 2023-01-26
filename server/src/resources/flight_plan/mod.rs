@@ -23,12 +23,12 @@ use crate::grpc::{
     GrpcDataObjectType, GrpcField, GrpcFieldOption, GrpcObjectType, Id, SearchFilter,
     ValidationResult,
 };
-use crate::memdb::VertipadPsql;
-use crate::postgres::{get_psql_pool, PsqlJsonValue};
+use crate::postgres::{PsqlJsonValue, PsqlResourceType};
 use crate::resources::base::{
     FieldDefinition, GenericObjectType, GenericResource, GenericResourceResult, Resource,
     ResourceDefinition,
 };
+use crate::resources::vertipad;
 
 mod grpc_server {
     #![allow(unused_qualifications, missing_docs)]
@@ -59,21 +59,19 @@ impl TryFrom<Row> for Data {
         let vertipad_id = row.get("departure_vertipad_id");
         let data = task::block_in_place(move || {
             handle.block_on(async move {
-                let pool = get_psql_pool();
-                VertipadPsql::new(&pool, vertipad_id).await
+                <GenericResource<vertipad::Data> as PsqlResourceType>::get_by_id(&vertipad_id).await
             })
         })?;
-        let departure_vertiport_id = data.id;
+        let departure_vertiport_id = data.get::<&str, Uuid>("vertipad_id").to_string();
 
         let handle = get_runtime_handle();
         let vertipad_id = row.get("destination_vertipad_id");
         let data = task::block_in_place(move || {
             handle.block_on(async move {
-                let pool = get_psql_pool();
-                VertipadPsql::new(&pool, vertipad_id).await
+                <GenericResource<vertipad::Data> as PsqlResourceType>::get_by_id(&vertipad_id).await
             })
         })?;
-        let destination_vertiport_id = data.id;
+        let destination_vertiport_id = data.get::<&str, Uuid>("vertipad_id").to_string();
 
         let cargo_weight_grams = PsqlJsonValue {
             value: row.get("cargo_weight_grams"),
@@ -122,9 +120,9 @@ impl TryFrom<Row> for Data {
             vehicle_id,
             flight_distance_meters: row.get("flight_distance_meters"),
             weather_conditions: row.get("weather_conditions"),
-            departure_vertiport_id: Some(departure_vertiport_id.to_string()),
+            departure_vertiport_id: Some(departure_vertiport_id),
             departure_vertipad_id,
-            destination_vertiport_id: Some(destination_vertiport_id.to_string()),
+            destination_vertiport_id: Some(destination_vertiport_id),
             destination_vertipad_id,
             scheduled_departure,
             scheduled_arrival,
