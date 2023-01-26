@@ -13,7 +13,6 @@ pub use crate::grpc::{Id, SearchFilter};
 pub use uuid::Uuid;
 
 pub const PSQL_LOG_TARGET: &str = "app::backend::psql";
-pub const MEMDB_LOG_TARGET: &str = "app::backend::memdb";
 pub const GRPC_LOG_TARGET: &str = "app::grpc";
 
 pub static USE_PSQL_BACKEND: AtomicBool = AtomicBool::new(true);

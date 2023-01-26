@@ -16,8 +16,12 @@ pub mod vertiport {
     #![allow(unused_qualifications, missing_docs)]
     include!("grpc.vertiport.rs");
 }
-
+pub mod vertipad {
+    #![allow(unused_qualifications, missing_docs)]
+    include!("grpc.vertipad.rs");
+}
 use crate::client::{Id, SearchFilter, ValidationResult};
 
 pub use flight_plan::rpc_service_client::RpcServiceClient as FlightPlanClient;
+pub use vertipad::rpc_service_client::RpcServiceClient as VertipadClient;
 pub use vertiport::rpc_service_client::RpcServiceClient as VertiportClient;
