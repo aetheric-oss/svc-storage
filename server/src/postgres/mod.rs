@@ -677,8 +677,51 @@ where
         Ok((Some(self.read().await?), validation_result))
     }
 
-    //TODO: flush shared memcache for this resource when memcache is implemented
     async fn delete(&self) -> Result<(), ArrErr> {
+        let definition = Self::get_definition();
+        if definition.fields.contains_key("deleted_at") {
+            self.set_deleted_at_now().await
+        } else {
+            self.delete_row().await
+        }
+    }
+
+    //TODO: flush shared memcache for this resource when memcache is implemented
+    async fn set_deleted_at_now(&self) -> Result<(), ArrErr> {
+        let definition = Self::get_definition();
+
+        let id = self.try_get_uuid()?;
+        psql_info!(
+            "Updating [deleted_at] field for [{}]. uuid: {}",
+            definition.psql_table,
+            id
+        );
+        let client = get_psql_pool().get().await?;
+
+        let query = format!(
+            r#"UPDATE "{}" SET deleted_at = NOW() WHERE "{}" = $1"#,
+            definition.psql_table, definition.psql_id_col
+        );
+        let stmt = client.prepare_cached(&query).await?;
+        match client.execute(&stmt, &[&id]).await {
+            Ok(num_rows) => {
+                if num_rows == 1 {
+                    Ok(())
+                } else {
+                    let error = format!(
+                        "Failed to update [deleted_at] col for [{}] with id [{}] (does not exist?)",
+                        definition.psql_table, id
+                    );
+                    psql_info!("{}", error);
+                    Err(ArrErr::Error(error))
+                }
+            }
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    //TODO: flush shared memcache for this resource when memcache is implemented
+    async fn delete_row(&self) -> Result<(), ArrErr> {
         let definition = Self::get_definition();
 
         let id = self.try_get_uuid()?;
@@ -726,7 +769,7 @@ pub async fn drop_db() -> Result<(), ArrErr> {
     psql_warn!("Dropping database tables.");
     // Drop our tables (in the correct order)
     GenericResource::<flight_plan::Data>::drop_table().await?;
-    GenericResource::<vertipad::Data>::drop_table().await
+    GenericResource::<vertipad::Data>::drop_table().await?;
     GenericResource::<vertiport::Data>::drop_table().await
 }
 
