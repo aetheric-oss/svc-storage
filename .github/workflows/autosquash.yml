@@ -7,8 +7,8 @@ name: Auto-squash
 on:
   pull_request:
     branches:
-      - 'main'
       - 'develop'
+      - 'main'
 
 permissions:
   contents: write
