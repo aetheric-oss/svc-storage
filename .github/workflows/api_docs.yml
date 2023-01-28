@@ -3,10 +3,10 @@
 # File origin: https://github.com/Arrow-air/tf-github/tree/main/src/templates/rust-svc/.github/workflows/api_docs.yml
 
 on:
-  push:
-    branches:
-    - main
   pull_request:
+    branches:
+      - develop
+      - main
 
 name: API Documentation
 
