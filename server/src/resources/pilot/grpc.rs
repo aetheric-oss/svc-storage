@@ -7,7 +7,7 @@ mod grpc_server {
 pub use grpc_server::pilot_rpc_server::{PilotRpc, PilotRpcServer};
 pub use grpc_server::{Pilot, PilotData, Pilots};
 
-use crate::common::{Id, SearchFilter};
+use crate::grpc::{Id, SearchFilter};
 use crate::memdb::PILOTS;
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
