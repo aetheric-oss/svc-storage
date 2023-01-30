@@ -511,7 +511,7 @@ erDiagram
     flight_plan {
         uuid flight_plan_id PK
         uuid pilot_id FK
-        uuid vehicle_id FK
+        uuid aircraft_id FK
         integer flight_distance_meters
         text weather_conditions
         uuid departure_vertipad_id FK
@@ -524,11 +524,20 @@ erDiagram
         timestamp flight_plan_submitted "Optional"
         uuid approved_by FK "Optional"
         json cargo_weight_g "Optional"
-        text flight_status "Optional"
-        text flight_priority "Optional"
+        text flight_status "Default DRAFT"
+        text flight_priority "Default LOW"
         timestamp created_at "Default NOW"
         timestamp updated_at "Default NOW"
         timestamp archived_at "Default NULL"
+    }
+    asset_group {
+        uuid asset_group_id PK
+        text name
+        text description
+        uuid owner FK
+        timestamp created_at "Default NOW"
+        timestamp updated_at "Default NOW"
+        timestamp deleted_at "Default NULL"
     }
     vertiport {
         uuid vertiport_id PK
@@ -537,6 +546,7 @@ erDiagram
         float longitude
         float latitude
         text schedule "Optional"
+        uuid asset_group_id FK "Optional"
         timestamp created_at "Default NOW"
         timestamp updated_at "Default NOW"
         timestamp deleted_at "Default NULL"
@@ -550,6 +560,7 @@ erDiagram
         text schedule "Optional"
         bool enabled "Default true"
         bool occupied "Default false"
+        uuid asset_group_id FK "Optional"
         timestamp created_at "Default NOW"
         timestamp updated_at "Default NOW"
         timestamp deleted_at "Default NULL"
@@ -603,6 +614,8 @@ erDiagram
         text street
         text city
         text state "Optional"
+        decimal longitude "Optional"
+        decimal latitude "Optional"
     }
     asset_supplier {
         uuid asset_supplier_id PK
@@ -626,7 +639,65 @@ erDiagram
     asset_supplier_address {
         uuid asset_supplier_id FK
         uuid address_id FK
-        string description
+        string description "Optional"
+    }
+    aircraft {
+        uuid aircraft_id PK
+        text aircraft_model_id FK
+        text serial_number
+        text registration_number
+        text description "Optional"
+        text status "Default AVAILABLE"
+        uuid asset_group_id FK "Optional"
+        timestamp created_at "Default NOW"
+        timestamp updated_at "Default NOW"
+        timestamp deleted_at "Default NULL"
+    }
+    aircraft_field {
+        uuid field_id
+        text field
+        text type
+        bool mandatory "Default false"
+    }
+    aircraft_field_value {
+        uuid aircraft_id PK
+        uuid aircraft_field_id FK
+        text value
+    }
+    aircraft_model {
+        uuid aircraft_model_id PK
+        uuid manufacturer_id FK
+        text model
+        text type
+        float max_payload_kg
+        float max_range_km
+        timestamp created_at "Default NOW"
+        timestamp updated_at "Default NOW"
+        timestamp deleted_at "Default NULL"
+    }
+    aircraft_model_field {
+        uuid field_id
+        text field
+        text type
+        bool mandatory "Default false"
+    }
+    aircraft_model_field_value {
+        uuid aircraft_model_id PK
+        uuid aircraft_model_field_id FK
+        text value
+    }
+    manufacturer {
+        uuid manufacturer_id PK
+        text name
+        text logo_path
+        timestamp created_at "Default NOW"
+        timestamp updated_at "Default NOW"
+        timestamp deleted_at "Default NULL"
+    }
+    manufacturer_address {
+        uuid manufacturer_id PK
+        uuid address_id FK
+        string description "Optional"
     }
 
     flight_plan |{--|| vertipad : departure_vertipad_id
