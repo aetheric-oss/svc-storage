@@ -1,8 +1,15 @@
 //! Flight Plans
 
+/// module providing functions to generate mock data
+pub mod mock;
+
+mod grpc_server {
+    #![allow(unused_qualifications, missing_docs)]
+    tonic::include_proto!("grpc.flight_plan");
+}
 // Expose module resources
-pub(crate) use grpc_server::rpc_service_server::*;
-pub(crate) use grpc_server::*;
+pub use grpc_server::rpc_service_server::*;
+pub use grpc_server::*;
 
 use chrono::{DateTime, Utc};
 use core::fmt::Debug;
@@ -30,17 +37,12 @@ use crate::resources::base::{
 };
 use crate::resources::vertipad;
 
-mod grpc_server {
-    #![allow(unused_qualifications, missing_docs)]
-    tonic::include_proto!("grpc.flight_plan");
-}
-
 // Generate `From` trait implementations for GenericResource into and from Grpc defined Resource
 crate::build_generic_resource_impl_from!();
 
 // Generate grpc server implementations
 crate::build_grpc_resource_impl!(flight_plan);
-crate::build_grpc_server_generic_impl!();
+crate::build_grpc_server_generic_impl!(flight_plan);
 
 impl TryFrom<Row> for Data {
     type Error = ArrErr;
