@@ -1,4 +1,5 @@
 #[macro_use]
+/// log macro's for PostgreSQL logging
 pub mod macros;
 
 pub use crate::common::{ArrErr, PSQL_LOG_TARGET};
@@ -23,9 +24,12 @@ use crate::common::Config;
 use crate::grpc::{GrpcDataObjectType, GrpcField, ValidationError, ValidationResult};
 use crate::resources::{flight_plan, vertipad, vertiport};
 
+/// Provides a more readable format of the PostgreSQL data [HashMap] definition
 pub type PsqlData = HashMap<String, Box<dyn ToSql + Sync + Send>>;
 #[derive(Debug)]
+/// struct for JSON values
 pub struct PsqlJsonValue {
+    /// [JsonValue]
     pub value: JsonValue,
 }
 
@@ -62,7 +66,9 @@ impl From<deadpool_postgres::ConfigError> for ArrErr {
 }
 
 /// Postgres Pool
+#[derive(Debug)]
 pub struct PostgresPool {
+    /// [Pool]
     pub pool: Pool,
 }
 impl Default for PostgresPool {
@@ -74,14 +80,20 @@ impl Default for PostgresPool {
 impl PostgresPool {
     /// Creates a new PostgresPool using configuration settings from the environment
     /// ```
-    /// let pool = match PostgresPool::from_config() {
-    ///     Ok(pg) => {
-    ///         match pg.readiness().await {
-    ///             Ok(_) => Ok(pg.pool),
-    ///             Err(e) => Err(e),
-    ///         }
-    ///     },
-    ///     Err(e) => Err(e)
+    /// use svc_storage::postgres::PostgresPool;
+    /// use svc_storage::common::ArrErr;
+    /// async fn example() -> Result<(), ArrErr> {
+    ///     let pool = match PostgresPool::from_config() {
+    ///         Ok(pg) => {
+    ///             match pg.readiness().await {
+    ///                 Ok(_) => Ok(pg.pool),
+    ///                 Err(e) => Err(e),
+    ///             }
+    ///         },
+    ///         Err(e) => Err(e)
+    ///     };
+    ///
+    ///     Ok(())
     /// }
     /// ```
     pub fn from_config() -> Result<PostgresPool, ArrErr> {
@@ -174,12 +186,6 @@ impl PostgresPool {
     }
 
     /// Returns an error if queries can not be served
-    /// ```
-    /// match pg.readiness().await {
-    ///   Ok(_) => info!("The database is ready for connections"),
-    ///   Err(e) => error!("An error occurred when trying to connect to the database: {}", e)
-    /// }
-    /// ```
     pub async fn readiness(&self) -> Result<(), ArrErr> {
         psql_debug!("Checking database readiness.");
         let client_check = self.check().await;
@@ -189,10 +195,6 @@ impl PostgresPool {
     }
 
     /// Wraps returning a client from pool to set ready metric
-    /// ```
-    /// self.check().await?;
-    /// Ok(())
-    /// ```
     async fn check(&self) -> Result<(), ArrErr> {
         let client = self.pool.get().await?;
         let st = client.prepare("SELECT 1 + 1").await?;
@@ -228,6 +230,7 @@ pub async fn init_psql_pool() -> Result<(), ArrErr> {
 }
 
 #[tonic::async_trait]
+/// Generic PostgreSQL trait to provide wrappers for common `Resource` functions
 pub trait PsqlResourceType
 where
     Self: Resource,
@@ -276,6 +279,8 @@ where
         )
     }
 
+    /// Internal function called by [init_table](PsqlResourceType::init_table) to run table index creation queries if any indices
+    /// are defined for the resource
     async fn _init_table_indices() -> Result<(), ArrErr> {
         let queries = Self::get_table_indices();
         if queries.is_empty() {
@@ -615,13 +620,17 @@ where
     Self: GenericObjectType<T> + Send,
     T: GrpcDataObjectType,
 {
-    //TODO: implement shared memcache here
+    /// get data from the database using the Object's UUID
+    /// returns [Row] on success
     async fn read(&self) -> Result<Row, ArrErr> {
+        //TODO: implement shared memcache here to get object data if present
         let id = self.try_get_uuid()?;
         Self::get_by_id(&id).await
     }
 
-    //TODO: flush shared memcache for this resource when memcache is implemented
+    /// update the Object's database record using provided data
+    /// returns [Option(Row)] and [ValidationResult]
+    /// returns [ArrErr] if any error is thrown
     async fn update<'a>(&self, data: &T) -> Result<(Option<Row>, ValidationResult), ArrErr> {
         let (psql_data, validation_result) = Self::validate(data)?;
 
@@ -674,9 +683,13 @@ where
         let client = get_psql_pool().get().await?;
         client.execute(update_sql, &params[..]).await?;
 
+        //TODO: flush shared memcache for this resource when memcache is implemented
+
         Ok((Some(self.read().await?), validation_result))
     }
 
+    /// calls [set_deleted_at_now](PsqlObjectType::set_deleted_at_now) if the Object has a `deleted_at` field
+    /// calls [delete_row](PsqlObjectType::delete_row) otherwise
     async fn delete(&self) -> Result<(), ArrErr> {
         let definition = Self::get_definition();
         if definition.fields.contains_key("deleted_at") {
@@ -686,7 +699,7 @@ where
         }
     }
 
-    //TODO: flush shared memcache for this resource when memcache is implemented
+    /// updates the database record setting the `deleted_at` field to current timestamp using the Object's UUID
     async fn set_deleted_at_now(&self) -> Result<(), ArrErr> {
         let definition = Self::get_definition();
 
@@ -706,6 +719,7 @@ where
         match client.execute(&stmt, &[&id]).await {
             Ok(num_rows) => {
                 if num_rows == 1 {
+                    //TODO: flush shared memcache for this resource when memcache is implemented
                     Ok(())
                 } else {
                     let error = format!(
@@ -720,7 +734,7 @@ where
         }
     }
 
-    //TODO: flush shared memcache for this resource when memcache is implemented
+    /// delete database record from the database using the Object's UUID
     async fn delete_row(&self) -> Result<(), ArrErr> {
         let definition = Self::get_definition();
 
@@ -739,6 +753,7 @@ where
         match client.execute(&stmt, &[&id]).await {
             Ok(num_rows) => {
                 if num_rows == 1 {
+                    //TODO: flush shared memcache for this resource when memcache is implemented
                     Ok(())
                 } else {
                     let error = format!(
