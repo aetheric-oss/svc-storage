@@ -1,27 +1,14 @@
-//! gRPC server implementation
-
-mod common;
-mod grpc;
-mod memdb;
-mod postgres;
-mod resources;
-
-use crate::common::ArrErr;
-use crate::grpc::grpc_server;
-use crate::postgres::{create_db, init_psql_pool, recreate_db};
+//! Main function starting the gRPC server and initializing dependencies.
 use log::info;
 use std::env;
+use svc_storage::common::{use_psql_get, ArrErr};
+use svc_storage::grpc::grpc_server;
+use svc_storage::postgres::{create_db, init_psql_pool, recreate_db};
 
 #[tokio::main]
 async fn main() -> Result<(), ArrErr> {
     // Set up logger runtime -- needs access to log4rs.yaml
     log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
-    /*
-    // Set up logger compile time
-    let config_str = include_str!("log4rs.yaml");
-    let config = serde_yaml::from_str(config_str).unwrap();
-    log4rs::init_raw_config(config).unwrap();
-    */
 
     // Check command line args
     let args: Vec<String> = env::args().collect();
@@ -33,7 +20,7 @@ async fn main() -> Result<(), ArrErr> {
         apply_arg(option).await?;
     }
 
-    if common::use_psql_get() {
+    if use_psql_get() {
         info!("Running database initialization");
         init_psql_pool().await?;
     }
