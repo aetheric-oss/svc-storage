@@ -1,11 +1,12 @@
+#![allow(missing_docs)]
 #[macro_use]
+/// log macro's for memdb logging
 pub mod macros;
-
-pub use crate::resources::flight_plan;
-pub use crate::resources::pilot::*;
-pub use crate::resources::vehicle::*;
-pub use crate::resources::vertipad;
-pub use crate::resources::vertiport;
+use crate::resources::flight_plan;
+use crate::resources::pilot::*;
+use crate::resources::vehicle::*;
+use crate::resources::vertipad;
+use crate::resources::vertiport;
 
 use futures::lock::Mutex;
 use lazy_static::lazy_static;
