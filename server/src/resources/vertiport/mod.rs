@@ -1,8 +1,15 @@
 //! Vertiport
 
+/// module providing functions to generate mock data
+pub mod mock;
+
+mod grpc_server {
+    #![allow(unused_qualifications, missing_docs)]
+    tonic::include_proto!("grpc.vertiport");
+}
 // Expose module resources
-pub(crate) use grpc_server::rpc_service_server::*;
-pub(crate) use grpc_server::*;
+pub use grpc_server::rpc_service_server::*;
+pub use grpc_server::*;
 
 use core::fmt::Debug;
 use log::debug;
@@ -22,17 +29,12 @@ use crate::resources::base::{
     ResourceDefinition,
 };
 
-mod grpc_server {
-    #![allow(unused_qualifications, missing_docs)]
-    tonic::include_proto!("grpc.vertiport");
-}
-
 // Generate `From` trait implementations for GenericResource into and from Grpc defined Resource
 crate::build_generic_resource_impl_from!();
 
 // Generate grpc server implementations
 crate::build_grpc_resource_impl!(vertiport);
-crate::build_grpc_server_generic_impl!();
+crate::build_grpc_server_generic_impl!(vertiport);
 
 impl Resource for GenericResource<Data> {
     fn get_definition() -> ResourceDefinition {
