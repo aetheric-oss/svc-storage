@@ -2,6 +2,7 @@
 
 # svc-storage Service
 
+![GitHub stable release (latest by date)](https://img.shields.io/github/v/release/Arrow-air/svc-storage?sort=semver&color=green)
 ![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/Arrow-air/svc-storage?include_prereleases)
 ![Sanity Checks](https://github.com/arrow-air/svc-storage/actions/workflows/sanity_checks.yml/badge.svg?branch=main)
 ![Rust
@@ -14,8 +15,8 @@ Discord](https://img.shields.io/discord/853833144037277726?style=plastic)
 
 svc-storage is responsible for storing and retrieving data from the Arrow database and other storage.
 It's meant to be used only by other internal services via GRPC interface.
-- server - [bin] target to run gRPC server
-- client - [lib] target for other services to import and use
+- svc_storage gRPC server - (bin) target to run gRPC server
+- svc_storage_client_grpc gRPC client - (lib) target for other services to import and use
 
 Directory:
 - `server/src/`: Source Code and Unit Tests of the server
