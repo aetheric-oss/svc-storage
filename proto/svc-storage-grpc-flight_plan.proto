@@ -13,6 +13,7 @@ service RpcService {
     rpc insert(Data) returns (Response);
     rpc update(UpdateObject) returns (Response);
     rpc delete(grpc.Id) returns (google.protobuf.Empty);
+    rpc search(grpc.AdvancedSearchFilter) returns (List);
 }
 
 //Flight Status Enum
@@ -69,7 +70,7 @@ message Data {
     //flight_distance in meters
     int64 flight_distance_meters = 4;
     //weather_conditions
-    string weather_conditions = 5;
+    optional string weather_conditions = 5;
     //departure_vertiport_id UUID v4, only listed for get results, not needed for creation (known through pad_id)
     optional string departure_vertiport_id = 6;
     //departure_vertipad_id UUID v4
