@@ -11,8 +11,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let server_config = tonic_build::configure()
         .emit_rerun_if_changed(true)
+        .type_attribute(
+            "get_all_with_filter",
+            "#[deprecated(since=\"0.9.0\", note=\"please use the new `search` function instead\")]",
+        )
         .type_attribute("Id", "#[derive(Eq)]")
         .type_attribute("SearchFilter", "#[derive(Eq)]")
+        .type_attribute("AdvancedSearchFilter", "#[derive(Eq)]")
+        .type_attribute("FilterOption", "#[derive(Eq)]")
+        .type_attribute("SortOption", "#[derive(Eq)]")
+        .type_attribute("SortOrder", "#[derive(num_derive::FromPrimitive)]")
+        .type_attribute("PredicateOperator", "#[derive(num_derive::FromPrimitive)]")
+        .type_attribute("ComparisonOperator", "#[derive(num_derive::FromPrimitive)]")
         .type_attribute("Vehicle", "#[derive(Eq)]")
         .type_attribute("VehicleData", "#[derive(Eq)]")
         .type_attribute("Vehicles", "#[derive(Eq)]")
@@ -24,19 +34,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .type_attribute("FlightPlan", "#[derive(Eq)]")
         .type_attribute("FlightPlanData", "#[derive(Eq)]")
         .type_attribute("FlightPlans", "#[derive(Eq)]")
-        .type_attribute("Vertipad", "#[allow(clippy::derive_partial_eq_without_eq)]")
-        .type_attribute(
-            "Vertipads",
-            "#[allow(clippy::derive_partial_eq_without_eq)]",
-        )
-        .type_attribute(
-            "Vertiport",
-            "#[allow(clippy::derive_partial_eq_without_eq)]",
-        )
-        .type_attribute(
-            "Vertiports",
-            "#[allow(clippy::derive_partial_eq_without_eq)]",
-        )
         .type_attribute("ReadyRequest", "#[derive(Eq, Copy)]")
         .type_attribute("ReadyResponse", "#[derive(Eq, Copy)]");
 
