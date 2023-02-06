@@ -1,19 +1,23 @@
 #[macro_use]
 /// log macro's for PostgreSQL logging
 pub mod macros;
+mod search;
 
 pub use crate::common::{ArrErr, PSQL_LOG_TARGET};
+use crate::grpc::grpc_server::{ComparisonOperator, PredicateOperator};
 use crate::resources::base::{
     validate_dt, validate_enum, validate_uuid, GenericObjectType, GenericResource, Resource,
 };
 
 use anyhow::Error;
+use chrono::{DateTime, Utc};
 use deadpool_postgres::{tokio_postgres::NoTls, ManagerConfig, Pool, RecyclingMethod, Runtime};
 use native_tls::{Certificate, Identity, TlsConnector};
 use postgres_native_tls::MakeTlsConnector;
 use postgres_types::ToSql;
 use serde_json::{json, Value as JsonValue};
 use std::fmt::Debug;
+use std::vec;
 use std::{collections::HashMap, fs};
 use tokio::sync::OnceCell;
 use tokio_postgres::types::Type as PsqlFieldType;
@@ -21,11 +25,20 @@ use tokio_postgres::Row;
 use uuid::Uuid;
 
 use crate::common::Config;
-use crate::grpc::{GrpcDataObjectType, GrpcField, ValidationError, ValidationResult};
+use crate::grpc::{
+    AdvancedSearchFilter, GrpcDataObjectType, GrpcField, ValidationError, ValidationResult,
+};
 use crate::resources::{flight_plan, vertipad, vertiport};
 
+pub use self::search::SearchCol;
+
+/// Provides a more readable format of a dynamic PostgreSQL field value
+pub type PsqlField = dyn ToSql + Sync;
+/// Provides a more readable format of a dynamic PostgreSQL field value with the [Send] trait
+pub type PsqlFieldSend = dyn ToSql + Sync + Send;
 /// Provides a more readable format of the PostgreSQL data [HashMap] definition
-pub type PsqlData = HashMap<String, Box<dyn ToSql + Sync + Send>>;
+pub type PsqlData = HashMap<String, Box<PsqlFieldSend>>;
+
 #[derive(Debug)]
 /// struct for JSON values
 pub struct PsqlJsonValue {
@@ -233,9 +246,10 @@ pub async fn init_psql_pool() -> Result<(), ArrErr> {
 /// Generic PostgreSQL trait to provide wrappers for common `Resource` functions
 pub trait PsqlResourceType
 where
-    Self: Resource,
+    Self: Resource + Clone,
 {
     /// Constructs the create table query for the resource
+    /// for internal use
     fn _get_create_table_query() -> String {
         let definition = Self::get_definition();
         psql_info!(
@@ -354,86 +368,195 @@ where
         }
     }
 
-    /// Generic search function based on filters
-    async fn search(filter: &HashMap<String, String>) -> Result<Vec<Row>, ArrErr> {
+    /// Generic search function based on advanced filters
+    async fn advanced_search(filter: AdvancedSearchFilter) -> Result<Vec<Row>, ArrErr> {
         let definition = Self::get_definition();
         let client = get_psql_pool().get().await?;
 
-        let mut search_fields: Vec<&(dyn ToSql + Sync)> = vec![];
-        let mut search_query = String::from("");
-        let search_col = match filter.get("column") {
-            Some(col) => col,
-            None => "",
-        };
-        let mut search_val = String::from("");
+        let mut filter_params: Vec<SearchCol> = vec![];
+        let mut sort_expressions: Vec<String> = vec![];
+        let mut search_query = format!(r#"SELECT * FROM "{}""#, definition.psql_table);
+        let mut next_param_index: i32 = 1;
 
-        if !search_col.is_empty() {
-            let val = match filter.get("value") {
-                Some(val) => val,
-                None => {
-                    let err = format!(
-                        "No search value provided while search column exists while calling search for [{}].",
-                        definition.psql_table
-                    );
-                    psql_error!("{}", err);
-                    return Err(ArrErr::Error(err));
-                }
-            };
-
-            let col_definition = match definition.fields.get(filter.get("column").unwrap()) {
-                Some(definition) => definition,
-                None => {
-                    let err = format!(
-                        "Can't find search col [{}] in fields definition for [{}]",
-                        filter.get("column").unwrap(),
-                        definition.psql_table
-                    );
-                    psql_error!("{}", err);
-                    return Err(ArrErr::Error(err));
-                }
-            };
-
-            search_val = match col_definition.field_type {
-                PsqlFieldType::ANYENUM => {
-                    let int_val: i32 = val.parse().unwrap();
-                    match Self::get_enum_string_val(search_col, int_val) {
-                        Some(string_val) => string_val,
-                        None => {
-                            let err = format!(
-                                "Can't convert search col [{}] to enum string for value [{}]",
-                                search_col, int_val
-                            );
-                            psql_error!("{}", err);
-                            return Err(ArrErr::Error(err));
-                        }
+        // Go over all the filters and compose the search query string.
+        for filter in filter.filters.iter() {
+            let col = filter.search_field.clone();
+            let field_type = definition.try_get_field(&col)?.field_type.clone();
+            let operator: PredicateOperator =
+                match PredicateOperator::from_i32(filter.predicate_operator) {
+                    Some(val) => val,
+                    None => {
+                        return Err(ArrErr::Error(format!(
+                            "Can't convert i32 [{}] into PredicateOperator Enum value",
+                            filter.predicate_operator
+                        )));
                     }
-                }
-                _ => search_val.to_string(),
+                };
+            let comparison_operator = match filter.comparison_operator {
+                Some(operator) => match ComparisonOperator::from_i32(operator) {
+                    Some(operator) => operator.as_str_name(),
+                    None => {
+                        return Err(ArrErr::Error(format!(
+                            "Can't convert i32 [{}] into ComparisonOperator Enum value",
+                            operator
+                        )));
+                    }
+                },
+                None => "WHERE",
             };
 
-            search_query = format!(
-                r#" WHERE "{}"."{}" = $1"#,
-                definition.psql_table, search_col
-            );
-            search_fields.push(&search_val);
+            let (filter_str, cur_param_index) = search::get_filter_str(
+                SearchCol {
+                    col_name: col,
+                    col_type: field_type,
+                    value: None,
+                },
+                filter.search_value.clone(),
+                &mut filter_params,
+                next_param_index,
+                operator,
+            )?;
+
+            search_query.push_str(&format!(" {} {} ", comparison_operator, filter_str));
+            next_param_index = cur_param_index;
         }
 
-        search_query = format!(
-            r#"SELECT * FROM "{}"{}"#,
-            definition.psql_table, search_query
-        );
-        psql_debug!("{}", search_query);
+        // Validate filter params making sure they are conform the column field type.
+        // Adding the value to the list of query parameters if valid.
+        let mut params: Vec<Box<dyn ToSql + Sync + Send>> = vec![];
+        for param in filter_params.iter() {
+            params.push(Self::_param_from_search_col(param)?);
+        }
+
+        // Check if we need to order the results on given parameters
+        if !filter.order_by.is_empty() {
+            for sort_option in filter.order_by.iter() {
+                if definition.has_field(&sort_option.sort_field) {
+                    sort_expressions.push(search::try_get_sort_str(sort_option)?);
+                } else {
+                    psql_error!(
+                        "Invalid field provided [{}] for sort order in advanced_search",
+                        sort_option.sort_field
+                    );
+                }
+            }
+            search_query.push_str(&format!(" ORDER BY {}", sort_expressions.join(",")));
+        }
+        if filter.results_per_page >= 0 && filter.page_number > 0 {
+            let offset: i64 = (filter.results_per_page * (filter.page_number - 1)).into();
+            search_query.push_str(&format!(" LIMIT ${}", next_param_index));
+            params.push(Box::new(filter.results_per_page as i64));
+            next_param_index += 1;
+            search_query.push_str(&format!(" OFFSET ${}", next_param_index));
+            params.push(Box::new(offset));
+        }
         let search_sql = &client.prepare_cached(&search_query).await?;
 
         psql_info!(
-            "Searching {} rows for: {} = {}",
+            "Searching table [{}] with query [{}]",
             definition.psql_table,
-            search_col,
-            search_val
+            search_query
         );
-        let rows = client.query(search_sql, &search_fields[..]).await?;
+
+        let mut ref_params: Vec<&PsqlField> = vec![];
+        for field in params.iter() {
+            ref_params.push(field.as_ref());
+        }
+        let rows = client
+            .query(search_sql, &ref_params[..])
+            .await
+            .map_err(ArrErr::from)?;
 
         Ok(rows)
+    }
+
+    /// Converts the passed string value for the search field into the right Sql type.
+    /// for internal use
+    fn _param_from_search_col(col: &SearchCol) -> Result<Box<dyn ToSql + Sync + Send>, ArrErr> {
+        let col_val = col.value.as_ref().unwrap();
+        match col.col_type {
+            PsqlFieldType::ANYENUM => {
+                let int_val: i32 = col_val.parse().unwrap();
+                match Self::get_enum_string_val(&col.col_name.clone(), int_val) {
+                    Some(string_val) => Ok(Box::new(string_val)),
+                    None => {
+                        let err = format!(
+                            "Can't convert search col [{}] with value [{}] to enum string for value [{}]",
+                            col.col_name, col_val, int_val
+                        );
+                        psql_error!("{}", err);
+                        Err(ArrErr::Error(err))
+                    }
+                }
+            }
+            PsqlFieldType::BOOL => match col_val.parse::<bool>() {
+                Ok(val) => Ok(Box::new(val)),
+                Err(e) => {
+                    let err = format!(
+                        "Can't convert search col [{}] with value [{}] to boolean: {}",
+                        col.col_name, col_val, e
+                    );
+                    psql_error!("{}", err);
+                    Err(ArrErr::Error(err))
+                }
+            },
+            PsqlFieldType::NUMERIC => match col_val.parse::<f64>() {
+                Ok(val) => Ok(Box::new(val)),
+                Err(e) => {
+                    let err = format!(
+                        "Can't convert search col [{}] with value [{}] to f64: {}",
+                        col.col_name, col_val, e
+                    );
+                    psql_error!("{}", err);
+                    Err(ArrErr::Error(err))
+                }
+            },
+            PsqlFieldType::INT2 => match col_val.parse::<i16>() {
+                Ok(val) => Ok(Box::new(val)),
+                Err(e) => {
+                    let err = format!(
+                        "Can't convert search col [{}] with value [{}] to i16: {}",
+                        col.col_name, col_val, e
+                    );
+                    psql_error!("{}", err);
+                    Err(ArrErr::Error(err))
+                }
+            },
+            PsqlFieldType::INT8 => match col_val.parse::<i64>() {
+                Ok(val) => Ok(Box::new(val)),
+                Err(e) => {
+                    let err = format!(
+                        "Can't convert search col [{}] with value [{}] to i64: {}",
+                        col.col_name, col_val, e
+                    );
+                    psql_error!("{}", err);
+                    Err(ArrErr::Error(err))
+                }
+            },
+            PsqlFieldType::UUID => match Uuid::parse_str(col_val) {
+                Ok(val) => Ok(Box::new(val)),
+                Err(e) => {
+                    let err = format!(
+                        "Can't convert search col [{}] with value [{}] to i64: {}",
+                        col.col_name, col_val, e
+                    );
+                    psql_error!("{}", err);
+                    Err(ArrErr::Error(err))
+                }
+            },
+            PsqlFieldType::TIMESTAMPTZ => match col_val.parse::<DateTime<Utc>>() {
+                Ok(val) => Ok(Box::new(val)),
+                Err(e) => {
+                    let err = format!(
+                        "Can't convert search col [{}] with value [{}] to DateTime<Utc>: {}",
+                        col.col_name, col_val, e
+                    );
+                    psql_error!("{}", err);
+                    Err(ArrErr::Error(err))
+                }
+            },
+            _ => Ok(Box::new(col_val.clone())),
+        }
     }
 
     /// Generic create function based on resource definition and provided data.
@@ -450,7 +573,7 @@ where
         }
 
         let definition = Self::get_definition();
-        let mut params: Vec<&(dyn ToSql + Sync)> = vec![];
+        let mut params: Vec<&PsqlField> = vec![];
         let mut inserts = vec![];
         let mut fields = vec![];
         let mut index = 1;
@@ -458,8 +581,7 @@ where
         for key in definition.fields.keys() {
             match psql_data.get(&*key.to_string()) {
                 Some(value) => {
-                    let val: &(dyn ToSql + Sync) =
-                        <&Box<dyn ToSql + Send + Sync>>::clone(&value).as_ref();
+                    let val: &PsqlField = <&Box<PsqlFieldSend>>::clone(&value).as_ref();
                     fields.push(key.to_string());
                     inserts.push(format!("${}", index));
                     params.push(val);
@@ -586,6 +708,10 @@ where
                     let val: Vec<i64> = val_to_validate.into();
                     converted.insert(key, Box::new(json!(val)));
                 }
+                PsqlFieldType::BOOL => {
+                    let val: bool = val_to_validate.into();
+                    converted.insert(key, Box::new(val));
+                }
                 _ => {
                     let error = format!(
                         "Conversion errors found in fields for table [{}], unknown field type [{}], return without updating.",
@@ -640,15 +766,14 @@ where
 
         let definition = Self::get_definition();
         let id = self.try_get_uuid()?;
-        let mut params: Vec<&(dyn ToSql + Sync)> = vec![];
+        let mut params: Vec<&PsqlField> = vec![];
         let mut updates = vec![];
         let mut index = 1;
 
         for key in definition.fields.keys() {
             match psql_data.get(&*key.to_string()) {
                 Some(value) => {
-                    let val: &(dyn ToSql + Sync) =
-                        <&Box<dyn ToSql + Send + Sync>>::clone(&value).as_ref();
+                    let val: &PsqlField = <&Box<PsqlFieldSend>>::clone(&value).as_ref();
                     updates.push(format!("{} = ${}", key, index));
                     params.push(val);
                     index += 1;
