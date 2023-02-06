@@ -62,3 +62,10 @@ Stuckee
 datetime
 ANYENUM
 TIMESTAMPTZ
+Deque
+ILIKE
+Ilike
+ilike
+println
+Struct
+struct
