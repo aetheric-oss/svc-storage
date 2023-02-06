@@ -93,7 +93,6 @@ jobs:
           mv temp CHANGELOG.md
 
       - name: Update package version
-        if: ${{ github.ref_name == 'main' }}
         run: |
           cargo install cargo-edit
           cargo set-version ${{ steps.tag_version.outputs.new_version }}
@@ -102,7 +101,6 @@ jobs:
           cargo update
 
       - name: Commit and push release updates
-        if: ${{ github.ref_name == 'main' }}
         env:
           CHANGED_FILES: ".terraform_init Cargo.lock client-grpc/Cargo.toml server/Cargo.toml CHANGELOG.md"
           RELEASE_COMMIT_MESSAGE: "ci: update release files\n\n[skip ci]"
@@ -121,6 +119,8 @@ jobs:
       - name: Push any changes
         run: |
           git push -f
+          # override GITHUB_SHA env var with new current sha as it is used for taggin in the next step
+          echo "GITHUB_SHA=$(git rev-parse --verify HEAD)" >> $GITHUB_ENV
 
       - name: Set and Push New Tag
         uses: mathieudutour/github-tag-action@v6.1
