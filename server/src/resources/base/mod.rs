@@ -16,15 +16,23 @@ use crate::postgres::{PsqlJsonValue, PsqlObjectType, PsqlResourceType};
 /// Generic trait providing useful functions for our resources
 pub trait Resource {
     /// Allows us to implement the resource definition used for simple insert and update queries
-    fn get_definition() -> ResourceDefinition;
+    fn get_definition() -> ResourceDefinition
+    where
+        Self: Sized;
     /// This function should be implemented for the resources where applicable (example implementation can be found in the flight_plan module).
-    fn get_enum_string_val(field: &str, value: i32) -> Option<String> {
+    fn get_enum_string_val(field: &str, value: i32) -> Option<String>
+    where
+        Self: Sized,
+    {
         let _field = field;
         let _value = value;
         None
     }
     /// This function should be implemented for the resources where applicable (example implementation can be found in the flight_plan module).
-    fn get_table_indices() -> Vec<String> {
+    fn get_table_indices() -> Vec<String>
+    where
+        Self: Sized,
+    {
         vec![]
     }
 }
@@ -32,7 +40,7 @@ pub trait Resource {
 /// Allows us to transform the gRPC `Object` structs into a generic object
 pub trait GenericObjectType<T>
 where
-    Self: PsqlResourceType + Resource,
+    Self: PsqlResourceType,
     T: GrpcDataObjectType,
 {
     /// Get `Object` struct `id` field, to be overwritten by trait implementor
@@ -90,6 +98,26 @@ pub struct ResourceDefinition {
     pub fields: HashMap<String, FieldDefinition>,
 }
 
+impl ResourceDefinition {
+    /// returns [bool] true if the provided `field` key is found in the `fields` [HashMap]
+    pub fn has_field(&self, field: &str) -> bool {
+        self.fields.contains_key(field)
+    }
+
+    /// returns [FieldDefinition] if the provided `field` is found in the `fields` [HashMap]
+    /// returns an [ArrErr] if the field does not exist
+    pub fn try_get_field(&self, field: &str) -> Result<&FieldDefinition, ArrErr> {
+        match self.fields.get(field) {
+            Some(field) => Ok(field),
+            None => {
+                return Err(ArrErr::Error(format!(
+                    "Tried to get field [{}] for table [{}], but the field does not exist.",
+                    field, self.psql_table
+                )));
+            }
+        }
+    }
+}
 #[derive(Clone, Debug)]
 /// Generic resource wrapper struct used to implement our generic traits
 pub struct GenericResource<T>
@@ -387,25 +415,53 @@ macro_rules! build_grpc_server_generic_impl {
             ///
             /// This method supports paged results.
             /// When the `search_field` and `search_value` are empty, no filters will be applied.
+            /// Should not be used anymore as we have a more advanced `search` function now available.
+            async fn get_all_with_filter(
+                &self,
+                request: Request<SearchFilter>,
+            ) -> Result<tonic::Response<List>, Status> {
+                let filter: SearchFilter = request.into_inner();
+                let mut filters = vec![];
+                if filter.search_field != "" && filter.search_value != "" {
+                    filters.push(FilterOption {
+                        search_field: filter.search_field,
+                        search_value: [filter.search_value].to_vec(),
+                        predicate_operator: PredicateOperator::Equals.into(),
+                        comparison_operator: None,
+                    });
+                }
+                let advanced_filter = AdvancedSearchFilter {
+                    filters,
+                    page_number: 0,
+                    results_per_page: -1,
+                    order_by: vec![],
+                };
+                self.generic_search::<List>(tonic::Request::new(advanced_filter)).await
+            }
+
+            /// Takes an [`AdvancedSearchFilter`] object to search the database with the provided values.
+            ///
+            /// This method supports paged results.
             ///
             /// # Examples
             ///
             /// ```
-            /// use svc_storage::grpc::{SearchFilter, Id};
+            /// use svc_storage::grpc::{AdvancedSearchFilter, FilterOption, PredicateOperator, Id};
             #[doc = concat!("use svc_storage::resources::", stringify!($rpc_service), "::{Object, List, GrpcServer, RpcService};")]
             ///
             /// async fn example() -> Result<(), tonic::Status> {
             ///     let server = GrpcServer::default();
             ///
             ///     // Empty filter, but return paged results
-            ///     let mut filter = SearchFilter {
-            ///         search_field: String::from(""),
-            ///         search_value: String::from(""),
+            ///     let mut filters = vec![];
+            ///     let advanced_filter = AdvancedSearchFilter {
+            ///         filters,
             ///         page_number: 1,
-            ///         results_per_page: 50,
+            ///         results_per_page: 10,
+            ///         order_by: vec![],
             ///     };
             ///
-            ///     let result = match server.get_all_with_filter(tonic::Request::new(filter.clone())).await
+            ///     let result = match server.search(tonic::Request::new(advanced_filter)).await
             ///     {
             ///         Ok(res) => res.into_inner().list,
             ///         Err(e) => {
@@ -417,11 +473,11 @@ macro_rules! build_grpc_server_generic_impl {
             ///     Ok(())
             /// }
             /// ```
-            async fn get_all_with_filter(
+            async fn search(
                 &self,
-                request: Request<SearchFilter>,
+                request: Request<AdvancedSearchFilter>,
             ) -> Result<tonic::Response<List>, Status> {
-                self.generic_get_all_with_filter::<List>(request).await
+                self.generic_search::<List>(request).await
             }
 
             #[doc = concat!("Takes a ", stringify!($rpc_service), " [Data] object to create a new ", stringify!($rpc_service), " with the provided data.")]
