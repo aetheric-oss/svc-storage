@@ -1,17 +1,14 @@
 [package]
 description = "Arrow Storage service GRPC client"
-edition     = "2021"                                                       # Allowed values are 2015, 2018, 2021
-homepage    = "https://www.arrowair.com/docs/documentation/services/intro"
-keywords    = ["vtol", "client", "storage"]                                # max 5
-license     = "BUSL-1.1"
+keywords    = ["vtol", "client", "storage"]       # max 5
 name        = "svc-storage-client-grpc"
-repository  = "https://github.com/Arrow-air/svc-storage"
 version     = "0.9.0-develop.1"
 
-categories = [
-  "aerospace::drones",
-  "aerospace::protocols",
-] # max 5 -- https://crates.io/category_slugs
+categories.workspace = true
+edition.workspace    = true
+homepage.workspace   = true
+license.workspace    = true
+repository.workspace = true
 
 [dependencies]
 geo-types     = "0.7"
