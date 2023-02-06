@@ -43,8 +43,8 @@ pub struct Data {
     #[prost(int64, tag = "4")]
     pub flight_distance_meters: i64,
     /// weather_conditions
-    #[prost(string, tag = "5")]
-    pub weather_conditions: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "5")]
+    pub weather_conditions: ::core::option::Option<::prost::alloc::string::String>,
     /// departure_vertiport_id UUID v4, only listed for get results, not needed for creation (known through pad_id)
     #[prost(string, optional, tag = "6")]
     pub departure_vertiport_id: ::core::option::Option<::prost::alloc::string::String>,
@@ -334,6 +334,25 @@ pub mod rpc_service_client {
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/grpc.flight_plan.RpcService/delete",
+            );
+            self.inner.unary(request.into_request(), path, codec).await
+        }
+        pub async fn search(
+            &mut self,
+            request: impl tonic::IntoRequest<super::super::AdvancedSearchFilter>,
+        ) -> Result<tonic::Response<super::List>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/grpc.flight_plan.RpcService/search",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
