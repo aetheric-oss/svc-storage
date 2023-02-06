@@ -9,7 +9,8 @@ pub mod grpc_server {
 
 pub use grpc_server::storage_rpc_server::{StorageRpc, StorageRpcServer};
 pub use grpc_server::{
-    Id, ReadyRequest, ReadyResponse, SearchFilter, ValidationError, ValidationResult,
+    AdvancedSearchFilter, FilterOption, Id, PredicateOperator, ReadyRequest, ReadyResponse,
+    SearchFilter, SortOption, SortOrder, ValidationError, ValidationResult,
 };
 use tokio_postgres::Row;
 
@@ -19,7 +20,6 @@ use crate::resources::base::{GenericObjectType, GenericResourceResult};
 
 use anyhow::Error;
 use prost_types::Timestamp;
-use std::collections::HashMap;
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use std::time::SystemTime;
@@ -118,30 +118,25 @@ where
     }
 
     /// Returns a [tonic] gRCP [`Response`] containing an object of provided type `V`.
-    /// `V`(TryFrom\<Vec\<Row\>\>) will contain all records found in the database using the the provided [`SearchFilter`].
+    /// `V`(TryFrom\<Vec\<Row\>\>) will contain all records found in the database using the the provided [`AdvancedSearchFilter`].
     ///
     /// This method supports paged results.
-    /// When the `search_field` and `search_value` are empty, no filters will be applied.
     ///
     /// # Errors
     ///
     /// Returns [`Status`] with [`Code::Internal`] if any error is returned from the db search result.  
     /// Returns [`Status`] with [`Code::Internal`] if the resulting [`Vec<Row>`] data could not be converted into `V`.  
     ///
-    async fn generic_get_all_with_filter<V>(
+    async fn generic_search<V>(
         &self,
-        request: Request<SearchFilter>,
+        request: Request<AdvancedSearchFilter>,
     ) -> Result<Response<V>, Status>
     where
         V: TryFrom<Vec<Row>>,
         Status: From<<V as TryFrom<Vec<Row>>>::Error>,
     {
-        let filter: SearchFilter = request.into_inner();
-        let mut filter_hash = HashMap::<String, String>::new();
-        filter_hash.insert("column".to_string(), filter.search_field);
-        filter_hash.insert("value".to_string(), filter.search_value);
-
-        match T::search(&filter_hash).await {
+        let filter: AdvancedSearchFilter = request.into_inner();
+        match T::advanced_search(filter).await {
             Ok(rows) => Ok(Response::new(rows.try_into()?)),
             Err(e) => Err(Status::new(Code::Internal, e.to_string())),
         }
@@ -356,6 +351,14 @@ impl From<GrpcField> for i16 {
         }
     }
 }
+impl From<GrpcField> for bool {
+    fn from(field: GrpcField) -> Self {
+        match field {
+            GrpcField::Bool(field) => field,
+            _ => false,
+        }
+    }
+}
 impl From<GrpcField> for Timestamp {
     fn from(field: GrpcField) -> Self {
         match field {
@@ -364,7 +367,6 @@ impl From<GrpcField> for Timestamp {
         }
     }
 }
-
 impl From<GrpcFieldOption> for Option<GrpcField> {
     fn from(field: GrpcFieldOption) -> Self {
         match field {

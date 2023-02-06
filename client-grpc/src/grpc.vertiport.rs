@@ -214,5 +214,24 @@ pub mod rpc_service_client {
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
+        pub async fn search(
+            &mut self,
+            request: impl tonic::IntoRequest<super::super::AdvancedSearchFilter>,
+        ) -> Result<tonic::Response<super::List>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/grpc.vertiport.RpcService/search",
+            );
+            self.inner.unary(request.into_request(), path, codec).await
+        }
     }
 }

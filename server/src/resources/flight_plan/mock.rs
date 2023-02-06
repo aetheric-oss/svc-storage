@@ -10,7 +10,7 @@ pub fn get_data_obj() -> Data {
         vehicle_id: Uuid::new_v4().to_string(),
         flight_distance_meters: 4000,
         cargo_weight_grams: vec![20],
-        weather_conditions: String::from("cold and windy"),
+        weather_conditions: Some(String::from("cold and windy")),
         departure_vertiport_id: Some(Uuid::new_v4().to_string()),
         departure_vertipad_id: Uuid::new_v4().to_string(),
         destination_vertiport_id: Some(Uuid::new_v4().to_string()),
