@@ -4,7 +4,7 @@
 pub mod mock;
 
 mod grpc_server {
-    #![allow(unused_qualifications, missing_docs)]
+    #![allow(unused_qualifications)]
     tonic::include_proto!("grpc.vertipad");
 }
 // Expose module resources
