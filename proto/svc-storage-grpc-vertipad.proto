@@ -12,6 +12,7 @@ service RpcService {
     rpc insert(Data) returns (Response);
     rpc update(UpdateObject) returns (Response);
     rpc delete(grpc.Id) returns (google.protobuf.Empty);
+    rpc search(grpc.AdvancedSearchFilter) returns (List);
 }
 
 message Response {

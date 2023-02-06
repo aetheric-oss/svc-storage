@@ -21,8 +21,8 @@ use uuid::Uuid;
 
 use crate::common::ArrErr;
 use crate::grpc::{
-    GrpcDataObjectType, GrpcField, GrpcFieldOption, GrpcObjectType, Id, SearchFilter,
-    ValidationResult,
+    AdvancedSearchFilter, FilterOption, GrpcDataObjectType, GrpcField, GrpcFieldOption,
+    GrpcObjectType, Id, PredicateOperator, SearchFilter, ValidationResult,
 };
 use crate::resources::base::{
     FieldDefinition, GenericObjectType, GenericResource, GenericResourceResult, Resource,
@@ -42,6 +42,10 @@ impl Resource for GenericResource<Data> {
             psql_table: String::from("vertipad"),
             psql_id_col: String::from("vertipad_id"),
             fields: HashMap::from([
+                (
+                    "vertiport_id".to_string(),
+                    FieldDefinition::new(PsqlFieldType::UUID, true),
+                ),
                 (
                     "name".to_string(),
                     FieldDefinition::new(PsqlFieldType::TEXT, true),

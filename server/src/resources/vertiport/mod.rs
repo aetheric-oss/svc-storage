@@ -21,8 +21,8 @@ use uuid::Uuid;
 
 use crate::common::ArrErr;
 use crate::grpc::{
-    GrpcDataObjectType, GrpcField, GrpcFieldOption, GrpcObjectType, Id, SearchFilter,
-    ValidationResult,
+    AdvancedSearchFilter, FilterOption, GrpcDataObjectType, GrpcField, GrpcFieldOption,
+    GrpcObjectType, Id, PredicateOperator, SearchFilter, ValidationResult,
 };
 use crate::resources::base::{
     FieldDefinition, GenericObjectType, GenericResource, GenericResourceResult, Resource,
