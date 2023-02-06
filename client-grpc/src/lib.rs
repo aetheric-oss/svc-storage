@@ -1,5 +1,8 @@
 //! Exposes svc-storage Client Functions
 
+/// Provide search helpers
+pub mod search;
+
 /// Client Library: Client Functions, Structs
 pub mod client {
     #![allow(unused_qualifications, missing_docs)]
@@ -20,7 +23,10 @@ pub mod vertipad {
     #![allow(unused_qualifications, missing_docs)]
     include!("grpc.vertipad.rs");
 }
-use crate::client::{Id, SearchFilter, ValidationResult};
+
+use crate::client::{AdvancedSearchFilter, Id, SearchFilter, ValidationResult};
+
+pub use prost_types::FieldMask;
 
 pub use flight_plan::rpc_service_client::RpcServiceClient as FlightPlanClient;
 pub use vertipad::rpc_service_client::RpcServiceClient as VertipadClient;
