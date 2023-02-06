@@ -404,13 +404,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("RESPONSE Vertiports={:?}", vertiports.into_inner());
 
     let mut flight_plan_client = FlightPlanClient::connect(grpc_endpoint.clone()).await?;
-    let filter = AdvancedSearchFilter::search_is("pilot_id".to_string(), pilot_id)
+
+    let scheduled_departure_min =
+        prost_types::Timestamp::date_time(2022, 10, 12, 23, 00, 00).unwrap();
+    let scheduled_departure_max =
+        prost_types::Timestamp::date_time(2022, 10, 13, 23, 00, 00).unwrap();
+    let filter = AdvancedSearchFilter::search_equals("pilot_id".to_string(), pilot_id)
         .and_between(
-            "latitude".to_string(),
-            "-100".to_string(),
-            "-125".to_string(),
+            "scheduled_departure".to_owned(),
+            scheduled_departure_min.to_string(),
+            scheduled_departure_max.to_string(),
         )
-        .and_is_not_null("deleted_at".to_string());
+        .and_is_not_null("deleted_at".to_owned());
     let flight_plans = flight_plan_client
         .search(tonic::Request::new(filter))
         .await?;
