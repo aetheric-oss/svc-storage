@@ -4,6 +4,7 @@ use ordered_float::OrderedFloat;
 use prost_types::FieldMask;
 use std::env;
 use std::time::SystemTime;
+use svc_storage_client_grpc::client::AdvancedSearchFilter;
 use tonic::Status;
 use uuid::Uuid;
 
@@ -105,19 +106,16 @@ async fn vertipad_scenario(mut vertiports: vertiport::List) -> Result<vertipad::
         .unwrap();
     println!("Vertipad Client created");
 
-    let vertipad_filter = SearchFilter {
-        search_field: "occupied".to_string(),
-        search_value: "false".to_string(),
-        page_number: 1,
-        results_per_page: 50,
-    };
+    let filter = AdvancedSearchFilter::search_equals("occupied".to_owned(), false.to_string())
+        .page_number(1)
+        .results_per_page(50);
 
     println!("Retrieving list of vertipads");
     let vertipads = match vertipad_client
-        .get_all_with_filter(tonic::Request::new(vertipad_filter.clone()))
+        .search(tonic::Request::new(filter.clone()))
         .await
     {
-        Ok(res) => Ok(res.into_inner().list),
+        Ok(res) => Ok(res.into_inner()),
         Err(e) => Err(e),
     };
     println!("Vertipads found: {:?}", vertipads);
@@ -204,10 +202,7 @@ async fn vertipad_scenario(mut vertiports: vertiport::List) -> Result<vertipad::
     println!("Created new vertipad: {:?}", vertipad_result);
 
     println!("Retrieving list of vertipads");
-    match vertipad_client
-        .get_all_with_filter(tonic::Request::new(vertipad_filter.clone()))
-        .await
-    {
+    match vertipad_client.search(tonic::Request::new(filter)).await {
         Ok(res) => {
             let vertipads = res.into_inner();
             println!("Vertipads found: {:?}", vertipads);
@@ -225,12 +220,6 @@ async fn generate_sample_vertiports() -> Result<vertiport::List, Status> {
     };
     println!("Vertiport Client created");
 
-    let vertiport_filter = SearchFilter {
-        search_field: "".to_string(),
-        search_value: "".to_string(),
-        page_number: 1,
-        results_per_page: 50,
-    };
     let x = OrderedFloat(-122.4194);
     let y = OrderedFloat(37.7746);
     match vertiport_client
@@ -247,12 +236,25 @@ async fn generate_sample_vertiports() -> Result<vertiport::List, Status> {
         Err(e) => panic!("Something went wrong inserting the vertiport: {}", e),
     };
 
+    let filter = AdvancedSearchFilter::search_between(
+        "latitude".to_owned(),
+        (-122.2).to_string(),
+        (-122.5).to_string(),
+    )
+    .and_between("longitude".to_owned(), 37.6.to_string(), 37.8.to_string())
+    .page_number(1)
+    .results_per_page(50);
+
     println!("Retrieving list of vertiports");
     match vertiport_client
-        .get_all_with_filter(tonic::Request::new(vertiport_filter.clone()))
+        .search(tonic::Request::new(filter.clone()))
         .await
     {
-        Ok(res) => Ok(res.into_inner()),
+        Ok(res) => {
+            let vertiports = res.into_inner();
+            println!("Vertiports found: {:?}", vertiports);
+            Ok(vertiports)
+        }
         Err(e) => Err(e),
     }
 }
@@ -309,7 +311,7 @@ async fn flight_plan_scenario(
             pilot_id: pilot_id.to_string().clone(),
             cargo_weight_grams: vec![20],
             flight_distance_meters: 6000,
-            weather_conditions: "Cloudy, low wind".to_string(),
+            weather_conditions: Some("Cloudy, low wind".to_string()),
             departure_vertipad_id: departure_vertipad_id.to_string(),
             departure_vertiport_id: None,
             destination_vertipad_id: destination_vertipad_id.to_string(),
@@ -388,7 +390,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let vertipads = vertipad_scenario(vertiports).await?;
 
     // Play flight plan scenario
-    let _result = flight_plan_scenario(pilot_id, vehicle_id, vertipads).await;
+    let _result = flight_plan_scenario(pilot_id.clone(), vehicle_id, vertipads).await;
 
     let mut vertiport_client = VertiportClient::connect(grpc_endpoint.clone()).await?;
     let vertiports = vertiport_client
@@ -400,6 +402,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }))
         .await?;
     println!("RESPONSE Vertiports={:?}", vertiports.into_inner());
+
+    let mut flight_plan_client = FlightPlanClient::connect(grpc_endpoint.clone()).await?;
+    let filter = AdvancedSearchFilter::search_is("pilot_id".to_string(), pilot_id)
+        .and_between(
+            "latitude".to_string(),
+            "-100".to_string(),
+            "-125".to_string(),
+        )
+        .and_is_not_null("deleted_at".to_string());
+    let flight_plans = flight_plan_client
+        .search(tonic::Request::new(filter))
+        .await?;
+    println!("RESPONSE Flight Plan Search={:?}", flight_plans);
 
     Ok(())
 }

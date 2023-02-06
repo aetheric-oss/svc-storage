@@ -27,8 +27,8 @@ use lib_common::time::datetime_to_timestamp;
 use crate::common::ArrErr;
 use crate::grpc::get_runtime_handle;
 use crate::grpc::{
-    GrpcDataObjectType, GrpcField, GrpcFieldOption, GrpcObjectType, Id, SearchFilter,
-    ValidationResult,
+    AdvancedSearchFilter, FilterOption, GrpcDataObjectType, GrpcField, GrpcFieldOption,
+    GrpcObjectType, Id, PredicateOperator, SearchFilter, ValidationResult,
 };
 use crate::postgres::{PsqlJsonValue, PsqlResourceType};
 use crate::resources::base::{
@@ -199,7 +199,7 @@ impl Resource for GenericResource<Data> {
                 ),
                 (
                     "weather_conditions".to_string(),
-                    FieldDefinition::new(PsqlFieldType::TEXT, true),
+                    FieldDefinition::new(PsqlFieldType::TEXT, false),
                 ),
                 (
                     "departure_vertipad_id".to_string(),
@@ -257,6 +257,11 @@ impl Resource for GenericResource<Data> {
                     FieldDefinition::new_internal(PsqlFieldType::TIMESTAMPTZ, true)
                         .set_default(String::from("CURRENT_TIMESTAMP")),
                 ),
+                (
+                    "deleted_at".to_string(),
+                    FieldDefinition::new_internal(PsqlFieldType::TIMESTAMPTZ, true)
+                        .set_default(String::from("CURRENT_TIMESTAMP")),
+                ),
             ]),
         }
     }
@@ -291,7 +296,9 @@ impl GrpcDataObjectType for Data {
             "vehicle_id" => Ok(GrpcField::String(self.vehicle_id.clone())), //::prost::alloc::string::String,
             "cargo_weight_grams" => Ok(GrpcField::I64List(self.cargo_weight_grams.clone())), //::prost::alloc::vec::Vec<i64>,
             "flight_distance_meters" => Ok(GrpcField::I64(self.flight_distance_meters)),     //i64,
-            "weather_conditions" => Ok(GrpcField::String(self.weather_conditions.clone())), //::prost::alloc::string::String,
+            "weather_conditions" => Ok(GrpcField::Option(GrpcFieldOption::String(
+                self.weather_conditions.clone(),
+            ))), //::core::option::Option<::prost::alloc::string::String>,
             "departure_vertiport_id" => Ok(GrpcField::Option(GrpcFieldOption::String(
                 self.departure_vertiport_id.clone(),
             ))), //::core::option::Option<::prost::alloc::string::String>,
