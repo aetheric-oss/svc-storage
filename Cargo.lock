@@ -1845,6 +1845,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml 0.9.16",
+ "svc-storage-client-grpc 0.9.0-develop.1",
  "thiserror",
  "tokio",
  "tokio-postgres",
