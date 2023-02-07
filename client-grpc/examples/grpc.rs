@@ -4,18 +4,19 @@ use ordered_float::OrderedFloat;
 use prost_types::FieldMask;
 use std::env;
 use std::time::SystemTime;
-use svc_storage_client_grpc::client::AdvancedSearchFilter;
 use tonic::Status;
 use uuid::Uuid;
 
 use svc_storage_client_grpc::client::{
-    pilot_rpc_client::PilotRpcClient, vehicle_rpc_client::VehicleRpcClient, Pilot, SearchFilter,
-    Vehicle, VehicleType,
+    pilot_rpc_client::PilotRpcClient, AdvancedSearchFilter, Pilot, SearchFilter,
 };
 use svc_storage_client_grpc::flight_plan::{self, FlightPriority, FlightStatus};
+use svc_storage_client_grpc::vehicle;
 use svc_storage_client_grpc::vertipad;
 use svc_storage_client_grpc::vertiport;
+
 use svc_storage_client_grpc::FlightPlanClient;
+use svc_storage_client_grpc::VehicleClient;
 use svc_storage_client_grpc::VertipadClient;
 use svc_storage_client_grpc::VertiportClient;
 
@@ -38,27 +39,20 @@ pub fn get_grpc_endpoint() -> String {
 /// Example VehicleRpcClient
 /// Assuming the server is running, this method calls `client.vehicles` and
 /// should receive a valid response from the server
-async fn get_vehicles() -> Result<Vec<Vehicle>, Status> {
+async fn get_vehicles() -> Result<vehicle::List, Status> {
     let grpc_endpoint = get_grpc_endpoint();
     println!("Using GRPC endpoint {}", grpc_endpoint);
-    let mut vehicle_client = VehicleRpcClient::connect(grpc_endpoint.clone())
-        .await
-        .unwrap();
+    let mut vehicle_client = VehicleClient::connect(grpc_endpoint.clone()).await.unwrap();
     println!("Vehicle Client created");
 
-    let vehicle_filter = SearchFilter {
-        search_field: "vehicle_type".to_string(),
-        search_value: (VehicleType::VtolCargo as i32).to_string(),
-        page_number: 1,
-        results_per_page: 50,
-    };
+    let filter =
+        AdvancedSearchFilter::search_ilike("serial_number".to_owned(), "%mock%".to_owned())
+            .page_number(1)
+            .results_per_page(50);
 
     println!("Retrieving list of vehicles");
-    match vehicle_client
-        .vehicles(tonic::Request::new(vehicle_filter.clone()))
-        .await
-    {
-        Ok(res) => Ok(res.into_inner().vehicles),
+    match vehicle_client.search(tonic::Request::new(filter)).await {
+        Ok(res) => Ok(res.into_inner()),
         Err(e) => Err(e),
     }
 }
