@@ -120,7 +120,7 @@ message ValidationError {
     string error = 2;
 }
 
-// Returns a [bool] success status and list of [ValidationError]
+// Returns a [`bool`] success status and list of [`ValidationError`]
 message ValidationResult {
     // success
     bool success = 1;
