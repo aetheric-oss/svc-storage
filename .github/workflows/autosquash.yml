@@ -16,7 +16,7 @@ permissions:
 jobs:
   autosquash:
     name: Autosquash
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
       - name: Import Arrow bot's GPG key for signing commits
         id: import-gpg
