@@ -511,7 +511,7 @@ erDiagram
     flight_plan {
         uuid flight_plan_id PK
         uuid pilot_id FK
-        uuid aircraft_id FK
+        uuid vehicle_id FK
         integer flight_distance_meters
         text weather_conditions
         uuid departure_vertipad_id FK
@@ -528,7 +528,7 @@ erDiagram
         text flight_priority "Default LOW"
         timestamp created_at "Default NOW"
         timestamp updated_at "Default NOW"
-        timestamp archived_at "Default NULL"
+        timestamp deleted_at "Default NULL"
     }
     asset_group {
         uuid asset_group_id PK
@@ -641,31 +641,34 @@ erDiagram
         uuid address_id FK
         string description "Optional"
     }
-    aircraft {
-        uuid aircraft_id PK
-        text aircraft_model_id FK
+    vehicle {
+        uuid vehicle_id PK
+        text vehicle_model_id FK
         text serial_number
         text registration_number
         text description "Optional"
-        text status "Default AVAILABLE"
         uuid asset_group_id FK "Optional"
+        text schedule "Optional"
+        timestamp last_maintenance "Optional"
+        timestamp next_maintenance "Optional"
         timestamp created_at "Default NOW"
         timestamp updated_at "Default NOW"
         timestamp deleted_at "Default NULL"
     }
-    aircraft_field {
+    vehicle_field {
         uuid field_id
         text field
         text type
         bool mandatory "Default false"
     }
-    aircraft_field_value {
-        uuid aircraft_id PK
-        uuid aircraft_field_id FK
+    vehicle_field_value {
+        uuid vehicle_id PK
+        uuid vehicle_field_id FK
         text value
+        timestamp updated_at "Default NOW"
     }
-    aircraft_model {
-        uuid aircraft_model_id PK
+    vehicle_model {
+        uuid vehicle_model_id PK
         uuid manufacturer_id FK
         text model
         text type
@@ -675,15 +678,15 @@ erDiagram
         timestamp updated_at "Default NOW"
         timestamp deleted_at "Default NULL"
     }
-    aircraft_model_field {
+    vehicle_model_field {
         uuid field_id
         text field
         text type
         bool mandatory "Default false"
     }
-    aircraft_model_field_value {
-        uuid aircraft_model_id PK
-        uuid aircraft_model_field_id FK
+    vehicle_model_field_value {
+        uuid vehicle_model_id PK
+        uuid vehicle_model_field_id FK
         text value
     }
     manufacturer {
