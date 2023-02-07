@@ -4,7 +4,7 @@
 pub mod macros;
 use crate::resources::flight_plan;
 use crate::resources::pilot::*;
-use crate::resources::vehicle::*;
+use crate::resources::vehicle;
 use crate::resources::vertipad;
 use crate::resources::vertiport;
 
@@ -13,7 +13,7 @@ use lazy_static::lazy_static;
 use std::collections::HashMap;
 
 lazy_static! {
-    pub static ref VEHICLES: Mutex<HashMap<String, Vehicle>> = Mutex::new(HashMap::new());
+    pub static ref VEHICLES: Mutex<HashMap<String, vehicle::Data>> = Mutex::new(HashMap::new());
     pub static ref VERTIPORTS: Mutex<HashMap<String, vertiport::Data>> = Mutex::new(HashMap::new());
     pub static ref VERTIPADS: Mutex<HashMap<String, vertipad::Data>> = Mutex::new(HashMap::new());
     pub static ref PILOTS: Mutex<HashMap<String, Pilot>> = Mutex::new(HashMap::new());
