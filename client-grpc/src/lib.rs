@@ -8,8 +8,6 @@ pub mod client {
     #![allow(unused_qualifications, missing_docs)]
     include!("grpc.rs");
     include!("grpc.pilot.rs");
-    include!("grpc.vehicle.rs");
-    include!("grpc.vertipad.rs");
 }
 
 /// Flight Plan module implementing gRPC functions
@@ -32,7 +30,27 @@ pub mod flight_plan {
     #![allow(unused_qualifications)]
     include!("grpc.flight_plan.rs");
 }
-/// Vertiport module implementing gRPC functions
+/// vehicle module implementing gRPC functions
+///
+/// Provides basic insert/ update/ get / delete functionality and a more advanced search function.
+///
+/// # Examples
+///
+/// Create a client connection
+/// ```
+/// use svc_storage_client_grpc::VehicleClient;
+/// async fn example() {
+///     let mut vehicle_client = match VehicleClient::connect("http://localhost:50051").await {
+///         Ok(res) => res,
+///         Err(e) => panic!("Error creating client for VehicleClient: {}", e),
+///     };
+/// }
+/// ```
+pub mod vehicle {
+    #![allow(unused_qualifications)]
+    include!("grpc.vehicle.rs");
+}
+/// vertiport module implementing gRPC functions
 ///
 /// Provides basic insert/ update/ get / delete functionality and a more advanced search function.
 ///
@@ -77,5 +95,6 @@ use crate::client::{AdvancedSearchFilter, Id, SearchFilter, ValidationResult};
 pub use prost_types::FieldMask;
 
 pub use flight_plan::rpc_service_client::RpcServiceClient as FlightPlanClient;
+pub use vehicle::rpc_service_client::RpcServiceClient as VehicleClient;
 pub use vertipad::rpc_service_client::RpcServiceClient as VertipadClient;
 pub use vertiport::rpc_service_client::RpcServiceClient as VertiportClient;
