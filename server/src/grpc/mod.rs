@@ -30,7 +30,7 @@ use tonic::{Code, Request, Response, Status};
 use crate::common::Config;
 use crate::resources::flight_plan;
 use crate::resources::pilot::{PilotImpl, PilotRpcServer};
-use crate::resources::vehicle::{VehicleImpl, VehicleRpcServer};
+use crate::resources::vehicle;
 use crate::resources::vertipad;
 use crate::resources::vertiport;
 
@@ -91,7 +91,7 @@ where
     U: GrpcDataObjectType + TryFrom<Row>,
     Status: From<<U as TryFrom<Row>>::Error>,
 {
-    /// Returns a [tonic] gRCP [`Response`] containing an object of provided type `V`.
+    /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type `V`.
     /// `V` will contain the record data found for the provided [`Id`].
     ///
     /// # Errors
@@ -117,7 +117,7 @@ where
         }
     }
 
-    /// Returns a [tonic] gRCP [`Response`] containing an object of provided type `V`.
+    /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type `V`.
     /// `V`(TryFrom\<Vec\<Row\>\>) will contain all records found in the database using the the provided [`AdvancedSearchFilter`].
     ///
     /// This method supports paged results.
@@ -142,7 +142,7 @@ where
         }
     }
 
-    /// Returns a [tonic] gRCP [`Response`] containing an object of provided type `V`.
+    /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type `V`.
     /// `V`(From<GenericResourceResult<T, U>>) will contain the inserted record after saving the provided data `U`.
     ///
     /// The given data will be validated before insert.  
@@ -187,7 +187,7 @@ where
         }
     }
 
-    /// Returns a [tonic] gRCP [`Response`] containing an object of provided type `V`.
+    /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type `V`.
     /// `V`(GenericResourceResult<T, U>) will contain the updated record after saving the provided data `U`.
     ///
     /// The given data will be validated before insert.
@@ -411,10 +411,10 @@ pub async fn grpc_server() {
         .set_serving::<StorageRpcServer<StorageImpl>>()
         .await;
     health_reporter
-        .set_serving::<VehicleRpcServer<VehicleImpl>>()
+        .set_serving::<flight_plan::RpcServiceServer<flight_plan::GrpcServer>>()
         .await;
     health_reporter
-        .set_serving::<flight_plan::RpcServiceServer<flight_plan::GrpcServer>>()
+        .set_serving::<vehicle::RpcServiceServer<vehicle::GrpcServer>>()
         .await;
     health_reporter
         .set_serving::<vertipad::RpcServiceServer<vertipad::GrpcServer>>()
@@ -427,10 +427,12 @@ pub async fn grpc_server() {
     Server::builder()
         .add_service(health_service)
         .add_service(StorageRpcServer::new(StorageImpl::default()))
-        .add_service(VehicleRpcServer::new(VehicleImpl::default()))
         .add_service(PilotRpcServer::new(PilotImpl::default()))
         .add_service(flight_plan::RpcServiceServer::new(
             flight_plan::GrpcServer::default(),
+        ))
+        .add_service(vehicle::RpcServiceServer::new(
+            vehicle::GrpcServer::default(),
         ))
         .add_service(vertipad::RpcServiceServer::new(
             vertipad::GrpcServer::default(),

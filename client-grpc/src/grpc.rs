@@ -104,7 +104,7 @@ pub struct ValidationError {
     #[prost(string, tag = "2")]
     pub error: ::prost::alloc::string::String,
 }
-/// Returns a \[bool\] success status and list of \[ValidationError\]
+/// Returns a \[`bool`\] success status and list of \[`ValidationError`\]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ValidationResult {

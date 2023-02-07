@@ -36,6 +36,7 @@ paste               = "1.0"
 postgres-native-tls = "0.5"
 prost               = "0.11"
 prost-types         = "0.11"
+rand                = "0.8"
 router              = { git = "https://github.com/Arrow-air/lib-router.git", branch = "main" }
 serde               = "1.0"
 serde_json          = "1.0"
