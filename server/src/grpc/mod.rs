@@ -29,6 +29,7 @@ use tonic::{Code, Request, Response, Status};
 
 use crate::common::Config;
 use crate::resources::flight_plan;
+use crate::resources::itinerary;
 use crate::resources::pilot::{PilotImpl, PilotRpcServer};
 use crate::resources::vehicle;
 use crate::resources::vertipad;
@@ -37,6 +38,8 @@ use crate::resources::vertiport;
 #[derive(Debug, Clone)]
 /// gRPC field types
 pub enum GrpcField {
+    /// Vec\<String\>
+    StringList(Vec<String>),
     /// String
     String(String),
     /// Vec\<i64\>
@@ -61,6 +64,8 @@ pub enum GrpcField {
 #[derive(Debug, Clone)]
 /// gRPC field types as Option
 pub enum GrpcFieldOption {
+    /// Option\<String\>
+    StringList(Option<Vec<String>>),
     /// Option\<String\>
     String(Option<String>),
     /// Option\<Vec\<i64\>\>
@@ -302,6 +307,15 @@ impl From<ArrErr> for Status {
     }
 }
 
+impl From<GrpcField> for Vec<String> {
+    fn from(field: GrpcField) -> Self {
+        match field {
+            GrpcField::StringList(field) => field,
+            GrpcField::String(field) => vec![field],
+            _ => vec![],
+        }
+    }
+}
 impl From<GrpcField> for String {
     fn from(field: GrpcField) -> Self {
         match field {
@@ -370,6 +384,7 @@ impl From<GrpcField> for Timestamp {
 impl From<GrpcFieldOption> for Option<GrpcField> {
     fn from(field: GrpcFieldOption) -> Self {
         match field {
+            GrpcFieldOption::StringList(field) => field.map(GrpcField::StringList),
             GrpcFieldOption::String(field) => field.map(GrpcField::String),
             GrpcFieldOption::I64List(field) => field.map(GrpcField::I64List),
             GrpcFieldOption::I64(field) => field.map(GrpcField::I64),
@@ -414,6 +429,9 @@ pub async fn grpc_server() {
         .set_serving::<flight_plan::RpcServiceServer<flight_plan::GrpcServer>>()
         .await;
     health_reporter
+        .set_serving::<itinerary::RpcServiceServer<itinerary::GrpcServer>>()
+        .await;
+    health_reporter
         .set_serving::<vehicle::RpcServiceServer<vehicle::GrpcServer>>()
         .await;
     health_reporter
@@ -439,6 +457,9 @@ pub async fn grpc_server() {
         ))
         .add_service(vertiport::RpcServiceServer::new(
             vertiport::GrpcServer::default(),
+        ))
+        .add_service(itinerary::RpcServiceServer::new(
+            itinerary::GrpcServer::default(),
         ))
         .serve_with_shutdown(full_grpc_addr, shutdown_signal())
         .await

@@ -3,6 +3,7 @@
 /// log macro's for memdb logging
 pub mod macros;
 use crate::resources::flight_plan;
+use crate::resources::itinerary;
 use crate::resources::pilot::*;
 use crate::resources::vehicle;
 use crate::resources::vertipad;
@@ -18,5 +19,7 @@ lazy_static! {
     pub static ref VERTIPADS: Mutex<HashMap<String, vertipad::Data>> = Mutex::new(HashMap::new());
     pub static ref PILOTS: Mutex<HashMap<String, Pilot>> = Mutex::new(HashMap::new());
     pub static ref FLIGHT_PLANS: Mutex<HashMap<String, flight_plan::Data>> =
+        Mutex::new(HashMap::new());
+    pub static ref ITINERARIES: Mutex<HashMap<String, itinerary::Data>> =
         Mutex::new(HashMap::new());
 }
