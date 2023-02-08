@@ -3,7 +3,14 @@
 ///generates .rs files in src directory
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let proto_dir = "../proto";
-    let types = ["flight_plan", "pilot", "vehicle", "vertiport", "vertipad"];
+    let types = [
+        "flight_plan",
+        "pilot",
+        "vehicle",
+        "vertiport",
+        "vertipad",
+        "itinerary",
+    ];
     let proto_files: Vec<String> = types
         .into_iter()
         .map(|x| format!("{}/svc-storage-grpc-{}.proto", proto_dir, x))
