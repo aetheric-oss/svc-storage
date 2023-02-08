@@ -269,7 +269,7 @@ pub mod rpc_service_client {
         /// use svc_storage_client_grpc::client::{ Id };
         /// use svc_storage_client_grpc::FieldMask;
         /// use svc_storage_client_grpc::ItineraryClient;
-        /// use svc_storage_client_grpc::itinerary::Data;
+        /// use svc_storage_client_grpc::itinerary::{Data, UpdateObject};
         ///
         /// async fn example () -> Result<(), Box<dyn std::error::Error>> {
         ///     let mut itinerary_client = ItineraryClient::connect("http://localhost:50051").await?;
@@ -388,7 +388,7 @@ pub mod rpc_service_client {
         /// async fn example () -> Result<(), Box<dyn std::error::Error>> {
         ///     let mut itinerary_client = ItineraryClient::connect("http://localhost:50051").await?;
         ///
-        ///     let pilot_id = "a2093c5e-9bbe-4f0f-97ee-276b43fa3759".to_owned();
+        ///     let user_id = "a2093c5e-9bbe-4f0f-97ee-276b43fa3759".to_owned();
         ///     let filter = AdvancedSearchFilter::search_equals("user_id".to_owned(), user_id);
         ///
         ///     match itinerary_client

@@ -41,6 +41,7 @@ pub fn get_grpc_endpoint() -> String {
 /// Example VehicleRpcClient
 /// Assuming the server is running, this method calls `client.vehicles` and
 /// should receive a valid response from the server
+#[allow(dead_code)]
 async fn get_vehicles() -> Result<vehicle::List, Status> {
     let grpc_endpoint = get_grpc_endpoint();
     println!("Using GRPC endpoint {}", grpc_endpoint);
