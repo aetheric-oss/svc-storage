@@ -530,6 +530,15 @@ erDiagram
         timestamp updated_at "Default NOW"
         timestamp deleted_at "Default NULL"
     }
+    itinerary {
+        uuid itinerary_id PK
+        uuid user_id
+    }
+    %% itinerary_flight_plan {
+    %%     combined itinerary_id_flight_plan_id PK
+    %%     uuid itinerary_id
+    %%     uuid flight_plan_id
+    %% }
     asset_group {
         uuid asset_group_id PK
         text name
