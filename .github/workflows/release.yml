@@ -50,9 +50,9 @@ jobs:
           if [ "$GITHUB_REF_NAME" != "main" ]
           then
             echo "CUSTOM_RELEASE_RULES=fix:prerelease,feat:prerelease,chore:prerelease" >> $GITHUB_ENV
-            echo "RELEASE_COMMIT_MESSAGE: \"ci: update release files\n\n[skip ci]\"" >> $GITHUB_ENV
+            echo "RELEASE_COMMIT_MESSAGE: \"ci: update release files\\n\\n[skip ci]\"" >> $GITHUB_ENV
           else
-            echo "RELEASE_COMMIT_MESSAGE: \"fixup! ci: update release files\n\n[skip ci]\"" >> $GITHUB_ENV
+            echo "RELEASE_COMMIT_MESSAGE: \"fixup! ci: update release files\\n\\n[skip ci]\"" >> $GITHUB_ENV
           fi
 
       - name: Determine new Tag
