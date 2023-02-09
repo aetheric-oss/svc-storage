@@ -28,7 +28,7 @@ use crate::common::Config;
 use crate::grpc::{
     AdvancedSearchFilter, GrpcDataObjectType, GrpcField, ValidationError, ValidationResult,
 };
-use crate::resources::{flight_plan, itinerary, vehicle, vertipad, vertiport};
+use crate::resources::{flight_plan, vehicle, itinerary, itinerary_flight_plan, vertipad, vertiport};
 
 pub use self::search::SearchCol;
 
@@ -901,8 +901,9 @@ pub async fn create_db() -> Result<(), ArrErr> {
     GenericResource::<vertiport::Data>::init_table().await?;
     GenericResource::<vertipad::Data>::init_table().await?;
     GenericResource::<vehicle::Data>::init_table().await?;
+    GenericResource::<flight_plan::Data>::init_table().await;
     GenericResource::<itinerary::Data>::init_table().await?;
-    GenericResource::<flight_plan::Data>::init_table().await
+    GenericResource::<itinerary_flight_plan::Data>::init_table().await?
 }
 
 /// If we want to recreate the database tables created by this module, we will want to drop the existing tables first.
@@ -910,10 +911,11 @@ pub async fn create_db() -> Result<(), ArrErr> {
 pub async fn drop_db() -> Result<(), ArrErr> {
     psql_warn!("Dropping database tables.");
     // Drop our tables (in the correct order)
+    GenericResource::<itinerary_flight_plan::Data>::drop_table().await?;
+    GenericResource::<itinerary::Data>::drop_table().await?;
     GenericResource::<flight_plan::Data>::drop_table().await?;
     GenericResource::<vehicle::Data>::drop_table().await?;
     GenericResource::<vertipad::Data>::drop_table().await?;
-    GenericResource::<itinerary::Data>::drop_table().await?;
     GenericResource::<vertiport::Data>::drop_table().await
 }
 

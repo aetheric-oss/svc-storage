@@ -52,6 +52,27 @@ pub mod itinerary {
     include!("grpc.itinerary.rs");
 }
 
+/// Itinerary module implementing gRPC functions
+///
+/// Provides basic insert/ update/ get / delete functionality and a more advanced search function.
+///
+/// # Examples
+///
+/// Create a client connection
+/// ```
+/// use svc_storage_client_grpc::ItineraryFlightPlanClient;
+/// async fn example() {
+///     let mut itinerary_client = match ItineraryFlightPlanClient::connect("http://localhost:50051").await {
+///         Ok(res) => res,
+///         Err(e) => panic!("Error creating client for ItineraryFlightPlanClient: {}", e),
+///     };
+/// }
+/// ```
+// pub mod itinerary_flight_plan {
+//     #![allow(unused_qualifications)]
+//     include!("grpc.itinerary_flight_plan.rs");
+// }
+
 /// vehicle module implementing gRPC functions
 ///
 /// Provides basic insert/ update/ get / delete functionality and a more advanced search function.
@@ -121,3 +142,4 @@ pub use itinerary::rpc_service_client::RpcServiceClient as ItineraryClient;
 pub use vehicle::rpc_service_client::RpcServiceClient as VehicleClient;
 pub use vertipad::rpc_service_client::RpcServiceClient as VertipadClient;
 pub use vertiport::rpc_service_client::RpcServiceClient as VertiportClient;
+// pub use itinerary_flight_plan::rpc_service_client::RpcServiceClient as ItineraryFlightPlanClient;

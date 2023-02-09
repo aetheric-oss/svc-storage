@@ -10,6 +10,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "vertiport",
         "vertipad",
         "itinerary",
+        "itinerary_flight_plan",
     ];
     let proto_files: Vec<String> = types
         .into_iter()
