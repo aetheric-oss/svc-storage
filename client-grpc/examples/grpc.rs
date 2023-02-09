@@ -11,11 +11,13 @@ use svc_storage_client_grpc::client::{
     pilot_rpc_client::PilotRpcClient, AdvancedSearchFilter, Pilot, SearchFilter,
 };
 use svc_storage_client_grpc::flight_plan::{self, FlightPriority, FlightStatus};
+use svc_storage_client_grpc::itinerary;
 use svc_storage_client_grpc::vehicle;
 use svc_storage_client_grpc::vertipad;
 use svc_storage_client_grpc::vertiport;
 
 use svc_storage_client_grpc::FlightPlanClient;
+use svc_storage_client_grpc::ItineraryClient;
 use svc_storage_client_grpc::VehicleClient;
 use svc_storage_client_grpc::VertipadClient;
 use svc_storage_client_grpc::VertiportClient;
@@ -39,6 +41,7 @@ pub fn get_grpc_endpoint() -> String {
 /// Example VehicleRpcClient
 /// Assuming the server is running, this method calls `client.vehicles` and
 /// should receive a valid response from the server
+#[allow(dead_code)]
 async fn get_vehicles() -> Result<vehicle::List, Status> {
     let grpc_endpoint = get_grpc_endpoint();
     println!("Using GRPC endpoint {}", grpc_endpoint);
@@ -56,6 +59,34 @@ async fn get_vehicles() -> Result<vehicle::List, Status> {
 
     println!("Retrieving list of vehicles");
     match vehicle_client.search(tonic::Request::new(filter)).await {
+        Ok(res) => Ok(res.into_inner()),
+        Err(e) => Err(e),
+    }
+}
+
+/// Example ItineraryRpcClient
+/// Assuming the server is running, this method calls `client.itineraries` and
+/// should receive a valid response from the server
+async fn get_itineraries() -> Result<itinerary::List, Status> {
+    let grpc_endpoint = get_grpc_endpoint();
+    println!("Using GRPC endpoint {}", grpc_endpoint);
+    let mut itinerary_client = ItineraryClient::connect(grpc_endpoint.clone())
+        .await
+        .unwrap();
+    println!("Itinerary Client created");
+
+    let filter = SearchFilter {
+        search_field: "".to_string(),
+        search_value: "".to_string(),
+        page_number: 1,
+        results_per_page: 50,
+    };
+
+    println!("Retrieving list of itineraries");
+    match itinerary_client
+        .get_all_with_filter(tonic::Request::new(filter))
+        .await
+    {
         Ok(res) => Ok(res.into_inner()),
         Err(e) => Err(e),
     }
@@ -376,7 +407,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // Get a list of vehicles
-    let _vehicles = get_vehicles().await?;
+    // let _vehicles = get_vehicles().await?; Queries on vehicle_type, not implemented
+
     let vehicle_id = Uuid::new_v4().to_string();
     // Get a list of pilots
     let _pilots = get_pilots().await?;
@@ -418,6 +450,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .search(tonic::Request::new(filter))
         .await?;
     println!("RESPONSE Flight Plan Search={:?}", flight_plans);
+
+    // Itineraries
+    {
+        let _itineraries = get_itineraries().await?;
+    }
 
     Ok(())
 }

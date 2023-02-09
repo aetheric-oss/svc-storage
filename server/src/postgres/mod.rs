@@ -28,7 +28,7 @@ use crate::common::Config;
 use crate::grpc::{
     AdvancedSearchFilter, GrpcDataObjectType, GrpcField, ValidationError, ValidationResult,
 };
-use crate::resources::{flight_plan, vertipad, vertiport};
+use crate::resources::{flight_plan, itinerary, vertipad, vertiport};
 
 pub use self::search::SearchCol;
 
@@ -900,6 +900,7 @@ pub async fn create_db() -> Result<(), ArrErr> {
     psql_info!("Creating database tables.");
     GenericResource::<vertiport::Data>::init_table().await?;
     GenericResource::<vertipad::Data>::init_table().await?;
+    GenericResource::<itinerary::Data>::init_table().await?;
     GenericResource::<flight_plan::Data>::init_table().await
 }
 
@@ -910,6 +911,7 @@ pub async fn drop_db() -> Result<(), ArrErr> {
     // Drop our tables (in the correct order)
     GenericResource::<flight_plan::Data>::drop_table().await?;
     GenericResource::<vertipad::Data>::drop_table().await?;
+    GenericResource::<itinerary::Data>::drop_table().await?;
     GenericResource::<vertiport::Data>::drop_table().await
 }
 
