@@ -51,7 +51,7 @@ pub struct Data {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct List {
-    /// array/vector of flight items
+    /// array/vector of itinerary items
     #[prost(message, repeated, tag = "1")]
     pub list: ::prost::alloc::vec::Vec<Object>,
 }
@@ -216,7 +216,7 @@ pub mod rpc_service_client {
         ///     let mut itinerary_client = ItineraryClient::connect("http://localhost:50051").await?;
         ///
         ///     let user_id = "62fb5d13-2cfe-45e2-b89a-16205d15e811".to_owned();
-        ///     println!("Starting insert flight plan");
+        ///     println!("Starting insert itinerary");
         ///     match itinerary_client
         ///     .insert(tonic::Request::new(Data {
         ///         user_id
