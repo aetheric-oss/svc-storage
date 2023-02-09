@@ -105,7 +105,7 @@ pub(crate) fn get_filter_str(
         }
         PredicateOperator::Ilike => {
             filter_str = format!(
-                r#" "{}" ILIKE '${}'"#,
+                r#" "{}"::text ILIKE ${}"#,
                 search_col.col_name, next_param_index
             );
             search_col.set_value(get_single_search_value(values)?);
@@ -113,7 +113,10 @@ pub(crate) fn get_filter_str(
             next_param_index += 1;
         }
         PredicateOperator::Like => {
-            filter_str = format!(r#" "{}" LIKE '${}'"#, search_col.col_name, next_param_index);
+            filter_str = format!(
+                r#" "{}"::text LIKE ${}"#,
+                search_col.col_name, next_param_index
+            );
             search_col.set_value(get_single_search_value(values)?);
             params.push(search_col);
             next_param_index += 1;
