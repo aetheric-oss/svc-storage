@@ -41,7 +41,6 @@ pub fn get_grpc_endpoint() -> String {
 /// Example VehicleRpcClient
 /// Assuming the server is running, this method calls `client.vehicles` and
 /// should receive a valid response from the server
-#[allow(dead_code)]
 async fn get_vehicles() -> Result<vehicle::List, Status> {
     let grpc_endpoint = get_grpc_endpoint();
     println!("Using GRPC endpoint {}", grpc_endpoint);
@@ -403,7 +402,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // Get a list of vehicles
-    // let _vehicles = get_vehicles().await?; Queries on vehicle_type, not implemented
+    let _vehicles = get_vehicles().await?;
 
     let vehicle_id = Uuid::new_v4().to_string();
     // Get a list of pilots
