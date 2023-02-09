@@ -88,6 +88,13 @@ impl Resource for GenericResource<Data> {
             ]),
         }
     }
+
+    fn get_table_indices() -> Vec<String> {
+        [
+            r#"ALTER TABLE vertipad ADD CONSTRAINT fk_vertiport_id FOREIGN KEY(vertiport_id) REFERENCES vertiport(vertiport_id)"#.to_owned(),
+            r#"CREATE INDEX IF NOT EXISTS vertipad_occupied_idx ON vertipad(occupied)"#.to_owned(),
+        ].to_vec()
+    }
 }
 
 impl GrpcDataObjectType for Data {
