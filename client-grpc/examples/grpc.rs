@@ -48,14 +48,10 @@ async fn get_vehicles() -> Result<vehicle::List, Status> {
     let mut vehicle_client = VehicleClient::connect(grpc_endpoint.clone()).await.unwrap();
     println!("Vehicle Client created");
 
-    let filter = AdvancedSearchFilter::search_equals(
-        "vehicle_type".to_owned(),
-        vehicle::VehicleModelType::VtolCargo
-            .as_str_name()
-            .to_owned(),
-    )
-    .page_number(1)
-    .results_per_page(50);
+    let filter =
+        AdvancedSearchFilter::search_ilike("serial_number".to_owned(), "%mock%".to_owned())
+            .page_number(1)
+            .results_per_page(50);
 
     println!("Retrieving list of vehicles");
     match vehicle_client.search(tonic::Request::new(filter)).await {
