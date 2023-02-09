@@ -263,8 +263,8 @@ async fn generate_sample_vertiports() -> Result<vertiport::List, Status> {
 
     let filter = AdvancedSearchFilter::search_between(
         "latitude".to_owned(),
-        (-122.2).to_string(),
         (-122.5).to_string(),
+        (-122.2).to_string(),
     )
     .and_between("longitude".to_owned(), 37.6.to_string(), 37.8.to_string())
     .page_number(1)
