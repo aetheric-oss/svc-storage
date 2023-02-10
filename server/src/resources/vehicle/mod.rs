@@ -98,6 +98,12 @@ impl Resource for GenericResource<Data> {
             ]),
         }
     }
+
+    fn get_table_indices() -> Vec<String> {
+        [
+            r#"ALTER TABLE vehicle ADD CONSTRAINT fk_last_vertiport_id FOREIGN KEY(last_vertiport_id) REFERENCES vertiport(vertiport_id)"#.to_owned(),
+        ].to_vec()
+    }
 }
 
 impl GrpcDataObjectType for Data {
@@ -115,6 +121,9 @@ impl GrpcDataObjectType for Data {
             "schedule" => Ok(GrpcField::Option(GrpcFieldOption::String(
                 self.schedule.clone(),
             ))), // ::core::option::Option<::prost::alloc::string::String>,
+            "last_vertiport_id" => Ok(GrpcField::Option(GrpcFieldOption::String(
+                self.last_vertiport_id.clone(),
+            ))), //::core::option::Option<::prost_types::Timestamp>,
             "last_maintenance" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
                 self.last_maintenance.clone(),
             ))), //::core::option::Option<::prost_types::Timestamp>,
@@ -149,6 +158,7 @@ impl TryFrom<Row> for Data {
             description: row.get::<&str, Option<String>>("description"),
             asset_group_id: row.get::<&str, Option<String>>("asset_group_id"),
             schedule: row.get::<&str, Option<String>>("schedule"),
+            last_vertiport_id: Some(row.get::<&str, String>("last_vertiport_id")),
             last_maintenance,
             next_maintenance,
         })
