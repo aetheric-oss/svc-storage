@@ -45,6 +45,7 @@ pub fn get_data_obj() -> Data {
         description: Some("Demo vehicle filled with Mock data".to_owned()),
         asset_group_id: None,
         schedule: Some(CAL_WORKDAYS_8AM_6PM.to_owned()),
+        last_vertiport_id: None,
         last_maintenance,
         next_maintenance,
     }

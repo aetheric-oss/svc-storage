@@ -61,11 +61,14 @@ pub struct Data {
     /// optional RRULE data string to indicate the vehicle's available days and hours
     #[prost(string, optional, tag = "6")]
     pub schedule: ::core::option::Option<::prost::alloc::string::String>,
+    /// optional id UUID v4 of the last reported vertiport it landed at
+    #[prost(string, optional, tag = "7")]
+    pub last_vertiport_id: ::core::option::Option<::prost::alloc::string::String>,
     /// optional date of vehicle's last maintenance
-    #[prost(message, optional, tag = "7")]
+    #[prost(message, optional, tag = "8")]
     pub last_maintenance: ::core::option::Option<::prost_types::Timestamp>,
     /// optional date  of vehicle's next planned maintenance
-    #[prost(message, optional, tag = "8")]
+    #[prost(message, optional, tag = "9")]
     pub next_maintenance: ::core::option::Option<::prost_types::Timestamp>,
 }
 /// Struct containing a `list` of vehicle \[Vec\<Object\>\]
@@ -283,6 +286,7 @@ pub mod rpc_service_client {
         ///         description: Some("Demo vehicle filled with Mock data".to_owned()),
         ///         asset_group_id: None,
         ///         schedule: Some(CAL_WORKDAYS_8AM_6PM.to_owned()),
+        ///         last_vertiport_id: None,
         ///         last_maintenance: Some(last_maintenance),
         ///         next_maintenance: Some(next_maintenance),
         ///     }))
