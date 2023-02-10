@@ -52,6 +52,27 @@ pub mod itinerary {
     include!("grpc.itinerary.rs");
 }
 
+/// ADS-B telemetry module implementing gRPC functions
+///
+/// Provides basic insert/ update/ get / delete functionality and a more advanced search function.
+///
+/// # Examples
+///
+/// Create a client connection
+/// ```
+/// use svc_storage_client_grpc::AdsbClient;
+/// async fn example() {
+///     let mut client = match AdsbClient::connect("http://localhost:50051").await {
+///         Ok(res) => res,
+///         Err(e) => panic!("Error creating client for AdsbClient: {}", e),
+///     };
+/// }
+/// ```
+pub mod adsb {
+    #![allow(unused_qualifications)]
+    include!("grpc.adsb.rs");
+}
+
 /// vehicle module implementing gRPC functions
 ///
 /// Provides basic insert/ update/ get / delete functionality and a more advanced search function.
@@ -116,6 +137,7 @@ use crate::client::{AdvancedSearchFilter, Id, SearchFilter, ValidationResult};
 
 pub use prost_types::FieldMask;
 
+pub use adsb::rpc_service_client::RpcServiceClient as AdsbClient;
 pub use flight_plan::rpc_service_client::RpcServiceClient as FlightPlanClient;
 pub use itinerary::rpc_service_client::RpcServiceClient as ItineraryClient;
 pub use vehicle::rpc_service_client::RpcServiceClient as VehicleClient;
