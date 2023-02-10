@@ -7,6 +7,7 @@ use std::time::SystemTime;
 use tonic::Status;
 use uuid::Uuid;
 
+use svc_storage_client_grpc::adsb;
 use svc_storage_client_grpc::client::{
     pilot_rpc_client::PilotRpcClient, AdvancedSearchFilter, Pilot, SearchFilter,
 };
@@ -16,6 +17,7 @@ use svc_storage_client_grpc::vehicle;
 use svc_storage_client_grpc::vertipad;
 use svc_storage_client_grpc::vertiport;
 
+use svc_storage_client_grpc::AdsbClient;
 use svc_storage_client_grpc::FlightPlanClient;
 use svc_storage_client_grpc::ItineraryClient;
 use svc_storage_client_grpc::VehicleClient;
@@ -86,6 +88,152 @@ async fn get_itineraries() -> Result<itinerary::List, Status> {
         Ok(res) => Ok(res.into_inner()),
         Err(e) => Err(e),
     }
+}
+
+/// Example AdsbClient
+/// Assuming the server is running, this method calls `client.itineraries` and
+/// should receive a valid response from the server
+async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
+    let grpc_endpoint = get_grpc_endpoint();
+    println!("Using GRPC endpoint {}", grpc_endpoint);
+    let mut client = AdsbClient::connect(grpc_endpoint.clone()).await.unwrap();
+    println!("ADS-B Client created");
+
+    let timestamp_1 = prost_types::Timestamp::from(SystemTime::now());
+    let timestamp_2 =
+        prost_types::Timestamp::from(SystemTime::now() + std::time::Duration::new(10, 0));
+    let payload_1 = [
+        0x8D, 0x48, 0x40, 0xD6, 0x20, 0x2C, 0xC3, 0x71, 0xC3, 0x2C, 0xE0, 0x57, 0x60, 0x98,
+    ];
+    let payload_2 = [
+        0x8D, 0x48, 0x40, 0xD6, 0x20, 0x2C, 0xC3, 0x71, 0xC3, 0x2C, 0xE0, 0x57, 0x61, 0x98,
+    ];
+    let icao_address = 0x4840D7;
+    let message_type = 4;
+
+    //
+    // First telemetry packet
+    //
+    let request_data = adsb::Data {
+        icao_address,
+        message_type,
+        network_timestamp: Some(timestamp_1.clone()),
+        payload: payload_1.clone().to_vec(),
+    };
+
+    // Insert data and get the UUID of the adsb entry
+    let Ok(response) = client.insert(tonic::Request::new(request_data)).await else {
+        panic!("Failed to insert data.");
+    };
+    let Some(object) = response.into_inner().object else {
+        panic!("Failed to return object.");
+    };
+    let id_1 = object.id;
+
+    //
+    // Second telemetry packet
+    //
+    let request_data = adsb::Data {
+        icao_address,
+        message_type,
+        network_timestamp: Some(timestamp_2),
+        payload: payload_2.clone().to_vec(),
+    };
+    // Insert data and get the UUID of the adsb entry
+    let Ok(response) = client.insert(tonic::Request::new(request_data)).await else {
+        panic!("Failed to insert data.");
+    };
+    let Some(object) = response.into_inner().object else {
+        panic!("Failed to return object.");
+    };
+    let id_2 = object.id;
+
+    // Search for the same ICAO address
+    {
+        let filter = AdvancedSearchFilter::search_equals(
+            "icao_address".to_owned(),
+            icao_address.to_string(),
+        )
+        .and_between(
+            "network_timestamp".to_owned(),
+            timestamp_1.clone().to_string(),
+            prost_types::Timestamp::from(SystemTime::now() + std::time::Duration::new(5, 0))
+                .to_string(),
+        )
+        .page_number(1)
+        .results_per_page(50);
+
+        println!("Retrieving list of adsb telemetry");
+
+        let response = client
+            .search(tonic::Request::new(filter.clone()))
+            .await
+            .unwrap();
+        let mut l: adsb::List = response.into_inner();
+
+        assert_eq!(l.list.len(), 1);
+        println!("{:?}", l.list);
+        let adsb_entry = l.list.pop().unwrap();
+        let data = adsb_entry.data.unwrap();
+        assert_eq!(adsb_entry.id, id_1);
+        assert_eq!(data.icao_address, icao_address);
+        assert_eq!(data.message_type, message_type);
+        assert_eq!(data.payload, payload_1);
+    }
+
+    {
+        let filter = AdvancedSearchFilter::search_equals(
+            "icao_address".to_owned(),
+            icao_address.to_string(),
+        )
+        .and_greater("network_timestamp".to_owned(), timestamp_1.to_string())
+        .page_number(1)
+        .results_per_page(50);
+
+        println!("Retrieving list of adsb telemetry");
+
+        let response = client
+            .search(tonic::Request::new(filter.clone()))
+            .await
+            .unwrap();
+        let mut l: adsb::List = response.into_inner();
+
+        assert_eq!(l.list.len(), 1);
+        println!("{:?}", l.list);
+
+        let adsb_entry = l.list.pop().unwrap();
+        let data = adsb_entry.data.unwrap();
+        assert_eq!(adsb_entry.id, id_2);
+        assert_eq!(data.icao_address, icao_address);
+        assert_eq!(data.message_type, message_type);
+        assert_eq!(data.payload, payload_2);
+    }
+
+    {
+        let filter = AdvancedSearchFilter::search_equals(
+            "icao_address".to_owned(),
+            icao_address.to_string(),
+        )
+        .page_number(1)
+        .results_per_page(50);
+
+        println!("Retrieving list of adsb telemetry");
+
+        let response = client
+            .search(tonic::Request::new(filter.clone()))
+            .await
+            .unwrap();
+        let l: adsb::List = response.into_inner();
+        println!("{:?}", l.list);
+
+        assert_eq!(l.list.len(), 2);
+        for fp in l.list {
+            let data = fp.data.unwrap();
+            assert_eq!(data.icao_address, icao_address);
+        }
+    }
+
+    Ok(())
 }
 
 /// Example PilotRpcClient
@@ -401,6 +549,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "NOTE: Ensure the server is running on {} or this example will fail.",
         grpc_endpoint
     );
+
+    test_telemetry().await?;
 
     // Get a list of vehicles
     let _vehicles = get_vehicles().await?;
