@@ -28,6 +28,7 @@ use tonic::transport::Server;
 use tonic::{Code, Request, Response, Status};
 
 use crate::common::Config;
+use crate::resources::adsb;
 use crate::resources::flight_plan;
 use crate::resources::itinerary;
 use crate::resources::pilot::{PilotImpl, PilotRpcServer};
@@ -38,6 +39,8 @@ use crate::resources::vertiport;
 #[derive(Debug, Clone)]
 /// gRPC field types
 pub enum GrpcField {
+    /// Byte Array
+    Bytes(Vec<u8>),
     /// Vec\<String\>
     StringList(Vec<String>),
     /// String
@@ -64,6 +67,8 @@ pub enum GrpcField {
 #[derive(Debug, Clone)]
 /// gRPC field types as Option
 pub enum GrpcFieldOption {
+    /// Byte Array
+    Bytes(Option<Vec<u8>>),
     /// Option\<String\>
     StringList(Option<Vec<String>>),
     /// Option\<String\>
@@ -307,6 +312,14 @@ impl From<ArrErr> for Status {
     }
 }
 
+impl From<GrpcField> for Vec<u8> {
+    fn from(field: GrpcField) -> Self {
+        match field {
+            GrpcField::Bytes(field) => field,
+            _ => vec![],
+        }
+    }
+}
 impl From<GrpcField> for Vec<String> {
     fn from(field: GrpcField) -> Self {
         match field {
@@ -384,6 +397,7 @@ impl From<GrpcField> for Timestamp {
 impl From<GrpcFieldOption> for Option<GrpcField> {
     fn from(field: GrpcFieldOption) -> Self {
         match field {
+            GrpcFieldOption::Bytes(field) => field.map(GrpcField::Bytes),
             GrpcFieldOption::StringList(field) => field.map(GrpcField::StringList),
             GrpcFieldOption::String(field) => field.map(GrpcField::String),
             GrpcFieldOption::I64List(field) => field.map(GrpcField::I64List),
@@ -461,6 +475,7 @@ pub async fn grpc_server() {
         .add_service(itinerary::RpcServiceServer::new(
             itinerary::GrpcServer::default(),
         ))
+        .add_service(adsb::RpcServiceServer::new(adsb::GrpcServer::default()))
         .serve_with_shutdown(full_grpc_addr, shutdown_signal())
         .await
         .unwrap();

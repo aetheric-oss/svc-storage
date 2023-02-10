@@ -1,3 +1,4 @@
+pub mod adsb;
 pub mod base;
 pub mod flight_plan;
 pub mod itinerary;
