@@ -69,3 +69,5 @@ ilike
 println
 Struct
 struct
+bytea
+adsb
