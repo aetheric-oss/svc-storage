@@ -28,7 +28,7 @@ use crate::common::Config;
 use crate::grpc::{
     AdvancedSearchFilter, GrpcDataObjectType, GrpcField, ValidationError, ValidationResult,
 };
-use crate::resources::{flight_plan, itinerary, vehicle, vertipad, vertiport};
+use crate::resources::{adsb, flight_plan, itinerary, vehicle, vertipad, vertiport};
 
 pub use self::search::SearchCol;
 
@@ -273,6 +273,7 @@ where
                 PsqlFieldType::INT4 => field_sql.push_str(" INTEGER"),
                 PsqlFieldType::INT8 => field_sql.push_str(" BIGINT"),
                 PsqlFieldType::NUMERIC => field_sql.push_str(" DOUBLE PRECISION"),
+                PsqlFieldType::BYTEA => field_sql.push_str(" BYTEA"),
                 _ => field_sql.push_str(&format!(" {}", field.field_type.name().to_uppercase())),
             }
 
@@ -522,6 +523,17 @@ where
                     Err(ArrErr::Error(err))
                 }
             },
+            PsqlFieldType::INT4 => match col_val.parse::<i32>() {
+                Ok(val) => Ok(Box::new(val)),
+                Err(e) => {
+                    let err = format!(
+                        "Can't convert search col [{}] with value [{}] to i32: {}",
+                        col.col_name, col_val, e
+                    );
+                    psql_error!("{}", err);
+                    Err(ArrErr::Error(err))
+                }
+            },
             PsqlFieldType::INT8 => match col_val.parse::<i64>() {
                 Ok(val) => Ok(Box::new(val)),
                 Err(e) => {
@@ -537,7 +549,7 @@ where
                 Ok(val) => Ok(Box::new(val)),
                 Err(e) => {
                     let err = format!(
-                        "Can't convert search col [{}] with value [{}] to i64: {}",
+                        "Can't convert search col [{}] with value [{}] to Uuid: {}",
                         col.col_name, col_val, e
                     );
                     psql_error!("{}", err);
@@ -555,6 +567,10 @@ where
                     Err(ArrErr::Error(err))
                 }
             },
+            PsqlFieldType::BYTEA => {
+                let val = col_val.clone().into_bytes();
+                Ok(Box::new(val))
+            }
             _ => Ok(Box::new(col_val.clone())),
         }
     }
@@ -696,6 +712,10 @@ where
                     let val: i16 = val_to_validate.into();
                     converted.insert(key, Box::new(val));
                 }
+                PsqlFieldType::INT4 => {
+                    let val: i32 = val_to_validate.into();
+                    converted.insert(key, Box::new(val));
+                }
                 PsqlFieldType::INT8 => {
                     let val: i64 = val_to_validate.into();
                     converted.insert(key, Box::new(val));
@@ -710,6 +730,10 @@ where
                 }
                 PsqlFieldType::BOOL => {
                     let val: bool = val_to_validate.into();
+                    converted.insert(key, Box::new(val));
+                }
+                PsqlFieldType::BYTEA => {
+                    let val: Vec<u8> = val_to_validate.into();
                     converted.insert(key, Box::new(val));
                 }
                 _ => {
@@ -901,8 +925,9 @@ pub async fn create_db() -> Result<(), ArrErr> {
     GenericResource::<vertiport::Data>::init_table().await?;
     GenericResource::<vertipad::Data>::init_table().await?;
     GenericResource::<vehicle::Data>::init_table().await?;
-    GenericResource::<itinerary::Data>::init_table().await?;
-    GenericResource::<flight_plan::Data>::init_table().await
+    GenericResource::<adsb::Data>::init_table().await?;
+    GenericResource::<flight_plan::Data>::init_table().await?;
+    GenericResource::<itinerary::Data>::init_table().await
 }
 
 /// If we want to recreate the database tables created by this module, we will want to drop the existing tables first.
@@ -910,10 +935,11 @@ pub async fn create_db() -> Result<(), ArrErr> {
 pub async fn drop_db() -> Result<(), ArrErr> {
     psql_warn!("Dropping database tables.");
     // Drop our tables (in the correct order)
+    GenericResource::<itinerary::Data>::drop_table().await?;
     GenericResource::<flight_plan::Data>::drop_table().await?;
+    GenericResource::<adsb::Data>::drop_table().await?;
     GenericResource::<vehicle::Data>::drop_table().await?;
     GenericResource::<vertipad::Data>::drop_table().await?;
-    GenericResource::<itinerary::Data>::drop_table().await?;
     GenericResource::<vertiport::Data>::drop_table().await
 }
 
