@@ -91,8 +91,8 @@ async fn get_itineraries() -> Result<itinerary::List, Status> {
 }
 
 /// Example AdsbClient
-/// Assuming the server is running, this method calls `client.itineraries` and
-/// should receive a valid response from the server
+/// Assuming the server is running, this method inserts multiple telemetry
+///  packets into the database and searches with advanced filters.
 async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
     let grpc_endpoint = get_grpc_endpoint();
     println!("Using GRPC endpoint {}", grpc_endpoint);
