@@ -10,6 +10,15 @@ homepage.workspace   = true
 license.workspace    = true
 repository.workspace = true
 
+include = [
+  "out/grpc/*.rs",
+  "out/grpc/client/*.rs",
+  "examples/**",
+  "includes/**",
+  "src/**",
+  "tests/**",
+]
+
 [dependencies]
 chrono        = { version = "0.4", optional = true }
 geo-types     = "0.7"

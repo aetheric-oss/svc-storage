@@ -1,18 +1,10 @@
 //! Flight Plans
 
-/// module providing functions to generate mock data
-pub mod mock;
-
-mod grpc_server {
-    #![allow(unused_qualifications)]
-    tonic::include_proto!("grpc.flight_plan");
-}
-// Expose module resources
-pub use grpc_server::rpc_service_server::*;
-pub use grpc_server::*;
+grpc_server!(flight_plan, "flight_plan");
 
 use chrono::{DateTime, Utc};
 use core::fmt::Debug;
+use lib_common::time::datetime_to_timestamp;
 use log::debug;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -22,14 +14,13 @@ use tokio_postgres::types::Type as PsqlFieldType;
 use tonic::{Request, Status};
 use uuid::Uuid;
 
-use lib_common::time::datetime_to_timestamp;
-
+use super::{
+    AdvancedSearchFilter, FilterOption, Id, PredicateOperator, SearchFilter, ValidationResult,
+};
 use crate::common::ArrErr;
 use crate::grpc::get_runtime_handle;
-use crate::grpc::{
-    AdvancedSearchFilter, FilterOption, GrpcDataObjectType, GrpcField, GrpcFieldOption,
-    GrpcObjectType, Id, PredicateOperator, SearchFilter, ValidationResult,
-};
+use crate::grpc::{GrpcDataObjectType, GrpcField, GrpcFieldOption, GrpcObjectType};
+use crate::grpc_server;
 use crate::postgres::{PsqlJsonValue, PsqlResourceType};
 use crate::resources::base::{
     FieldDefinition, GenericObjectType, GenericResource, GenericResourceResult, Resource,
