@@ -1,12 +1,10 @@
 use super::{ArrErr, PsqlFieldType};
 use crate::common::PSQL_LOG_TARGET;
-use crate::grpc::grpc_server::PredicateOperator;
-use crate::grpc::SortOption;
-use crate::grpc::SortOrder;
+use crate::resources::{PredicateOperator, SortOption, SortOrder};
 use std::collections::VecDeque;
 
 #[derive(Eq, PartialEq, Clone, Debug)]
-/// struct to save search col values while processing the [AdvancedSearchFilter](crate::grpc::grpc_server::AdvancedSearchFilter)
+/// struct to save search col values while processing the [AdvancedSearchFilter](crate::resources::AdvancedSearchFilter)
 /// needed to save column information for a search value so it can be converted later
 pub struct SearchCol {
     /// the [postgres_types::Type] of the column
