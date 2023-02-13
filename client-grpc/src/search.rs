@@ -1,13 +1,13 @@
 //! Exposes svc-storage Client Functions
 
-use crate::client::{AdvancedSearchFilter, ComparisonOperator, FilterOption, PredicateOperator};
+use crate::{AdvancedSearchFilter, ComparisonOperator, FilterOption, PredicateOperator};
 
 /// Implement helper functions for [AdvancedSearchFilter] to provide a more readable way to
 /// build up the struct's values.
 ///
 /// Examples:
 /// ```
-/// use svc_storage_client_grpc::client::AdvancedSearchFilter;
+/// use svc_storage_client_grpc::AdvancedSearchFilter;
 /// let filter = AdvancedSearchFilter::search_equals(String::from("status"), String::from("enabled"))
 ///     .and_equals(String::from("resource_id"), String::from("53acfe06-dd9b-42e8-8cb4-12a2fb2fa693"))
 ///     .and_between(String::from("created_at"), String::from("2022-04-10 22:10:57+02:00"), String::from("2022-04-12 22:10:57+02:00"))

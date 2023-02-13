@@ -4,7 +4,6 @@ pub mod macros;
 mod search;
 
 pub use crate::common::{ArrErr, PSQL_LOG_TARGET};
-use crate::grpc::grpc_server::{ComparisonOperator, PredicateOperator};
 use crate::resources::base::{
     validate_dt, validate_enum, validate_uuid, GenericObjectType, GenericResource, Resource,
 };
@@ -25,10 +24,11 @@ use tokio_postgres::Row;
 use uuid::Uuid;
 
 use crate::common::Config;
-use crate::grpc::{
-    AdvancedSearchFilter, GrpcDataObjectType, GrpcField, ValidationError, ValidationResult,
+use crate::grpc::{GrpcDataObjectType, GrpcField};
+use crate::resources::{adsb, flight_plan, itinerary, pilot, vehicle, vertipad, vertiport};
+use crate::resources::{
+    AdvancedSearchFilter, ComparisonOperator, PredicateOperator, ValidationError, ValidationResult,
 };
-use crate::resources::{adsb, flight_plan, itinerary, vehicle, vertipad, vertiport};
 
 pub use self::search::SearchCol;
 
@@ -259,7 +259,7 @@ where
 
         let mut fields = vec![];
         fields.push(format!(
-            r#""{}" UUID DEFAULT uuid_generate_v4() NOT NULL"#,
+            r#""{}" UUID DEFAULT uuid_generate_v4() PRIMARY KEY"#,
             definition.psql_id_col
         ));
 
@@ -925,6 +925,7 @@ pub async fn create_db() -> Result<(), ArrErr> {
     GenericResource::<vertiport::Data>::init_table().await?;
     GenericResource::<vertipad::Data>::init_table().await?;
     GenericResource::<vehicle::Data>::init_table().await?;
+    GenericResource::<pilot::Data>::init_table().await?;
     GenericResource::<adsb::Data>::init_table().await?;
     GenericResource::<flight_plan::Data>::init_table().await?;
     GenericResource::<itinerary::Data>::init_table().await
@@ -938,6 +939,7 @@ pub async fn drop_db() -> Result<(), ArrErr> {
     GenericResource::<itinerary::Data>::drop_table().await?;
     GenericResource::<flight_plan::Data>::drop_table().await?;
     GenericResource::<adsb::Data>::drop_table().await?;
+    GenericResource::<pilot::Data>::drop_table().await?;
     GenericResource::<vehicle::Data>::drop_table().await?;
     GenericResource::<vertipad::Data>::drop_table().await?;
     GenericResource::<vertiport::Data>::drop_table().await
