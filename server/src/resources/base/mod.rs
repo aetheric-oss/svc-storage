@@ -9,8 +9,9 @@ use std::marker::PhantomData;
 use tokio_postgres::types::Type as PsqlFieldType;
 use uuid::Uuid;
 
+use super::{Id, ValidationError, ValidationResult};
 use crate::common::ArrErr;
-use crate::grpc::{GrpcDataObjectType, Id, ValidationError, ValidationResult};
+use crate::grpc::GrpcDataObjectType;
 use crate::postgres::{PsqlJsonValue, PsqlObjectType, PsqlResourceType};
 
 /// Generic trait providing useful functions for our resources
@@ -385,7 +386,7 @@ macro_rules! build_grpc_server_generic_impl {
             /// # Examples
             ///
             /// ```
-            /// use svc_storage::grpc::Id;
+            /// use svc_storage::resources::Id;
             #[doc = concat!("use svc_storage::resources::", stringify!($rpc_service), "::{Object, GrpcServer, RpcService};")]
             ///
             /// async fn example() -> Result<Object, tonic::Status> {
@@ -446,7 +447,7 @@ macro_rules! build_grpc_server_generic_impl {
             /// # Examples
             ///
             /// ```
-            /// use svc_storage::grpc::{AdvancedSearchFilter, FilterOption, PredicateOperator, Id};
+            /// use svc_storage::resources::{AdvancedSearchFilter, FilterOption, PredicateOperator, Id};
             #[doc = concat!("use svc_storage::resources::", stringify!($rpc_service), "::{Object, List, GrpcServer, RpcService};")]
             ///
             /// async fn example() -> Result<(), tonic::Status> {
@@ -486,7 +487,7 @@ macro_rules! build_grpc_server_generic_impl {
             ///
             /// # Example
             /// ```
-            /// use svc_storage::grpc::Id;
+            /// use svc_storage::resources::Id;
             #[doc = concat!("use svc_storage::resources::", stringify!($rpc_service), "::{Data, Response, GrpcServer, RpcService};")]
             #[doc = concat!("use svc_storage::resources::", stringify!($rpc_service), "::mock;")]
             ///
@@ -525,7 +526,7 @@ macro_rules! build_grpc_server_generic_impl {
             ///
             /// # Example
             /// ```
-            /// use svc_storage::grpc::Id;
+            /// use svc_storage::resources::Id;
             #[doc = concat!("use svc_storage::resources::", stringify!($rpc_service), "::{UpdateObject, Response, GrpcServer, RpcService};")]
             #[doc = concat!("use svc_storage::resources::", stringify!($rpc_service), "::mock;")]
             ///
@@ -559,7 +560,7 @@ macro_rules! build_grpc_server_generic_impl {
             ///
             /// # Example
             /// ```
-            /// use svc_storage::grpc::Id;
+            /// use svc_storage::resources::Id;
             #[doc = concat!("use svc_storage::resources::", stringify!($rpc_service), "::{GrpcServer, RpcService};")]
             ///
             /// async fn example() -> Result<(), tonic::Status> {
