@@ -1684,6 +1684,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml 0.9.17",
+ "svc-storage",
  "svc-storage-client-grpc",
  "thiserror",
  "tokio",
@@ -1698,14 +1699,17 @@ dependencies = [
 name = "svc-storage-client-grpc"
 version = "0.9.0-develop.13"
 dependencies = [
+ "chrono",
  "geo-types",
  "num-derive",
  "num-traits",
  "ordered-float 3.4.0",
  "prost",
  "prost-types",
+ "rand",
  "tokio",
  "tonic",
+ "tonic-build",
  "uuid",
 ]
 

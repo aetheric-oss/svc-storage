@@ -1,15 +1,6 @@
 //! ADS-B
 
-/// module providing functions to generate mock data
-pub mod mock;
-
-mod grpc_server {
-    #![allow(unused_qualifications)]
-    tonic::include_proto!("grpc.adsb");
-}
-// Expose module resources
-pub use grpc_server::rpc_service_server::*;
-pub use grpc_server::*;
+grpc_server!(adsb, "adsb");
 
 use lib_common::time::datetime_to_timestamp;
 
@@ -22,11 +13,12 @@ use tokio_postgres::types::Type as PsqlFieldType;
 use tonic::{Request, Status};
 use uuid::Uuid;
 
-use crate::common::ArrErr;
-use crate::grpc::{
-    AdvancedSearchFilter, FilterOption, GrpcDataObjectType, GrpcField, GrpcFieldOption,
-    GrpcObjectType, Id, PredicateOperator, SearchFilter, ValidationResult,
+use super::{
+    AdvancedSearchFilter, FilterOption, Id, PredicateOperator, SearchFilter, ValidationResult,
 };
+use crate::common::ArrErr;
+use crate::grpc::{GrpcDataObjectType, GrpcField, GrpcFieldOption, GrpcObjectType};
+use crate::grpc_server;
 use crate::resources::base::{
     FieldDefinition, GenericObjectType, GenericResource, GenericResourceResult, Resource,
     ResourceDefinition,
