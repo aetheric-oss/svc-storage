@@ -1,27 +1,12 @@
 syntax = "proto3";
 package grpc;
 
-// Storage service
-service StorageRpc {
-    // Simple call to check if the server is ready to accept connections
-    rpc isReady (ReadyRequest) returns (ReadyResponse);
-}
+import "google/protobuf/timestamp.proto";
 
 // Id type for passing id only requests
 message Id {
     //id
     string id = 1;
-}
-
-// Ready Request
-message ReadyRequest {
-    // No arguments
-}
-
-// Ready Response
-message ReadyResponse {
-    // ready
-    bool ready = 1;
 }
 
 // SearchFilter

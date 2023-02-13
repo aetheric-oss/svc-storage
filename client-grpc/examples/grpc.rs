@@ -7,22 +7,8 @@ use std::time::SystemTime;
 use tonic::Status;
 use uuid::Uuid;
 
-use svc_storage_client_grpc::adsb;
-use svc_storage_client_grpc::client::{
-    pilot_rpc_client::PilotRpcClient, AdvancedSearchFilter, Pilot, SearchFilter,
-};
 use svc_storage_client_grpc::flight_plan::{self, FlightPriority, FlightStatus};
-use svc_storage_client_grpc::itinerary;
-use svc_storage_client_grpc::vehicle;
-use svc_storage_client_grpc::vertipad;
-use svc_storage_client_grpc::vertiport;
-
-use svc_storage_client_grpc::AdsbClient;
-use svc_storage_client_grpc::FlightPlanClient;
-use svc_storage_client_grpc::ItineraryClient;
-use svc_storage_client_grpc::VehicleClient;
-use svc_storage_client_grpc::VertipadClient;
-use svc_storage_client_grpc::VertiportClient;
+use svc_storage_client_grpc::*;
 
 /// Provide GRPC endpoint to use
 pub fn get_grpc_endpoint() -> String {
@@ -239,28 +225,26 @@ async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
 /// Example PilotRpcClient
 /// Assuming the server is running, this method calls `client.pilots` and
 /// should receive a valid response from the server
-async fn get_pilots() -> Result<Vec<Pilot>, Status> {
+async fn get_pilots() -> Result<pilot::List, Status> {
     let grpc_endpoint = get_grpc_endpoint();
-    let mut pilot_client = PilotRpcClient::connect(grpc_endpoint.clone())
-        .await
-        .unwrap();
+    let mut pilot_client = PilotClient::connect(grpc_endpoint.clone()).await.unwrap();
     println!("Pilot Client created");
 
-    let pilot_filter = SearchFilter {
-        search_field: "".to_string(),
-        search_value: "".to_string(),
-        page_number: 1,
-        results_per_page: 50,
-    };
+    let filter = AdvancedSearchFilter::search_is_null("deleted_at".to_owned())
+        .page_number(1)
+        .results_per_page(50);
 
     println!("Retrieving list of pilots");
-    match pilot_client
-        .pilots(tonic::Request::new(pilot_filter.clone()))
+    let pilots = match pilot_client
+        .search(tonic::Request::new(filter.clone()))
         .await
     {
-        Ok(res) => Ok(res.into_inner().pilots),
+        Ok(res) => Ok(res.into_inner()),
         Err(e) => Err(e),
-    }
+    };
+    println!("pilots found: {:?}", pilots);
+
+    pilots
 }
 
 const CAL_WORKDAYS_8AM_6PM: &str = "\
