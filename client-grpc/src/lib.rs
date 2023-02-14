@@ -14,18 +14,18 @@ pub mod search;
 )]
 pub mod client {
     #![allow(unused_qualifications)]
-    include!("../../out/grpc/grpc.rs");
+    include!("../out/grpc/grpc.rs");
 }
 
 /// Include all proto resource
 pub mod resources {
     #![allow(unused_qualifications)]
-    include!("../../out/grpc/grpc.rs");
+    include!("../out/grpc/grpc.rs");
 
     /// Include the `ready` service
     pub mod ready {
-        include!("../../out/grpc/grpc.ready.rs");
-        include!("../../out/grpc/client/grpc.ready.service.rs");
+        include!("../out/grpc/grpc.ready.rs");
+        include!("../out/grpc/client/grpc.ready.service.rs");
     }
 
     grpc_client!(adsb, "adsb");

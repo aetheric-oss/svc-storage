@@ -21,10 +21,10 @@ macro_rules! grpc_client {
         /// ```
         pub mod $rpc_service {
             include!(concat!(
-                    "../../out/grpc/grpc.", $rpc_string, ".rs"
+                    "../out/grpc/grpc.", $rpc_string, ".rs"
                 ));
             include!(concat!(
-                    "../../out/grpc/client/grpc.", $rpc_string, ".service.rs"
+                    "../out/grpc/client/grpc.", $rpc_string, ".service.rs"
                 ));
 
             /// Exposes mock data for this module
@@ -32,7 +32,7 @@ macro_rules! grpc_client {
             #[cfg(any(feature = "mock", test, example))]
             pub mod mock {
                 include!(concat!(
-                    "../../includes/", $rpc_string, "/mock.rs"
+                    "../includes/", $rpc_string, "/mock.rs"
                 ));
             }
         }
