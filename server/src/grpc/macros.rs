@@ -1,3 +1,5 @@
+//! log macro's for gRPC logging
+
 /// Macro wrapper to log debug message to the specified GRPC_LOG_TARGET
 #[macro_export]
 macro_rules! grpc_debug {

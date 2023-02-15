@@ -29,7 +29,7 @@ macro_rules! grpc_client {
 
             /// Exposes mock data for this module
             /// Will only be included if the `mock` feature is enabled
-            #[cfg(any(feature = "mock", test, example))]
+            #[cfg(any(feature = "mock", test))]
             pub mod mock {
                 include!(concat!(
                     "../includes/", $rpc_string, "/mock.rs"

@@ -1,6 +1,4 @@
-//! Exposes svc-storage Client Functions
-
-use crate::{AdvancedSearchFilter, ComparisonOperator, FilterOption, PredicateOperator};
+use super::{AdvancedSearchFilter, ComparisonOperator, FilterOption, PredicateOperator};
 
 /// Implement helper functions for [AdvancedSearchFilter] to provide a more readable way to
 /// build up the struct's values.

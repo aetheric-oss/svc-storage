@@ -3,7 +3,8 @@ use log::info;
 use std::env;
 use svc_storage::common::{use_psql_get, ArrErr};
 use svc_storage::grpc::grpc_server;
-use svc_storage::postgres::{create_db, init_psql_pool, recreate_db};
+use svc_storage::postgres::init::{create_db, recreate_db};
+use svc_storage::postgres::init_psql_pool;
 
 #[tokio::main]
 async fn main() -> Result<(), ArrErr> {

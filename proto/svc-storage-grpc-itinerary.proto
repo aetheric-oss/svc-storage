@@ -58,3 +58,11 @@ message List {
     // array/vector of itinerary items
     repeated Object list = 1;
 }
+
+// Struct used to link flight_plans to itinerary
+message ItineraryFlightPlans {
+    // `id` [String] in [Uuid](uuid::Uuid) format
+    string id = 1;
+    // flight plan ids as [Vec\<String\>] in [Uuid](uuid::Uuid) format
+    IdList other_id_list = 2;
+}

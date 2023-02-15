@@ -22,6 +22,7 @@ include = [
 [dependencies]
 chrono        = { version = "0.4", optional = true }
 geo-types     = "0.7"
+lib-common    = { git = "https://github.com/Arrow-air/lib-common.git", branch = "develop", optional = true }
 num-derive    = "0.3"
 num-traits    = "0.2"
 ordered-float = "3.3"
@@ -32,9 +33,11 @@ tonic         = "0.8"
 uuid          = { version = "1.2", features = ["v4"] }
 
 [dev-dependencies]
-chrono = "0.4"
-rand   = "0.8"
-tokio  = { version = "1.0", features = ["macros", "rt-multi-thread"] }
+chrono                  = "0.4"
+lib-common              = { git = "https://github.com/Arrow-air/lib-common.git", branch = "develop" }
+rand                    = "0.8"
+svc-storage-client-grpc = { path = ".", features = ["mock"] }
+tokio                   = { version = "1.0", features = ["macros", "rt-multi-thread"] }
 
 [build-dependencies]
 tonic-build = "0.8"
@@ -43,4 +46,4 @@ tonic-build = "0.8"
 name = "grpc"
 
 [features]
-mock = ["chrono", "rand"]
+mock = ["chrono", "rand", "lib-common"]
