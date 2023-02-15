@@ -14,25 +14,23 @@ use tokio_postgres::types::Type as PsqlFieldType;
 use tonic::{Request, Status};
 use uuid::Uuid;
 
+use super::base::simple_resource::*;
+use super::base::{FieldDefinition, ResourceDefinition};
 use super::{
     AdvancedSearchFilter, FilterOption, Id, PredicateOperator, SearchFilter, ValidationResult,
 };
 use crate::common::ArrErr;
 use crate::grpc::get_runtime_handle;
-use crate::grpc::{GrpcDataObjectType, GrpcField, GrpcFieldOption, GrpcObjectType};
+use crate::grpc::{GrpcDataObjectType, GrpcField, GrpcFieldOption, GrpcSimpleService};
 use crate::grpc_server;
-use crate::postgres::{PsqlJsonValue, PsqlResourceType};
-use crate::resources::base::{
-    FieldDefinition, GenericObjectType, GenericResource, GenericResourceResult, Resource,
-    ResourceDefinition,
-};
+use crate::postgres::PsqlJsonValue;
 use crate::resources::vertipad;
 
 // Generate `From` trait implementations for GenericResource into and from Grpc defined Resource
 crate::build_generic_resource_impl_from!();
 
 // Generate grpc server implementations
-crate::build_grpc_resource_impl!(flight_plan);
+crate::build_grpc_simple_resource_impl!(flight_plan);
 crate::build_grpc_server_generic_impl!(flight_plan);
 
 impl TryFrom<Row> for Data {
@@ -46,67 +44,56 @@ impl TryFrom<Row> for Data {
             row.get::<&str, Uuid>("departure_vertipad_id").to_string();
         let destination_vertipad_id: String =
             row.get::<&str, Uuid>("destination_vertipad_id").to_string();
-        let approved_by: String = row.get::<&str, Uuid>("approved_by").to_string();
+
+        let approved_by: Option<Uuid> = row.get("approved_by");
+        let approved_by = approved_by.map(|val| val.to_string());
 
         let handle = get_runtime_handle();
         let vertipad_id = row.get("departure_vertipad_id");
         let data = task::block_in_place(move || {
             handle.block_on(async move {
-                <GenericResource<vertipad::Data> as PsqlResourceType>::get_by_id(&vertipad_id).await
+                <ResourceObject<vertipad::Data> as PsqlType>::get_by_id(&vertipad_id).await
             })
         })?;
-        let departure_vertiport_id = data.get::<&str, Uuid>("vertipad_id").to_string();
+        let departure_vertiport_id = data.get::<&str, Uuid>("vertiport_id").to_string();
 
         let handle = get_runtime_handle();
         let vertipad_id = row.get("destination_vertipad_id");
         let data = task::block_in_place(move || {
             handle.block_on(async move {
-                <GenericResource<vertipad::Data> as PsqlResourceType>::get_by_id(&vertipad_id).await
+                <ResourceObject<vertipad::Data> as PsqlType>::get_by_id(&vertipad_id).await
             })
         })?;
-        let destination_vertiport_id = data.get::<&str, Uuid>("vertipad_id").to_string();
+        let destination_vertiport_id = data.get::<&str, Uuid>("vertiport_id").to_string();
 
         let cargo_weight_grams = PsqlJsonValue {
             value: row.get("cargo_weight_grams"),
         };
         let cargo_weight_grams: Vec<i64> = cargo_weight_grams.into();
 
-        //TODO: handling of conversion errors
-        let flight_plan_submitted: Option<DateTime<Utc>> = row.get("flight_plan_submitted");
-        let flight_plan_submitted = match flight_plan_submitted {
-            Some(val) => datetime_to_timestamp(&val),
-            None => None,
-        };
+        let flight_plan_submitted: Option<prost_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("flight_plan_submitted")
+            .map(|val| datetime_to_timestamp(&val).unwrap());
 
-        let scheduled_departure: Option<DateTime<Utc>> = row.get("scheduled_departure");
-        let scheduled_departure = match scheduled_departure {
-            Some(val) => datetime_to_timestamp(&val),
-            None => None,
-        };
+        let scheduled_departure: Option<prost_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("scheduled_departure")
+            .map(|val| datetime_to_timestamp(&val).unwrap());
 
-        let scheduled_arrival: Option<DateTime<Utc>> = row.get("scheduled_arrival");
-        let scheduled_arrival = match scheduled_arrival {
-            Some(val) => datetime_to_timestamp(&val),
-            None => None,
-        };
+        let scheduled_arrival: Option<prost_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("scheduled_arrival")
+            .map(|val| datetime_to_timestamp(&val).unwrap());
 
-        let actual_departure: Option<DateTime<Utc>> = row.get("actual_departure");
-        let actual_departure = match actual_departure {
-            Some(val) => datetime_to_timestamp(&val),
-            None => None,
-        };
+        let actual_departure: Option<prost_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("actual_departure")
+            .map(|val| datetime_to_timestamp(&val).unwrap());
 
-        let actual_arrival: Option<DateTime<Utc>> = row.get("actual_arrival");
-        let actual_arrival = match actual_arrival {
-            Some(val) => datetime_to_timestamp(&val),
-            None => None,
-        };
+        let actual_arrival: Option<prost_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("actual_arrival")
+            .map(|val| datetime_to_timestamp(&val).unwrap());
 
-        let flight_release_approval: Option<DateTime<Utc>> = row.get("flight_release_approval");
-        let flight_release_approval = match flight_release_approval {
-            Some(val) => datetime_to_timestamp(&val),
-            None => None,
-        };
+        let flight_release_approval: Option<prost_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("flight_release_approval")
+            .map(|val| datetime_to_timestamp(&val).unwrap());
 
         Ok(Data {
             pilot_id,
@@ -124,7 +111,7 @@ impl TryFrom<Row> for Data {
             flight_release_approval,
             flight_plan_submitted,
             cargo_weight_grams,
-            approved_by: Some(approved_by),
+            approved_by,
             flight_status: FlightStatus::from_str(row.get("flight_status"))
                 .unwrap()
                 .into(),
@@ -166,11 +153,11 @@ impl FromStr for FlightPriority {
     }
 }
 
-impl Resource for GenericResource<Data> {
+impl Resource for ResourceObject<Data> {
     fn get_definition() -> ResourceDefinition {
         ResourceDefinition {
             psql_table: String::from("flight_plan"),
-            psql_id_col: String::from("flight_plan_id"),
+            psql_id_cols: vec![String::from("flight_plan_id")],
             fields: HashMap::from([
                 (
                     "pilot_id".to_string(),

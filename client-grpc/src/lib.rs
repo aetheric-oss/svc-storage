@@ -5,8 +5,9 @@
 pub mod macros;
 
 /// Provide search helpers
-pub mod search;
-
+pub mod search {
+    include!("../includes/search.rs");
+}
 /// Backwards compatibility
 #[deprecated(
     since = "0.9.1",
@@ -38,6 +39,7 @@ pub mod resources {
 
     pub use adsb::rpc_service_client::RpcServiceClient as AdsbClient;
     pub use flight_plan::rpc_service_client::RpcServiceClient as FlightPlanClient;
+    pub use itinerary::rpc_flight_plan_link_client::RpcFlightPlanLinkClient as ItineraryFlightPlanLinkClient;
     pub use itinerary::rpc_service_client::RpcServiceClient as ItineraryClient;
     pub use pilot::rpc_service_client::RpcServiceClient as PilotClient;
     pub use vehicle::rpc_service_client::RpcServiceClient as VehicleClient;
