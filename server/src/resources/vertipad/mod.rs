@@ -10,29 +10,27 @@ use tokio_postgres::types::Type as PsqlFieldType;
 use tonic::{Request, Status};
 use uuid::Uuid;
 
+use super::base::simple_resource::*;
+use super::base::{FieldDefinition, ResourceDefinition};
 use super::{
     AdvancedSearchFilter, FilterOption, Id, PredicateOperator, SearchFilter, ValidationResult,
 };
 use crate::common::ArrErr;
-use crate::grpc::{GrpcDataObjectType, GrpcField, GrpcFieldOption, GrpcObjectType};
+use crate::grpc::{GrpcDataObjectType, GrpcField, GrpcFieldOption, GrpcSimpleService};
 use crate::grpc_server;
-use crate::resources::base::{
-    FieldDefinition, GenericObjectType, GenericResource, GenericResourceResult, Resource,
-    ResourceDefinition,
-};
 
 // Generate `From` trait implementations for GenericResource into and from Grpc defined Resource
 crate::build_generic_resource_impl_from!();
 
 // Generate grpc server implementations
-crate::build_grpc_resource_impl!(vertipad);
+crate::build_grpc_simple_resource_impl!(vertipad);
 crate::build_grpc_server_generic_impl!(vertipad);
 
-impl Resource for GenericResource<Data> {
+impl Resource for ResourceObject<Data> {
     fn get_definition() -> ResourceDefinition {
         ResourceDefinition {
             psql_table: String::from("vertipad"),
-            psql_id_col: String::from("vertipad_id"),
+            psql_id_cols: vec![String::from("vertipad_id")],
             fields: HashMap::from([
                 (
                     "vertiport_id".to_string(),

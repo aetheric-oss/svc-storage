@@ -9,6 +9,12 @@ message Id {
     string id = 1;
 }
 
+// IdList type for passing a list of id strings
+message IdList {
+    // ids
+    repeated string ids = 1;
+}
+
 // SearchFilter
 message SearchFilter {
     // search_field
