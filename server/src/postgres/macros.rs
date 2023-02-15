@@ -1,3 +1,5 @@
+//! log macro's for PostgreSQL logging
+
 #[macro_export]
 /// Macro wrapper to log debug message to the specified PSQL_LOG_TARGET
 macro_rules! psql_debug {
