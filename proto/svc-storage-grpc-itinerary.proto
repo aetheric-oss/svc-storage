@@ -36,10 +36,21 @@ message UpdateObject {
     google.protobuf.FieldMask mask = 3;
 }
 
+// Itinerary Status Enum
+enum ItineraryStatus {
+    // ACTIVE
+    ACTIVE = 0;
+    // CANCELLED
+    CANCELLED = 1;
+}
+
 // Data struct with itinerary data
 message Data {
     // the user UUID associated with this itinerary
     string user_id = 1;
+
+    // the status of the itinerary
+    ItineraryStatus status = 2;
 }
 
 // Struct containing a `list` of itinerary [Vec\<Object\>]

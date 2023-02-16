@@ -157,7 +157,7 @@ impl FromStr for FlightPriority {
     fn from_str(s: &str) -> ::core::result::Result<FlightPriority, Self::Err> {
         match s {
             "EMERGENCY" => ::core::result::Result::Ok(FlightPriority::Emergency),
-            "HIGHT" => ::core::result::Result::Ok(FlightPriority::High),
+            "HIGH" => ::core::result::Result::Ok(FlightPriority::High),
             "LOW" => ::core::result::Result::Ok(FlightPriority::Low),
             _ => {
                 ::core::result::Result::Err(ArrErr::Error(format!("Unknown FlightPriority: {}", s)))
