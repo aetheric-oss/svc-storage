@@ -533,6 +533,7 @@ erDiagram
     itinerary {
         uuid itinerary_id PK
         uuid user_id
+        text status "Default ACTIVE"
     }
     %% itinerary_flight_plan {
     %%     combined itinerary_id_flight_plan_id PK
