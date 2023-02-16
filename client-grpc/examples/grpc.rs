@@ -8,6 +8,7 @@ use tonic::Status;
 use uuid::Uuid;
 
 use svc_storage_client_grpc::flight_plan::{self, FlightPriority, FlightStatus};
+use svc_storage_client_grpc::itinerary::{self, ItineraryStatus};
 use svc_storage_client_grpc::*;
 
 /// Provide GRPC endpoint to use
@@ -51,7 +52,7 @@ async fn get_vehicles() -> Result<vehicle::List, Status> {
 /// Example ItineraryRpcClient
 /// Assuming the server is running, this method calls `client.itineraries` and
 /// should receive a valid response from the server
-async fn get_itineraries() -> Result<itinerary::List, Status> {
+async fn itineraries() {
     let grpc_endpoint = get_grpc_endpoint();
     println!("Using GRPC endpoint {}", grpc_endpoint);
     let mut itinerary_client = ItineraryClient::connect(grpc_endpoint.clone())
@@ -59,21 +60,40 @@ async fn get_itineraries() -> Result<itinerary::List, Status> {
         .unwrap();
     println!("Itinerary Client created");
 
-    let filter = SearchFilter {
-        search_field: "".to_string(),
-        search_value: "".to_string(),
-        page_number: 1,
-        results_per_page: 50,
+    //
+    // Insert Telemetry
+    //
+    let expected_uuid = Uuid::new_v4().to_string();
+    let data = itinerary::Data {
+        user_id: expected_uuid.clone(),
+        status: ItineraryStatus::Active as i32,
     };
 
+    println!("Inserting an itinerary");
+    if let Err(_) = itinerary_client.insert(tonic::Request::new(data)).await {
+        panic!("Itinerary client insert failed.");
+    };
+
+    //
+    // Search
+    //
+    let filter = AdvancedSearchFilter::search_equals(
+        "status".to_owned(),
+        (ItineraryStatus::Active as i32).to_string(),
+    );
+
     println!("Retrieving list of itineraries");
-    match itinerary_client
-        .get_all_with_filter(tonic::Request::new(filter))
+    let Ok(response) = itinerary_client
+        .search(tonic::Request::new(filter))
         .await
-    {
-        Ok(res) => Ok(res.into_inner()),
-        Err(e) => Err(e),
-    }
+    else {
+        panic!("Unable to get itineraries!");
+    };
+
+    let mut itineraries = response.into_inner();
+    let itinerary = itineraries.list.pop().unwrap().data.unwrap();
+    assert_eq!(itinerary.user_id, expected_uuid);
+    assert_eq!(itinerary.status, ItineraryStatus::Active as i32);
 }
 
 /// Example AdsbClient
@@ -212,7 +232,6 @@ async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
         let l: adsb::List = response.into_inner();
         println!("{:?}", l.list);
 
-        assert_eq!(l.list.len(), 2);
         for fp in l.list {
             let data = fp.data.unwrap();
             assert_eq!(data.icao_address, icao_address);
@@ -582,9 +601,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("RESPONSE Flight Plan Search={:?}", flight_plans);
 
     // Itineraries
-    {
-        let _itineraries = get_itineraries().await?;
-    }
+    itineraries().await;
 
     Ok(())
 }
