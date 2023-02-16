@@ -55,7 +55,7 @@ service RpcService {
     // # Examples
     // ```
     // use svc_storage_client_grpc::{Id, ItineraryClient};
-    // use svc_storage_client_grpc::itinerary::Data;
+    // use svc_storage_client_grpc::itinerary::{Data, ItineraryStatus};
     // use std::time::SystemTime;
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
@@ -65,7 +65,8 @@ service RpcService {
     //     println!("Starting insert itinerary");
     //     match itinerary_client
     //     .insert(tonic::Request::new(Data {
-    //         user_id
+    //         user_id,
+    //         status: ItineraryStatus::Active as i32
     //     }))
     //     .await
     //     {
