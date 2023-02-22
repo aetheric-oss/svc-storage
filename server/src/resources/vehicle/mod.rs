@@ -141,14 +141,20 @@ impl TryFrom<Row> for Data {
             Some(val) => datetime_to_timestamp(&val),
             None => None,
         };
+
+        let asset_group_id: Option<Uuid> = row.get("asset_group_id");
+        let asset_group_id = asset_group_id.map(|val| val.to_string());
+
+        let last_vertiport_id: Option<Uuid> = row.get("last_vertiport_id");
+        let last_vertiport_id = last_vertiport_id.map(|val| val.to_string());
         Ok(Data {
-            vehicle_model_id: row.get::<&str, String>("vehicle_model_id"),
+            vehicle_model_id: row.get::<&str, Uuid>("vehicle_model_id").to_string(),
             serial_number: row.get::<&str, String>("serial_number"),
             registration_number: row.get::<&str, String>("registration_number"),
             description: row.get::<&str, Option<String>>("description"),
-            asset_group_id: row.get::<&str, Option<String>>("asset_group_id"),
+            asset_group_id,
             schedule: row.get::<&str, Option<String>>("schedule"),
-            last_vertiport_id: Some(row.get::<&str, String>("last_vertiport_id")),
+            last_vertiport_id,
             last_maintenance,
             next_maintenance,
         })
