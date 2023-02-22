@@ -48,6 +48,26 @@ async fn get_vehicles() -> Result<vehicle::List, Status> {
     }
 }
 
+/// Inserts example vehicle's into the database using the `mock` library to generate data.
+async fn generate_sample_vehicles(amount: i16) {
+    let grpc_endpoint = get_grpc_endpoint();
+    let mut vehicle_client = match VehicleClient::connect(grpc_endpoint.clone()).await {
+        Ok(res) => res,
+        Err(e) => panic!("Error creating client for VehicleClient: {}", e),
+    };
+    println!("Vehicle Client created");
+
+    for _ in 0..amount {
+        match vehicle_client
+            .insert(tonic::Request::new(vehicle::mock::get_data_obj()))
+            .await
+        {
+            Ok(fp) => fp.into_inner(),
+            Err(e) => panic!("Something went wrong inserting the vertiport: {}", e),
+        };
+    }
+}
+
 /// Example ItineraryRpcClient
 /// Assuming the server is running, this method calls `client.itineraries` and
 /// should receive a valid response from the server
@@ -563,7 +583,7 @@ async fn generate_sample_vertiports() -> Result<vertiport::List, Status> {
 ///   - get flight plans
 async fn flight_plan_scenario(
     pilot_id: String,
-    vehicle_id: String,
+    mut vehicles: vehicle::List,
     mut vertipads: vertipad::List,
 ) -> Result<flight_plan::List, Status> {
     let grpc_endpoint = get_grpc_endpoint();
@@ -596,6 +616,10 @@ async fn flight_plan_scenario(
     let destination_vertipad_id = match vertipads.list.pop() {
         Some(vertipad) => vertipad.id,
         None => panic!("No vertipad found.. exiting"),
+    };
+    let vehicle_id = match vehicles.list.pop() {
+        Some(vehicle) => vehicle.id,
+        None => panic!("No vehicle found.. exiting"),
     };
 
     // insert some random flight_plans
@@ -718,10 +742,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     test_telemetry().await?;
 
+    // Insert sample vehicles
+    generate_sample_vehicles(5).await;
     // Get a list of vehicles
-    let _vehicles = get_vehicles().await?;
+    let vehicles = get_vehicles().await?;
+    println!("RESPONSE Vehicles={:#?}", vehicles);
 
-    let vehicle_id = Uuid::new_v4().to_string();
     // Get a list of pilots
     let _pilots = get_pilots().await?;
     let pilot_id = Uuid::new_v4().to_string();
@@ -732,7 +758,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let vertipads = vertipad_scenario(vertiports).await?;
 
     // Play flight plan scenario
-    let _result = flight_plan_scenario(pilot_id.clone(), vehicle_id, vertipads).await;
+    let _result = flight_plan_scenario(pilot_id.clone(), vehicles, vertipads).await;
 
     let mut vertiport_client = VertiportClient::connect(grpc_endpoint.clone()).await?;
     let vertiports = vertiport_client
