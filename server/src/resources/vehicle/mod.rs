@@ -60,15 +60,15 @@ impl Resource for ResourceObject<Data> {
                 ),
                 (
                     String::from("last_maintenance"),
-                    FieldDefinition::new_internal(PsqlFieldType::TIMESTAMPTZ, false),
+                    FieldDefinition::new(PsqlFieldType::TIMESTAMPTZ, false),
                 ),
                 (
                     String::from("next_maintenance"),
-                    FieldDefinition::new_internal(PsqlFieldType::TIMESTAMPTZ, false),
+                    FieldDefinition::new(PsqlFieldType::TIMESTAMPTZ, false),
                 ),
                 (
                     String::from("last_vertiport_id"),
-                    FieldDefinition::new_internal(PsqlFieldType::UUID, false),
+                    FieldDefinition::new(PsqlFieldType::UUID, false),
                 ),
                 (
                     String::from("created_at"),
