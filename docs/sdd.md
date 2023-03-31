@@ -56,8 +56,8 @@ None
 
 ### Initialization
 
-At initialization this service creates a GRPC server for each resource module available.
-In addition, it will create a connection to the backend database service (CockroachDB) and allocate internal memory HashMaps for each resource module for local caching purposes.
+At initialization this service creates a GRPC server for each available resource module.
+In addition, it will create a connection to the backend database service (CockroachDB).
 
 The GRPC server expects the following environment variables to be set:
 - `DOCKER_PORT_GRPC` (default: `50051`)
@@ -98,7 +98,7 @@ sequenceDiagram
     participant main as Main
     participant psql as psql_backend
     participant comm as common
-    main->>+psql: Init connection pool
+    main->>+psql: init_psql_pool()
     alt Connection exists
         psql-->>-main: <Result>
     else new connection
@@ -129,47 +129,39 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant main as Main
-    participant psql as psql_backend
+    participant psql as psql_mod
+    participant psql_init as psql::init
     participant grpc as grpc_server
-    participant all_psql as Each Resource psql
-    participant all_grpc as Each Resource grpc
+    participant all_psql as Resources as PsqlInitResource
+    participant all_grpc as Resources as GrpcServer
     participant comm as common
     main-->>main: Init loggers
     main-->>main: Parse command line arguments
     alt init_psql
-        main->>+psql: Init connection pool
+        main->>+psql: init_psql_pool()
         Note over main,psql: See: Database connection sequence
         psql-->>-main: <Result>
-        main->>+psql: Get pool handle
+        main->>+psql: get_psql_pool()
         psql-->>-main: <Pool>
-        main->>+psql: Create Database
-        psql->>+all_psql: (each resource) Create Table
-        all_psql-->>-psql: <Result>
-        psql-->>-main: <Result>
+        main->>+psql_init: create_db()
+        psql_init->>+all_psql: (each resource) init_table()
+        all_psql-->>-psql_init: <Result>
+        psql_init-->>-main: <Result>
     else rebuild_psql
-        main->>+psql: Init connection pool
+        main->>+psql: init_psql_pool()
         Note over main,psql: See: Database connection sequence
         psql-->>-main: <Result>
-        main->>+psql: Get pool handle
+        main->>+psql: get_psql_pool()
         psql-->>-main: <Pool>
-        main->>+psql: Recreate Database
-        psql->>+all_psql: (each resource) Drop Table
-        all_psql-->>-psql: <Result>
-        psql->>+all_psql: (each resource) Create Table
-        all_psql-->>-psql: <Result>
-        psql-->>-main: <Result>
-    else populate_psql
-        main->>+psql: Init connection pool
-        Note over main,psql: See: Database connection sequence
-        psql-->>-main: <Result>
-        main->>+psql: Get pool handle
-        psql-->>-main: <Pool>
-        main->>+psql: Populate Database
-        psql->>+all_psql: (each resource) Insert mock data
-        all_psql-->>-psql: <Result>
-        psql-->>-main: <Result>
+        main->>+psql_init: recreate_db()
+        psql_init-->psql_init: drop_db()
+        psql_init->>+all_psql: (each resource) drop_table()
+        all_psql-->>-psql_init: <Result>
+        psql_init->>+all_psql: (each resource) init_table()
+        all_psql-->>-psql_init: <Result>
+        psql_init-->>-main: <Result>
     end
-    main->>+psql: Init connection pool
+    main->>+psql: init_psql_pool()
     Note over main,psql: See: Database connection sequence
     psql-->>-main: <Result>
     main->>+grpc: grpc_server
@@ -189,312 +181,453 @@ sequenceDiagram
     end
 ```
 
-### Vertipad
+### Simple Resource
 
-#### `vertipads`
+#### `get_by_id`
 ```mermaid
 sequenceDiagram
     participant client as grpc_client
-    participant grpc as vertipad_rpc_server
+    participant grpc_server as GrpcServer
+    participant grpc_service as grpc::GrpcSimpleService
+    participant psql_simple as postgres::simple_resource::PsqlType
     participant psql as postgres
-    participant psql_vp as vertipad/psql
-    client->>+grpc: Get vertipads
-    rect rgb(247, 161, 161)
-        critical Get DB connection from the pool
-            grpc->>+psql: Get pool handle
-            psql-->>grpc: <Pool>
-        option No connection
-            psql-->>-grpc: Database pool not initialized
-        end
+    client->>+grpc_server: get_by_id(Request<Id>)
+    grpc_server->>+grpc_service: generic_get_by_id(Request<Id>)
+    grpc_service->>+psql_simple: get_by_id(Uuid)
+	rect rgb(247, 161, 161)
+		critical Get DB connection from the pool
+			psql_simple->>+psql: get_psql_pool()
+			psql-->>psql_simple: <Pool>
+		option No connection
+			psql-->>-psql_simple: Database pool not initialized
+		end
+	end
+    psql_simple-->>-grpc_service: Result<Row, Error>
+    alt Err
+        grpc_service-->>grpc_server: Status(Code::NotFound)
+    else Ok
+        grpc_service-->>grpc_service: <Object> from <Row>
+        grpc_service-->>-grpc_server: Ok(tonic::Response<Object>)
     end
-    grpc->>+psql_vp: Query vertipads with <SearchFilter>
-    psql_vp-->>-grpc: <Vec<Row>>
-    grpc-->>grpc: <Vertipads> from <Vec<Row>>
-    grpc-->>-client: <Vertipads>
+    grpc_server-->>-client: Result
 ```
 
-#### `vertipad_by_id`
+#### `search`
 ```mermaid
 sequenceDiagram
     participant client as grpc_client
-    participant grpc as vertipad_rpc_server
-    participant memdb as memdb
+    participant grpc_server as GrpcServer
+    participant grpc_service as grpc::GrpcSimpleService
+    participant psql_simple as postgres::PsqlSearch
     participant psql as postgres
-    participant psql_vp as vertipad/psql
-    client->>+grpc: Get vertipad by ID
-    grpc->>+memdb: Get vertipad from cache?
-    alt is found in cache
-        memdb-->>-grpc: <Vertipad>
-    else not found in cache
+    client->>+grpc_server: search(Request<AdvancedSearchFilter>)
+    grpc_server->>+grpc_service: generic_search(Request<AdvancedSearchFilter>)
+    grpc_service->>+psql_simple: advanced_search(AdvancedSearchFilter)
+	rect rgb(247, 161, 161)
+		critical Get DB connection from the pool
+			psql_simple->>+psql: get_psql_pool()
+			psql-->>psql_simple: <Pool>
+		option No connection
+			psql-->>-psql_simple: Database pool not initialized
+		end
+	end
+    psql_simple-->>-grpc_service: Result<Rows, Error>
+    alt Err (database error)
+        grpc_service-->>grpc_server: Status(Code::Internal)
+    else Ok (search success)
+        grpc_service-->>grpc_service: <List> from <Rows>
+        grpc_service-->>-grpc_server: Ok(tonic::Response<List>)
+    end
+    grpc_server-->>-client: Result
+```
+
+#### `insert`
+```mermaid
+sequenceDiagram
+    participant client as grpc_client
+    participant grpc_server as GrpcServer
+    participant grpc_service as grpc::GrpcSimpleService
+    participant psql_simple as postgres::simple_resource::PsqlType
+    participant psql as postgres
+    client->>+grpc_server: insert(Request<Data>)
+    grpc_server->>+grpc_service: generic_insert(Request<Data>)
+    grpc_service->>+psql_simple: create(GrpcDataObjectType)
+    psql_simple-->>psql_simple: validate(GrpcDataObjectType)
+    alt Validation errors found
+        psql_simple-->>grpc_service: Ok((None, ValidationResult))
+    else Validation success
         rect rgb(247, 161, 161)
             critical Get DB connection from the pool
-                grpc->>+psql: Get pool handle
-                psql-->>grpc: <Pool>
+                psql_simple-->>+psql: get_psql_pool()
+                psql-->>psql_simple: <Pool>
             option No connection
-                psql-->>-grpc: Database pool not initialized
+                psql-->>-psql_simple: Database pool not initialized
             end
         end
-        grpc->>+psql_vp: Query vertipad for ID
-        psql_vp-->>-grpc: <VertipadPsql>
-        grpc-->>grpc: <Vertipad> from <VertipadPsql>
+        psql_simple-->>-grpc_service: Ok((Some(Uuid), ValidationResult))
     end
-    grpc-->>-client: <Vertipad>
+    alt Err (insert error)
+        grpc_service-->>grpc_server: Status(Code::Internal)
+    else Ok (insert success)
+        grpc_service-->>grpc_service: Object from Uuid
+        grpc_service-->>-grpc_server: Ok(tonic::Response<Object>)
+    end
+    grpc_server-->>-client: Result
 ```
 
-#### `insert_vertipad`
+#### `update`
 ```mermaid
 sequenceDiagram
     participant client as grpc_client
-    participant grpc as vertipad_rpc_server
-    participant memdb as memdb
+    participant grpc_server as GrpcServer
+    participant grpc_service as grpc::GrpcSimpleService
+    participant psql_simple_object as postgres::simple_resource::PsqlObjectType
+    participant psql_simple as postgres::simple_resource::PsqlType
     participant psql as postgres
-    participant psql_vp as vertipad/psql
-    client->>+grpc: Get vertipad by ID
-    rect rgb(247, 161, 161)
-        critical Get DB connection from the pool
-            grpc->>+psql: Get pool handle
-            psql-->>grpc: <Pool>
-        option No connection
-            psql-->>-grpc: Database pool not initialized
-        end
-    end
-    grpc->>+psql_vp: Create vertipad with data
-    psql_vp-->>-grpc: <VertipadPsql>
-    grpc-->>grpc: <Vertipad> from <VertipadPsql>
-    grpc->>memdb: insert Vertipad
-    grpc-->>-client: <Vertipad>
-```
-
-#### `update_vertipad`
-```mermaid
-sequenceDiagram
-    participant client as grpc_client
-    participant grpc as vertipad_rpc_server
-    participant memdb as memdb
-    participant psql as postgres
-    participant psql_vp as vertipad/psql
-    client->>+grpc: Update vertipad with data
-    grpc-->>grpc: <UpdateVertipad> from <Request>
-    alt No data provided for update
-        grpc-->>client: <Status<Cancelled>>
-    else vertipad data found in request
-        grpc-->>grpc: <VertipadData>
+    client->>+grpc_server: update(Request<UpdateObject>)
+    grpc_server->>+grpc_service: generic_update(Request<UpdateObject>)
+    grpc_service-->>grpc_service: UpdateObject into Object
+    grpc_service->>+psql_simple_object: update(GrpcDataObjectType)
+    psql_simple_object-->>+psql_simple: validate(GrpcDataObjectType)
+    psql_simple-->>-psql_simple_object: Result<(Some, ValidationResult), Error>
+    alt Validation errors found
+        psql_simple_object-->>grpc_service: Ok((None, ValidationResult))
+    else Validation success
         rect rgb(247, 161, 161)
             critical Get DB connection from the pool
-                grpc->>+psql: Get pool handle
-                psql-->>grpc: <Pool>
+                psql_simple_object->>+psql: get_psql_pool()
+                psql-->>psql_simple_object: <Pool>
             option No connection
-                psql-->>-grpc: Database pool not initialized
+                psql-->>-psql_simple_object: Database pool not initialized
             end
         end
-        grpc->>+psql_vp: Query vertipad for ID
-        alt No vertipad found
-            psql_vp-->>grpc: <ArrErr>
-            grpc-->>client: <Status<not found>>
-        else vertipad exists
-            psql_vp-->>-grpc: <VertipadPsql>
-            grpc->>+psql_vp: Update vertipad with data
-            alt Update failed
-                psql_vp-->>grpc: <ArrErr>
-                grpc-->>client: <Status<Internal>>
-            else Update success
-                psql_vp-->>psql_vp: read
-                psql_vp-->>-grpc: <VertipadPsql>
-                grpc-->>grpc: <Vertipad> from <VertipadPsql>
-                grpc->>memdb: insert Vertipad
-                grpc-->>-client: <Vertipad>
-            end
-        end
+        psql_simple_object-->>psql_simple_object: run db update query
+        psql_simple_object-->>-grpc_service: Ok((Some(Row), ValidationResult))
     end
+    alt Err (update error)
+        grpc_service-->>grpc_server: Status(Code::Internal)
+    else Ok (might have validation errors, caller should check result)
+        alt Some Row (resource successfully updated)
+            grpc_service-->>grpc_service: new GenericResourceResult with resource Some(Object)
+        else None (field validations did not pass)
+            grpc_service-->>grpc_service: new GenericResourceResult with resource None
+        end
+        grpc_service-->>-grpc_server: Ok(tonic::Response<Response>)
+    end
+    grpc_server-->>-client: Result
 ```
 
-#### `delete_vertipad`
+#### `delete`
 ```mermaid
 sequenceDiagram
     participant client as grpc_client
-    participant grpc as vertipad_rpc_server
-    participant memdb as memdb
+    participant grpc_server as GrpcServer
+    participant grpc_service as grpc::GrpcSimpleService
+    participant psql_simple_object as postgres::simple_resource::PsqlObjectType
+    participant psql_simple as postgres::simple_resource::PsqlType
     participant psql as postgres
-    participant psql_vp as vertipad/psql
-    client->>+grpc: Delete vertipad with ID
-    rect rgb(247, 161, 161)
-        critical Get DB connection from the pool
-            grpc->>+psql: Get pool handle
-            psql-->>grpc: <Pool>
-        option No connection
-            psql-->>-grpc: Database pool not initialized
-        end
-    end
-    grpc->>+psql_vp: Query vertipad for ID
-    alt No vertipad found
-        psql_vp-->>grpc: <ArrErr>
-        grpc-->>client: <Status<not found>>
-    else vertipad exists
-        psql_vp-->>-grpc: <VertipadPsql>
-        grpc->>+psql_vp: Delete vertipad
-        alt Delete failed
-            psql_vp-->>grpc: <ArrErr>
-            grpc-->>client: <Status<Internal>>
-        else Delete success
-            psql_vp-->>-grpc: 
-            grpc->>memdb: delete with Id
-            grpc-->>-client: <Response>
-        end
-    end
-```
-
-### Vertiport
-
-#### `vertiports`
-```mermaid
-sequenceDiagram
-    participant client as grpc_client
-    participant grpc as vertiport_rpc_server
-    participant psql as postgres
-    participant psql_vp as vertiport/psql
-    client->>+grpc: Get vertiports
-    rect rgb(247, 161, 161)
-        critical Get DB connection from the pool
-            grpc->>+psql: Get pool handle
-            psql-->>grpc: <Pool>
-        option No connection
-            psql-->>-grpc: Database pool not initialized
-        end
-    end
-    grpc->>+psql_vp: Query vertiports with <SearchFilter>
-    psql_vp-->>-grpc: <Vec<Row>>
-    grpc-->>grpc: <Vertiports> from <Vec<Row>>
-    grpc-->>-client: <Vertiports>
-```
-
-#### `vertiport_by_id`
-```mermaid
-sequenceDiagram
-    participant client as grpc_client
-    participant grpc as vertiport_rpc_server
-    participant memdb as memdb
-    participant psql as postgres
-    participant psql_vp as vertiport/psql
-    client->>+grpc: Get vertiport by ID
-    grpc->>+memdb: Get vertiport from cache?
-    alt is found in cache
-        memdb-->>-grpc: <Vertiport>
-    else not found in cache
+    client->>+grpc_server: delete(Request<Id>)
+    grpc_server->>+grpc_service: generic_delete(Request<Id>)
+    grpc_service-->>grpc_service: UpdateObject into Object
+    grpc_service->>+psql_simple_object: delete()
+    psql_simple_object-->>psql_simple_object: get_definition()
+    alt definition.fields.contains_key("deleted_at") 
+        psql_simple_object-->>psql_simple_object: set_deleted_at_now()
         rect rgb(247, 161, 161)
             critical Get DB connection from the pool
-                grpc->>+psql: Get pool handle
-                psql-->>grpc: <Pool>
+                psql_simple_object->>+psql: get_psql_pool()
+                psql-->>psql_simple_object: <Pool>
             option No connection
-                psql-->>-grpc: Database pool not initialized
+                psql-->>-psql_simple_object: Database pool not initialized
             end
         end
-        grpc->>+psql_vp: Query vertiport for ID
-        psql_vp-->>-grpc: <VertiportPsql>
-        grpc-->>grpc: <Vertiport> from <VertiportPsql>
-    end
-    grpc-->>-client: <Vertiport>
-```
-
-#### `insert_vertiport`
-```mermaid
-sequenceDiagram
-    participant client as grpc_client
-    participant grpc as vertiport_rpc_server
-    participant memdb as memdb
-    participant psql as postgres
-    participant psql_vp as vertiport/psql
-    client->>+grpc: Get vertiport by ID
-    rect rgb(247, 161, 161)
-        critical Get DB connection from the pool
-            grpc->>+psql: Get pool handle
-            psql-->>grpc: <Pool>
-        option No connection
-            psql-->>-grpc: Database pool not initialized
+        psql_simple_object-->>psql_simple_object: run db update query
+        psql_simple_object-->>grpc_service: Result
+    else
+		psql_simple_object-->>psql_simple_object: delete_row()
+		rect rgb(247, 161, 161)
+            critical Get DB connection from the pool
+                psql_simple_object->>+psql: get_psql_pool()
+                psql-->>psql_simple_object: <Pool>
+            option No connection
+                psql-->>-psql_simple_object: Database pool not initialized
+            end
         end
+        psql_simple_object-->>psql_simple_object: run db delete query
+        psql_simple_object-->>-grpc_service: Result
+	end
+    alt Err (database error)
+        grpc_service-->>grpc_server: Status(Code::Internal)
+    else Ok (delete success)
+        grpc_service-->>-grpc_server: Ok(tonic::Response<()>)
     end
-    grpc->>+psql_vp: Create vertiport with data
-    psql_vp-->>-grpc: <VertiportPsql>
-    grpc-->>grpc: <Vertiport> from <VertiportPsql>
-    grpc->>memdb: insert Vertiport
-    grpc-->>-client: <Vertiport>
+    grpc_server-->>-client: Result
 ```
 
-#### `update_vertiport`
+### linked Resource
+
+#### `link`
 ```mermaid
 sequenceDiagram
     participant client as grpc_client
-    participant grpc as vertiport_rpc_server
-    participant memdb as memdb
+    participant grpc_server as GrpcServer
+    participant grpc_service as grpc::GrpcLinkService
+    participant psql_simple as postgres::simple_resource::PsqlType
+    participant psql_linked as postgres::linked_resource::PsqlType
     participant psql as postgres
-    participant psql_vp as vertiport/psql
-    client->>+grpc: Update vertiport with data
-    grpc-->>grpc: <UpdateVertiport> from <Request>
-    alt No data provided for update
-        grpc-->>client: <Status<Cancelled>>
-    else vertiport data found in request
-        grpc-->>grpc: <VertiportData>
+    client->>+grpc_server: link(Request<LinkObject>)
+    grpc_server->>+grpc_service: generic_link(id, other_ids, false)
+    alt Err "Could not convert provided id String [{id}] into uuid: {e}"
+        grpc_service-->>grpc_server: Status(Code::NotFound)
+    else
+        grpc_service->>+psql_simple: get_by_id(Uuid)
         rect rgb(247, 161, 161)
             critical Get DB connection from the pool
-                grpc->>+psql: Get pool handle
-                psql-->>grpc: <Pool>
+                psql_simple->>+psql: get_psql_pool()
+                psql-->>psql_simple: <Pool>
             option No connection
-                psql-->>-grpc: Database pool not initialized
+                psql-->>-psql_simple: Database pool not initialized
             end
         end
-        grpc->>+psql_vp: Query vertiport for ID
-        alt No vertiport found
-            psql_vp-->>grpc: <ArrErr>
-            grpc-->>client: <Status<not found>>
-        else vertiport exists
-            psql_vp-->>-grpc: <VertiportPsql>
-            grpc->>+psql_vp: Update vertiport with data
-            alt Update failed
-                psql_vp-->>grpc: <ArrErr>
-                grpc-->>client: <Status<Internal>>
-            else Update success
-                psql_vp-->>psql_vp: read
-                psql_vp-->>-grpc: <VertiportPsql>
-                grpc-->>grpc: <Vertiport> from <VertiportPsql>
-                grpc->>memdb: insert Vertiport
-                grpc-->>-client: <Vertiport>
+        psql_simple-->>-grpc_service: Result<Row, Error>
+        alt Err "No [{psql_table}] found for specified uuid: {id}"
+            grpc_service-->>grpc_server: Status(Code::NotFound)
+        else Ok
+            grpc_service->>+psql_linked: link_ids(ids, replace_id_fields)
+            rect rgb(247, 161, 161)
+                critical Get DB connection from the pool
+                    psql_linked->>+psql: get_psql_pool()
+                    psql-->>psql_linked: <Pool>
+                option No connection
+                    psql-->>-psql_linked: Database pool not initialized
+                end
+            end
+            psql_linked-->>-grpc_service: Result<(), Error>
+            alt Err (database error)
+                grpc_service-->>grpc_server: Status(Code::Internal)
+            else Ok (link success)
+                grpc_service-->>-grpc_server: Ok(tonic::Response<()>)
             end
         end
     end
+    grpc_server-->>-client: Result
 ```
 
-#### `delete_vertiport`
+#### `replace_linked`
 ```mermaid
 sequenceDiagram
     participant client as grpc_client
-    participant grpc as vertiport_rpc_server
-    participant memdb as memdb
+    participant grpc_server as GrpcServer
+    participant grpc_service as grpc::GrpcLinkService
+    participant psql_simple as postgres::simple_resource::PsqlType
+    participant psql_linked as postgres::linked_resource::PsqlType
     participant psql as postgres
-    participant psql_vp as vertiport/psql
-    client->>+grpc: Delete vertiport with ID
+    client->>+grpc_server: replace_linked(Request<LinkObject>)
+    grpc_server->>+grpc_service: generic_link(id, other_ids, true)
+    alt Err "Could not convert provided id String [{id}] into uuid: {e}"
+        grpc_service-->>grpc_server: Status(Code::NotFound)
+    else
+        grpc_service->>+psql_simple: get_by_id(Uuid)
+        rect rgb(247, 161, 161)
+            critical Get DB connection from the pool
+                psql_simple->>+psql: get_psql_pool()
+                psql-->>psql_simple: <Pool>
+            option No connection
+                psql-->>-psql_simple: Database pool not initialized
+            end
+        end
+        psql_simple-->>-grpc_service: Result<Row, Error>
+        alt Err "No [{psql_table}] found for specified uuid: {id}"
+            grpc_service-->>grpc_server: Status(Code::NotFound)
+        else Ok
+            grpc_service->>+psql_linked: link_ids(ids, replace_id_fields)
+            psql_linked-->>psql_linked: delete_for_ids(replace_id_fields)
+            rect rgb(247, 161, 161)
+                critical Get DB connection from the pool
+                    psql_linked->>+psql: get_psql_pool()
+                    psql-->>psql_linked: <Pool>
+                option No connection
+                    psql-->>-psql_linked: Database pool not initialized
+                end
+            end
+            psql_linked-->>-grpc_service: Result<(), Error>
+            alt Err (database error)
+                grpc_service-->>grpc_server: Status(Code::Internal)
+            else Ok (link success)
+                grpc_service-->>-grpc_server: Ok(tonic::Response<()>)
+            end
+        end
+    end
+    grpc_server-->>-client: Result
+```
+
+#### `unlink`
+```mermaid
+sequenceDiagram
+    participant client as grpc_client
+    participant grpc_server as GrpcServer
+    participant grpc_service as grpc::GrpcLinkService
+    participant psql_simple as postgres::simple_resource::PsqlType
+    participant psql_linked as postgres::linked_resource::PsqlType
+    participant psql as postgres
+    client->>+grpc_server: unlink(Request<Id>)
+    grpc_server->>+grpc_service: generic_unlink(Request<Id>)
+    alt Err (provided Id could not be converted to Uuid
+        grpc_service-->>grpc_server: Status(Code::NotFound)
+    else
+        grpc_service->>+psql_simple: get_by_id(Uuid)
+        rect rgb(247, 161, 161)
+            critical Get DB connection from the pool
+                psql_simple->>+psql: get_psql_pool()
+                psql-->>psql_simple: <Pool>
+            option No connection
+                psql-->>-psql_simple: Database pool not initialized
+            end
+        end
+        psql_simple-->>-grpc_service: Result<Row, Error>
+        alt Err "No [{psql_table}] found for specified uuid: {id}"
+            grpc_service-->>grpc_server: Status(Code::NotFound)
+        else Ok
+            grpc_service->>+psql_linked: delete_for_ids(ids)
+            rect rgb(247, 161, 161)
+                critical Get DB connection from the pool
+                    psql_linked->>+psql: get_psql_pool()
+                    psql-->>psql_linked: <Pool>
+                option No connection
+                    psql-->>-psql_linked: Database pool not initialized
+                end
+            end
+            psql_linked-->>-grpc_service: Result<(), Error>
+            alt Err (database error)
+                grpc_service-->>grpc_server: Status(Code::Internal)
+            else Ok (unlink success)
+                grpc_service-->>-grpc_server: Ok(tonic::Response<()>)
+            end
+        end
+    end
+    grpc_server-->>-client: Result
+```
+
+#### `get_linked_ids`
+```mermaid
+sequenceDiagram
+    participant client as grpc_client
+    participant grpc_server as GrpcServer
+    participant grpc_service as grpc::GrpcLinkService
+    participant psql_simple as postgres::simple_resource::PsqlType
+    participant psql_linked as postgres::linked_resource::PsqlType
+    participant psql_search as postgres::PsqlSearch
+    participant psql as postgres
+    client->>+grpc_server: get_linked_ids(Request<Id>)
+    grpc_server->>+grpc_service: generic_get_linked_ids(Request<Id>)
+    grpc_service->>+grpc_service: _get_linked(Id)
+    grpc_service->>+psql_simple: get_by_id(Uuid)
     rect rgb(247, 161, 161)
         critical Get DB connection from the pool
-            grpc->>+psql: Get pool handle
-            psql-->>grpc: <Pool>
+            psql_simple->>+psql: get_psql_pool()
+            psql-->>psql_simple: <Pool>
         option No connection
-            psql-->>-grpc: Database pool not initialized
+            psql-->>-psql_simple: Database pool not initialized
         end
     end
-    grpc->>+psql_vp: Query vertiport for ID
-    alt No vertiport found
-        psql_vp-->>grpc: <ArrErr>
-        grpc-->>client: <Status<not found>>
-    else vertiport exists
-        psql_vp-->>-grpc: <VertiportPsql>
-        grpc->>+psql_vp: Delete vertiport
-        alt Delete failed
-            psql_vp-->>grpc: <ArrErr>
-            grpc-->>client: <Status<Internal>>
-        else Delete success
-            psql_vp-->>-grpc: 
-            grpc->>memdb: delete with Id
-            grpc-->>-client: <Response>
+    psql_simple-->>-grpc_service: Result<Row, Error>
+    alt Err "No resource found for specified uuid: {id}"
+        grpc_service-->>grpc_service: Status(Code::NotFound)
+    else Ok
+        grpc_service->>+psql_linked: get_for_ids(ids)
+        rect rgb(247, 161, 161)
+            critical Get DB connection from the pool
+                psql_linked->>+psql: get_psql_pool()
+                psql-->>psql_linked: <Pool>
+            option No connection
+                psql-->>-psql_linked: Database pool not initialized
+            end
+        end
+        psql_linked-->>-grpc_service: Result<Vec<Row>, Error>
+        alt Err (database error)
+            grpc_service-->>grpc_service: Err(ArrErr::Error)
+        else Ok (query success)
+            grpc_service-->>-grpc_service: Ok(ids)
+            grpc_service->>+psql_search: advanced_search(AdvancedSearchFilter)
+            rect rgb(247, 161, 161)
+                critical Get DB connection from the pool
+                    psql_search->>+psql: get_psql_pool()
+                    psql-->>psql_search: <Pool>
+                option No connection
+                    psql-->>-psql_search: Database pool not initialized
+                end
+            end
+            psql_search-->>-grpc_service: Result<Rows, Error>
+            alt Err (database error)
+                grpc_service-->>grpc_server: Status(Code::Internal)
+            else Ok (search success)
+                grpc_service-->>grpc_service: <IdList> from <Rows>
+                grpc_service-->>-grpc_server: Ok(tonic::Response<IdList>)
+            end
         end
     end
+    grpc_server-->>-client: Result
+```
+
+#### `get_linked`
+```mermaid
+sequenceDiagram
+    participant client as grpc_client
+    participant grpc_server as GrpcServer
+    participant grpc_service as grpc::GrpcLinkService
+    participant psql_simple as postgres::simple_resource::PsqlType
+    participant psql_linked as postgres::linked_resource::PsqlType
+    participant psql_search as postgres::PsqlSearch
+    participant psql as postgres
+    client->>+grpc_server: get_linked(Request<Id>)
+    grpc_server->>+grpc_service: generic_get_linked(Request<Id>)
+    grpc_service->>+grpc_service: _get_linked(Id)
+    grpc_service->>+psql_simple: get_by_id(Uuid)
+    rect rgb(247, 161, 161)
+        critical Get DB connection from the pool
+            psql_simple->>+psql: get_psql_pool()
+            psql-->>psql_simple: <Pool>
+        option No connection
+            psql-->>-psql_simple: Database pool not initialized
+        end
+    end
+    psql_simple-->>-grpc_service: Result<Row, Error>
+    alt Err "No resource found for specified uuid: {id}"
+        grpc_service-->>grpc_service: Status(Code::NotFound)
+    else Ok
+        grpc_service->>+psql_linked: get_for_ids(ids)
+        rect rgb(247, 161, 161)
+            critical Get DB connection from the pool
+                psql_linked->>+psql: get_psql_pool()
+                psql-->>psql_linked: <Pool>
+            option No connection
+                psql-->>-psql_linked: Database pool not initialized
+            end
+        end
+        psql_linked-->>-grpc_service: Result<Vec<Row>, Error>
+        alt Err (database error)
+            grpc_service-->>grpc_service: Err(ArrErr::Error)
+        else Ok (query success)
+            grpc_service-->>-grpc_service: Ok(ids)
+            grpc_service->>+psql_search: advanced_search(AdvancedSearchFilter)
+            rect rgb(247, 161, 161)
+                critical Get DB connection from the pool
+                    psql_search->>+psql: get_psql_pool()
+                    psql-->>psql_search: <Pool>
+                option No connection
+                    psql-->>-psql_search: Database pool not initialized
+                end
+            end
+            psql_search-->>-grpc_service: Result<Rows, Error>
+            alt Err (database error)
+                grpc_service-->>grpc_server: Status(Code::Internal)
+            else Ok (search success)
+                grpc_service-->>grpc_service: <List> from <Rows>
+                grpc_service-->>-grpc_server: Ok(tonic::Response<List>)
+            end
+        end
+    end
+    grpc_server-->>-client: Result
 ```
 
 ### Data model CockroachDB
@@ -512,8 +645,9 @@ erDiagram
         uuid flight_plan_id PK
         uuid pilot_id FK
         uuid vehicle_id FK
+        json cargo_weight_grams
         integer flight_distance_meters
-        text weather_conditions
+        text weather_conditions "Optional"
         uuid departure_vertipad_id FK
         uuid destination_vertipad_id FK
         timestamp scheduled_departure
@@ -523,7 +657,6 @@ erDiagram
         timestamp flight_release_approval "Optional"
         timestamp flight_plan_submitted "Optional"
         uuid approved_by FK "Optional"
-        json cargo_weight_g "Optional"
         text flight_status "Default DRAFT"
         text flight_priority "Default LOW"
         timestamp created_at "Default NOW"
@@ -535,19 +668,10 @@ erDiagram
         uuid user_id
         text status "Default ACTIVE"
     }
-    %% itinerary_flight_plan {
-    %%     combined itinerary_id_flight_plan_id PK
-    %%     uuid itinerary_id
-    %%     uuid flight_plan_id
-    %% }
-    asset_group {
-        uuid asset_group_id PK
-        text name
-        text description
-        uuid owner FK
-        timestamp created_at "Default NOW"
-        timestamp updated_at "Default NOW"
-        timestamp deleted_at "Default NULL"
+    itinerary_flight_plan {
+        combined itinerary_id_flight_plan_id PK
+        uuid itinerary_id FK
+        uuid flight_plan_id FK
     }
     vertiport {
         uuid vertiport_id PK
@@ -555,8 +679,7 @@ erDiagram
         text description
         float longitude
         float latitude
-        text schedule "Optional"
-        uuid asset_group_id FK "Optional"
+        text schedule
         timestamp created_at "Default NOW"
         timestamp updated_at "Default NOW"
         timestamp deleted_at "Default NULL"
@@ -567,171 +690,44 @@ erDiagram
         text name
         float longitude
         float latitude
-        text schedule "Optional"
+        text schedule
         bool enabled "Default true"
         bool occupied "Default false"
-        uuid asset_group_id FK "Optional"
         timestamp created_at "Default NOW"
         timestamp updated_at "Default NOW"
         timestamp deleted_at "Default NULL"
-    }
-    user {
-        uuid user_id PK
-        text auth_method "Default GOOGLE_SSO"
-        text auth_username "Unique"
-        timestamp last_logged_in
-        timestamp created_at "Default NOW"
-        timestamp updated_at "Default NOW"
-        timestamp deleted_at "Default NULL"
-    }
-    contact {
-        uuid contact_id PK
-        text first_name
-        text last_name
-        text email "Optional"
-        text phone_number "Optional"
-        uuid address_id "Optional"
-    }
-    user_contact {
-        uuid user_id FK
-        uuid contact_id FK
     }
     pilot {
         uuid pilot_id PK
-        uuid user_id FK
+        text first_name
+        text last_name
         timestamp created_at "Default NOW"
         timestamp updated_at "Default NOW"
         timestamp deleted_at "Default NULL"
-    }
-    pilot_certificate {
-        uuid pilot_id FK
-        uuid certificate_id FK
-        timestamp obtained_at
-        timestamp expires_at "Default NULL"
-    }
-    certificate {
-        uuid certificate_id PK
-        text name
-        text authority_name
-        text certificate_code "Unique"
-    }
-    address {
-        uuid address_id PK
-        text country
-        text postal_code "Unique with house_nr + house_nr_add"
-        integer house_nr
-        text house_nr_add "Optional"
-        text street
-        text city
-        text state "Optional"
-        decimal longitude "Optional"
-        decimal latitude "Optional"
-    }
-    asset_supplier {
-        uuid asset_supplier_id PK
-        text name
-        text description
-        uuid main_address_id FK
-        uuid main_contact_id FK
-        text main_email "Optional"
-        text main_phone_number "Optional"
-        text website "Optional"
-        text logo_path "Optional"
-        timestamp created_at "Default NOW"
-        timestamp updated_at "Default NOW"
-        timestamp deleted_at "Default NULL"
-    }
-    asset_supplier_user {
-        uuid asset_supplier_id FK
-        uuid user_id FK
-        string user_type "Default RO_USER"
-    }
-    asset_supplier_address {
-        uuid asset_supplier_id FK
-        uuid address_id FK
-        string description "Optional"
     }
     vehicle {
         uuid vehicle_id PK
-        text vehicle_model_id FK
+        uuid vehicle_model_id
         text serial_number
         text registration_number
         text description "Optional"
-        uuid asset_group_id FK "Optional"
+        uuid asset_group_id "Optional"
         text schedule "Optional"
         timestamp last_maintenance "Optional"
         timestamp next_maintenance "Optional"
+        uuid last_vertiport_id FK "Optional"
         timestamp created_at "Default NOW"
         timestamp updated_at "Default NOW"
         timestamp deleted_at "Default NULL"
     }
-    vehicle_field {
-        uuid field_id
-        text field
-        text type
-        bool mandatory "Default false"
-    }
-    vehicle_field_value {
-        uuid vehicle_id PK
-        uuid vehicle_field_id FK
-        text value
-        timestamp updated_at "Default NOW"
-    }
-    vehicle_model {
-        uuid vehicle_model_id PK
-        uuid manufacturer_id FK
-        text model
-        text type
-        float max_payload_kg
-        float max_range_km
-        timestamp created_at "Default NOW"
-        timestamp updated_at "Default NOW"
-        timestamp deleted_at "Default NULL"
-    }
-    vehicle_model_field {
-        uuid field_id
-        text field
-        text type
-        bool mandatory "Default false"
-    }
-    vehicle_model_field_value {
-        uuid vehicle_model_id PK
-        uuid vehicle_model_field_id FK
-        text value
-    }
-    manufacturer {
-        uuid manufacturer_id PK
-        text name
-        text logo_path
-        timestamp created_at "Default NOW"
-        timestamp updated_at "Default NOW"
-        timestamp deleted_at "Default NULL"
-    }
-    manufacturer_address {
-        uuid manufacturer_id PK
-        uuid address_id FK
-        string description "Optional"
-    }
 
-    flight_plan |{--|| vertipad : departure_vertipad_id
-    flight_plan |{--|| vertipad : destination_vertipad_id
-    flight_plan |{--|| pilot : pilot_id
-    flight_plan o{--|| user : approved_by
+    flight_plan }o--|| vertipad : departure_vertipad_id
+    flight_plan }o--|| vertipad : destination_vertipad_id
+    flight_plan }o--|| pilot : pilot_id
+    flight_plan }o--|| vehicle : vehicle_id
 
-    vertipad |{--|| vertiport : vertiport_id
+    itinerary_flight_plan |o--|{ flight_plan : flight_plan_id
+    itinerary_flight_plan |o--|| itinerary : itinerary_id
 
-    pilot |{--|| user : user_id
-    pilot_certificate o{--}| pilot : pilot_id
-    pilot_certificate o{--}o certificate : certificate_id
-
-    user_contact o{--}o contact : contact_id
-    user_contact o{--}o user : user_id
-    contact o{--|| address : address_id
-
-    asset_supplier |{--|| contact : main_contact_id
-    asset_supplier |{--|| address : main_address_id
-    asset_supplier_user |{--}| asset_supplier : asset_supplier_id
-    asset_supplier_user |{--}| user : user_id
-    asset_supplier_address o{--}o asset_supplier : asset_supplier_id
-    asset_supplier_address o{--}o address : address_id
+    vertipad }o--|| vertiport : vertiport_id
 ```
