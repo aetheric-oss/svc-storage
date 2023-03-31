@@ -824,7 +824,7 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 [[package]]
 name = "lib-common"
 version = "0.1.0"
-source = "git+https://github.com/Arrow-air/lib-common.git?branch=develop#32164ef3459d8322b6dfda2b4f98228edeacdd5a"
+source = "git+https://github.com/Arrow-air/lib-common.git?tag=v0.1.0#283cc310280ddafd5a3e99ed7df026e19b0e193a"
 dependencies = [
  "cargo-husky",
  "chrono",

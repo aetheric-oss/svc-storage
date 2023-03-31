@@ -2,10 +2,11 @@
 members = ["server", "client-grpc"]
 
 [workspace.package]
-edition = "2021"
-homepage = "https://www.arrowair.com/docs/documentation/services/intro"
-license = "BUSL-1.1"
-repository = "https://github.com/Arrow-air/svc-storage"
+edition      = "2021"
+homepage     = "https://www.arrowair.com/docs/documentation/services/intro"
+license-file = "LICENSE"
+repository   = "https://github.com/Arrow-air/svc-storage"
+
 categories = [
   "aerospace::drones",
   "aerospace::protocols",

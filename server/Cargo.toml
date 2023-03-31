@@ -4,11 +4,11 @@ keywords    = ["vtol", "server", "storage"]       # max 5
 name        = "svc-storage"
 version     = "0.9.0-develop.16"
 
-categories.workspace = true
-edition.workspace    = true
-homepage.workspace   = true
-license.workspace    = true
-repository.workspace = true
+categories.workspace   = true
+edition.workspace      = true
+homepage.workspace     = true
+license-file.workspace = true
+repository.workspace   = true
 
 [features]
 mock             = ["rand"]
@@ -25,7 +25,7 @@ dotenv              = "0.15"
 futures             = "0.3"
 geo-types           = "0.7"
 lazy_static         = "1.4"
-lib-common          = { git = "https://github.com/Arrow-air/lib-common.git", branch = "develop" }
+lib-common          = { git = "https://github.com/Arrow-air/lib-common.git", tag = "v0.1.0" }
 log                 = "0.4"
 native-tls          = "0.2"
 num-derive          = "0.3"
