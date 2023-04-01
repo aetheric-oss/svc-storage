@@ -1,3 +1,6 @@
+//! gRPC
+//! provides server implementations for gRPC
+
 #[macro_use]
 pub mod macros;
 mod link_service;
@@ -10,17 +13,18 @@ pub use simple_service::GrpcSimpleService;
 use anyhow::Error;
 use prost_types::Timestamp;
 use std::fmt::Debug;
+use std::net::SocketAddr;
 use std::time::SystemTime;
 use tokio::runtime::{Handle, Runtime};
 use tonic::transport::Server;
 use tonic::{Request, Response, Status};
 
-use crate::common::Config;
+use crate::config::Config;
 use crate::resources::ready::*;
 use crate::resources::*;
 
-#[derive(Debug, Clone)]
 /// gRPC field types
+#[derive(Debug, Clone)]
 pub enum GrpcField {
     /// Byte Array
     Bytes(Vec<u8>),
@@ -47,8 +51,9 @@ pub enum GrpcField {
     /// Option GrpcFieldOption
     Option(GrpcFieldOption),
 }
-#[derive(Debug, Clone)]
+
 /// gRPC field types as Option
+#[derive(Debug, Clone)]
 pub enum GrpcFieldOption {
     /// Byte Array
     Bytes(Option<Vec<u8>>),
@@ -82,8 +87,8 @@ pub trait GrpcDataObjectType: prost::Message + Clone {
     fn get_field_value(&self, key: &str) -> Result<GrpcField, ArrErr>;
 }
 
-#[derive(Debug, Default, Copy, Clone)]
 /// struct to implement the gRPC server functions
+#[derive(Debug, Default, Copy, Clone)]
 pub struct StorageImpl {}
 
 #[tonic::async_trait]
@@ -215,27 +220,31 @@ impl From<GrpcFieldOption> for Option<GrpcField> {
     }
 }
 
-/// Starts the grpc servers for this microservice using the configuration settings found in the environment
+/// Starts the grpc servers for this microservice using the provided configuration
 ///
+/// # Example:
 /// ```
 /// use svc_storage::common::ArrErr;
+/// use svc_storage::config::Config;
 /// use svc_storage::grpc::grpc_server;
 /// async fn example() -> Result<(), ArrErr> {
-///     tokio::spawn(grpc_server()).await?;
+///     let config = Config::default();
+///     tokio::spawn(grpc_server(config)).await?;
 ///     Ok(())
 /// }
 /// ```
-pub async fn grpc_server() {
-    let settings = match Config::from_env() {
-        Ok(settings) => settings,
+pub async fn grpc_server(config: Config) {
+    grpc_debug!("(grpc_server) entry.");
+
+    // GRPC Server
+    let grpc_port = config.docker_port_grpc;
+    let full_grpc_addr: SocketAddr = match format!("[::]:{}", grpc_port).parse() {
+        Ok(addr) => addr,
         Err(e) => {
-            let _ = ArrErr::from(e);
-            Config::new()
+            grpc_error!("Failed to parse gRPC address: {}", e);
+            return;
         }
     };
-
-    let grpc_port = settings.docker_port_grpc.unwrap_or(50051);
-    let full_grpc_addr = format!("[::]:{}", grpc_port).parse().unwrap();
 
     let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
     health_reporter
@@ -267,7 +276,7 @@ pub async fn grpc_server() {
         .await;
 
     grpc_info!("Starting GRPC servers on {}.", full_grpc_addr);
-    Server::builder()
+    match Server::builder()
         .add_service(health_service)
         .add_service(StorageRpcServer::new(StorageImpl::default()))
         .add_service(pilot::RpcServiceServer::new(pilot::GrpcServer::default()))
@@ -292,8 +301,12 @@ pub async fn grpc_server() {
         .add_service(adsb::RpcServiceServer::new(adsb::GrpcServer::default()))
         .serve_with_shutdown(full_grpc_addr, shutdown_signal())
         .await
-        .unwrap();
-    grpc_info!("gRPC server running at: {}", full_grpc_addr);
+    {
+        Ok(_) => grpc_info!("gRPC server running at: {}", full_grpc_addr),
+        Err(e) => {
+            grpc_error!("could not start gRPC server: {}", e);
+        }
+    };
 }
 
 /// Tokio signal handler that will wait for a user to press CTRL+C.

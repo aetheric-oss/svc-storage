@@ -1,3 +1,6 @@
+//! PostgreSQL
+//! provides implementations for PostgreSQL
+
 #[macro_use]
 pub mod macros;
 pub mod init;
@@ -6,7 +9,7 @@ pub mod simple_resource;
 
 mod search;
 
-use crate::common::Config;
+use crate::config::Config;
 use anyhow::Error;
 use deadpool_postgres::{tokio_postgres::NoTls, ManagerConfig, Pool, RecyclingMethod, Runtime};
 use native_tls::{Certificate, Identity, TlsConnector};
@@ -28,8 +31,8 @@ pub type PsqlFieldSend = dyn ToSql + Sync + Send;
 /// Provides a more readable format of the PostgreSQL data [HashMap] definition
 pub type PsqlData = HashMap<String, Box<PsqlFieldSend>>;
 
-#[derive(Debug)]
 /// struct for JSON values
+#[derive(Debug)]
 pub struct PsqlJsonValue {
     /// [JsonValue]
     pub value: JsonValue,
@@ -75,7 +78,7 @@ pub struct PostgresPool {
 }
 impl Default for PostgresPool {
     fn default() -> Self {
-        Self::from_config().unwrap()
+        Self::from_config().unwrap_or_else(|e| panic!("Unable to create from config: {}", e))
     }
 }
 
@@ -99,7 +102,7 @@ impl PostgresPool {
     /// }
     /// ```
     pub fn from_config() -> Result<PostgresPool, ArrErr> {
-        let mut settings = Config::from_env().unwrap();
+        let mut settings = Config::from_env().unwrap_or_default();
 
         settings.pg.manager = Some(ManagerConfig {
             recycling_method: RecyclingMethod::Fast,
@@ -125,8 +128,12 @@ impl PostgresPool {
             // If client cert and key are specified, try using it. Otherwise default to user/pass.
             // Since the TlsConnector builder sucks
             let builder = if settings.db_client_cert.is_some() && settings.db_client_key.is_some() {
-                let cert: String = settings.db_client_cert.unwrap();
-                let key: String = settings.db_client_key.unwrap();
+                let cert: String = settings
+                    .db_client_cert
+                    .unwrap_or_else(|| panic!("No DB_CLIENT_CERT env var found"));
+                let key: String = settings
+                    .db_client_key
+                    .unwrap_or_else(|| panic!("No DB_CLIENT_KEY env var found"));
                 let client_cert_file = fs::read(cert.clone()).unwrap_or_else(|e| {
                     panic!(
                         "Unable to read client certificate db_client_cert file [{}]: {}",
