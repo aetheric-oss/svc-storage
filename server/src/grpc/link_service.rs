@@ -16,13 +16,13 @@ use crate::postgres::PsqlSearch;
 use crate::resources::base::linked_resource::{LinkedResource, ObjectType};
 use crate::resources::*;
 
-#[tonic::async_trait]
 /// Generic gRPC object traits to provide wrappers for common `Resource` functions
 ///
 /// T: `ResourceObject<super::Data>` Resource type of 'super' resource being linked
 /// U: `super::Data` Data type of 'super' resource being linked
 /// V: `ResourceObject<Data>` combined resource Resource type
 /// W: `Data` combined resource Data type
+#[tonic::async_trait]
 pub trait GrpcLinkService<T, U, V, W>
 where
     T: ObjectType<U>
@@ -116,23 +116,20 @@ where
         let id: Id = request.into_inner();
         let resource: T = id.clone().into();
 
-        match T::get_by_id(&resource.try_get_uuid()?).await {
-            Ok(_) => {
-                match V::delete_for_ids(
-                    HashMap::from([(T::try_get_id_field()?, resource.try_get_uuid()?)]),
-                    None,
-                )
-                .await
-                {
-                    Ok(_) => Ok(tonic::Response::new(())),
-                    Err(e) => Err(Status::new(Code::Internal, e.to_string())),
-                }
-            }
-            Err(_) => {
-                let error = format!("No resource found for specified uuid: {}", id.id);
-                grpc_error!("{}", error);
-                Err(Status::new(Code::NotFound, error))
-            }
+        if T::get_by_id(&resource.try_get_uuid()?).await.is_err() {
+            let error = format!("No resource found for specified uuid: {}", id.id);
+            grpc_error!("{}", error);
+            return Err(Status::new(Code::NotFound, error));
+        }
+
+        match V::delete_for_ids(
+            HashMap::from([(T::try_get_id_field()?, resource.try_get_uuid()?)]),
+            None,
+        )
+        .await
+        {
+            Ok(_) => Ok(tonic::Response::new(())),
+            Err(e) => Err(Status::new(Code::Internal, e.to_string())),
         }
     }
 
@@ -202,30 +199,30 @@ where
         Y: GrpcDataObjectType + TryFrom<Row>,
     {
         let resource: T = id.clone().into();
-        let other_id_field = <X as PsqlSimpleType>::try_get_id_field()?;
-        match <T as PsqlSimpleType>::get_by_id(&resource.try_get_uuid()?).await {
-            Ok(_) => {
-                match <V as PsqlLinkedType>::get_for_ids(HashMap::from([(
-                    <T as PsqlSimpleType>::try_get_id_field()?,
-                    id.try_into()?,
-                )]))
-                .await
-                {
-                    Ok(rows) => {
-                        let mut ids = vec![];
-                        for row in rows {
-                            ids.push(row.get::<&str, Uuid>(other_id_field.as_str()).to_string());
-                        }
-                        Ok(ids)
-                    }
-                    Err(e) => Err(e),
+        if <T as PsqlSimpleType>::get_by_id(&resource.try_get_uuid()?)
+            .await
+            .is_err()
+        {
+            let error = format!("No resource found for specified uuid: {}", id.id);
+            grpc_error!("{}", error);
+            return Err(ArrErr::Error(error));
+        }
+
+        match <V as PsqlLinkedType>::get_for_ids(HashMap::from([(
+            <T as PsqlSimpleType>::try_get_id_field()?,
+            id.try_into()?,
+        )]))
+        .await
+        {
+            Ok(rows) => {
+                let other_id_field = <X as PsqlSimpleType>::try_get_id_field()?;
+                let mut ids = vec![];
+                for row in rows {
+                    ids.push(row.get::<&str, Uuid>(other_id_field.as_str()).to_string());
                 }
+                Ok(ids)
             }
-            Err(_) => {
-                let error = format!("No resource found for specified uuid: {}", id.id);
-                grpc_error!("{}", error);
-                Err(ArrErr::Error(error))
-            }
+            Err(e) => Err(e),
         }
     }
 }

@@ -10,9 +10,9 @@ use crate::{build_grpc_link_service_impl, build_grpc_linked_resource_impl};
 pub use super::grpc_server::rpc_flight_plan_link_server::*;
 use prost::Message;
 
-#[derive(Clone, Message, Copy)]
 /// Dummy struct for ItineraryFlightPlan Data
 /// Allows us to implement the required traits
+#[derive(Clone, Message, Copy)]
 pub struct Data {}
 
 build_grpc_linked_resource_impl!(itinerary_flight_plan);

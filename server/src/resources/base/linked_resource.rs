@@ -66,11 +66,11 @@ macro_rules! build_grpc_link_service_impl {
         }
         #[tonic::async_trait]
         impl $rpc_service for GrpcServer {
-            #[doc = concat!("Takes an [", stringify!($link_other_resource),"] to link the provided ",stringify!($other_resource)," ids in the database")]
+            #[doc = concat!("Takes an [`", stringify!($link_other_resource),"`] to link the provided ",stringify!($other_resource)," ids in the database.")]
             ///
             /// # Errors
             ///
-            /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database
+            /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
             async fn link(
                 &self,
                 request: Request<$link_other_resource>,
@@ -80,11 +80,11 @@ macro_rules! build_grpc_link_service_impl {
                     .await
             }
 
-            #[doc = concat!("Takes an [", stringify!($link_other_resource),"] to replace the provided ",stringify!($other_resource)," linked ids in the database")]
+            #[doc = concat!("Takes an [`", stringify!($link_other_resource),"`] to replace the provided ",stringify!($other_resource)," linked ids in the database.")]
             ///
             /// # Errors
             ///
-            /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database
+            /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
             async fn replace_linked(
                 &self,
                 request: Request<$link_other_resource>,
@@ -94,10 +94,20 @@ macro_rules! build_grpc_link_service_impl {
                     .await
             }
 
+            #[doc = concat!("Takes an [`Id`] to unlink all ",stringify!($other_resource)," linked ids in the database.")]
+            ///
+            /// # Errors
+            ///
+            /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
             async fn unlink(&self, request: Request<Id>) -> Result<tonic::Response<()>, Status> {
                 self.generic_unlink(request).await
             }
 
+            #[doc = concat!("Takes an [`Id`] to get all ",stringify!($other_resource)," linked ids from the database.")]
+            ///
+            /// # Errors
+            ///
+            /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
             async fn get_linked_ids(
                 &self,
                 request: Request<Id>,
@@ -106,6 +116,11 @@ macro_rules! build_grpc_link_service_impl {
                     .await
             }
 
+            #[doc = concat!("Takes an [`Id`] to get all ",stringify!($other_resource)," linked objects from the database.")]
+            ///
+            /// # Errors
+            ///
+            /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
             async fn get_linked(
                 &self,
                 request: Request<Id>,

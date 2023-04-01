@@ -115,8 +115,8 @@ where
     }
 }
 
-#[derive(Clone, Debug)]
 /// struct object defining resource metadata
+#[derive(Clone, Debug)]
 pub struct ResourceDefinition {
     /// psql table corresponding to the resource
     pub psql_table: String,
@@ -147,18 +147,16 @@ impl ResourceDefinition {
     pub fn try_get_field(&self, field: &str) -> Result<&FieldDefinition, ArrErr> {
         match self.fields.get(field) {
             Some(field) => Ok(field),
-            None => {
-                return Err(ArrErr::Error(format!(
-                    "Tried to get field [{}] for table [{}], but the field does not exist.",
-                    field, self.psql_table
-                )));
-            }
+            None => Err(ArrErr::Error(format!(
+                "Tried to get field [{}] for table [{}], but the field does not exist.",
+                field, self.psql_table
+            ))),
         }
     }
 }
 
-#[derive(Clone, Debug)]
 /// Generic resource wrapper struct used to implement our generic traits
+#[derive(Clone, Debug)]
 pub struct ResourceObject<T>
 where
     T: GrpcDataObjectType + prost::Message,
@@ -188,8 +186,8 @@ where
     }
 }
 
-#[derive(Clone, Debug)]
 /// Field definition struct defining field properties
+#[derive(Clone, Debug)]
 pub struct FieldDefinition {
     /// [`PsqlFieldType`]
     pub field_type: PsqlFieldType,
@@ -245,7 +243,7 @@ impl FieldDefinition {
     /// not
     pub fn get_default(&self) -> String {
         if self.has_default() {
-            self.default.clone().unwrap()
+            self.default.clone().unwrap_or_else(|| String::from("NULL"))
         } else {
             panic!("get_default called on a field without a default value");
         }
@@ -269,15 +267,30 @@ impl TryFrom<IdList> for Vec<Uuid> {
     }
 }
 
-impl From<PsqlJsonValue> for Vec<i64> {
-    fn from(json_value: PsqlJsonValue) -> Vec<i64> {
-        let arr = json_value.value.as_array().unwrap();
-        let iter = arr.iter();
-        let mut vec: Vec<i64> = vec![];
-        for val in iter {
-            vec.push(val.as_i64().unwrap());
+impl TryFrom<PsqlJsonValue> for Vec<i64> {
+    type Error = ArrErr;
+    fn try_from(json_value: PsqlJsonValue) -> Result<Self, ArrErr> {
+        match json_value.value.as_array() {
+            Some(arr) => {
+                let iter = arr.iter();
+                let mut vec: Vec<i64> = vec![];
+                for val in iter {
+                    vec.push(val.as_i64().ok_or(ArrErr::Error(format!(
+                        "json_value did not contain array with i64: {}",
+                        json_value.value
+                    )))?);
+                }
+                Ok(vec)
+            }
+            None => {
+                let error = format!(
+                    "Could not convert [PsqlJsonValue] to [Vec<i64>]: {:?}",
+                    json_value
+                );
+                error!("{}", error);
+                Err(ArrErr::Error(error))
+            }
         }
-        vec
     }
 }
 

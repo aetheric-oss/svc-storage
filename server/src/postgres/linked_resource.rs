@@ -12,8 +12,8 @@ use std::vec;
 use tokio_postgres::Row;
 use uuid::Uuid;
 
-#[tonic::async_trait]
 /// Generic PostgreSQL trait to provide wrappers for common `LinkedResource` functions
+#[tonic::async_trait]
 pub trait PsqlType
 where
     Self: Resource + Clone + Sized,
@@ -272,7 +272,7 @@ where
         psql_debug!("{}", query);
         psql_debug!("{:?}", &params);
 
-        let client = get_psql_pool().get().await.unwrap();
+        let client = get_psql_pool().get().await?;
         let stmt = client.prepare_cached(&query).await?;
 
         psql_info!("Removing entry from table [{}].", definition.psql_table);

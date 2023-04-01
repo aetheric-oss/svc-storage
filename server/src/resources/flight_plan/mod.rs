@@ -48,7 +48,7 @@ impl TryFrom<Row> for Data {
         let approved_by: Option<Uuid> = row.get("approved_by");
         let approved_by = approved_by.map(|val| val.to_string());
 
-        let handle = get_runtime_handle();
+        let handle = get_runtime_handle()?;
         let vertipad_id = row.get("departure_vertipad_id");
         let data = task::block_in_place(move || {
             handle.block_on(async move {
@@ -57,7 +57,7 @@ impl TryFrom<Row> for Data {
         })?;
         let departure_vertiport_id = data.get::<&str, Uuid>("vertiport_id").to_string();
 
-        let handle = get_runtime_handle();
+        let handle = get_runtime_handle()?;
         let vertipad_id = row.get("destination_vertipad_id");
         let data = task::block_in_place(move || {
             handle.block_on(async move {
@@ -69,31 +69,34 @@ impl TryFrom<Row> for Data {
         let cargo_weight_grams = PsqlJsonValue {
             value: row.get("cargo_weight_grams"),
         };
-        let cargo_weight_grams: Vec<i64> = cargo_weight_grams.into();
+        let cargo_weight_grams: Vec<i64> = cargo_weight_grams.try_into()?;
 
         let flight_plan_submitted: Option<prost_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("flight_plan_submitted")
-            .map(|val| datetime_to_timestamp(&val).unwrap());
+            .and_then(|val| datetime_to_timestamp(&val));
 
         let scheduled_departure: Option<prost_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("scheduled_departure")
-            .map(|val| datetime_to_timestamp(&val).unwrap());
+            .and_then(|val| datetime_to_timestamp(&val));
 
         let scheduled_arrival: Option<prost_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("scheduled_arrival")
-            .map(|val| datetime_to_timestamp(&val).unwrap());
+            .and_then(|val| datetime_to_timestamp(&val));
 
         let actual_departure: Option<prost_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("actual_departure")
-            .map(|val| datetime_to_timestamp(&val).unwrap());
+            .and_then(|val| datetime_to_timestamp(&val));
 
         let actual_arrival: Option<prost_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("actual_arrival")
-            .map(|val| datetime_to_timestamp(&val).unwrap());
+            .and_then(|val| datetime_to_timestamp(&val));
 
         let flight_release_approval: Option<prost_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("flight_release_approval")
-            .map(|val| datetime_to_timestamp(&val).unwrap());
+            .and_then(|val| datetime_to_timestamp(&val));
+
+        let flight_status = FlightStatus::from_str(row.get("flight_status"))?.into();
+        let flight_priority = FlightPriority::from_str(row.get("flight_priority"))?.into();
 
         Ok(Data {
             pilot_id,
@@ -112,12 +115,8 @@ impl TryFrom<Row> for Data {
             flight_plan_submitted,
             cargo_weight_grams,
             approved_by,
-            flight_status: FlightStatus::from_str(row.get("flight_status"))
-                .unwrap()
-                .into(),
-            flight_priority: FlightPriority::from_str(row.get("flight_priority"))
-                .unwrap()
-                .into(),
+            flight_status,
+            flight_priority,
         })
     }
 }

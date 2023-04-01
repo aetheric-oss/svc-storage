@@ -14,8 +14,8 @@ use tokio_postgres::types::Type as PsqlFieldType;
 use tokio_postgres::Row;
 use uuid::Uuid;
 
-#[tonic::async_trait]
 /// Generic PostgreSQL trait to provide wrappers for common `Resource` functions
+#[tonic::async_trait]
 pub trait PsqlType
 where
     Self: Resource + Clone + Sized,
@@ -106,7 +106,7 @@ where
         psql_debug!("{}", insert_sql);
 
         psql_info!("Inserting new entry for table [{}].", definition.psql_table);
-        let client = get_psql_pool().get().await.unwrap();
+        let client = get_psql_pool().get().await?;
         let row = client.query_one(insert_sql, &params[..]).await?;
 
         Ok((Some(row.get(&*id_col)), validation_result))

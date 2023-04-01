@@ -178,16 +178,10 @@ impl PostgresPool {
             };
             let connector = MakeTlsConnector::new(builder);
 
-            settings
-                .pg
-                .create_pool(Some(Runtime::Tokio1), connector)
-                .unwrap()
+            settings.pg.create_pool(Some(Runtime::Tokio1), connector)?
         } else {
             psql_warn!("Setting up database connection without TLS and using client password.");
-            settings
-                .pg
-                .create_pool(Some(Runtime::Tokio1), NoTls)
-                .unwrap()
+            settings.pg.create_pool(Some(Runtime::Tokio1), NoTls)?
         };
 
         psql_info!("Successfully created PostgresPool.");

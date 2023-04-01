@@ -1,3 +1,5 @@
+//! Provides implementations for Arrow Resources
+
 include!("../../../out/grpc/grpc.rs");
 
 /// gRPC ready service

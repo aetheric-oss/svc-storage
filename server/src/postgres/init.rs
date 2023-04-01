@@ -50,8 +50,9 @@ pub async fn recreate_db() -> Result<(), ArrErr> {
     create_db().await?;
     Ok(())
 }
-#[tonic::async_trait]
+
 /// Generic PostgreSQL trait to provide table init functions for `Resource` struct
+#[tonic::async_trait]
 pub trait PsqlInitResource
 where
     Self: Resource + Clone,
@@ -114,8 +115,8 @@ where
     fn _get_create_table_query() -> String;
 }
 
-#[tonic::async_trait]
 /// Generic PostgreSQL trait to provide table init functions for `Resource` struct
+#[tonic::async_trait]
 pub trait PsqlInitSimpleResource
 where
     Self: SimplePsqlType + Clone,
@@ -128,11 +129,18 @@ where
             "composing create table query for [{}]",
             definition.psql_table
         );
-
+        let id_field = match Self::try_get_id_field() {
+            Ok(field) => field,
+            Err(e) => {
+                // Panic here, we should -always- have an id_field configured for our simple resources.
+                // If we hit this scenario, we should fix our code, so we need to let this know with a hard crash.
+                panic!("Can't convert Object into ResourceObject<Data>: {e}")
+            }
+        };
         let mut fields = vec![];
         fields.push(format!(
             r#""{}" UUID DEFAULT uuid_generate_v4() PRIMARY KEY"#,
-            Self::try_get_id_field().unwrap()
+            id_field
         ));
 
         fields.append(&mut get_create_table_fields_sql(&definition.fields));
@@ -145,8 +153,8 @@ where
     }
 }
 
-#[tonic::async_trait]
 /// Generic PostgreSQL trait to provide table init functions for `Resource` struct
+#[tonic::async_trait]
 pub trait PsqlInitLinkedResource
 where
     Self: LinkedPsqlType + Clone,

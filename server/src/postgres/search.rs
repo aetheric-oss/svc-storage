@@ -12,9 +12,9 @@ use std::collections::VecDeque;
 use tokio_postgres::Row;
 use uuid::Uuid;
 
-#[derive(Eq, PartialEq, Clone, Debug)]
 /// struct to save search col values while processing the [AdvancedSearchFilter](crate::resources::AdvancedSearchFilter)
 /// needed to save column information for a search value so it can be converted later
+#[derive(Eq, PartialEq, Clone, Debug)]
 pub struct SearchCol {
     /// the [postgres_types::Type] of the column
     pub col_type: PsqlFieldType,
@@ -29,8 +29,8 @@ impl SearchCol {
     }
 }
 
-#[tonic::async_trait]
 /// Trait implementing advanced search function for resources
+#[tonic::async_trait]
 pub trait PsqlSearch
 where
     Self: Resource + Sized,
@@ -140,7 +140,14 @@ where
     /// Converts the passed string value for the search field into the right Sql type.
     /// for internal use
     fn _param_from_search_col(col: &SearchCol) -> Result<Box<dyn ToSql + Sync + Send>, ArrErr> {
-        let col_val = col.value.as_ref().unwrap();
+        let col_val = col.value.as_ref().ok_or({
+            let err = format!(
+                "(_param_from_search_col) called while search col [{}] has no value",
+                col.col_name,
+            );
+            psql_error!("{}", err);
+            ArrErr::Error(err)
+        })?;
         match col.col_type {
             PsqlFieldType::ANYENUM => {
                 let int_val: i32 = match col_val.parse() {
@@ -337,7 +344,14 @@ fn get_single_search_value(search_value: Vec<String>) -> Result<String, ArrErr> 
 pub(super) fn param_from_search_col(
     col: &SearchCol,
 ) -> Result<Box<dyn ToSql + Sync + Send>, ArrErr> {
-    let col_val = col.value.as_ref().unwrap();
+    let col_val = col.value.as_ref().ok_or({
+        let err = format!(
+            "(param_from_search_col) called while search col [{}] has no value",
+            col.col_name,
+        );
+        psql_error!("{}", err);
+        ArrErr::Error(err)
+    })?;
     match col.col_type {
         PsqlFieldType::BOOL => match col_val.parse::<bool>() {
             Ok(val) => Ok(Box::new(val)),

@@ -335,7 +335,7 @@ async fn shutdown_signal() {
 ///     // our function is ready before we continue our code
 ///     let data = tokio::task::block_in_place(move || {
 ///         // use the tokio handle to block on our async function
-///         handle.block_on(async move {
+///         handle.expect("no handle").block_on(async move {
 ///             // run async function
 ///             <ResourceObject<vertipad::Data> as
 ///             PsqlType>::get_by_id(&id).await
@@ -343,12 +343,9 @@ async fn shutdown_signal() {
 ///     });
 /// }
 /// ```
-pub fn get_runtime_handle() -> Handle {
-    match Handle::try_current() {
-        Ok(h) => h,
-        Err(_) => {
-            let rt = Runtime::new().unwrap();
-            rt.handle().clone()
-        }
-    }
+pub fn get_runtime_handle() -> Result<Handle, ArrErr> {
+    Handle::try_current().or_else(|_| {
+        let rt = Runtime::new()?;
+        Ok(rt.handle().clone())
+    })
 }

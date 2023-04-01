@@ -12,8 +12,8 @@ use crate::postgres::PsqlSearch;
 use crate::resources::base::simple_resource::{GenericResourceResult, ObjectType, SimpleResource};
 use crate::resources::*;
 
-#[tonic::async_trait]
 /// Generic gRPC object traits to provide wrappers for common `Resource` functions
+#[tonic::async_trait]
 pub trait GrpcSimpleService<T, U>
 where
     T: ObjectType<U> + PsqlType + PsqlSearch + SimpleResource<U> + From<Id> + Clone + Sync + Send,
