@@ -1,30 +1,23 @@
 //! Vertiport
 
-grpc_server!(vertiport, "vertiport");
+pub use crate::grpc::server::vertiport::*;
 
-use core::fmt::Debug;
 use log::debug;
 use std::collections::HashMap;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
-use tonic::{Request, Status};
 use uuid::Uuid;
 
 use super::base::simple_resource::*;
 use super::base::{FieldDefinition, ResourceDefinition};
-use super::{
-    AdvancedSearchFilter, FilterOption, Id, PredicateOperator, SearchFilter, ValidationResult,
-};
 use crate::common::ArrErr;
-use crate::grpc::{GrpcDataObjectType, GrpcField, GrpcFieldOption, GrpcSimpleService};
-use crate::grpc_server;
+use crate::grpc::{GrpcDataObjectType, GrpcField, GrpcFieldOption};
 
 // Generate `From` trait implementations for GenericResource into and from Grpc defined Resource
 crate::build_generic_resource_impl_from!();
 
 // Generate grpc server implementations
 crate::build_grpc_simple_resource_impl!(vertiport);
-crate::build_grpc_server_generic_impl!(vertiport);
 
 impl Resource for ResourceObject<Data> {
     fn get_definition() -> ResourceDefinition {

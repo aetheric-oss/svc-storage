@@ -1,6 +1,6 @@
 //! Grpc Simple resource Traits
 
-pub use crate::common::{ArrErr, GRPC_LOG_TARGET};
+pub use crate::common::ArrErr;
 use crate::resources::base::simple_resource::SimpleResource;
 
 use std::collections::HashMap;
@@ -9,12 +9,12 @@ use tokio_postgres::Row;
 use tonic::{Code, Request, Response, Status};
 use uuid::Uuid;
 
+use super::server::*;
 use super::GrpcDataObjectType;
 use crate::postgres::linked_resource::PsqlType as PsqlLinkedType;
 use crate::postgres::simple_resource::PsqlType as PsqlSimpleType;
 use crate::postgres::PsqlSearch;
 use crate::resources::base::linked_resource::{LinkedResource, ObjectType};
-use crate::resources::*;
 
 /// Generic gRPC object traits to provide wrappers for common `Resource` functions
 ///

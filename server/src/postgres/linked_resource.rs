@@ -1,7 +1,7 @@
 //! Psql Linked Resource Traits
 //!
 use super::get_psql_pool;
-use super::{ArrErr, PsqlField, PSQL_LOG_TARGET};
+use super::{ArrErr, PsqlField};
 use crate::grpc::GrpcDataObjectType;
 use crate::postgres::PsqlFieldSend;
 use crate::resources::base::linked_resource::*;

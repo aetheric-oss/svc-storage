@@ -22,7 +22,7 @@ use tokio::sync::OnceCell;
 use tokio_postgres::types::Type as PsqlFieldType;
 
 pub use self::search::{PsqlSearch, SearchCol};
-pub use crate::common::{ArrErr, PSQL_LOG_TARGET};
+pub use crate::common::ArrErr;
 
 /// Provides a more readable format of a dynamic PostgreSQL field value
 pub type PsqlField = dyn ToSql + Sync;

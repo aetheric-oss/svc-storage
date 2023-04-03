@@ -1,11 +1,11 @@
 //! Psql Simple resource Traits
 
 use super::get_psql_pool;
-use super::{ArrErr, PsqlData, PsqlField, PsqlFieldSend, PSQL_LOG_TARGET};
+use super::{ArrErr, PsqlData, PsqlField, PsqlFieldSend};
+use crate::grpc::server::{ValidationError, ValidationResult};
 use crate::grpc::{GrpcDataObjectType, GrpcField};
 use crate::resources::base::simple_resource::*;
 use crate::resources::base::{validate_dt, validate_enum, validate_uuid};
-use crate::resources::{ValidationError, ValidationResult};
 
 use chrono::{DateTime, Utc};
 use serde_json::json;

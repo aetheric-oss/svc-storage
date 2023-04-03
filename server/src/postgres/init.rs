@@ -4,12 +4,13 @@ use std::collections::HashMap;
 
 use super::linked_resource::PsqlType as LinkedPsqlType;
 use super::simple_resource::PsqlType as SimplePsqlType;
-use super::{get_psql_pool, ArrErr, PsqlFieldType, PSQL_LOG_TARGET};
+use super::{get_psql_pool, ArrErr, PsqlFieldType};
+use crate::grpc::server::{
+    adsb, flight_plan, itinerary, itinerary_flight_plan, pilot, vehicle, vertipad, vertiport,
+};
 use crate::resources::{
-    adsb,
     base::FieldDefinition,
     base::{Resource, ResourceObject},
-    flight_plan, itinerary, pilot, vehicle, vertipad, vertiport,
 };
 
 /// If the database is fresh, we need to create all tables.
@@ -23,7 +24,7 @@ pub async fn create_db() -> Result<(), ArrErr> {
     ResourceObject::<adsb::Data>::init_table().await?;
     ResourceObject::<flight_plan::Data>::init_table().await?;
     ResourceObject::<itinerary::Data>::init_table().await?;
-    ResourceObject::<itinerary::flight_plan::Data>::init_table().await?;
+    ResourceObject::<itinerary_flight_plan::Data>::init_table().await?;
     Ok(())
 }
 
@@ -32,7 +33,7 @@ pub async fn create_db() -> Result<(), ArrErr> {
 pub async fn drop_db() -> Result<(), ArrErr> {
     psql_warn!("Dropping database tables.");
     // Drop our tables (in the correct order)
-    ResourceObject::<itinerary::flight_plan::Data>::init_table().await?;
+    ResourceObject::<itinerary_flight_plan::Data>::drop_table().await?;
     ResourceObject::<itinerary::Data>::drop_table().await?;
     ResourceObject::<flight_plan::Data>::drop_table().await?;
     ResourceObject::<adsb::Data>::drop_table().await?;

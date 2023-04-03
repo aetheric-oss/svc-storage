@@ -1,10 +1,9 @@
 use super::{get_psql_pool, ArrErr, PsqlField, PsqlFieldType};
-use crate::common::PSQL_LOG_TARGET;
-use crate::postgres::PsqlFieldSend;
-use crate::resources::base::Resource;
-use crate::resources::{
+use crate::grpc::server::{
     AdvancedSearchFilter, ComparisonOperator, PredicateOperator, SortOption, SortOrder,
 };
+use crate::postgres::PsqlFieldSend;
+use crate::resources::base::Resource;
 
 use chrono::{DateTime, Utc};
 use postgres_types::ToSql;

@@ -8,11 +8,6 @@ use tokio::task::JoinError;
 
 pub use uuid::Uuid;
 
-/// define psql target string used for psql logging functions
-pub const PSQL_LOG_TARGET: &str = "app::backend::psql";
-/// define grpc target string used for grpc logging functions
-pub const GRPC_LOG_TARGET: &str = "app::grpc";
-
 /// static boolean that can be used to check if we need psql connection
 pub static USE_PSQL_BACKEND: AtomicBool = AtomicBool::new(true);
 /// public function to check value of [USE_PSQL_BACKEND]

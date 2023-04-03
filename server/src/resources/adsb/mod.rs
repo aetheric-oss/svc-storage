@@ -1,32 +1,24 @@
 //! ADS-B
 
-grpc_server!(adsb, "adsb");
-
-use lib_common::time::datetime_to_timestamp;
+pub use crate::grpc::server::adsb::*;
 
 use chrono::{DateTime, Utc};
-use core::fmt::Debug;
+use lib_common::time::datetime_to_timestamp;
 use log::debug;
 use std::collections::HashMap;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
-use tonic::{Request, Status};
 use uuid::Uuid;
 
 use super::base::simple_resource::*;
 use super::base::{FieldDefinition, ResourceDefinition};
-use super::{
-    AdvancedSearchFilter, FilterOption, Id, PredicateOperator, SearchFilter, ValidationResult,
-};
 use crate::common::ArrErr;
-use crate::grpc::{GrpcDataObjectType, GrpcField, GrpcFieldOption, GrpcSimpleService};
-use crate::grpc_server;
+use crate::grpc::{GrpcDataObjectType, GrpcField, GrpcFieldOption};
 
 crate::build_generic_resource_impl_from!();
 
 // Generate grpc server implementations
 crate::build_grpc_simple_resource_impl!(adsb);
-crate::build_grpc_server_generic_impl!(adsb);
 
 impl Resource for ResourceObject<Data> {
     fn get_definition() -> ResourceDefinition {

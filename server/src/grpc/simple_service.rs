@@ -1,16 +1,16 @@
 //! Grpc Simple resource Traits
 
-pub use crate::common::{ArrErr, GRPC_LOG_TARGET};
+pub use crate::common::ArrErr;
 
 use std::marker::PhantomData;
 use tokio_postgres::Row;
 use tonic::{Code, Request, Response, Status};
 
+use super::server::*;
 use super::GrpcDataObjectType;
 use crate::postgres::simple_resource::{PsqlObjectType, PsqlType};
 use crate::postgres::PsqlSearch;
 use crate::resources::base::simple_resource::{GenericResourceResult, ObjectType, SimpleResource};
-use crate::resources::*;
 
 /// Generic gRPC object traits to provide wrappers for common `Resource` functions
 #[tonic::async_trait]

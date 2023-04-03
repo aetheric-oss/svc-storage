@@ -23,12 +23,6 @@ pub mod resources {
     #![allow(unused_qualifications)]
     include!("../out/grpc/grpc.rs");
 
-    /// Include the `ready` service
-    pub mod ready {
-        include!("../out/grpc/grpc.ready.rs");
-        include!("../out/grpc/client/grpc.ready.service.rs");
-    }
-
     grpc_client!(adsb, "adsb");
     grpc_client!(flight_plan, "flight_plan");
     grpc_client!(pilot, "pilot");

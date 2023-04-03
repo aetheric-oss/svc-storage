@@ -14,6 +14,6 @@ Discord](https://img.shields.io/discord/853833144037277726?style=plastic)
 ## Overview
 
 svc-storage is responsible for storing and retrieving data from the Arrow database and other storage.
-It's meant to be used only by other internal services via GRPC interface.
+It's meant to be used only by other internal services via gRPC interface.
 - svc_storage gRPC server - (bin) target to run gRPC server
 - svc_storage_client_grpc gRPC client - (lib) target for other services to import and use

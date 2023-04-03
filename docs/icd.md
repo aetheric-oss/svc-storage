@@ -39,8 +39,6 @@ These interfaces are defined in protocol buffer files:
  * [`svc-storage-grpc-pilot.proto`](../proto/svc-storage-grpc-pilot.proto)
  * [`svc-storage-grpc-pilot-service.proto`](../proto/svc-storage-grpc-pilot-service.proto)
  * [`svc-storage-grpc.proto`](../proto/svc-storage-grpc.proto)
- * [`svc-storage-grpc-ready.proto`](../proto/svc-storage-grpc-ready.proto)
- * [`svc-storage-grpc-ready-service.proto`](../proto/svc-storage-grpc-ready-service.proto)
  * [`svc-storage-grpc-vehicle.proto`](../proto/svc-storage-grpc-vehicle.proto)
  * [`svc-storage-grpc-vehicle-service.proto`](../proto/svc-storage-grpc-vehicle-service.proto)
  * [`svc-storage-grpc-vertipad.proto`](../proto/svc-storage-grpc-vertipad.proto)

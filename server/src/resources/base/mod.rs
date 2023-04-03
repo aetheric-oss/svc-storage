@@ -2,7 +2,7 @@
 
 pub mod linked_resource;
 pub mod simple_resource;
-pub use super::{Id, IdList, ValidationError};
+use crate::grpc::server::{Id, IdList, ValidationError};
 use crate::postgres::PsqlJsonValue;
 use crate::{common::ArrErr, grpc::GrpcDataObjectType};
 use chrono::{DateTime, Utc};

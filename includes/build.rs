@@ -24,7 +24,6 @@ fn get_types() -> Vec<String> {
         "vehicle".to_owned(),
         "vertipad".to_owned(),
         "vertiport".to_owned(),
-        "ready".to_owned(),
     ]
 }
 

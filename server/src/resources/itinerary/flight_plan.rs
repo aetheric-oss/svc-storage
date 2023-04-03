@@ -1,23 +1,13 @@
 //! Itinerary Flight Plan
-
-use super::*;
-use crate::grpc::GrpcLinkService;
+use super::{
+    debug, ArrErr, GrpcDataObjectType, GrpcField, HashMap, PsqlInitResource, PsqlSearch, Resource,
+    ResourceDefinition, ResourceObject, Row,
+};
+use crate::build_grpc_linked_resource_impl;
+use crate::grpc::server::itinerary_flight_plan::*;
 use crate::postgres::init::PsqlInitLinkedResource;
-use crate::resources::base::linked_resource::LinkOtherResource;
-use crate::resources::{flight_plan, IdList};
-use crate::{build_grpc_link_service_impl, build_grpc_linked_resource_impl};
-
-pub use super::grpc_server::rpc_flight_plan_link_server::*;
-use prost::Message;
-
-/// Dummy struct for ItineraryFlightPlan Data
-/// Allows us to implement the required traits
-#[derive(Clone, Message, Copy)]
-pub struct Data {}
 
 build_grpc_linked_resource_impl!(itinerary_flight_plan);
-// Generate grpc server implementations
-build_grpc_link_service_impl!(flight_plan, RpcFlightPlanLink, ItineraryFlightPlans);
 
 impl TryFrom<Row> for Data {
     type Error = ArrErr;
