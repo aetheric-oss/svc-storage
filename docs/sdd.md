@@ -28,10 +28,11 @@ This process is responsible for handling interactions with clients for data stor
 
 | Document                                                                                                          | Description
 | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| [High-Level Concept of Operations (CONOPS)](https://github.com/Arrow-air/se-services/blob/develop/docs/conops.md) | Overview of Arrow microservices.                             |
-| [High-Level Interface Control Document (ICD)](https://github.com/Arrow-air/se-services/blob/develop/docs/icd.md)  | Interfaces and frameworks common to all Arrow microservices. |
-| [Concept of Operations - `svc-storage`](./conops.md)                                                              | Defines the motivation and duties of this microservice.      |
-| [Interface Control Document (ICD) - `svc-storage`](./icd.md)                                                      | Defines the inputs and outputs of this microservice.         |
+[High-Level Concept of Operations (CONOPS)](https://github.com/Arrow-air/se-services/blob/develop/docs/conops.md) | Overview of Arrow microservices.
+[High-Level Interface Control Document (ICD)](https://github.com/Arrow-air/se-services/blob/develop/docs/icd.md)  | Interfaces and frameworks common to all Arrow microservices.
+[Requirements - `svc-storage`](https://nocodb.arrowair.com/dashboard/#/nc/p_uyeuw6scqlnpri/table/L4/svc-storage) | Requirements and user stories for this microservice.
+[Concept of Operations - `svc-storage`](./conops.md) | Defines the motivation and duties of this microservice.
+[Interface Control Document (ICD) - `svc-storage`](./icd.md) | Defines the inputs and outputs of this microservice.
 
 ## Frameworks
 
@@ -102,7 +103,7 @@ sequenceDiagram
     alt Connection exists
         psql-->>-main: <Result>
     else new connection
-        rect rgb(247, 161, 161)
+        rect rgb(64,97,255)
             critical Get configuration from environment
                 psql->>+psql: from_config
                 psql->>+comm: configuration
@@ -194,7 +195,7 @@ sequenceDiagram
     client->>+grpc_server: get_by_id(Request<Id>)
     grpc_server->>+grpc_service: generic_get_by_id(Request<Id>)
     grpc_service->>+psql_simple: get_by_id(Uuid)
-	rect rgb(247, 161, 161)
+    rect rgb(64,97,255)
 		critical Get DB connection from the pool
 			psql_simple->>+psql: get_psql_pool()
 			psql-->>psql_simple: <Pool>
@@ -223,7 +224,7 @@ sequenceDiagram
     client->>+grpc_server: search(Request<AdvancedSearchFilter>)
     grpc_server->>+grpc_service: generic_search(Request<AdvancedSearchFilter>)
     grpc_service->>+psql_simple: advanced_search(AdvancedSearchFilter)
-	rect rgb(247, 161, 161)
+    rect rgb(64,97,255)
 		critical Get DB connection from the pool
 			psql_simple->>+psql: get_psql_pool()
 			psql-->>psql_simple: <Pool>
@@ -256,7 +257,7 @@ sequenceDiagram
     alt Validation errors found
         psql_simple-->>grpc_service: Ok((None, ValidationResult))
     else Validation success
-        rect rgb(247, 161, 161)
+        rect rgb(64,97,255)
             critical Get DB connection from the pool
                 psql_simple-->>+psql: get_psql_pool()
                 psql-->>psql_simple: <Pool>
@@ -293,7 +294,7 @@ sequenceDiagram
     alt Validation errors found
         psql_simple_object-->>grpc_service: Ok((None, ValidationResult))
     else Validation success
-        rect rgb(247, 161, 161)
+        rect rgb(64,97,255)
             critical Get DB connection from the pool
                 psql_simple_object->>+psql: get_psql_pool()
                 psql-->>psql_simple_object: <Pool>
@@ -333,7 +334,7 @@ sequenceDiagram
     psql_simple_object-->>psql_simple_object: get_definition()
     alt definition.fields.contains_key("deleted_at") 
         psql_simple_object-->>psql_simple_object: set_deleted_at_now()
-        rect rgb(247, 161, 161)
+        rect rgb(64,97,255)
             critical Get DB connection from the pool
                 psql_simple_object->>+psql: get_psql_pool()
                 psql-->>psql_simple_object: <Pool>
@@ -345,7 +346,7 @@ sequenceDiagram
         psql_simple_object-->>grpc_service: Result
     else
 		psql_simple_object-->>psql_simple_object: delete_row()
-		rect rgb(247, 161, 161)
+        rect rgb(64,97,255)
             critical Get DB connection from the pool
                 psql_simple_object->>+psql: get_psql_pool()
                 psql-->>psql_simple_object: <Pool>
@@ -381,7 +382,7 @@ sequenceDiagram
         grpc_service-->>grpc_server: Status(Code::NotFound)
     else
         grpc_service->>+psql_simple: get_by_id(Uuid)
-        rect rgb(247, 161, 161)
+        rect rgb(64,97,255)
             critical Get DB connection from the pool
                 psql_simple->>+psql: get_psql_pool()
                 psql-->>psql_simple: <Pool>
@@ -394,7 +395,7 @@ sequenceDiagram
             grpc_service-->>grpc_server: Status(Code::NotFound)
         else Ok
             grpc_service->>+psql_linked: link_ids(ids, replace_id_fields)
-            rect rgb(247, 161, 161)
+            rect rgb(64,97,255)
                 critical Get DB connection from the pool
                     psql_linked->>+psql: get_psql_pool()
                     psql-->>psql_linked: <Pool>
@@ -428,7 +429,7 @@ sequenceDiagram
         grpc_service-->>grpc_server: Status(Code::NotFound)
     else
         grpc_service->>+psql_simple: get_by_id(Uuid)
-        rect rgb(247, 161, 161)
+        rect rgb(64,97,255)
             critical Get DB connection from the pool
                 psql_simple->>+psql: get_psql_pool()
                 psql-->>psql_simple: <Pool>
@@ -442,7 +443,7 @@ sequenceDiagram
         else Ok
             grpc_service->>+psql_linked: link_ids(ids, replace_id_fields)
             psql_linked-->>psql_linked: delete_for_ids(replace_id_fields)
-            rect rgb(247, 161, 161)
+            rect rgb(64,97,255)
                 critical Get DB connection from the pool
                     psql_linked->>+psql: get_psql_pool()
                     psql-->>psql_linked: <Pool>
@@ -476,7 +477,7 @@ sequenceDiagram
         grpc_service-->>grpc_server: Status(Code::NotFound)
     else
         grpc_service->>+psql_simple: get_by_id(Uuid)
-        rect rgb(247, 161, 161)
+        rect rgb(64,97,255)
             critical Get DB connection from the pool
                 psql_simple->>+psql: get_psql_pool()
                 psql-->>psql_simple: <Pool>
@@ -489,7 +490,7 @@ sequenceDiagram
             grpc_service-->>grpc_server: Status(Code::NotFound)
         else Ok
             grpc_service->>+psql_linked: delete_for_ids(ids)
-            rect rgb(247, 161, 161)
+            rect rgb(64,97,255)
                 critical Get DB connection from the pool
                     psql_linked->>+psql: get_psql_pool()
                     psql-->>psql_linked: <Pool>
@@ -522,7 +523,7 @@ sequenceDiagram
     grpc_server->>+grpc_service: generic_get_linked_ids(Request<Id>)
     grpc_service->>+grpc_service: _get_linked(Id)
     grpc_service->>+psql_simple: get_by_id(Uuid)
-    rect rgb(247, 161, 161)
+    rect rgb(64,97,255)
         critical Get DB connection from the pool
             psql_simple->>+psql: get_psql_pool()
             psql-->>psql_simple: <Pool>
@@ -535,7 +536,7 @@ sequenceDiagram
         grpc_service-->>grpc_service: Status(Code::NotFound)
     else Ok
         grpc_service->>+psql_linked: get_for_ids(ids)
-        rect rgb(247, 161, 161)
+        rect rgb(64,97,255)
             critical Get DB connection from the pool
                 psql_linked->>+psql: get_psql_pool()
                 psql-->>psql_linked: <Pool>
@@ -549,7 +550,7 @@ sequenceDiagram
         else Ok (query success)
             grpc_service-->>-grpc_service: Ok(ids)
             grpc_service->>+psql_search: advanced_search(AdvancedSearchFilter)
-            rect rgb(247, 161, 161)
+            rect rgb(64,97,255)
                 critical Get DB connection from the pool
                     psql_search->>+psql: get_psql_pool()
                     psql-->>psql_search: <Pool>
@@ -583,7 +584,7 @@ sequenceDiagram
     grpc_server->>+grpc_service: generic_get_linked(Request<Id>)
     grpc_service->>+grpc_service: _get_linked(Id)
     grpc_service->>+psql_simple: get_by_id(Uuid)
-    rect rgb(247, 161, 161)
+    rect rgb(64,97,255)
         critical Get DB connection from the pool
             psql_simple->>+psql: get_psql_pool()
             psql-->>psql_simple: <Pool>
@@ -596,7 +597,7 @@ sequenceDiagram
         grpc_service-->>grpc_service: Status(Code::NotFound)
     else Ok
         grpc_service->>+psql_linked: get_for_ids(ids)
-        rect rgb(247, 161, 161)
+        rect rgb(64,97,255)
             critical Get DB connection from the pool
                 psql_linked->>+psql: get_psql_pool()
                 psql-->>psql_linked: <Pool>
@@ -610,7 +611,7 @@ sequenceDiagram
         else Ok (query success)
             grpc_service-->>-grpc_service: Ok(ids)
             grpc_service->>+psql_search: advanced_search(AdvancedSearchFilter)
-            rect rgb(247, 161, 161)
+            rect rgb(64,97,255)
                 critical Get DB connection from the pool
                     psql_search->>+psql: get_psql_pool()
                     psql-->>psql_search: <Pool>

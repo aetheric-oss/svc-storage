@@ -22,6 +22,10 @@ where
 {
     /// Get the resource's id column name using the resource's [ResourceDefinition](crate::resources::base::ResourceDefinition)
     fn try_get_id_field() -> Result<String, ArrErr> {
+        psql_debug!(
+            "(try_get_id_field) start: [{:?}]",
+            Self::get_definition().psql_id_cols
+        );
         let definition = Self::get_definition();
         if definition.psql_id_cols.is_empty() {
             let error = format!(
@@ -36,6 +40,7 @@ where
 
     /// Generic get by id function to get a row using the UUID column
     async fn get_by_id(id: &Uuid) -> Result<Row, ArrErr> {
+        psql_debug!("(get_by_id) start: [{:?}]", id);
         let definition = Self::get_definition();
         let id_col = Self::try_get_id_field()?;
         let client = get_psql_pool().get().await?;
@@ -64,6 +69,7 @@ where
     where
         T: GrpcDataObjectType,
     {
+        psql_debug!("(create) start: [{:?}]", data);
         let (psql_data, validation_result) = Self::validate(data)?;
 
         if !validation_result.success {
@@ -118,6 +124,7 @@ where
     where
         T: GrpcDataObjectType,
     {
+        psql_debug!("(validate) start: [{:?}]", data);
         let definition = Self::get_definition();
 
         let mut converted: PsqlData = PsqlData::new();
@@ -253,7 +260,8 @@ where
     ///
     /// returns [Row] on success
     async fn read(&self) -> Result<Row, ArrErr> {
-        //TODO: implement shared memcache here to get object data if present
+        psql_debug!("(read) start: [{:?}]", self.try_get_uuid());
+        //TODO(R3): implement shared memcache here to get object data if present
         let id = self.try_get_uuid()?;
         Self::get_by_id(&id).await
     }
@@ -270,6 +278,7 @@ where
     /// Returns [`ArrErr`] from [`PoolError`](deadpool::managed::PoolError) if no client connection could be returned from the connection [`Pool`](deadpool::managed::Pool)
     /// Returns [`ArrErr`] Database Error if database query execution failed
     async fn update<'a>(&self, data: &T) -> Result<(Option<Row>, ValidationResult), ArrErr> {
+        psql_debug!("(update) start: [{:?}]", data);
         let (psql_data, validation_result) = Self::validate(data)?;
 
         if !validation_result.success {
@@ -321,7 +330,7 @@ where
         let client = get_psql_pool().get().await?;
         client.execute(update_sql, &params[..]).await?;
 
-        //TODO: flush shared memcache for this resource when memcache is implemented
+        //TODO(R3): flush shared memcache for this resource when memcache is implemented
 
         Ok((Some(self.read().await?), validation_result))
     }
@@ -346,6 +355,7 @@ where
     ///
     /// Calls [delete_row](PsqlObjectType::delete_row) otherwise
     async fn delete(&self) -> Result<(), ArrErr> {
+        psql_debug!("(delete) start.");
         let definition = Self::get_definition();
         if definition.fields.contains_key("deleted_at") {
             self.set_deleted_at_now().await
@@ -365,6 +375,7 @@ where
     /// Returns [`ArrErr`] "Failed to update \[deleted_at\] col" if database query execution returns zero updated rows
     /// Returns [`ArrErr`] Database Error if database query execution failed
     async fn set_deleted_at_now(&self) -> Result<(), ArrErr> {
+        psql_debug!("(set_deleted_at_now) start: [{:?}]", self.try_get_uuid());
         let definition = Self::get_definition();
         let id_col = Self::try_get_id_field()?;
         let id = self.try_get_uuid()?;
@@ -395,7 +406,7 @@ where
         match client.execute(&stmt, &[&id]).await {
             Ok(num_rows) => {
                 if num_rows == 1 {
-                    //TODO: flush shared memcache for this resource when memcache is implemented
+                    //TODO(R3): flush shared memcache for this resource when memcache is implemented
                     Ok(())
                 } else {
                     let error = format!(
@@ -420,6 +431,7 @@ where
     /// Returns [`ArrErr`] "Failed to delete entry" if database query execution returns zero updated rows
     /// Returns [`ArrErr`] Database Error if database query execution failed
     async fn delete_row(&self) -> Result<(), ArrErr> {
+        psql_debug!("(set_deleted_at_now) start: [{:?}]", self.try_get_uuid());
         let definition = Self::get_definition();
         let id_col = Self::try_get_id_field()?;
 
@@ -438,7 +450,7 @@ where
         match client.execute(&stmt, &[&id]).await {
             Ok(num_rows) => {
                 if num_rows == 1 {
-                    //TODO: flush shared memcache for this resource when memcache is implemented
+                    //TODO(R3): flush shared memcache for this resource when memcache is implemented
                     Ok(())
                 } else {
                     let error = format!(

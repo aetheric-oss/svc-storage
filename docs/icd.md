@@ -18,8 +18,11 @@ Status | Draft
 
 Document | Description
 --- | ---
-[Requirements - `svc-storage`](https://docs.google.com/spreadsheets/d/1OQZGOxQh7gWo3BeZzwwHNSdY84Ghucx2MVADVlXV4AY/edit?usp=sharing) | Requirements for this module
-[Software Design Document (SDD)](./sdd.md) | 
+[High-Level Concept of Operations (CONOPS)](https://github.com/Arrow-air/se-services/blob/develop/docs/conops.md) | Overview of Arrow microservices.
+[High-Level Interface Control Document (ICD)](https://github.com/Arrow-air/se-services/blob/develop/docs/icd.md)  | Interfaces and frameworks common to all Arrow microservices.
+[Requirements - `svc-storage`](https://nocodb.arrowair.com/dashboard/#/nc/p_uyeuw6scqlnpri/table/L4/svc-storage) | Requirements and user stories for this microservice.
+[Concept of Operations - `svc-storage`](./conops.md) | Defines the motivation and duties of this microservice.
+[Software Design Document (SDD) - `svc-storage`](./sdd.md) | Specifies the internal activity of this microservice.
 
 ## Frameworks
 

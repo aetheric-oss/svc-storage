@@ -192,7 +192,7 @@ impl PostgresPool {
     pub async fn readiness(&self) -> Result<(), ArrErr> {
         psql_debug!("Checking database readiness.");
         let client_check = self.check().await;
-        //TODO: was: self.metrics.postgres_ready(client_check.is_ok());
+        //TODO(R3): provide metrics, eg: self.metrics.postgres_ready(client_check.is_ok());
         client_check?;
         Ok(())
     }

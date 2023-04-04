@@ -22,6 +22,7 @@ where
     /// Since this is a linked resource, the id is expected to be given as a [Vec\<FieldValuePair\>]
     /// to specify the id_column / value pairs to match
     async fn get_for_ids(ids: HashMap<String, Uuid>) -> Result<Vec<Row>, ArrErr> {
+        psql_debug!("(get_for_ids) start: [{:?}]", ids);
         let definition = Self::get_definition();
 
         let mut params: Vec<Box<PsqlFieldSend>> = vec![];
@@ -71,6 +72,7 @@ where
         ids: HashMap<String, Uuid>,
         transaction: Option<&Transaction>,
     ) -> Result<(), ArrErr> {
+        psql_debug!("(delete_for_ids) start: [{:?}]", ids);
         let definition = Self::get_definition();
 
         let mut params: Vec<Box<PsqlFieldSend>> = vec![];
@@ -103,7 +105,7 @@ where
             ref_params.push(field.as_ref());
         }
 
-        // TODO: Move this to 2 separate functions which can be used in other places as well
+        // TODO(R3): Move this to 2 separate functions which can be used in other places as well
         match transaction {
             Some(client) => {
                 let stmt = client.prepare_cached(&query).await?;
@@ -145,6 +147,7 @@ where
         ids: Vec<HashMap<String, Uuid>>,
         replace: HashMap<String, Uuid>,
     ) -> Result<(), ArrErr> {
+        psql_debug!("(link_ids) start: [{:?}] replace [{:?}]", ids, replace);
         let definition = Self::get_definition();
 
         let mut client = get_psql_pool().get().await?;
@@ -205,7 +208,8 @@ where
     /// get data from the database using the Object's UUIDs
     /// returns [Row] on success
     async fn read(&self) -> Result<Row, ArrErr> {
-        //TODO: implement shared memcache here to get object data if present
+        psql_debug!("(read) start: [{:?}]", self.try_get_uuids());
+        //TODO(R3): implement shared memcache here to get object data if present
         let definition = Self::get_definition();
         let ids = self.try_get_uuids()?;
 
@@ -246,6 +250,7 @@ where
 
     /// delete database record from the database using the Object's primary key
     async fn delete(&self) -> Result<(), ArrErr> {
+        psql_debug!("(delete) start: [{:?}]", self.try_get_uuids());
         let definition = Self::get_definition();
 
         let ids = self.try_get_uuids()?;
@@ -285,7 +290,7 @@ where
         match client.execute(&stmt, &ref_params[..]).await {
             Ok(num_rows) => {
                 if num_rows == 1 {
-                    //TODO: flush shared memcache for this resource when memcache is implemented
+                    //TODO(R3): flush shared memcache for this resource when memcache is implemented
                     Ok(())
                 } else {
                     let error = format!(
