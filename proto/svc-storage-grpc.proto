@@ -1,29 +1,21 @@
 syntax = "proto3";
 package grpc;
 
-//Storage service
-service StorageRpc {
-    rpc isReady (ReadyRequest) returns (ReadyResponse);
-}
+import "google/protobuf/timestamp.proto";
 
-//Id type for passing id only requests
+// Id type for passing id only requests
 message Id {
     //id
     string id = 1;
 }
 
-// Ready Request
-message ReadyRequest {
-    // No arguments
+// IdList type for passing a list of id strings
+message IdList {
+    // ids
+    repeated string ids = 1;
 }
 
-// Ready Response
-message ReadyResponse {
-    // ready
-    bool ready = 1;
-}
-
-//SearchFilter
+// SearchFilter
 message SearchFilter {
     // search_field
     string search_field = 1;
@@ -33,4 +25,96 @@ message SearchFilter {
     int32 page_number = 3;  // Which page number do we want?
     // results_per_page
     int32 results_per_page = 4;  // Number of results to return per page.
+}
+
+// Predicate operators which can be used for the [`FilterOption`]
+enum PredicateOperator {
+    // indicates a search query with \<col\> = \<value\> filter
+    EQUALS = 0;
+    // indicates a search query with \<col\> <> \<value\> filter
+    NOT_EQUALS = 1;
+    // indicates a search query with IN (..) filter
+    IN = 2;
+    // indicates a search query with BETWEEN \<min\> AND \<max\> filter
+    BETWEEN = 3;
+    // indicates a search query with \<col\> IS NULL filter
+    IS_NULL = 4;
+    // indicates a search query with \<col\> IS NOT NULL filter
+    IS_NOT_NULL = 5;
+    // indicates a search query with \<col\> ILIKE \<value\> filter
+    ILIKE =  6;
+    // indicates a search query with \<col\> LIKE \<value\> filter
+    LIKE = 7;
+    // indicates a search query with \<col\> > \<value\> filter
+    GREATER = 8;
+    // indicates a search query with \<col\> >= \<value\> filter
+    GREATER_OR_EQUAL = 9;
+    // indicates a search query with \<col\> < \<value\> filter
+    LESS = 10;
+    // indicates a search query with \<col\> <= \<value\> filter
+    LESS_OR_EQUAL = 11;
+}
+
+// Comparison operators which can be used for the [`FilterOption`]
+enum ComparisonOperator {
+    // indicates a search query with AND operator
+    AND = 0;
+    // indicates a search query with OR operator
+    OR = 1;
+}
+
+// Filter option which can be used for the [`AdvancedSearchFilter`]
+message FilterOption {
+    // search_field
+    string search_field = 1;
+    // search_value, can be multiple for BETWEEN searches
+    repeated string search_value = 2;
+    // the predicate to be used
+    PredicateOperator predicate_operator = 3;
+    // optional operator used to compare next FilterOption with
+    optional ComparisonOperator comparison_operator = 4;
+}
+
+// Sort order which can be used for [`SortOption`]
+enum SortOrder {
+    // indicates an ascending sort order
+    ASC = 0;
+    // indicates a descending sort order
+    DESC = 1;
+}
+
+// Sort option which can be used for [`AdvancedSearchFilter`]
+message SortOption {
+    // column name used to sort on
+    string sort_field = 1;
+    // sort operation
+    SortOrder sort_order = 2;
+}
+
+// Advanced search filter object providing options for multiple search columns, sorted output and paged results
+message AdvancedSearchFilter {
+    // one or more filters to be used for search select
+    repeated FilterOption filters = 1;
+    // page_number
+    int32 page_number = 2;
+    // number of results to return per page.
+    int32 results_per_page = 3;
+    // list of column / operator pairs to be used for sorting
+    repeated SortOption order_by = 5;
+}
+
+// Field name and error message
+message ValidationError {
+    // validated field
+    string field = 1;
+    // error message
+    string error = 2;
+}
+
+// Returns a [`bool`] success status and list of [`ValidationError`]
+message ValidationResult {
+    // success
+    bool success = 1;
+    // list of ValidationErrors
+    repeated ValidationError errors = 2;
 }

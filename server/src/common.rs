@@ -2,78 +2,51 @@
 //!
 //! Commonly used libraries, functions and statics, made public for easy use in modules.
 
-use anyhow::Result;
-use config::{ConfigError, Environment};
-use dotenv::dotenv;
-use serde::Deserialize;
+use config::ConfigError;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::task::JoinError;
 
-pub use crate::grpc::{Id, SearchFilter};
 pub use uuid::Uuid;
 
-pub const PSQL_LOG_TARGET: &str = "app::backend::psql";
-pub const MEMDB_LOG_TARGET: &str = "app::backend::memdb";
-pub const GRPC_LOG_TARGET: &str = "app::grpc";
-
+/// static boolean that can be used to check if we need psql connection
 pub static USE_PSQL_BACKEND: AtomicBool = AtomicBool::new(true);
-pub fn use_psql_set(value: bool) {
-    USE_PSQL_BACKEND.store(value, Ordering::SeqCst);
-}
+/// public function to check value of [USE_PSQL_BACKEND]
 pub fn use_psql_get() -> bool {
     USE_PSQL_BACKEND.load(Ordering::Relaxed)
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Config {
-    pub pg: deadpool_postgres::Config,
-    #[serde(default)]
-    pub use_tls: bool,
-    pub db_ca_cert: String,
-    pub db_client_cert: Option<String>,
-    pub db_client_key: Option<String>,
-    pub docker_port_grpc: Option<u16>,
 }
 
 /// Crate Errors
 #[derive(thiserror::Error, Debug)]
 pub enum ArrErr {
     #[error("error: {0}")]
+    /// return new [Error](thiserror::Error) with provided string
     Error(String),
 
     #[error("join error: {0}")]
+    /// return new [`JoinError`] with calling params
     JoinError(#[from] JoinError),
 
     #[error("configuration error: {0}")]
+    /// return new [`ConfigError`] with calling params
     ConfigError(#[from] ConfigError),
 
     #[error("convert int error: {0}")]
+    /// return new [`std::num::TryFromIntError`] with calling params
     IntError(#[from] std::num::TryFromIntError),
 
+    /// return new [`prost_types::TimestampError`] with calling params
     #[error("create timestamp error: {0}")]
     ProstTimestampError(#[from] prost_types::TimestampError),
-}
 
-impl Config {
-    // Default values for Config
-    pub fn new() -> Self {
-        Config {
-            pg: deadpool_postgres::Config::new(),
-            use_tls: true,
-            db_ca_cert: "".to_string(),
-            db_client_cert: None,
-            db_client_key: None,
-            docker_port_grpc: Some(50051),
-        }
-    }
+    /// return new [`deadpool_postgres::CreatePoolError`] with calling params
+    #[error("create Pool error: {0}")]
+    CreatePoolError(#[from] deadpool_postgres::CreatePoolError),
 
-    pub fn from_env() -> Result<Self, ConfigError> {
-        dotenv().ok();
+    #[error("io error: {0}")]
+    /// return new [`std::io::Error`] with calling params
+    IoError(#[from] std::io::Error),
 
-        config::Config::builder()
-            .set_default("use_tls", true)?
-            .add_source(Environment::default().separator("__"))
-            .build()?
-            .try_deserialize()
-    }
+    #[error("uuid error: {0}")]
+    /// return new [`uuid::Error`] with calling params
+    UuidError(#[from] uuid::Error),
 }

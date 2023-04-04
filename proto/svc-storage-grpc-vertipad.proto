@@ -1,49 +1,60 @@
 syntax = "proto3";
 package grpc.vertipad;
 
-import "google/protobuf/empty.proto";
 import "google/protobuf/field_mask.proto";
 import "svc-storage-grpc.proto";
 
-//VertipadRpc service
-service VertipadRpc {
-    rpc vertipads(grpc.SearchFilter) returns (Vertipads);
-    rpc vertipad_by_id(grpc.Id) returns (Vertipad);
-    rpc insert_vertipad(VertipadData) returns (Vertipad);
-    rpc update_vertipad(UpdateVertipad) returns (Vertipad);
-    rpc delete_vertipad(grpc.Id) returns (google.protobuf.Empty);
+// Response struct returning an [Object] on success and [ValidationResult] if invalid fields were provided
+message Response {
+    // struct with field -> error pairs to provide feedback about invalid fields
+    grpc.ValidationResult validation_result = 1;
+    // Object struct with id [String] in [Uuid](uuid::Uuid) format and [Data] struct with vertiport data
+    optional Object object = 2;
 }
 
-//Vertipad
-message Vertipad {
-    // id UUID v4
+// Object struct with `id` and `data` field
+// * `id` [String] in [Uuid](uuid::Uuid) format
+// * `data` [Data] struct with vertiport data
+message Object {
+    //id UUID v4
     string id = 1;
-    VertipadData data = 2;
+    //data
+    Data data = 2;
 }
 
-//VertipadData
-message VertipadData {
-    // vertiport_id UUID v4, all vertipads are part of a vertiport, even if the vertiport has only 1 pad
-    string vertiport_id = 1;
-    string description = 2;
-    double latitude = 3;
-    double longitude = 4;
-    bool enabled = 5;
-    bool occupied = 6;
-    optional string schedule = 7;
-    //bool charging_enabled = 3;
-    //float charging_rate_kw = 4;
-    //string restrictions = 5;
-}
-
-message UpdateVertipad {
-    // id UUID v4
+// UpdateObject struct with `id`, `data` and `mask` fields
+// * `id` [String] in [Uuid](uuid::Uuid) format
+// * `data` [Data] struct with vertiport data which should be used for update
+// * `mask` [FieldMask] struct with vertiport fields that should be updated
+message UpdateObject {
+    // `id` [String] in [Uuid](uuid::Uuid) format
     string id = 1;
-    VertipadData data = 2;
+    // struct with vertiport data which should be used for update
+    Data data = 2;
+    // struct with vertiport fields that should be updated
     google.protobuf.FieldMask mask = 3;
 }
 
-//Vertipads
-message Vertipads {
-    repeated Vertipad vertipads = 1;
+// Data struct with vertipad data
+message Data {
+    // vertiport_id UUID v4, all vertipads are part of a vertiport, even if the vertiport has only 1 pad
+    string vertiport_id = 1;
+    // human readable name of the vertipad
+    string name = 2;
+    // vertipad latitude location
+    double latitude = 3;
+    // vertipad longitude location
+    double longitude = 4;
+    // indicates if the vertipad is in business
+    bool enabled = 5;
+    // indicates if the vertipad is currently occupied
+    bool occupied = 6;
+    // RRULE data string to indicate the vertipad's opening days and hours
+    optional string schedule = 7;
+}
+
+// Struct containing a `list` of vertipad [Vec\<Object\>]
+message List {
+    // array/vector of vertipad items
+    repeated Object list = 1;
 }

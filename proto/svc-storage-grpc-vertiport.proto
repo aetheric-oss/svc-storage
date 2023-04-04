@@ -1,44 +1,56 @@
 syntax = "proto3";
 package grpc.vertiport;
 
-import "google/protobuf/empty.proto";
 import "google/protobuf/field_mask.proto";
 import "svc-storage-grpc.proto";
 
-//VertiportRpc service
-service VertiportRpc {
-    rpc vertiports(grpc.SearchFilter) returns (Vertiports);
-    rpc vertiport_by_id(grpc.Id) returns (Vertiport);
-    rpc insert_vertiport(VertiportData) returns (Vertiport);
-    rpc update_vertiport(UpdateVertiport) returns (Vertiport);
-    rpc delete_vertiport(grpc.Id) returns (google.protobuf.Empty);
+// Response struct returning an [Object] on success and [ValidationResult] if invalid fields were provided
+message Response {
+    // struct with field -> error pairs to provide feedback about invalid fields
+    grpc.ValidationResult validation_result = 1;
+    // Object struct with id [String] in [Uuid](uuid::Uuid) format and [Data] struct with vertiport data
+    optional Object object = 2;
 }
 
-//Vertiport
-message Vertiport {
-    // id UUID v4
+// Object struct with `id` and `data` field
+// * `id` [String] in [Uuid](uuid::Uuid) format
+// * `data` [Data] struct with vertiport data
+message Object {
+    //id UUID v4
     string id = 1;
-    VertiportData data = 2;
+    //data
+    Data data = 2;
 }
 
-//VertiportData
-message VertiportData {
-    string description = 1;
-    double latitude = 2;
-    double longitude = 3;
-    optional string schedule = 4;
-    //repeated string engineers = 5;
-    //uint32 elevation = 7;
-}
-
-message UpdateVertiport {
-    // id UUID v4
+// UpdateObject struct with `id`, `data` and `mask` fields
+// * `id` [String] in [Uuid](uuid::Uuid) format
+// * `data` [Data] struct with vertiport data which should be used for update
+// * `mask` [FieldMask] struct with vertiport fields that should be updated
+message UpdateObject {
+    // `id` [String] in [Uuid](uuid::Uuid) format
     string id = 1;
-    VertiportData data = 2;
+    // struct with vertiport data which should be used for update
+    Data data = 2;
+    // struct with vertiport fields that should be updated
     google.protobuf.FieldMask mask = 3;
 }
 
-//Vertiports
-message Vertiports {
-    repeated Vertiport vertiports = 1;
+// Data struct with vertiport data
+message Data {
+    // human readable name of the vertiport
+    string name = 1;
+    // additional description of the vertiport
+    string description = 2;
+    // vertipad latitude location
+    double latitude = 3;
+    // vertipad longitude location
+    double longitude = 4;
+    // RRULE data string to indicate the vertipad's opening days and hours
+    optional string schedule = 5;
+}
+
+// Struct containing a `list` of vertiport [Vec\<Object\>]
+message List {
+    // array/vector of vertiport items
+    repeated Object list = 1;
 }

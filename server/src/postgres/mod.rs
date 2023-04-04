@@ -1,32 +1,108 @@
-//! # Postgres
-//!
+//! PostgreSQL
+//! provides implementations for PostgreSQL
+
 #[macro_use]
 pub mod macros;
+pub mod init;
+pub mod linked_resource;
+pub mod simple_resource;
 
-use crate::common::Config;
-use crate::resources::{flight_plan, vertipad, vertiport};
+mod search;
+
+use crate::config::Config;
 use anyhow::Error;
-use deadpool_postgres::{
-    tokio_postgres::NoTls, ConfigError, ManagerConfig, Pool, PoolError, RecyclingMethod, Runtime,
-};
-use tokio::sync::OnceCell;
-
-use std::fmt;
-use std::fs;
-
+use deadpool_postgres::{tokio_postgres::NoTls, ManagerConfig, Pool, RecyclingMethod, Runtime};
 use native_tls::{Certificate, Identity, TlsConnector};
 use postgres_native_tls::MakeTlsConnector;
+use postgres_types::ToSql;
+use serde_json::Value as JsonValue;
+use std::fmt::Debug;
+use std::{collections::HashMap, fs};
+use tokio::sync::OnceCell;
+use tokio_postgres::types::Type as PsqlFieldType;
 
-pub use crate::common::{ArrErr, PSQL_LOG_TARGET};
+pub use self::search::{PsqlSearch, SearchCol};
+pub use crate::common::ArrErr;
+
+/// Provides a more readable format of a dynamic PostgreSQL field value
+pub type PsqlField = dyn ToSql + Sync;
+/// Provides a more readable format of a dynamic PostgreSQL field value with the [Send] trait
+pub type PsqlFieldSend = dyn ToSql + Sync + Send;
+/// Provides a more readable format of the PostgreSQL data [HashMap] definition
+pub type PsqlData = HashMap<String, Box<PsqlFieldSend>>;
+
+/// struct for JSON values
+#[derive(Debug)]
+pub struct PsqlJsonValue {
+    /// [JsonValue]
+    pub value: JsonValue,
+}
+
+/// Create global variable to access our database pool
+pub(crate) static DB_POOL: OnceCell<Pool> = OnceCell::const_new();
+/// Shorthand function to clone database connection pool
+pub fn get_psql_pool() -> Pool {
+    DB_POOL
+        .get()
+        .expect("Database pool not initialized")
+        .clone()
+}
+
+impl From<tokio_postgres::Error> for ArrErr {
+    fn from(err: tokio_postgres::Error) -> Self {
+        let err: Error = err.into();
+        psql_error!("error executing DB query: {}", err);
+        ArrErr::Error(err.to_string())
+    }
+}
+impl From<deadpool_postgres::PoolError> for ArrErr {
+    fn from(err: deadpool_postgres::PoolError) -> Self {
+        let err: Error = err.into();
+        psql_error!("postgres pool error: {}", err);
+        ArrErr::Error(err.to_string())
+    }
+}
+impl From<deadpool_postgres::ConfigError> for ArrErr {
+    fn from(err: deadpool_postgres::ConfigError) -> Self {
+        let err: Error = err.into();
+        psql_error!("postgres pool config error: {}", err);
+        ArrErr::Error(err.to_string())
+    }
+}
 
 /// Postgres Pool
+#[derive(Debug)]
 pub struct PostgresPool {
+    /// [Pool]
     pub pool: Pool,
+}
+impl Default for PostgresPool {
+    fn default() -> Self {
+        Self::from_config().unwrap_or_else(|e| panic!("Unable to create from config: {}", e))
+    }
 }
 
 impl PostgresPool {
-    pub fn from_config() -> Result<PostgresPool, ConfigError> {
-        let mut settings = Config::from_env().unwrap();
+    /// Creates a new PostgresPool using configuration settings from the environment
+    /// ```
+    /// use svc_storage::postgres::PostgresPool;
+    /// use svc_storage::common::ArrErr;
+    /// async fn example() -> Result<(), ArrErr> {
+    ///     let pool = match PostgresPool::from_config() {
+    ///         Ok(pg) => {
+    ///             match pg.readiness().await {
+    ///                 Ok(_) => Ok(pg.pool),
+    ///                 Err(e) => Err(e),
+    ///             }
+    ///         },
+    ///         Err(e) => Err(e)
+    ///     };
+    ///
+    ///     Ok(())
+    /// }
+    /// ```
+    pub fn from_config() -> Result<PostgresPool, ArrErr> {
+        let mut settings = Config::from_env().unwrap_or_default();
 
         settings.pg.manager = Some(ManagerConfig {
             recycling_method: RecyclingMethod::Fast,
@@ -52,8 +128,12 @@ impl PostgresPool {
             // If client cert and key are specified, try using it. Otherwise default to user/pass.
             // Since the TlsConnector builder sucks
             let builder = if settings.db_client_cert.is_some() && settings.db_client_key.is_some() {
-                let cert: String = settings.db_client_cert.unwrap();
-                let key: String = settings.db_client_key.unwrap();
+                let cert: String = settings
+                    .db_client_cert
+                    .unwrap_or_else(|| panic!("No DB_CLIENT_CERT env var found"));
+                let key: String = settings
+                    .db_client_key
+                    .unwrap_or_else(|| panic!("No DB_CLIENT_KEY env var found"));
                 let client_cert_file = fs::read(cert.clone()).unwrap_or_else(|e| {
                     panic!(
                         "Unable to read client certificate db_client_cert file [{}]: {}",
@@ -98,16 +178,10 @@ impl PostgresPool {
             };
             let connector = MakeTlsConnector::new(builder);
 
-            settings
-                .pg
-                .create_pool(Some(Runtime::Tokio1), connector)
-                .unwrap()
+            settings.pg.create_pool(Some(Runtime::Tokio1), connector)?
         } else {
             psql_warn!("Setting up database connection without TLS and using client password.");
-            settings
-                .pg
-                .create_pool(Some(Runtime::Tokio1), NoTls)
-                .unwrap()
+            settings.pg.create_pool(Some(Runtime::Tokio1), NoTls)?
         };
 
         psql_info!("Successfully created PostgresPool.");
@@ -118,7 +192,7 @@ impl PostgresPool {
     pub async fn readiness(&self) -> Result<(), ArrErr> {
         psql_debug!("Checking database readiness.");
         let client_check = self.check().await;
-        //self.metrics.postgres_ready(client_check.is_ok());
+        //TODO(R3): provide metrics, eg: self.metrics.postgres_ready(client_check.is_ok());
         client_check?;
         Ok(())
     }
@@ -137,58 +211,8 @@ impl PostgresPool {
     }
 }
 
-impl fmt::Debug for PostgresPool {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("PostgresPool").finish()
-    }
-}
-
-pub async fn create_db(pool: &Pool) -> Result<(), ArrErr> {
-    psql_info!("Creating database tables.");
-    //Create our tables (in the correct order)
-    vertiport::init_table(pool).await?;
-    vertipad::init_table(pool).await?;
-    flight_plan::init_table(pool).await
-}
-
-pub async fn drop_db(pool: &Pool) -> Result<(), ArrErr> {
-    psql_warn!("Dropping database tables.");
-    // Drop our tables (in the correct order)
-    flight_plan::drop_table(pool).await?;
-    vertipad::drop_table(pool).await?;
-    vertiport::drop_table(pool).await
-}
-
-pub async fn recreate_db(pool: &Pool) -> Result<(), ArrErr> {
-    psql_warn!("Re-creating database tables.");
-    drop_db(pool).await?;
-    create_db(pool).await?;
-
-    Ok(())
-}
-
-/*
-pub async trait CRUD<T, R> {
-    fn create(
-        pg: &PostgresPool,
-        data: HashMap<&str, &(dyn ToSql + Sync)>,
-        ) -> Result<R, ArrErr>;
-    fn read(mut self) -> Result<T, ArrErr>;
-    fn update(self, data: HashMap<&str, &(dyn ToSql + Sync)>) -> Result<T, ArrErr>;
-    fn delete(Option(mut self, id: Uuid)) -> Result<T, ArrErr>;
-}
-*/
-
-/// Create global variable to access our database pool
-pub(crate) static DB_POOL: OnceCell<Pool> = OnceCell::const_new();
-/// Shorthand function to clone database connection pool
-pub fn get_psql_pool() -> Pool {
-    DB_POOL
-        .get()
-        .expect("Database pool not initialized")
-        .clone()
-}
-
+/// Initializes the database pool if it hasn't been created yet.
+/// Uses the configuration from the environment.
 pub async fn init_psql_pool() -> Result<(), ArrErr> {
     psql_info!("Initializing global shared psql pool.");
     match DB_POOL
@@ -205,29 +229,5 @@ pub async fn init_psql_pool() -> Result<(), ArrErr> {
     {
         Ok(_) => Ok(()),
         Err(e) => Err(e),
-    }
-}
-
-impl From<tokio_postgres::Error> for ArrErr {
-    fn from(err: tokio_postgres::Error) -> Self {
-        let err: Error = err.into();
-        psql_error!("error executing DB query: {}", err);
-        ArrErr::Error(err.to_string())
-    }
-}
-
-impl From<PoolError> for ArrErr {
-    fn from(err: PoolError) -> Self {
-        let err: Error = err.into();
-        psql_error!("postgres pool error: {}", err);
-        ArrErr::Error(err.to_string())
-    }
-}
-
-impl From<ConfigError> for ArrErr {
-    fn from(err: ConfigError) -> Self {
-        let err: Error = err.into();
-        psql_error!("postgres config error: {}", err);
-        ArrErr::Error(err.to_string())
     }
 }

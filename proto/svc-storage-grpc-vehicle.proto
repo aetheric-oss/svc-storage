@@ -1,53 +1,73 @@
 syntax = "proto3";
 package grpc.vehicle;
 
-import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
 import "svc-storage-grpc.proto";
 
-//VehicleRpc service
-service VehicleRpc {
-    rpc vehicles(grpc.SearchFilter) returns (Vehicles);
-    rpc vehicle_by_id(grpc.Id) returns (Vehicle);
-    rpc insert_vehicle(VehicleData) returns (Vehicle);
-    rpc update_vehicle(Vehicle) returns (Vehicle);
-    rpc delete_vehicle(grpc.Id) returns (google.protobuf.Empty);
-}
-
-//Vehicle Type Enum
-enum VehicleType {
-    //VTOL_CARGO
+// Vehicle Model Type Enum
+enum VehicleModelType {
+    // VTOL Cargo
     VTOL_CARGO = 0;
-    //VTOL_PASSENGER
+    // VTOL Passenger
     VTOL_PASSENGER = 1;
 }
 
-//Vehicle
-message Vehicle {
-    // UUID v4
-    string id = 1;
-    VehicleData data = 2;
+// Response struct returning an [Object] on success and [ValidationResult] if invalid fields were provided
+message Response {
+    // struct with field -> error pairs to provide feedback about invalid fields
+    grpc.ValidationResult validation_result = 1;
+    // Object struct with id [String] in [Uuid](uuid::Uuid) format and [Data] struct with vehicle data
+    optional Object object = 2;
 }
 
-//VehicleData
-message VehicleData {
-    VehicleType vehicle_type = 1;
-    string description = 2;
-    optional string schedule = 3;
-    //string make = 2;
-    //string model = 3;
-    //uint32 passenger_capacity = 5;
-    //google.protobuf.Timestamp end_lifespan = 6;
-    //google.protobuf.Timestamp next_maintenance = 7;
-    //google.protobuf.Timestamp last_maintenance = 8;
-    //google.protobuf.Timestamp last_location_update = 9;
-    //float last_location_latitude = 10;
-    //float last_location_longitude = 11;
-    //float voltage_x = 12;
-    //float voltage_y = 13;
-    //float amperage_x = 14;
-    //float amperage_y = 15;
+// Object struct with `id` and `data` field
+// * `id` [String] in [Uuid](uuid::Uuid) format
+// * `data` [Data] struct with vehicle data
+message Object {
+    //id UUID v4
+    string id = 1;
+    //data
+    Data data = 2;
 }
-//Vehicles
-message Vehicles {
-    repeated Vehicle vehicles = 1;
+
+// UpdateObject struct with `id`, `data` and `mask` fields
+// * `id` [String] in [Uuid](uuid::Uuid) format
+// * `data` [Data] struct with vehicle data which should be used for update
+// * `mask` [FieldMask] struct with vehicle fields that should be updated
+message UpdateObject {
+    // `id` [String] in [Uuid](uuid::Uuid) format
+    string id = 1;
+    // struct with vehicle data which should be used for update
+    Data data = 2;
+    // struct with vehicle fields that should be updated
+    google.protobuf.FieldMask mask = 3;
+}
+
+// Data struct with vehicle data
+message Data {
+    // vehicle_model_id UUID v4, can be used to collect additional vehicle_model information
+    string vehicle_model_id = 1;
+    // the vehicle's unique serial_number given at the factory
+    string serial_number = 2;
+    // the vehicle's unique registration number provided by the government
+    string registration_number = 3;
+    // optional additional description of the vehicle
+    optional string description = 4;
+    // optional asset_group_id UUID v4, can be used to collect all assets from the same group
+    optional string asset_group_id = 5;
+    // optional RRULE data string to indicate the vehicle's available days and hours
+    optional string schedule = 6;
+    // optional id UUID v4 of the last reported vertiport it landed at
+    optional string last_vertiport_id = 7;
+    // optional date of vehicle's last maintenance
+    optional google.protobuf.Timestamp last_maintenance = 8;
+    // optional date  of vehicle's next planned maintenance
+    optional google.protobuf.Timestamp next_maintenance = 9;
+}
+
+// Struct containing a `list` of vehicle [Vec\<Object\>]
+message List {
+    // array/vector of vehicle items
+    repeated Object list = 1;
 }

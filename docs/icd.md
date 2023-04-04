@@ -18,8 +18,11 @@ Status | Draft
 
 Document | Description
 --- | ---
-[Requirements - `svc-storage`](https://docs.google.com/spreadsheets/d/1OQZGOxQh7gWo3BeZzwwHNSdY84Ghucx2MVADVlXV4AY/edit?usp=sharing) | Requirements for this module
-[Software Design Document (SDD)](./sdd.md) | 
+[High-Level Concept of Operations (CONOPS)](https://github.com/Arrow-air/se-services/blob/develop/docs/conops.md) | Overview of Arrow microservices.
+[High-Level Interface Control Document (ICD)](https://github.com/Arrow-air/se-services/blob/develop/docs/icd.md)  | Interfaces and frameworks common to all Arrow microservices.
+[Requirements - `svc-storage`](https://nocodb.arrowair.com/dashboard/#/nc/p_uyeuw6scqlnpri/table/L4/svc-storage) | Requirements and user stories for this microservice.
+[Concept of Operations - `svc-storage`](./conops.md) | Defines the motivation and duties of this microservice.
+[Software Design Document (SDD) - `svc-storage`](./sdd.md) | Specifies the internal activity of this microservice.
 
 ## Frameworks
 
@@ -30,12 +33,21 @@ See [High-Level Services ICD](https://github.com/Arrow-air/se-services/blob/deve
 ### Files
 
 These interfaces are defined in protocol buffer files:
- * [`svc-storage-grpc.proto`](../proto/svc-storage-grpc.proto)
+ * [`svc-storage-grpc-adsb.proto`](../proto/svc-storage-grpc-adsb.proto)
+ * [`svc-storage-grpc-adsb-service.proto`](../proto/svc-storage-grpc-adsb-service.proto)
  * [`svc-storage-grpc-flight_plan.proto`](../proto/svc-storage-grpc-flight_plan.proto)
+ * [`svc-storage-grpc-flight_plan-service.proto`](../proto/svc-storage-grpc-flight_plan-service.proto)
+ * [`svc-storage-grpc-itinerary.proto`](../proto/svc-storage-grpc-itinerary.proto)
+ * [`svc-storage-grpc-itinerary-service.proto`](../proto/svc-storage-grpc-itinerary-service.proto)
  * [`svc-storage-grpc-pilot.proto`](../proto/svc-storage-grpc-pilot.proto)
+ * [`svc-storage-grpc-pilot-service.proto`](../proto/svc-storage-grpc-pilot-service.proto)
+ * [`svc-storage-grpc.proto`](../proto/svc-storage-grpc.proto)
  * [`svc-storage-grpc-vehicle.proto`](../proto/svc-storage-grpc-vehicle.proto)
+ * [`svc-storage-grpc-vehicle-service.proto`](../proto/svc-storage-grpc-vehicle-service.proto)
  * [`svc-storage-grpc-vertipad.proto`](../proto/svc-storage-grpc-vertipad.proto)
+ * [`svc-storage-grpc-vertipad-service.proto`](../proto/svc-storage-grpc-vertipad-service.proto)
  * [`svc-storage-grpc-vertiport.proto`](../proto/svc-storage-grpc-vertiport.proto)
+ * [`svc-storage-grpc-vertiport-service.proto`](../proto/svc-storage-grpc-vertiport-service.proto)
 
 ### Integrated Authentication & Encryption
 
@@ -53,51 +65,37 @@ gRPC server methods are called "services", an unfortunate name clash with the br
 | ---- | ---- |
 | `isReady` | Returns a message indicating if this service is ready for requests.<br>Similar to a health check, if a server is not "ready" it could be considered dead by the client making the request.
 
-#### FlightPlanRpc
-| Service | Description |
-| ---- | ---- |
-| `flight_plans` | Returns a list of `FlightPlans` found in the database. Accepts a `SearchFilter` structure which will be used in the database query. The list will be empty if no records match the search parameters.
-| `flight_plans_between` | Returns a list of `FlightPlans` found in the database. Accepts a `SearchFilterBetween` structure which will be used in the database query. The list will be empty if no records match the search parameters.
-| `flight_plan_by_id` | Returns a single `FlightPlan` for the given Uuid. Will return `Status::not_found` if the record is not found in the database.
-| `insert_flight_plan` | Accepts a `FlightPlanData` structure which will be used to inserts a new `FlightPlan`. Will return the `FlightPlan` on success or an Internal Error on failure.
-| `update_flight_plan` | Accepts a `UpdateFlightPlan` structure which will be used to update an existing `FlightPlan` in the database. Will return; the `FlightPlan` on success, `Status::not_found` if the record is not found, an Internal Error on failure.
-| `delete_flight_plan` | Accepts an Uuid string which will be used to remove a `flight_plan` record from the database. Will return; empty response on success, `Status::not_found` if the record is not found, an Internal Error on failure.
+#### SimpleResourceRpc
 
-#### PilotRpc
-| Service | Description |
-| ---- | ---- |
-| `pilots` | Returns a list of `Pilots` found in the database. Accepts a `SearchFilter` structure which will be used in the database query. The list will be empty if no records match the search parameters.
-| `pilot_by_id` | Returns a single `Pilot` for the given Uuid. Will return `Status::not_found` if the record is not found in the database.
-| `insert_pilot` | Accepts a `PilotData` structure which will be used to inserts a new `Pilot`. Will return the `Pilot` on success or an Internal Error on failure.
-| `update_pilot` | Accepts a `UpdatePilot` structure which will be used to update an existing `Pilot` in the database. Will return; the `Pilot` on success, `Status::not_found` if the record is not found, an Internal Error on failure.
-| `delete_pilot` | Accepts an Uuid string which will be used to remove a `pilot` record from the database. Will return; empty response on success, `Status::not_found` if the record is not found, an Internal Error on failure.
+Implemented for:
+ * adsb
+ * flight_plan
+ * itinerary
+ * pilot
+ * vehicle
+ * vertipad
+ * vertiport
 
-#### VehicleRpc
-| Service | Description |
-| ---- | ---- |
-| `vehicles` | Returns a list of `Vehicles` found in the database. Accepts a `SearchFilter` structure which will be used in the database query. The list will be empty if no records match the search parameters.
-| `vehicle_by_id` | Returns a single `Vehicle` for the given Uuid. Will return `Status::not_found` if the record is not found in the database.
-| `insert_vehicle` | Accepts a `VehicleData` structure which will be used to inserts a new `Vehicle`. Will return the `Vehicle` on success or an Internal Error on failure.
-| `update_vehicle` | Accepts a `UpdateVehicle` structure which will be used to update an existing `Vehicle` in the database. Will return; the `Vehicle` on success, `Status::not_found` if the record is not found, an Internal Error on failure.
-| `delete_vehicle` | Accepts an Uuid string which will be used to remove a `vehicle` record from the database. Will return; empty response on success, `Status::not_found` if the record is not found, an Internal Error on failure.
+| Service     | Description |
+| ----------- | ----------- |
+| `get_by_id` | Takes an [`Id`] object to retrieve the resource's record data. Returns a [`tonic`] gRCP [`Response`] containing an [`Object`].
+| `search`    | Takes an [`AdvancedSearchFilter`] object to search the database with the provided values. Returns a list of [`Objects`] found in the database.
+| `insert`    | Takes a [`Data`] object to create a new resource record with the provided data. A new [`Uuid`] will be generated by the database and returned as `id` as part of the returned [`Object`].
+| `update`    | Takes an [`UpdateObject`] to update the resource with new data in the database. A field mask can be provided to restrict updates to specific fields. Returns the updated [`Response`] on success.
+| `delete`    | Takes an [`Id`] to set the matching resource record as deleted in the database.
 
-#### VertipadRpc
-| Service | Description |
-| ---- | ---- |
-| `vertipads` | Returns a list of `Vertipads` found in the database. Accepts a `SearchFilter` structure which will be used in the database query. The list will be empty if no records match the search parameters.
-| `vertipad_by_id` | Returns a single `Vertipad` for the given Uuid. Will return `Status::not_found` if the record is not found in the database.
-| `insert_vertipad` | Accepts a `VertipadData` structure which will be used to inserts a new `Vertipad`. Will return the `Vertipad` on success or an Internal Error on failure.
-| `update_vertipad` | Accepts a `UpdateVertipad` structure which will be used to update an existing `Vertipad` in the database. Will return; the `Vertipad` on success, `Status::not_found` if the record is not found, an Internal Error on failure.
-| `delete_vertipad` | Accepts an Uuid string which will be used to remove a `vertipad` record from the database. Will return; empty response on success, `Status::not_found` if the record is not found, an Internal Error on failure.
+#### LinkedResourceRpc
 
-#### VertiportRpc
-| Service | Description |
-| ---- | ---- |
-| `vertiports` | Returns a list of `Vertiports` found in the database. Accepts a `SearchFilter` structure which will be used in the database query. The list will be empty if no records match the search parameters.
-| `vertiport_by_id` | Returns a single `Vertiport` for the given Uuid. Will return `Status::not_found` if the record is not found in the database.
-| `insert_vertiport` | Accepts a `VertiportData` structure which will be used to inserts a new `Vertiport`. Will return the `Vertiport` on success or an Internal Error on failure.
-| `update_vertiport` | Accepts a `UpdateVertiport` structure which will be used to update an existing `Vertiport` in the database. Will return; the `Vertiport` on success, `Status::not_found` if the record is not found, an Internal Error on failure.
-| `delete_vertiport` | Accepts an Uuid string which will be used to remove a `vertiport` record from the database. Will return; empty response on success, `Status::not_found` if the record is not found, an Internal Error on failure.
+Implemented for:
+ * itinerary_flight_plan
+
+| Service          | Description |
+| ---------------- | ----------- |
+| `link`           | Takes an [`LinkOtherResource`] object to link the provided resource ids in the database. Inserts new entries into the database for each `id`, `other_id` combination if they don't exist yet. The existence of the provided resource `id` will be validated before insert. Returns an empty [`tonic`] gRCP [`Response`].
+| `replace_linked` | Takes an [`LinkOtherResource`] object replace the provided resource linked ids in the database. Inserts new entries into the database for each `id`, `other_id` combination. All existing entries will be removed first. The existence of the provided resource `id` will be validated before insert. Returns an empty [`tonic`] gRCP [`Response`].
+| `unlink`         | Takes an [`Id`] to unlink all resource linked ids in the database. Removes all entries from the link table for the given `id`. he existence of the provided resource `id` will be validated before unlink. Returns an empty [`tonic`] gRCP [`Response`].
+| `get_linked_ids` | Takes an [`Id`] to retrieve linked ids from the database. The existence of the provided resource `id` will be validated first. Returns a [`tonic`] gRCP [`Response`] with [`IdList`] of found ids.
+| `get_linked`     | Takes an [`Id`] to retrieve linked resources from the database. The existence of the provided resource `id` will be validated first. Returns a [`tonic`] gRCP [`Response`] with [`List`] of found linked resources.
 
 ### gRPC Client Messages ("Requests")
 

@@ -1,102 +1,109 @@
 syntax = "proto3";
 package grpc.flight_plan;
 
-import "google/protobuf/empty.proto";
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 import "svc-storage-grpc.proto";
 
-//FlightPlanRpc service
-service FlightPlanRpc {
-    rpc flight_plans(grpc.SearchFilter) returns (FlightPlans);
-    rpc flight_plan_by_id(grpc.Id) returns (FlightPlan);
-    rpc insert_flight_plan(FlightPlanData) returns (FlightPlan);
-    rpc update_flight_plan(UpdateFlightPlan) returns (FlightPlan);
-    rpc delete_flight_plan(grpc.Id) returns (google.protobuf.Empty);
-}
-
-//Flight Status Enum
+// Flight Status Enum
 enum FlightStatus {
-    //READY
+    // READY
     READY = 0;
-    //BOARDING
+    // BOARDING
     BOARDING = 1;
-    //IN_FLIGHT
+    // IN_FLIGHT
     IN_FLIGHT = 3;
-    //FINISHED
+    // FINISHED
     FINISHED = 4;
-    //CANCELLED
+    // CANCELLED
     CANCELLED = 5;
-    //DRAFT
+    // DRAFT
     DRAFT = 6;
 }
-//Flight Priority Enum
+
+// Flight Priority Enum
 enum FlightPriority {
-    //LOW
+    // LOW
     LOW = 0;
-    //HIGH
+    // HIGH
     HIGH = 1;
-    //EMERGENCY
+    // EMERGENCY
     EMERGENCY = 2;
 }
 
-//FlightPlan
-message FlightPlan {
+// Response struct returning an [Object] on success and [ValidationResult] if invalid fields were provided
+message Response {
+    // struct with field -> error pairs to provide feedback about invalid fields
+    grpc.ValidationResult validation_result = 1;
+    // Object struct with id [String] in [Uuid](uuid::Uuid) format and [Data] struct with flight_plan data
+    optional Object object = 2;
+}
+
+// Object struct with `id` and `data` field
+// * `id` [String] in [Uuid](uuid::Uuid) format
+// * `data` [Data] struct with flight_plan data
+message Object {
     //id UUID v4
     string id = 1;
     //data
-    FlightPlanData data = 2;
+    Data data = 2;
 }
 
-message UpdateFlightPlan {
-    //id UUID v4
+// UpdateObject struct with `id`, `data` and `mask` fields
+// * `id` [String] in [Uuid](uuid::Uuid) format
+// * `data` [Data] struct with flight_plan data which should be used for update
+// * `mask` [FieldMask] struct with flight_plan fields that should be updated
+message UpdateObject {
+    // `id` [String] in [Uuid](uuid::Uuid) format
     string id = 1;
-    FlightPlanData data = 2;
+    // struct with flight_plan data which should be used for update
+    Data data = 2;
+    // struct with flight_plan fields that should be updated
     google.protobuf.FieldMask mask = 3;
 }
 
-//FlightPlanData
-message FlightPlanData {
-    //pilot_id UUID v4
+// Data struct with flight_plan data
+message Data {
+    // pilot_id UUID v4
     string pilot_id = 1;
-    //vehicle_id UUID v4
+    // vehicle_id UUID v4
     string vehicle_id = 2;
-    //cargo weight in grams per package
-    repeated int64 cargo_weight_g = 3;
-    //flight_distance in meters
-    int64 flight_distance = 4;
-    //weather_conditions
-    string weather_conditions = 5;
-    //departure_vertiport_id UUID v4, only listed for get results, not needed for creation (known through pad_id)
+    // cargo weight in grams per package
+    repeated int64 cargo_weight_grams = 3;
+    // flight_distance in meters
+    int64 flight_distance_meters = 4;
+    // weather_conditions
+    optional string weather_conditions = 5;
+    // departure_vertiport_id UUID v4, only listed for get results, not needed for creation (known through pad_id)
     optional string departure_vertiport_id = 6;
-    //departure_vertipad_id UUID v4
+    // departure_vertipad_id UUID v4
     string departure_vertipad_id = 7;
-    //destination_vertiport_id UUID v4, only listed for get results, not needed for creation (known through pad_id)
+    // destination_vertiport_id UUID v4, only listed for get results, not needed for creation (known through pad_id)
     optional string destination_vertiport_id = 8;
-    //destination_vertipad_id UUID v4
+    // destination_vertipad_id UUID v4
     string destination_vertipad_id = 9;
-    //scheduled_departure
+    // scheduled_departure
     google.protobuf.Timestamp scheduled_departure = 10;
-    //scheduled_arrival
+    // scheduled_arrival
     google.protobuf.Timestamp scheduled_arrival = 11;
-    //actual_departure
+    // actual_departure
     optional google.protobuf.Timestamp actual_departure = 12;
-    //actual_arrival
+    // actual_arrival
     optional google.protobuf.Timestamp actual_arrival = 13;
-    //flight_release_approval date and time
+    // flight_release_approval date and time
     optional google.protobuf.Timestamp flight_release_approval = 14;
-    //flight_plan_submitted date and time
+    // flight_plan_submitted date and time
     optional google.protobuf.Timestamp flight_plan_submitted = 15;
-    //approved_by UUID v4
+    // approved_by UUID v4
     optional string approved_by = 16;
-    //flight_status
+    // flight_status
     FlightStatus flight_status = 17;
-    //flightPriority
+    // flightPriority
     FlightPriority flight_priority = 18;
 }
 
-//FlightPlans
-message FlightPlans {
-    //array/vector of flight items
-    repeated FlightPlan flightPlans = 1;
+// Struct containing a `list` of flight_plan [Vec\<Object\>]
+message List {
+    // array/vector of flight items
+    repeated Object list = 1;
 }

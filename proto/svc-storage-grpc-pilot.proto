@@ -1,33 +1,51 @@
 syntax = "proto3";
 package grpc.pilot;
 
-import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
 import "svc-storage-grpc.proto";
 
-//PilotRpc service
-service PilotRpc {
-    rpc pilots(grpc.SearchFilter) returns (Pilots);
-    rpc pilot_by_id(grpc.Id) returns (Pilot);
-    rpc insert_pilot(PilotData) returns (Pilot);
-    rpc update_pilot(Pilot) returns (Pilot);
-    rpc delete_pilot(grpc.Id) returns (google.protobuf.Empty);
+// Response struct returning an [Object] on success and [ValidationResult] if invalid fields were provided
+message Response {
+    // struct with field -> error pairs to provide feedback about invalid fields
+    grpc.ValidationResult validation_result = 1;
+    // Object struct with id [String] in [Uuid](uuid::Uuid) format and [Data] struct with itinerary data
+    optional Object object = 2;
 }
 
-//Pilot
-message Pilot {
-    // UUID v4
+// Object struct with `id` and `data` field
+// * `id` [String] in [Uuid](uuid::Uuid) format
+// * `data` [Data] struct with itinerary data
+message Object {
+    //id UUID v4
     string id = 1;
-    PilotData data = 2;
+    //data
+    Data data = 2;
 }
 
-//PilotData
-message PilotData {
-    string first_name = 1;
-    string last_name = 2;
-    /*string wallet_address = 4;
-    string type = 5;*/
+// UpdateObject struct with `id`, `data` and `mask` fields
+// * `id` [String] in [Uuid](uuid::Uuid) format
+// * `data` [Data] struct with itinerary data which should be used for update
+// * `mask` [FieldMask] struct with itinerary fields that should be updated
+message UpdateObject {
+    // `id` [String] in [Uuid](uuid::Uuid) format
+    string id = 1;
+    // struct with itinerary data which should be used for update
+    Data data = 2;
+    // struct with itinerary fields that should be updated
+    google.protobuf.FieldMask mask = 3;
 }
-//Pilots
-message Pilots {
-    repeated Pilot pilots = 1;
+
+// Data struct with itinerary data
+message Data {
+    // the Pilot's first name
+    string first_name = 1;
+    // the Pilot's last name
+    string last_name = 2;
+}
+
+// Struct containing a `list` of itinerary [Vec\<Object\>]
+message List {
+    // array/vector of itinerary items
+    repeated Object list = 1;
 }

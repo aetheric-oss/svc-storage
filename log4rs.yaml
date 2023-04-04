@@ -21,17 +21,17 @@ appenders:
       kind: json
 
 root:
-  level: warn
+  level: debug
   appenders:
     - stdout
 
 loggers:
   app::backend::psql:
-    level: debug
+    level: info
   app::backend::memdb:
     level: info
   app::grpc:
-    level: info
+    level: debug
     appenders:
       - requests
     additive: false

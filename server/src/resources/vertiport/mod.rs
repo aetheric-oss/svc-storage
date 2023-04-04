@@ -1,50 +1,100 @@
-//! Vertiports
+//! Vertiport
 
-// Expose grpc resources
-mod grpc;
-mod psql;
+pub use crate::grpc::server::vertiport::*;
 
-pub use grpc::{Vertiport, VertiportData, VertiportImpl, VertiportRpcServer, Vertiports};
-pub use psql::{create, delete, drop_table, init_table, search, VertiportPsql};
-
+use log::debug;
+use std::collections::HashMap;
 use tokio_postgres::row::Row;
+use tokio_postgres::types::Type as PsqlFieldType;
 use uuid::Uuid;
 
-use crate::{grpc::GRPC_LOG_TARGET, grpc_debug};
+use super::base::simple_resource::*;
+use super::base::{FieldDefinition, ResourceDefinition};
+use crate::common::ArrErr;
+use crate::grpc::{GrpcDataObjectType, GrpcField, GrpcFieldOption};
 
-impl From<Vec<Row>> for Vertiports {
-    fn from(vertiports: Vec<Row>) -> Self {
-        grpc_debug!("Converting Vec<Row> to Vertiports: {:?}", vertiports);
-        let mut res: Vec<Vertiport> = Vec::with_capacity(vertiports.len());
-        let iter = vertiports.into_iter();
-        for vertiport in iter {
-            let vertiport_id: Uuid = vertiport.get("vertiport_id");
-            let vertiport = Vertiport {
-                id: vertiport_id.to_string(),
-                data: Some(vertiport.into()),
-            };
-            res.push(vertiport);
+// Generate `From` trait implementations for GenericResource into and from Grpc defined Resource
+crate::build_generic_resource_impl_from!();
+
+// Generate grpc server implementations
+crate::build_grpc_simple_resource_impl!(vertiport);
+
+impl Resource for ResourceObject<Data> {
+    fn get_definition() -> ResourceDefinition {
+        ResourceDefinition {
+            psql_table: String::from("vertiport"),
+            psql_id_cols: vec![String::from("vertiport_id")],
+            fields: HashMap::from([
+                (
+                    "name".to_string(),
+                    FieldDefinition::new(PsqlFieldType::TEXT, true),
+                ),
+                (
+                    "description".to_string(),
+                    FieldDefinition::new(PsqlFieldType::TEXT, true),
+                ),
+                (
+                    "longitude".to_string(),
+                    FieldDefinition::new(PsqlFieldType::NUMERIC, true),
+                ),
+                (
+                    "latitude".to_string(),
+                    FieldDefinition::new(PsqlFieldType::NUMERIC, true),
+                ),
+                (
+                    "schedule".to_string(),
+                    FieldDefinition::new(PsqlFieldType::TEXT, true),
+                ),
+                (
+                    "created_at".to_string(),
+                    FieldDefinition::new_internal(PsqlFieldType::TIMESTAMPTZ, true)
+                        .set_default(String::from("CURRENT_TIMESTAMP")),
+                ),
+                (
+                    "updated_at".to_string(),
+                    FieldDefinition::new_internal(PsqlFieldType::TIMESTAMPTZ, true)
+                        .set_default(String::from("CURRENT_TIMESTAMP")),
+                ),
+                (
+                    "deleted_at".to_string(),
+                    FieldDefinition::new_internal(PsqlFieldType::TIMESTAMPTZ, true)
+                        .set_default(String::from("CURRENT_TIMESTAMP")),
+                ),
+            ]),
         }
-        Vertiports { vertiports: res }
     }
 }
 
-/// Converting a postgresql Row object into a GRPC VertiportData object
-impl From<Row> for VertiportData {
-    fn from(vertiport: Row) -> Self {
-        let schedule: Option<String> = vertiport.get("schedule");
-        VertiportData {
-            description: vertiport.get("description"),
-            latitude: vertiport.get("latitude"),
-            longitude: vertiport.get("longitude"),
+impl GrpcDataObjectType for Data {
+    fn get_field_value(&self, key: &str) -> Result<GrpcField, ArrErr> {
+        match key {
+            "name" => Ok(GrpcField::String(self.name.clone())), // ::prost::alloc::string::String,
+            "description" => Ok(GrpcField::String(self.description.clone())), // ::prost::alloc::string::String,
+            "latitude" => Ok(GrpcField::F64(self.latitude)),                  // f64,
+            "longitude" => Ok(GrpcField::F64(self.longitude)),                // f64,
+            "schedule" => Ok(GrpcField::Option(GrpcFieldOption::String(
+                self.schedule.clone(),
+            ))), // ::core::option::Option<::prost::alloc::string::String>,
+            _ => Err(ArrErr::Error(format!(
+                "Invalid key specified [{}], no such field found",
+                key
+            ))),
+        }
+    }
+}
+
+impl TryFrom<Row> for Data {
+    type Error = ArrErr;
+
+    fn try_from(row: Row) -> Result<Self, ArrErr> {
+        debug!("Converting Row to vertiport::Data: {:?}", row);
+        let schedule: Option<String> = row.get("schedule");
+        Ok(Data {
+            name: row.get("name"),
+            description: row.get("description"),
+            latitude: row.get("latitude"),
+            longitude: row.get("longitude"),
             schedule,
-        }
-    }
-}
-
-/// Converting the VertiportPsql.data (Row) object into a GRPC VertiportData object
-impl From<VertiportPsql> for VertiportData {
-    fn from(vertiport: VertiportPsql) -> Self {
-        vertiport.data.into()
+        })
     }
 }

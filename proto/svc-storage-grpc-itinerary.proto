@@ -1,0 +1,68 @@
+syntax = "proto3";
+package grpc.itinerary;
+
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "svc-storage-grpc.proto";
+
+// Response struct returning an [Object] on success and [ValidationResult] if invalid fields were provided
+message Response {
+    // struct with field -> error pairs to provide feedback about invalid fields
+    grpc.ValidationResult validation_result = 1;
+    // Object struct with id [String] in [Uuid](uuid::Uuid) format and [Data] struct with itinerary data
+    optional Object object = 2;
+}
+
+// Object struct with `id` and `data` field
+// * `id` [String] in [Uuid](uuid::Uuid) format
+// * `data` [Data] struct with itinerary data
+message Object {
+    //id UUID v4
+    string id = 1;
+    //data
+    Data data = 2;
+}
+
+// UpdateObject struct with `id`, `data` and `mask` fields
+// * `id` [String] in [Uuid](uuid::Uuid) format
+// * `data` [Data] struct with itinerary data which should be used for update
+// * `mask` [FieldMask] struct with itinerary fields that should be updated
+message UpdateObject {
+    // `id` [String] in [Uuid](uuid::Uuid) format
+    string id = 1;
+    // struct with itinerary data which should be used for update
+    Data data = 2;
+    // struct with itinerary fields that should be updated
+    google.protobuf.FieldMask mask = 3;
+}
+
+// Itinerary Status Enum
+enum ItineraryStatus {
+    // ACTIVE
+    ACTIVE = 0;
+    // CANCELLED
+    CANCELLED = 1;
+}
+
+// Data struct with itinerary data
+message Data {
+    // the user UUID associated with this itinerary
+    string user_id = 1;
+
+    // the status of the itinerary
+    ItineraryStatus status = 2;
+}
+
+// Struct containing a `list` of itinerary [Vec\<Object\>]
+message List {
+    // array/vector of itinerary items
+    repeated Object list = 1;
+}
+
+// Struct used to link flight_plans to itinerary
+message ItineraryFlightPlans {
+    // `id` [String] in [Uuid](uuid::Uuid) format
+    string id = 1;
+    // flight plan ids as [Vec\<String\>] in [Uuid](uuid::Uuid) format
+    IdList other_id_list = 2;
+}
