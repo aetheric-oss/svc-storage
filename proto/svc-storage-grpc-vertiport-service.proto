@@ -7,10 +7,6 @@ import "svc-storage-grpc-vertiport.proto";
 
 // Vertiport gRPC service
 service RpcService {
-    // Search vertiports using a simple filter
-    // This function will be deprecated soon, please use `search` instead
-    rpc get_all_with_filter(grpc.SearchFilter) returns (grpc.vertiport.List);
-
     // Returns a [`tonic::Response`] containing an vertiport [`Object`](super::Object)
     // Takes an [`id`](super::super::Id) to find the right record to return.
     //
@@ -20,7 +16,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{Id, VertiportClient};
+    // use svc_storage_client_grpc::{Id, VertiportClient, simple_service::Client};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut vertiport_client = VertiportClient::connect("http://localhost:50051").await?;
@@ -54,7 +50,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{Id, VertiportClient};
+    // use svc_storage_client_grpc::{Id, VertiportClient, simple_service::Client};
     // use svc_storage_client_grpc::vertiport::Data;
     //
     // const CAL_WORKDAYS_8AM_6PM: &str = "\
@@ -105,7 +101,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{FieldMask, Id, VertiportClient};
+    // use svc_storage_client_grpc::{FieldMask, Id, VertiportClient, simple_service::Client};
     // use svc_storage_client_grpc::vertiport::{Data, UpdateObject};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
@@ -156,7 +152,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{Id, VertiportClient};
+    // use svc_storage_client_grpc::{Id, VertiportClient, simple_service::Client};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut vertiport_client = VertiportClient::connect("http://localhost:50051").await?;
@@ -185,7 +181,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{AdvancedSearchFilter, VertiportClient};
+    // use svc_storage_client_grpc::{AdvancedSearchFilter, VertiportClient, simple_service::Client};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut vertiport_client = VertiportClient::connect("http://localhost:50051").await?;

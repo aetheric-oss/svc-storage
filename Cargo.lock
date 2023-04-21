@@ -1783,7 +1783,9 @@ dependencies = [
 name = "svc-storage-client-grpc"
 version = "0.10.0"
 dependencies = [
+ "anyhow",
  "chrono",
+ "futures",
  "geo-types",
  "lib-common",
  "num-derive",

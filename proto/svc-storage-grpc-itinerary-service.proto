@@ -162,10 +162,6 @@ service RpcFlightPlanLink {
 
 // Itinerary gRPC service
 service RpcService {
-    // Search itineraries using a simple filter
-    // This function will be deprecated soon, please use `search` instead
-    rpc get_all_with_filter(grpc.SearchFilter) returns (List);
-
     // Returns a [`tonic::Response`] containing an itinerary [`Object`](super::Object)
     // Takes an [`id`](super::super::Id) to find the right record to return.
     //
@@ -175,7 +171,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{Id, ItineraryClient};
+    // use svc_storage_client_grpc::{Id, ItineraryClient, simple_service::Client};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut itinerary_client = ItineraryClient::connect("http://localhost:50051").await?;
@@ -209,7 +205,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{Id, ItineraryClient};
+    // use svc_storage_client_grpc::{Id, ItineraryClient, simple_service::Client};
     // use svc_storage_client_grpc::itinerary::{Data, ItineraryStatus};
     // use std::time::SystemTime;
     //
@@ -251,7 +247,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{FieldMask, Id, ItineraryClient};
+    // use svc_storage_client_grpc::{FieldMask, Id, ItineraryClient, simple_service::Client};
     // use svc_storage_client_grpc::itinerary::{Data, UpdateObject};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
@@ -301,7 +297,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{Id, ItineraryClient};
+    // use svc_storage_client_grpc::{Id, ItineraryClient, simple_service::Client};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut itinerary_client = ItineraryClient::connect("http://localhost:50051").await?;
@@ -330,7 +326,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{AdvancedSearchFilter, ItineraryClient};
+    // use svc_storage_client_grpc::{AdvancedSearchFilter, ItineraryClient, simple_service::Client};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut itinerary_client = ItineraryClient::connect("http://localhost:50051").await?;
