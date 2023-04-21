@@ -1,18 +1,37 @@
 //! gRPC client implementation
-
+use futures::future::{BoxFuture, FutureExt};
 use ordered_float::OrderedFloat;
 use prost_types::FieldMask;
 use std::env;
 use std::time::SystemTime;
-use tonic::Status;
-use uuid::Uuid;
-
 use svc_storage_client_grpc::flight_plan::{self, FlightStatus};
 use svc_storage_client_grpc::itinerary::{self, ItineraryFlightPlans, ItineraryStatus};
 use svc_storage_client_grpc::*;
+use tokio::sync::OnceCell;
+use tonic::Status;
+use uuid::Uuid;
+
+pub(crate) static CLIENTS: OnceCell<Clients> = OnceCell::const_new();
+
+fn get_clients() -> BoxFuture<'static, Result<&'static Clients, Status>> {
+    async move {
+        match CLIENTS.get() {
+            Some(clients) => Ok(clients),
+            None => {
+                let address = get_grpc_endpoint();
+                let clients = svc_storage_client_grpc::get_clients(address, 5).await?;
+                CLIENTS
+                    .set(clients)
+                    .map_err(|e| Status::internal(format!("Could not set CLIENTS: {}", e)))?;
+                get_clients().await
+            }
+        }
+    }
+    .boxed()
+}
 
 /// Provide GRPC endpoint to use
-pub fn get_grpc_endpoint() -> String {
+fn get_grpc_endpoint() -> String {
     //parse socket address from env variable or take default value
     let address = match env::var("SERVER_HOSTNAME") {
         Ok(val) => val,
@@ -31,9 +50,8 @@ pub fn get_grpc_endpoint() -> String {
 /// Assuming the server is running, this method calls `client.vehicles` and
 /// should receive a valid response from the server
 async fn get_vehicles() -> Result<vehicle::List, Status> {
-    let grpc_endpoint = get_grpc_endpoint();
-    println!("Using GRPC endpoint {}", grpc_endpoint);
-    let mut vehicle_client = VehicleClient::connect(grpc_endpoint.clone()).await.unwrap();
+    let clients = get_clients().await?;
+    let mut vehicle_client = clients.get_vehicle_client();
     println!("Vehicle Client created");
 
     let filter =
@@ -49,12 +67,9 @@ async fn get_vehicles() -> Result<vehicle::List, Status> {
 }
 
 /// Inserts example vehicle's into the database using the `mock` library to generate data.
-async fn generate_sample_vehicles(amount: i16, vertiports: &vertiport::List) {
-    let grpc_endpoint = get_grpc_endpoint();
-    let mut vehicle_client = match VehicleClient::connect(grpc_endpoint.clone()).await {
-        Ok(res) => res,
-        Err(e) => panic!("Error creating client for VehicleClient: {}", e),
-    };
+async fn generate_sample_vehicles(amount: i16, vertiports: &vertiport::List) -> Result<(), Status> {
+    let clients = get_clients().await?;
+    let mut vehicle_client = clients.get_vehicle_client();
     println!("Vehicle Client created");
 
     let vertiport_id = vertiports.list.last().unwrap().id.clone();
@@ -72,17 +87,18 @@ async fn generate_sample_vehicles(amount: i16, vertiports: &vertiport::List) {
             Err(e) => panic!("Something went wrong inserting the vertiport: {}", e),
         };
     }
+
+    Ok(())
 }
 
 /// Example ItineraryRpcClient
 /// Assuming the server is running, this method calls `client.itineraries` and
 /// should receive a valid response from the server
 async fn itineraries() {
-    let grpc_endpoint = get_grpc_endpoint();
-    println!("Using GRPC endpoint {}", grpc_endpoint);
-    let mut itinerary_client = ItineraryClient::connect(grpc_endpoint.clone())
+    let clients = get_clients()
         .await
-        .unwrap();
+        .expect("Error getting connected itinerary client");
+    let mut itinerary_client = clients.get_itinerary_client();
     println!("Itinerary Client created");
 
     //
@@ -94,10 +110,10 @@ async fn itineraries() {
         status: ItineraryStatus::Active as i32,
     };
 
-    println!("Inserting an itinerary");
-    if let Err(_) = itinerary_client.insert(tonic::Request::new(data)).await {
-        panic!("Itinerary client insert failed.");
-    };
+    itinerary_client
+        .insert(tonic::Request::new(data))
+        .await
+        .expect("Itinerary client insert failed.");
 
     //
     // Search
@@ -125,10 +141,8 @@ async fn itineraries() {
     //
     // Link with flight_plan
     //
-    let mut flight_plan_client = match FlightPlanClient::connect(grpc_endpoint.clone()).await {
-        Ok(res) => res,
-        Err(e) => panic!("Error creating client for FlightPlanRpcClient: {}", e),
-    };
+
+    let mut flight_plan_client = clients.get_flight_plan_client();
     println!("FlightPlan Client created");
 
     let fp_filter = AdvancedSearchFilter::search_equals(
@@ -166,6 +180,8 @@ async fn itineraries() {
     for _ in 0..max {
         fp_ids.push(list.pop().unwrap().id);
     }
+
+    let grpc_endpoint = get_grpc_endpoint();
     let mut link_client = match ItineraryFlightPlanLinkClient::connect(grpc_endpoint.clone()).await
     {
         Ok(res) => res,
@@ -246,9 +262,8 @@ async fn itineraries() {
 /// Assuming the server is running, this method inserts multiple telemetry
 ///  packets into the database and searches with advanced filters.
 async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
-    let grpc_endpoint = get_grpc_endpoint();
-    println!("Using GRPC endpoint {}", grpc_endpoint);
-    let mut client = AdsbClient::connect(grpc_endpoint.clone()).await.unwrap();
+    let clients = get_clients().await?;
+    let mut client = clients.get_adsb_client();
     println!("ADS-B Client created");
 
     let timestamp_1 = prost_types::Timestamp::from(SystemTime::now());
@@ -391,8 +406,8 @@ async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
 /// Assuming the server is running, this method calls `client.pilots` and
 /// should receive a valid response from the server
 async fn get_pilots() -> Result<pilot::List, Status> {
-    let grpc_endpoint = get_grpc_endpoint();
-    let mut pilot_client = PilotClient::connect(grpc_endpoint.clone()).await.unwrap();
+    let clients = get_clients().await?;
+    let mut pilot_client = clients.get_pilot_client();
     println!("Pilot Client created");
 
     let filter = AdvancedSearchFilter::search_is_null("deleted_at".to_owned())
@@ -422,10 +437,8 @@ RRULE:FREQ=WEEKLY;BYDAY=SA,SU";
 /// Assuming the server is running, this method calls `client.vertipads` and
 /// should receive a valid response from the server
 async fn vertipad_scenario(mut vertiports: vertiport::List) -> Result<vertipad::List, Status> {
-    let grpc_endpoint = get_grpc_endpoint();
-    let mut vertipad_client = VertipadClient::connect(grpc_endpoint.clone())
-        .await
-        .unwrap();
+    let clients = get_clients().await?;
+    let mut vertipad_client = clients.get_vertipad_client();
     println!("Vertipad Client created");
 
     let filter = AdvancedSearchFilter::search_equals("occupied".to_owned(), false.to_string())
@@ -535,11 +548,8 @@ async fn vertipad_scenario(mut vertiports: vertiport::List) -> Result<vertipad::
 }
 
 async fn generate_sample_vertiports() -> Result<vertiport::List, Status> {
-    let grpc_endpoint = get_grpc_endpoint();
-    let mut vertiport_client = match VertiportClient::connect(grpc_endpoint.clone()).await {
-        Ok(res) => res,
-        Err(e) => panic!("Error creating client for VertiportRpcClient: {}", e),
-    };
+    let clients = get_clients().await?;
+    let mut vertiport_client = clients.get_vertiport_client();
     println!("Vertiport Client created");
 
     let x = OrderedFloat(-122.4194);
@@ -592,11 +602,8 @@ async fn flight_plan_scenario(
     mut vehicles: vehicle::List,
     mut vertipads: vertipad::List,
 ) -> Result<flight_plan::List, Status> {
-    let grpc_endpoint = get_grpc_endpoint();
-    let mut flight_plan_client = match FlightPlanClient::connect(grpc_endpoint.clone()).await {
-        Ok(res) => res,
-        Err(e) => panic!("Error creating client for FlightPlanRpcClient: {}", e),
-    };
+    let clients = get_clients().await?;
+    let mut flight_plan_client = clients.get_flight_plan_client();
     println!("FlightPlan Client created");
 
     println!("Retrieving list of flight plans");
@@ -746,12 +753,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         grpc_endpoint
     );
 
+    let clients = get_clients().await?;
+
     test_telemetry().await?;
 
     let vertiports = generate_sample_vertiports().await?;
 
     // Insert sample vehicles
-    generate_sample_vehicles(5, &vertiports).await;
+    generate_sample_vehicles(5, &vertiports).await?;
 
     // Get a list of vertipads
     let vertipads = vertipad_scenario(vertiports).await?;
@@ -767,18 +776,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Play flight plan scenario
     let _result = flight_plan_scenario(pilot_id.clone(), vehicles, vertipads).await;
 
-    let mut vertiport_client = VertiportClient::connect(grpc_endpoint.clone()).await?;
-    let vertiports = vertiport_client
-        .get_all_with_filter(tonic::Request::new(SearchFilter {
-            search_field: "".to_string(),
-            search_value: "".to_string(),
-            page_number: 1,
-            results_per_page: 50,
-        }))
-        .await?;
+    let mut vertiport_client = clients.get_vertiport_client();
+    let vertiport_filter = AdvancedSearchFilter::search_is_not_null("deleted_at".to_owned())
+        .page_number(1)
+        .results_per_page(50);
+    let vertiports = vertiport_client.search(vertiport_filter).await?;
     println!("RESPONSE Vertiports={:#?}", vertiports.into_inner());
 
-    let mut flight_plan_client = FlightPlanClient::connect(grpc_endpoint.clone()).await?;
+    let mut flight_plan_client = clients.get_flight_plan_client();
 
     let scheduled_departure_min =
         prost_types::Timestamp::date_time(2022, 10, 12, 23, 00, 00).unwrap();
