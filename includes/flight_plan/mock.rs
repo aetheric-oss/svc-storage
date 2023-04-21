@@ -87,9 +87,9 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
     let mut flight_release_approval = None;
     let mut approved_by = None;
     let mut actual_departure = None;
-    if departure_date >= now {
+    if departure_date < now {
         println!(
-            "departure_date {} is in the future of now {}",
+            "departure_date {} is in the past of now {}",
             departure_date, now
         );
         // we're at least in_flight, so change the status
@@ -125,6 +125,11 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
         );
         // we're 10 mins from departure, should be boarding
         flight_status = FlightStatus::Boarding as i32;
+    } else {
+        println!(
+            "departure_date {} is in the future of now {}",
+            departure_date, now
+        );
     }
     let mut actual_arrival = None;
     if arrival_date >= now {
@@ -132,6 +137,12 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
             "arrival_date {} is in the future of now {}",
             arrival_date, now
         );
+    } else {
+        println!(
+            "arrival_date {} is in the past of now {}",
+            arrival_date, now
+        );
+
         // arrival was in the past, set actual arrival +/- 6 min
         actual_arrival =
             datetime_to_timestamp(&(arrival_date + Duration::seconds(rng.gen_range(-360..360))));
@@ -158,5 +169,72 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
         approved_by,
         flight_status,
         flight_priority: FlightPriority::Low as i32,
+    }
+}
+
+#[test]
+fn test_get_past_data_obj() {
+    for _ in 1..100 {
+        let past_data: Data = get_past_data_obj();
+
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+
+        // Check flight_release_approval is set
+        assert!(past_data.flight_release_approval.is_some());
+
+        // Check approved_by is set
+        assert!(past_data.approved_by.is_some());
+
+        // Check scheduled_departure is set
+        assert!(past_data.scheduled_departure.is_some());
+
+        // Check scheduled_departure is in the past
+        let scheduled_departure = past_data.scheduled_departure.unwrap().seconds;
+        assert!(scheduled_departure < now as i64);
+
+        // Check actual_departure is set
+        assert!(past_data.actual_departure.is_some());
+
+        // Check actual_departure is in the past
+        let actual_departure = past_data.actual_departure.unwrap().seconds;
+        assert!(actual_departure < now as i64);
+
+        // Check scheduled_arrival is set
+        assert!(past_data.scheduled_arrival.is_some());
+
+        // Check scheduled_arrival is in the past
+        let scheduled_arrival = past_data.scheduled_arrival.unwrap().seconds;
+        assert!(scheduled_arrival < now as i64);
+
+        // Check actual_arrival is set
+        assert!(past_data.actual_arrival.is_some());
+
+        // Check actual_arrival is in the past
+        let actual_departure = past_data.actual_arrival.unwrap().seconds;
+        assert!(actual_departure < now as i64);
+
+        // Check flight_status is FINISHED
+        assert!(FlightStatus::from_i32(past_data.flight_status) == Some(FlightStatus::Finished));
+    }
+}
+
+#[test]
+fn test_get_future_data_obj() {
+    for _ in 1..100 {
+        let future_data: Data = get_future_data_obj();
+
+        // Check scheduled_departure is in the future
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        let scheduled_departure = future_data.scheduled_departure.unwrap().seconds;
+        assert!(scheduled_departure > now as i64);
+
+        // Check actual_departure is not set
+        assert!(future_data.actual_departure.is_none());
     }
 }

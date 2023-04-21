@@ -71,3 +71,6 @@ Struct
 struct
 bytea
 adsb
+arrerr
+Refactorings
+structs
