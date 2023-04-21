@@ -7,10 +7,6 @@ import "svc-storage-grpc.proto";
 
 // Flight Plan gRPC service
 service RpcService {
-    // Search flight_plans using a simple filter
-    // This function will be deprecated soon, please use `search` instead
-    rpc get_all_with_filter(grpc.SearchFilter) returns (List);
-
     // Returns a [`tonic::Response`] containing an flight_plan [`Object`](super::Object)
     // Takes an [`id`](super::super::Id) to find the right record to return.
     //
@@ -20,7 +16,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{Id, FlightPlanClient};
+    // use svc_storage_client_grpc::{Id, FlightPlanClient, simple_service::Client};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut client = FlightPlanClient::connect("http://localhost:50051").await?;
@@ -54,7 +50,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{FlightPlanClient, Id};
+    // use svc_storage_client_grpc::{Id, FlightPlanClient, simple_service::Client};
     // use svc_storage_client_grpc::flight_plan::{Data, FlightStatus, FlightPriority};
     // use std::time::SystemTime;
     //
@@ -115,7 +111,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{FieldMask, FlightPlanClient, Id};
+    // use svc_storage_client_grpc::{FieldMask, FlightPlanClient, simple_service::Client, Id};
     // use svc_storage_client_grpc::flight_plan::{Data, FlightStatus, UpdateObject};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
@@ -166,7 +162,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{Id, FlightPlanClient};
+    // use svc_storage_client_grpc::{Id, FlightPlanClient, simple_service::Client};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut client = FlightPlanClient::connect("http://localhost:50051").await?;
@@ -195,7 +191,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{AdvancedSearchFilter, FlightPlanClient};
+    // use svc_storage_client_grpc::{AdvancedSearchFilter, FlightPlanClient, simple_service::Client};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut client = FlightPlanClient::connect("http://localhost:50051").await?;
