@@ -108,8 +108,7 @@ macro_rules! grpc_server {
         pub mod $rpc_service {
             #![allow(unused_qualifications)]
             use super::{
-                AdvancedSearchFilter, FilterOption, GrpcSimpleService, Id, PredicateOperator,
-                Request, ResourceObject, SearchFilter, Status,
+                AdvancedSearchFilter, GrpcSimpleService, Id, Request, ResourceObject, Status
             };
             /// Will only be included if the `mock` feature is enabled
             #[cfg(any(feature = "mock", test))]
@@ -168,34 +167,6 @@ macro_rules! grpc_server {
                     request: Request<Id>,
                 ) -> Result<tonic::Response<Object>, Status> {
                     self.generic_get_by_id(request).await
-                }
-
-                /// Takes a [`SearchFilter`] object to search the database with the provided values.
-                ///
-                /// This method supports paged results.
-                /// When the `search_field` and `search_value` are empty, no filters will be applied.
-                /// Should not be used anymore as we have a more advanced `search` function now available.
-                async fn get_all_with_filter(
-                    &self,
-                    request: Request<SearchFilter>,
-                ) -> Result<tonic::Response<List>, Status> {
-                    let filter: SearchFilter = request.into_inner();
-                    let mut filters = vec![];
-                    if filter.search_field != "" && filter.search_value != "" {
-                        filters.push(FilterOption {
-                            search_field: filter.search_field,
-                            search_value: [filter.search_value].to_vec(),
-                            predicate_operator: PredicateOperator::Equals.into(),
-                            comparison_operator: None,
-                        });
-                    }
-                    let advanced_filter = AdvancedSearchFilter {
-                        filters,
-                        page_number: 0,
-                        results_per_page: -1,
-                        order_by: vec![],
-                    };
-                    self.generic_search::<List>(tonic::Request::new(advanced_filter)).await
                 }
 
                 /// Takes an [`AdvancedSearchFilter`] object to search the database with the provided values.
@@ -401,6 +372,8 @@ pub use search::*;
 ///     tokio::spawn(grpc_server(config)).await
 /// }
 /// ```
+#[cfg(not(tarpaulin_include))]
+// no_coverage: Can not be tested in unittest, should be part of integration tests
 pub async fn grpc_server(config: Config) {
     grpc_debug!("(grpc_server) entry.");
 
