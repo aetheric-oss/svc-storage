@@ -7,10 +7,6 @@ import "svc-storage-grpc.proto";
 
 // ADS-B Telemetry gRPC service
 service RpcService {
-    // Search ads-b telemetry using a simple filter
-    // This function will be deprecated soon, please use `search` instead
-    rpc get_all_with_filter(SearchFilter) returns (adsb.List);
-
     // Returns a [`tonic::Response`] containing an adsb [`Object`](super::Object)
     // Takes an [`id`](super::super::Id) to find the right record to return.
     //
@@ -20,7 +16,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{AdsbClient, Id};
+    // use svc_storage_client_grpc::{AdsbClient, simple_service::Client, Id};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut client = AdsbClient::connect("http://localhost:50051").await?;
@@ -55,7 +51,7 @@ service RpcService {
     // # Examples
     // ```
     // use std::time::SystemTime;
-    // use svc_storage_client_grpc::{AdsbClient, Id};
+    // use svc_storage_client_grpc::{AdsbClient, simple_service::Client, Id};
     // use svc_storage_client_grpc::adsb::{UpdateObject, Data};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
@@ -100,7 +96,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{AdsbClient, FieldMask, Id};
+    // use svc_storage_client_grpc::{AdsbClient, simple_service::Client, FieldMask, Id};
     // use svc_storage_client_grpc::adsb::{UpdateObject, Data};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
@@ -151,7 +147,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{AdsbClient, Id};
+    // use svc_storage_client_grpc::{AdsbClient, simple_service::Client, Id};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut client = AdsbClient::connect("http://localhost:50051").await?;
@@ -180,7 +176,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{AdsbClient, AdvancedSearchFilter};
+    // use svc_storage_client_grpc::{AdsbClient, simple_service::Client, AdvancedSearchFilter};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut client = AdsbClient::connect("http://localhost:50051").await?;

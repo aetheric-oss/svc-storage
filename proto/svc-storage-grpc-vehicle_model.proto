@@ -1,0 +1,65 @@
+syntax = "proto3";
+package grpc.vehicle_model;
+
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "svc-storage-grpc.proto";
+
+// Vehicle Model Type Enum
+enum VehicleModelType {
+    // VTOL Cargo
+    VTOL_CARGO = 0;
+    // VTOL Passenger
+    VTOL_PASSENGER = 1;
+}
+
+// Response Struct returning an [Object] on success and [ValidationResult] if invalid fields were provided
+message Response {
+    // Struct with field -> error pairs to provide feedback about invalid fields
+    grpc.ValidationResult validation_result = 1;
+    // Object Struct with id [String] in [Uuid](uuid::Uuid) format and [Data] Struct with vehicle_model data
+    optional Object object = 2;
+}
+
+// Object Struct with `id` and `data` field
+// * `id` [String] in [Uuid](uuid::Uuid) format
+// * `data` [Data] Struct with vehicle_model data
+message Object {
+    //id UUID v4
+    string id = 1;
+    //data
+    Data data = 2;
+}
+
+// UpdateObject Struct with `id`, `data` and `mask` fields
+// * `id` [String] in [Uuid](uuid::Uuid) format
+// * `data` [Data] Struct with vehicle_model data which should be used for update
+// * `mask` [FieldMask] Struct with vehicle_model fields that should be updated
+message UpdateObject {
+    // `id` [String] in [Uuid](uuid::Uuid) format
+    string id = 1;
+    // Struct with vehicle_model data which should be used for update
+    Data data = 2;
+    // Struct with vehicle_model fields that should be updated
+    google.protobuf.FieldMask mask = 3;
+}
+
+// Data Struct with vehicle_model data
+message Data {
+    // the vehicle_model's manufacturer unique id
+    string manufacturer_id = 1;
+    // the vehicle_model's name
+    string model_name = 2;
+    // the vehicle_model's type
+    VehicleModelType type = 3;
+    // the vehicle_model's registered maximum payload in Kilograms
+    double max_payload_kg = 4;
+    // the vehicle_model's registered maximum range in Kilometers
+    double max_range_km = 5;
+}
+
+// Struct containing a `list` of vehicle_model [Vec\<Object\>]
+message List {
+    // array/vector of vehicle_model items
+    repeated Object list = 1;
+}

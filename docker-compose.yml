@@ -1,4 +1,7 @@
 ---
+## DO NOT EDIT!
+## This file was provisioned by Terraform
+## File origin: https://github.com/Arrow-air/tf-github/tree/main/src/templates/rust-svc/docker-compose.yml
 version: '3.6'
 volumes:
   cockroachdb:
@@ -58,7 +61,10 @@ services:
     volumes:
       - type: bind
         source: log4rs.yaml
-        target: /log4rs.yaml
+        target: ${LOG_CONFIG}
+      - type: bind
+        source: logs/
+        target: /logs/
       - type: volume
         source: cockroachdb-ssl
         target: /cockroach/ssl
@@ -80,6 +86,7 @@ services:
       - DB_CLIENT_CERT
       - DB_CLIENT_KEY
       - DOCKER_PORT_GRPC
+      - LOG_CONFIG
     depends_on:
       cockroachdb:
         condition: service_healthy
