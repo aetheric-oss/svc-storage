@@ -21,6 +21,7 @@ fn get_types() -> Vec<String> {
         "flight_plan".to_owned(),
         "itinerary".to_owned(),
         "pilot".to_owned(),
+        "parcel".to_owned(),
         "vehicle".to_owned(),
         "vertipad".to_owned(),
         "vertiport".to_owned(),
