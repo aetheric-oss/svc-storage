@@ -25,6 +25,11 @@ pub mod resources {
     #[cfg(feature = "adsb")]
     pub use adsb::Client as AdsbClient;
 
+    #[cfg(feature = "parcel")]
+    simple_grpc_client!(parcel);
+    #[cfg(feature = "parcel")]
+    pub use parcel::Client as ParcelClient;
+
     #[cfg(feature = "flight_plan")]
     simple_grpc_client!(flight_plan);
     #[cfg(feature = "flight_plan")]
@@ -78,6 +83,8 @@ pub struct Clients {
     vertipad: vertipad::Client,
     #[cfg(feature = "vehicle")]
     vehicle: vehicle::Client,
+    #[cfg(feature = "parcel")]
+    parcel: parcel::Client,
 }
 
 impl Clients {
@@ -123,6 +130,11 @@ impl Clients {
     /// get connected vehicle client
     pub fn get_vehicle_client(&self) -> vehicle::rpc_service_client::RpcServiceClient<Channel> {
         self.vehicle.get_client()
+    }
+    #[cfg(feature = "parcel")]
+    /// get connected parcel client
+    pub fn get_parcel_client(&self) -> parcel::rpc_service_client::RpcServiceClient<Channel> {
+        self.parcel.get_client()
     }
 }
 
@@ -177,6 +189,18 @@ pub fn get_clients(endpoint: String, retries: i16) -> BoxFuture<'static, Result<
             Err(e) => {
                 print!(
                     "can't connect to pilot server [{}], retrying in 5 sec...",
+                    e
+                );
+                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                return get_clients(endpoint, retries - 1).await;
+            }
+        };
+        #[cfg(feature = "parcel")]
+        let parcel = match parcel::Client::connect(&endpoint).await {
+            Ok(parcel) => parcel,
+            Err(e) => {
+                print!(
+                    "can't connect to parcel server [{}], retrying in 5 sec...",
                     e
                 );
                 tokio::time::sleep(std::time::Duration::from_secs(5)).await;
@@ -238,6 +262,8 @@ pub fn get_clients(endpoint: String, retries: i16) -> BoxFuture<'static, Result<
             vertipad,
             #[cfg(feature = "vehicle")]
             vehicle,
+            #[cfg(feature = "parcel")]
+            parcel,
         };
 
         Ok(clients)
