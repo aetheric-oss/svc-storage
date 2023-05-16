@@ -74,3 +74,8 @@ adsb
 arrerr
 Refactorings
 structs
+Notdroppedof
+Droppedoff
+Pickedup
+NOTDROPPEDOFF
+Enroute

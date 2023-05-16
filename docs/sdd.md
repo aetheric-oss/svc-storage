@@ -196,13 +196,13 @@ sequenceDiagram
     grpc_server->>+grpc_service: generic_get_by_id(Request<Id>)
     grpc_service->>+psql_simple: get_by_id(Uuid)
     rect rgb(64,97,255)
-		critical Get DB connection from the pool
-			psql_simple->>+psql: get_psql_pool()
-			psql-->>psql_simple: <Pool>
-		option No connection
-			psql-->>-psql_simple: Database pool not initialized
-		end
-	end
+        critical Get DB connection from the pool
+            psql_simple->>+psql: get_psql_pool()
+            psql-->>psql_simple: <Pool>
+        option No connection
+            psql-->>-psql_simple: Database pool not initialized
+        end
+    end
     psql_simple-->>-grpc_service: Result<Row, Error>
     alt Err
         grpc_service-->>grpc_server: Status(Code::NotFound)
@@ -225,13 +225,13 @@ sequenceDiagram
     grpc_server->>+grpc_service: generic_search(Request<AdvancedSearchFilter>)
     grpc_service->>+psql_simple: advanced_search(AdvancedSearchFilter)
     rect rgb(64,97,255)
-		critical Get DB connection from the pool
-			psql_simple->>+psql: get_psql_pool()
-			psql-->>psql_simple: <Pool>
-		option No connection
-			psql-->>-psql_simple: Database pool not initialized
-		end
-	end
+        critical Get DB connection from the pool
+            psql_simple->>+psql: get_psql_pool()
+            psql-->>psql_simple: <Pool>
+        option No connection
+            psql-->>-psql_simple: Database pool not initialized
+        end
+    end
     psql_simple-->>-grpc_service: Result<Rows, Error>
     alt Err (database error)
         grpc_service-->>grpc_server: Status(Code::Internal)
@@ -345,7 +345,7 @@ sequenceDiagram
         psql_simple_object-->>psql_simple_object: run db update query
         psql_simple_object-->>grpc_service: Result
     else
-		psql_simple_object-->>psql_simple_object: delete_row()
+        psql_simple_object-->>psql_simple_object: delete_row()
         rect rgb(64,97,255)
             critical Get DB connection from the pool
                 psql_simple_object->>+psql: get_psql_pool()
@@ -356,7 +356,7 @@ sequenceDiagram
         end
         psql_simple_object-->>psql_simple_object: run db delete query
         psql_simple_object-->>-grpc_service: Result
-	end
+    end
     alt Err (database error)
         grpc_service-->>grpc_server: Status(Code::Internal)
     else Ok (delete success)
