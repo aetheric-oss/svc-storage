@@ -1,5 +1,4 @@
 use super::Data;
-use rand::Rng;
 use uuid::Uuid;
 
 /// Creates a new [Data] object with fields set with random data

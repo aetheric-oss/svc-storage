@@ -327,6 +327,7 @@ grpc_server!(pilot, "pilot");
 grpc_server!(vehicle, "vehicle");
 grpc_server!(vertipad, "vertipad");
 grpc_server!(vertiport, "vertiport");
+grpc_server!(parcel, "parcel");
 
 /// Module to expose linked resource implementations for itinerary_flight_plan
 pub mod itinerary_flight_plan {
@@ -412,6 +413,9 @@ pub async fn grpc_server(config: Config) {
     health_reporter
         .set_serving::<adsb::RpcServiceServer<adsb::GrpcServer>>()
         .await;
+    health_reporter
+        .set_serving::<parcel::RpcServiceServer<parcel::GrpcServer>>()
+        .await;
 
     grpc_info!("Starting GRPC servers on {}.", full_grpc_addr);
     match Server::builder()
@@ -435,6 +439,7 @@ pub async fn grpc_server(config: Config) {
         .add_service(itinerary_flight_plan::RpcFlightPlanLinkServer::new(
             itinerary_flight_plan::GrpcServer::default(),
         ))
+        .add_service(parcel::RpcServiceServer::new(parcel::GrpcServer::default()))
         .add_service(adsb::RpcServiceServer::new(adsb::GrpcServer::default()))
         .serve_with_shutdown(full_grpc_addr, shutdown_signal("grpc"))
         .await
