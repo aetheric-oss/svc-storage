@@ -55,12 +55,14 @@ all-resources = [
   "itinerary",
   "pilot",
   "vehicle",
+  "parcel",
   "vertipad",
   "vertiport",
 ]
 flight_plan = []
 itinerary = []
 mock = ["chrono", "rand", "lib-common"]
+parcel = []
 pilot = []
 vehicle = []
 vertipad = []
