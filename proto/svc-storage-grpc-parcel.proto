@@ -59,8 +59,12 @@ message Data {
     // the itinerary UUID associated with the parcel
     string itinerary_id = 1;
 
+    // the UUID represents the current owner of the parcel. It could be
+    // a vertiport, a vehicle or a user, depending on the current status.
+    string owner_id = 2;
+
     // the status of the parcel
-    ParcelStatus status = 2;
+    ParcelStatus status = 3;
 }
 
 // Struct containing a `list` of parcel [Vec\<Object\>]
