@@ -4,6 +4,7 @@ use uuid::Uuid;
 /// Creates a new [Data] object with fields set with random data
 pub fn get_data_obj() -> Data {
     let itinerary_id = Uuid::new_v4().to_string();
+    let owner_id = Uuid::new_v4().to_string();
 
     // NotDroppedOff = 0,
     // DroppedOff,
@@ -14,6 +15,7 @@ pub fn get_data_obj() -> Data {
 
     Data {
         itinerary_id,
+        owner_id,
         status: 2,
     }
 }
