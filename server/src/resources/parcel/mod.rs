@@ -47,6 +47,10 @@ impl Resource for ResourceObject<Data> {
                         .set_default(String::from("'NOTDROPPEDOFF'")),
                 ),
                 (
+                    "owner_id".to_string(),
+                    FieldDefinition::new(PsqlFieldType::UUID, true),
+                ),
+                (
                     "itinerary_id".to_string(),
                     FieldDefinition::new(PsqlFieldType::UUID, true),
                 ),
@@ -88,6 +92,7 @@ impl GrpcDataObjectType for Data {
     fn get_field_value(&self, key: &str) -> Result<GrpcField, ArrErr> {
         match key {
             "itinerary_id" => Ok(GrpcField::String(self.itinerary_id.clone())),
+            "owner_id" => Ok(GrpcField::String(self.owner_id.clone())),
             "status" => Ok(GrpcField::I32(self.status)),
             _ => Err(ArrErr::Error(format!(
                 "Invalid key specified [{}], no such field found",
@@ -103,6 +108,7 @@ impl TryFrom<Row> for Data {
     fn try_from(row: Row) -> Result<Self, ArrErr> {
         debug!("Converting Row to parcel::Data: {:?}", row);
         let itinerary_id: Uuid = row.get("itinerary_id");
+        let owner_id: Uuid = row.get("owner_id");
 
         let result = ParcelStatus::from_str(row.get("status"));
         let Ok(status) = result else {
@@ -110,6 +116,7 @@ impl TryFrom<Row> for Data {
         };
         Ok(Data {
             itinerary_id: itinerary_id.to_string(),
+            owner_id: owner_id.to_string(),
             status: status.into(),
         })
     }
