@@ -40,7 +40,7 @@ message UpdateObject {
 // Parcel Status Enum
 enum ParcelStatus {
     // Has not been dropped off
-    NOTDROPPEDOF = 0;
+    NOTDROPPEDOFF = 0;
     // Has been dropped off
     DROPPEDOFF = 1;
     // En Route (could be a number of vertiport hops)
@@ -58,10 +58,6 @@ enum ParcelStatus {
 message Data {
     // the itinerary UUID associated with the parcel
     string itinerary_id = 1;
-
-    // the UUID represents the current owner of the parcel. It could be
-    // a vertiport, a vehicle or a user, depending on the current status.
-    string owner_id = 2;
 
     // the status of the parcel
     ParcelStatus status = 3;
