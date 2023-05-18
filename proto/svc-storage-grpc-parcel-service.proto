@@ -59,12 +59,10 @@ service RpcService {
     //     let mut parcel_client = ParcelClient::connect("http://localhost:50051").await?;
     //
     //     let itinerary_id = "62fb5d13-2cfe-45e2-b89a-16205d15e811".to_owned();
-    //     let owner_id = "62fb5d13-2cfe-45e2-b89a-16205d15e811".to_owned();
     //     println!("Starting insert parcel");
     //     match parcel_client
     //     .insert(tonic::Request::new(Data {
     //         itinerary_id,
-    //         owner_id,
     //         status: ParcelStatus::Enroute as i32
     //     }))
     //     .await
