@@ -78,3 +78,4 @@ Droppedoff
 Pickedup
 NOTDROPPEDOFF
 Enroute
+logtest

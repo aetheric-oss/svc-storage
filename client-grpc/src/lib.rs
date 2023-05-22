@@ -1,14 +1,21 @@
-//! Exposes svc-storage Client Functions
+#![doc = include_str!("../README.md")]
 
-use futures::future::{BoxFuture, FutureExt};
+pub use lib_common::grpc::{Client, ClientConnect, GrpcClient};
+use lib_common::log_macros;
+use tonic::Result as TonicResult;
 use tonic::{transport::Channel, Status};
 
 #[macro_use]
 /// macros module exposing gRPC include macro
-pub mod macros;
+mod macros;
 
+pub mod link_service;
+pub use link_service::Client as LinkClient;
 pub mod simple_service;
-use simple_service::Client;
+pub use simple_service::Client as SimpleClient;
+
+pub use prost_types::FieldMask;
+pub use resources::*;
 
 /// Provide search helpers
 pub mod search {
@@ -20,253 +27,242 @@ pub mod resources {
     #![allow(unused_qualifications)]
     include!("../out/grpc/grpc.rs");
 
-    #[cfg(feature = "adsb")]
-    simple_grpc_client!(adsb);
-    #[cfg(feature = "adsb")]
-    pub use adsb::Client as AdsbClient;
+    use lib_common::grpc::{Client, ClientConnect};
+    use tonic::async_trait;
+    use tonic::transport::Channel;
+    super::log_macros!("grpc", "app::client::storage");
 
-    #[cfg(feature = "parcel")]
-    simple_grpc_client!(parcel);
-    #[cfg(feature = "parcel")]
-    pub use parcel::Client as ParcelClient;
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "adsb")] {
+            grpc_client_mod!(adsb);
+            simple_grpc_client!(adsb);
+            pub use adsb::RpcServiceClient as AdsbClient;
+        }
+    }
 
-    #[cfg(feature = "flight_plan")]
-    simple_grpc_client!(flight_plan);
-    #[cfg(feature = "flight_plan")]
-    pub use flight_plan::Client as FlightPlanClient;
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "flight_plan")] {
+            grpc_client_mod!(flight_plan);
+            simple_grpc_client!(flight_plan);
+            pub use flight_plan::RpcServiceClient as FlightPlanClient;
+        }
+    }
 
-    #[cfg(feature = "pilot")]
-    simple_grpc_client!(pilot);
-    #[cfg(feature = "pilot")]
-    pub use pilot::Client as PilotClient;
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "parcel")] {
+            grpc_client_mod!(parcel);
+            simple_grpc_client!(parcel);
+            pub use parcel::RpcServiceClient as ParcelClient;
+        }
+    }
 
-    #[cfg(feature = "itinerary")]
-    simple_grpc_client!(itinerary);
-    #[cfg(feature = "itinerary")]
-    pub use itinerary::rpc_flight_plan_link_client::RpcFlightPlanLinkClient as ItineraryFlightPlanLinkClient;
-    #[cfg(feature = "itinerary")]
-    pub use itinerary::Client as ItineraryClient;
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "pilot")] {
+            grpc_client_mod!(pilot);
+            simple_grpc_client!(pilot);
+            pub use pilot::RpcServiceClient as PilotClient;
+        }
+    }
 
-    #[cfg(feature = "vehicle")]
-    simple_grpc_client!(vehicle);
-    #[cfg(feature = "vehicle")]
-    pub use vehicle::Client as VehicleClient;
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "itinerary")] {
+            grpc_client_mod!(itinerary);
+            simple_grpc_client!(itinerary);
+            pub use itinerary::rpc_flight_plan_link_client::RpcFlightPlanLinkClient as ItineraryFlightPlanLinkClient;
+            pub use itinerary::RpcServiceClient as ItineraryClient;
 
-    #[cfg(feature = "vertipad")]
-    simple_grpc_client!(vertipad);
-    #[cfg(feature = "vertipad")]
-    pub use vertipad::Client as VertipadClient;
+            cfg_if::cfg_if! {
+                if #[cfg(any(feature = "mock_client", test))] {
+                    use svc_storage::grpc::server::itinerary_flight_plan::{RpcFlightPlanLinkServer, GrpcServer as ItineraryFlightPlanGrpcServer};
+                    lib_common::grpc_mock_client!(ItineraryFlightPlanLinkClient, RpcFlightPlanLinkServer, ItineraryFlightPlanGrpcServer);
+                } else {
+                    lib_common::grpc_client!(ItineraryFlightPlanLinkClient);
+                }
+            }
 
-    #[cfg(feature = "vertiport")]
-    simple_grpc_client!(vertiport);
-    #[cfg(feature = "vertiport")]
-    pub use vertiport::Client as VertiportClient;
+            link_grpc_client!(
+                itinerary,
+                ItineraryFlightPlanLinkClient,
+                ItineraryFlightPlans,
+                flight_plan
+            );
+        }
+    }
+
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "vehicle")] {
+            grpc_client_mod!(vehicle);
+            simple_grpc_client!(vehicle);
+            pub use vehicle::RpcServiceClient as VehicleClient;
+        }
+    }
+
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "vertipad")] {
+            grpc_client_mod!(vertipad);
+            simple_grpc_client!(vertipad);
+            pub use vertipad::RpcServiceClient as VertipadClient;
+        }
+    }
+
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "vertiport")] {
+            grpc_client_mod!(vertiport);
+            simple_grpc_client!(vertiport);
+            pub use vertiport::RpcServiceClient as VertiportClient;
+        }
+    }
 }
 
-pub use prost_types::FieldMask;
-pub use resources::*;
-
 /// struct providing all available clients
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Clients {
     #[cfg(feature = "adsb")]
-    adsb: adsb::Client,
+    adsb: GrpcClient<AdsbClient<Channel>>,
     #[cfg(feature = "flight_plan")]
-    flight_plan: flight_plan::Client,
-    #[cfg(feature = "pilot")]
-    pilot: pilot::Client,
-    #[cfg(feature = "itinerary")]
-    itinerary: itinerary::Client,
-    #[cfg(feature = "vertiport")]
-    vertiport: vertiport::Client,
-    #[cfg(feature = "vertipad")]
-    vertipad: vertipad::Client,
-    #[cfg(feature = "vehicle")]
-    vehicle: vehicle::Client,
+    flight_plan: GrpcClient<FlightPlanClient<Channel>>,
     #[cfg(feature = "parcel")]
-    parcel: parcel::Client,
+    parcel: GrpcClient<ParcelClient<Channel>>,
+    #[cfg(feature = "pilot")]
+    pilot: GrpcClient<PilotClient<Channel>>,
+    #[cfg(feature = "itinerary")]
+    itinerary: GrpcClient<ItineraryClient<Channel>>,
+    #[cfg(feature = "itinerary")]
+    itinerary_flight_plan_link: GrpcClient<ItineraryFlightPlanLinkClient<Channel>>,
+    #[cfg(feature = "vehicle")]
+    vehicle: GrpcClient<VehicleClient<Channel>>,
+    #[cfg(feature = "vertiport")]
+    vertiport: GrpcClient<VertiportClient<Channel>>,
+    #[cfg(feature = "vertipad")]
+    vertipad: GrpcClient<VertipadClient<Channel>>,
 }
 
 impl Clients {
     #[cfg(feature = "adsb")]
     /// get connected adsb client
-    pub fn get_adsb_client(&self) -> adsb::rpc_service_client::RpcServiceClient<Channel> {
-        self.adsb.get_client()
+    pub async fn get_adsb_client(&self) -> TonicResult<adsb::RpcServiceClient<Channel>, Status> {
+        self.adsb.get_client().await
     }
 
     #[cfg(feature = "flight_plan")]
     /// get connected flight_plan client
-    pub fn get_flight_plan_client(
+    pub async fn get_flight_plan_client(
         &self,
-    ) -> flight_plan::rpc_service_client::RpcServiceClient<Channel> {
-        self.flight_plan.get_client()
+    ) -> TonicResult<flight_plan::RpcServiceClient<Channel>, Status> {
+        self.flight_plan.get_client().await
     }
 
     #[cfg(feature = "itinerary")]
     /// get connected itinerary client
-    pub fn get_itinerary_client(&self) -> itinerary::rpc_service_client::RpcServiceClient<Channel> {
-        self.itinerary.get_client()
+    pub async fn get_itinerary_client(
+        &self,
+    ) -> TonicResult<itinerary::RpcServiceClient<Channel>, Status> {
+        self.itinerary.get_client().await
+    }
+    #[cfg(feature = "itinerary")]
+    /// get connected itinerary flight_plan link client
+    pub async fn get_itinerary_flight_plan_link_client(
+        &self,
+    ) -> TonicResult<itinerary::rpc_flight_plan_link_client::RpcFlightPlanLinkClient<Channel>, Status>
+    {
+        self.itinerary_flight_plan_link.get_client().await
+    }
+
+    #[cfg(feature = "parcel")]
+    /// get connected parcel client
+    pub async fn get_parcel_client(
+        &self,
+    ) -> TonicResult<parcel::RpcServiceClient<Channel>, Status> {
+        self.parcel.get_client().await
     }
 
     #[cfg(feature = "pilot")]
     /// get connected pilot client
-    pub fn get_pilot_client(&self) -> pilot::rpc_service_client::RpcServiceClient<Channel> {
-        self.pilot.get_client()
-    }
-
-    #[cfg(feature = "vertiport")]
-    /// get connected vertiport client
-    pub fn get_vertiport_client(&self) -> vertiport::rpc_service_client::RpcServiceClient<Channel> {
-        self.vertiport.get_client()
-    }
-
-    #[cfg(feature = "vertipad")]
-    /// get connected vertipad client
-    pub fn get_vertipad_client(&self) -> vertipad::rpc_service_client::RpcServiceClient<Channel> {
-        self.vertipad.get_client()
+    pub async fn get_pilot_client(&self) -> TonicResult<pilot::RpcServiceClient<Channel>, Status> {
+        self.pilot.get_client().await
     }
 
     #[cfg(feature = "vehicle")]
     /// get connected vehicle client
-    pub fn get_vehicle_client(&self) -> vehicle::rpc_service_client::RpcServiceClient<Channel> {
-        self.vehicle.get_client()
+    pub async fn get_vehicle_client(
+        &self,
+    ) -> TonicResult<vehicle::RpcServiceClient<Channel>, Status> {
+        self.vehicle.get_client().await
     }
-    #[cfg(feature = "parcel")]
-    /// get connected parcel client
-    pub fn get_parcel_client(&self) -> parcel::rpc_service_client::RpcServiceClient<Channel> {
-        self.parcel.get_client()
+
+    #[cfg(feature = "vertiport")]
+    /// get connected vertiport client
+    pub async fn get_vertiport_client(
+        &self,
+    ) -> TonicResult<vertiport::RpcServiceClient<Channel>, Status> {
+        self.vertiport.get_client().await
+    }
+
+    #[cfg(feature = "vertipad")]
+    /// get connected vertipad client
+    pub async fn get_vertipad_client(
+        &self,
+    ) -> TonicResult<vertipad::RpcServiceClient<Channel>, Status> {
+        self.vertipad.get_client().await
     }
 }
 
 /// Provides a way to get and connect all clients at once.
-pub fn get_clients(endpoint: String, retries: i16) -> BoxFuture<'static, Result<Clients, Status>> {
-    async move {
-        if retries <= 0 {
-            return Err(Status::internal(
-                "Error connecting to the gRPC clients, giving up",
-            ));
-        }
+pub fn get_clients(host: String, port: u16) -> Clients {
+    #[cfg(feature = "adsb")]
+    let adsb = GrpcClient::<adsb::RpcServiceClient<Channel>>::new_client(&host, port, "adsb");
 
+    #[cfg(feature = "flight_plan")]
+    let flight_plan = GrpcClient::<flight_plan::RpcServiceClient<Channel>>::new_client(
+        &host,
+        port,
+        "flight_plan",
+    );
+
+    #[cfg(feature = "itinerary")]
+    let itinerary =
+        GrpcClient::<itinerary::RpcServiceClient<Channel>>::new_client(&host, port, "itinerary");
+    #[cfg(feature = "itinerary")]
+    let itinerary_flight_plan_link = GrpcClient::<
+        itinerary::rpc_flight_plan_link_client::RpcFlightPlanLinkClient<Channel>,
+    >::new_client(&host, port, "itinerary");
+
+    #[cfg(feature = "parcel")]
+    let parcel = GrpcClient::<parcel::RpcServiceClient<Channel>>::new_client(&host, port, "parcel");
+
+    #[cfg(feature = "pilot")]
+    let pilot = GrpcClient::<pilot::RpcServiceClient<Channel>>::new_client(&host, port, "pilot");
+
+    #[cfg(feature = "vehicle")]
+    let vehicle =
+        GrpcClient::<vehicle::RpcServiceClient<Channel>>::new_client(&host, port, "vehicle");
+
+    #[cfg(feature = "vertiport")]
+    let vertiport =
+        GrpcClient::<vertiport::RpcServiceClient<Channel>>::new_client(&host, port, "vertiport");
+
+    #[cfg(feature = "vertipad")]
+    let vertipad =
+        GrpcClient::<vertipad::RpcServiceClient<Channel>>::new_client(&host, port, "vertipad");
+
+    Clients {
         #[cfg(feature = "adsb")]
-        let adsb = match adsb::Client::connect(&endpoint).await {
-            Ok(adsb) => adsb,
-            Err(e) => {
-                print!("can't connect to adsb server [{}], retrying in 5 sec...", e);
-                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-                return get_clients(endpoint, retries - 1).await;
-            }
-        };
-
+        adsb,
         #[cfg(feature = "flight_plan")]
-        let flight_plan = match flight_plan::Client::connect(&endpoint).await {
-            Ok(flight_plan) => flight_plan,
-            Err(e) => {
-                print!(
-                    "Can't connect to vertiport server [{}], retrying in 5 sec...",
-                    e
-                );
-                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-                return get_clients(endpoint, retries - 1).await;
-            }
-        };
-
+        flight_plan,
         #[cfg(feature = "itinerary")]
-        let itinerary = match itinerary::Client::connect(&endpoint).await {
-            Ok(itinerary) => itinerary,
-            Err(e) => {
-                print!(
-                    "can't connect to itinerary server [{}], retrying in 5 sec...",
-                    e
-                );
-                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-                return get_clients(endpoint, retries - 1).await;
-            }
-        };
-
-        #[cfg(feature = "pilot")]
-        let pilot = match pilot::Client::connect(&endpoint).await {
-            Ok(pilot) => pilot,
-            Err(e) => {
-                print!(
-                    "can't connect to pilot server [{}], retrying in 5 sec...",
-                    e
-                );
-                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-                return get_clients(endpoint, retries - 1).await;
-            }
-        };
+        itinerary,
+        #[cfg(feature = "itinerary")]
+        itinerary_flight_plan_link,
         #[cfg(feature = "parcel")]
-        let parcel = match parcel::Client::connect(&endpoint).await {
-            Ok(parcel) => parcel,
-            Err(e) => {
-                print!(
-                    "can't connect to parcel server [{}], retrying in 5 sec...",
-                    e
-                );
-                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-                return get_clients(endpoint, retries - 1).await;
-            }
-        };
-
-        #[cfg(feature = "vertiport")]
-        let vertiport = match vertiport::Client::connect(&endpoint).await {
-            Ok(vertiport) => vertiport,
-            Err(e) => {
-                print!(
-                    "Can't connect to vertiport server [{}], retrying in 5 sec...",
-                    e
-                );
-                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-                return get_clients(endpoint, retries - 1).await;
-            }
-        };
-
-        #[cfg(feature = "vertipad")]
-        let vertipad = match vertipad::Client::connect(&endpoint).await {
-            Ok(vertipad) => vertipad,
-            Err(e) => {
-                print!(
-                    "Can't connect to vertipad server [{}], retrying in 5 sec...",
-                    e
-                );
-                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-                return get_clients(endpoint, retries - 1).await;
-            }
-        };
-
+        parcel,
+        #[cfg(feature = "pilot")]
+        pilot,
         #[cfg(feature = "vehicle")]
-        let vehicle = match vehicle::Client::connect(&endpoint).await {
-            Ok(vehicle) => vehicle,
-            Err(e) => {
-                print!(
-                    "can't connect to vehicle server [{}], retrying in 5 sec...",
-                    e
-                );
-                tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-                return get_clients(endpoint, retries - 1).await;
-            }
-        };
-
-        let clients = Clients {
-            #[cfg(feature = "adsb")]
-            adsb,
-            #[cfg(feature = "flight_plan")]
-            flight_plan,
-            #[cfg(feature = "itinerary")]
-            itinerary,
-            #[cfg(feature = "pilot")]
-            pilot,
-            #[cfg(feature = "vertiport")]
-            vertiport,
-            #[cfg(feature = "vertipad")]
-            vertipad,
-            #[cfg(feature = "vehicle")]
-            vehicle,
-            #[cfg(feature = "parcel")]
-            parcel,
-        };
-
-        Ok(clients)
+        vehicle,
+        #[cfg(feature = "vertiport")]
+        vertiport,
+        #[cfg(feature = "vertipad")]
+        vertipad,
     }
-    .boxed()
 }

@@ -1,8 +1,8 @@
 //! gRPC client implementation
 use futures::future::{BoxFuture, FutureExt};
+use lib_common::grpc::get_endpoint_from_env;
 use ordered_float::OrderedFloat;
 use prost_types::FieldMask;
-use std::env;
 use std::time::SystemTime;
 use svc_storage_client_grpc::flight_plan::{self, FlightStatus};
 use svc_storage_client_grpc::itinerary::{self, ItineraryFlightPlans, ItineraryStatus};
@@ -15,11 +15,11 @@ pub(crate) static CLIENTS: OnceCell<Clients> = OnceCell::const_new();
 
 fn get_clients() -> BoxFuture<'static, Result<&'static Clients, Status>> {
     async move {
+        let (host, port) = get_endpoint_from_env("SERVER_HOSTNAME", "SERVER_PORT_GRPC");
         match CLIENTS.get() {
             Some(clients) => Ok(clients),
             None => {
-                let address = get_grpc_endpoint();
-                let clients = svc_storage_client_grpc::get_clients(address, 5).await?;
+                let clients = svc_storage_client_grpc::get_clients(host, port);
                 CLIENTS
                     .set(clients)
                     .map_err(|e| Status::internal(format!("Could not set CLIENTS: {}", e)))?;
@@ -30,28 +30,12 @@ fn get_clients() -> BoxFuture<'static, Result<&'static Clients, Status>> {
     .boxed()
 }
 
-/// Provide GRPC endpoint to use
-fn get_grpc_endpoint() -> String {
-    //parse socket address from env variable or take default value
-    let address = match env::var("SERVER_HOSTNAME") {
-        Ok(val) => val,
-        Err(_) => "localhost".to_string(), // default value
-    };
-
-    let port = match env::var("SERVER_PORT_GRPC") {
-        Ok(val) => val,
-        Err(_) => "50051".to_string(), // default value
-    };
-
-    format!("http://{}:{}", address, port)
-}
-
 /// Example VehicleRpcClient
 /// Assuming the server is running, this method calls `client.vehicles` and
 /// should receive a valid response from the server
 async fn get_vehicles() -> Result<vehicle::List, Status> {
     let clients = get_clients().await?;
-    let mut vehicle_client = clients.get_vehicle_client();
+    let mut vehicle_client = clients.get_vehicle_client().await?;
     println!("Vehicle Client created");
 
     let filter =
@@ -69,7 +53,7 @@ async fn get_vehicles() -> Result<vehicle::List, Status> {
 /// Inserts example vehicle's into the database using the `mock` library to generate data.
 async fn generate_sample_vehicles(amount: i16, vertiports: &vertiport::List) -> Result<(), Status> {
     let clients = get_clients().await?;
-    let mut vehicle_client = clients.get_vehicle_client();
+    let mut vehicle_client = clients.get_vehicle_client().await?;
     println!("Vehicle Client created");
 
     let vertiport_id = vertiports.list.last().unwrap().id.clone();
@@ -94,11 +78,11 @@ async fn generate_sample_vehicles(amount: i16, vertiports: &vertiport::List) -> 
 /// Example ItineraryRpcClient
 /// Assuming the server is running, this method calls `client.itineraries` and
 /// should receive a valid response from the server
-async fn itineraries() {
+async fn itinerary_scenario() -> Result<(), Status> {
     let clients = get_clients()
         .await
         .expect("Error getting connected itinerary client");
-    let mut itinerary_client = clients.get_itinerary_client();
+    let mut itinerary_client = clients.get_itinerary_client().await?;
     println!("Itinerary Client created");
 
     //
@@ -142,7 +126,7 @@ async fn itineraries() {
     // Link with flight_plan
     //
 
-    let mut flight_plan_client = clients.get_flight_plan_client();
+    let mut flight_plan_client = clients.get_flight_plan_client().await?;
     println!("FlightPlan Client created");
 
     let fp_filter = AdvancedSearchFilter::search_equals(
@@ -181,15 +165,7 @@ async fn itineraries() {
         fp_ids.push(list.pop().unwrap().id);
     }
 
-    let grpc_endpoint = get_grpc_endpoint();
-    let mut link_client = match ItineraryFlightPlanLinkClient::connect(grpc_endpoint.clone()).await
-    {
-        Ok(res) => res,
-        Err(e) => panic!(
-            "Error creating client for ItineraryFlightPlanLinkClient: {}",
-            e
-        ),
-    };
+    let mut link_client = clients.get_itinerary_flight_plan_link_client().await?;
     println!("Itinerary FlightPlan Link Client created");
 
     match link_client
@@ -256,6 +232,8 @@ async fn itineraries() {
             Err(e) => panic!("Could not get linked flight_plans for itinerary: {}", e),
         }
     };
+
+    Ok(())
 }
 
 /// Example AdsbClient
@@ -263,12 +241,16 @@ async fn itineraries() {
 ///  packets into the database and searches with advanced filters.
 async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
     let clients = get_clients().await?;
-    let mut client = clients.get_adsb_client();
+    let mut client = clients.get_adsb_client().await?;
     println!("ADS-B Client created");
 
     let timestamp_1 = prost_types::Timestamp::from(SystemTime::now());
-    let timestamp_2 =
-        prost_types::Timestamp::from(SystemTime::now() + std::time::Duration::new(10, 0));
+    let timestamp_2 = lib_common::time::datetime_to_timestamp(
+        &(lib_common::time::timestamp_to_datetime(&timestamp_1).unwrap()
+            + chrono::Duration::seconds(10)),
+    )
+    .unwrap();
+
     let payload_1 = [
         0x8D, 0x48, 0x40, 0xD6, 0x20, 0x2C, 0xC3, 0x71, 0xC3, 0x2C, 0xE0, 0x57, 0x60, 0x98,
     ];
@@ -324,8 +306,12 @@ async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
         .and_between(
             "network_timestamp".to_owned(),
             timestamp_1.clone().to_string(),
-            prost_types::Timestamp::from(SystemTime::now() + std::time::Duration::new(5, 0))
-                .to_string(),
+            lib_common::time::datetime_to_timestamp(
+                &(lib_common::time::timestamp_to_datetime(&timestamp_1).unwrap()
+                    + chrono::Duration::seconds(5)),
+            )
+            .unwrap()
+            .to_string(),
         )
         .page_number(1)
         .results_per_page(50);
@@ -338,8 +324,9 @@ async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
             .unwrap();
         let mut l: adsb::List = response.into_inner();
 
-        assert_eq!(l.list.len(), 1);
         println!("{:?}", l.list);
+        assert_eq!(l.list.len(), 1);
+
         let adsb_entry = l.list.pop().unwrap();
         let data = adsb_entry.data.unwrap();
         assert_eq!(adsb_entry.id, id_1);
@@ -365,7 +352,7 @@ async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
             .unwrap();
         let mut l: adsb::List = response.into_inner();
 
-        assert_eq!(l.list.len(), 1);
+        assert_eq!(l.list.len(), 2);
         println!("{:?}", l.list);
 
         let adsb_entry = l.list.pop().unwrap();
@@ -407,7 +394,7 @@ async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
 /// should receive a valid response from the server
 async fn get_pilots() -> Result<pilot::List, Status> {
     let clients = get_clients().await?;
-    let mut pilot_client = clients.get_pilot_client();
+    let mut pilot_client = clients.get_pilot_client().await?;
     println!("Pilot Client created");
 
     let filter = AdvancedSearchFilter::search_is_null("deleted_at".to_owned())
@@ -438,7 +425,7 @@ RRULE:FREQ=WEEKLY;BYDAY=SA,SU";
 /// should receive a valid response from the server
 async fn vertipad_scenario(mut vertiports: vertiport::List) -> Result<vertipad::List, Status> {
     let clients = get_clients().await?;
-    let mut vertipad_client = clients.get_vertipad_client();
+    let mut vertipad_client = clients.get_vertipad_client().await?;
     println!("Vertipad Client created");
 
     let filter = AdvancedSearchFilter::search_equals("occupied".to_owned(), false.to_string())
@@ -549,7 +536,7 @@ async fn vertipad_scenario(mut vertiports: vertiport::List) -> Result<vertipad::
 
 async fn generate_sample_vertiports() -> Result<vertiport::List, Status> {
     let clients = get_clients().await?;
-    let mut vertiport_client = clients.get_vertiport_client();
+    let mut vertiport_client = clients.get_vertiport_client().await?;
     println!("Vertiport Client created");
 
     let x = OrderedFloat(-122.4194);
@@ -603,7 +590,7 @@ async fn flight_plan_scenario(
     mut vertipads: vertipad::List,
 ) -> Result<flight_plan::List, Status> {
     let clients = get_clients().await?;
-    let mut flight_plan_client = clients.get_flight_plan_client();
+    let mut flight_plan_client = clients.get_flight_plan_client().await?;
     println!("FlightPlan Client created");
 
     println!("Retrieving list of flight plans");
@@ -687,6 +674,25 @@ async fn flight_plan_scenario(
         };
     }
 
+    let scheduled_departure_min =
+        prost_types::Timestamp::date_time(2022, 10, 12, 23, 00, 00).unwrap();
+    let scheduled_departure_max =
+        prost_types::Timestamp::date_time(2024, 10, 13, 23, 00, 00).unwrap();
+    let time_filter = AdvancedSearchFilter::search_equals("pilot_id".to_string(), pilot_id.clone())
+        .and_between(
+            "scheduled_departure".to_owned(),
+            scheduled_departure_min.to_string(),
+            scheduled_departure_max.to_string(),
+        )
+        .and_is_not_null("deleted_at".to_owned());
+    let flight_plans = flight_plan_client
+        .search(tonic::Request::new(time_filter))
+        .await?;
+    println!(
+        "RESPONSE Flight Plan Search with time restriction result: {:#?}",
+        flight_plans
+    );
+
     // insert one last flight plan so we can update it
     let mut flight_plan = flight_plan::mock::get_data_obj();
     flight_plan.pilot_id = pilot_id;
@@ -746,13 +752,6 @@ async fn flight_plan_scenario(
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let grpc_endpoint = get_grpc_endpoint();
-
-    println!(
-        "NOTE: Ensure the server is running on {} or this example will fail.",
-        grpc_endpoint
-    );
-
     let clients = get_clients().await?;
 
     test_telemetry().await?;
@@ -773,36 +772,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _pilots = get_pilots().await?;
     let pilot_id = Uuid::new_v4().to_string();
 
-    // Play flight plan scenario
-    let _result = flight_plan_scenario(pilot_id.clone(), vehicles, vertipads).await;
-
-    let mut vertiport_client = clients.get_vertiport_client();
+    let mut vertiport_client = clients.get_vertiport_client().await?;
     let vertiport_filter = AdvancedSearchFilter::search_is_not_null("deleted_at".to_owned())
         .page_number(1)
         .results_per_page(50);
     let vertiports = vertiport_client.search(vertiport_filter).await?;
     println!("RESPONSE Vertiports={:#?}", vertiports.into_inner());
 
-    let mut flight_plan_client = clients.get_flight_plan_client();
-
-    let scheduled_departure_min =
-        prost_types::Timestamp::date_time(2022, 10, 12, 23, 00, 00).unwrap();
-    let scheduled_departure_max =
-        prost_types::Timestamp::date_time(2022, 10, 13, 23, 00, 00).unwrap();
-    let filter = AdvancedSearchFilter::search_equals("pilot_id".to_string(), pilot_id)
-        .and_between(
-            "scheduled_departure".to_owned(),
-            scheduled_departure_min.to_string(),
-            scheduled_departure_max.to_string(),
-        )
-        .and_is_not_null("deleted_at".to_owned());
-    let flight_plans = flight_plan_client
-        .search(tonic::Request::new(filter))
-        .await?;
-    println!("RESPONSE Flight Plan Search={:#?}", flight_plans);
+    // Play flight plan scenario
+    flight_plan_scenario(pilot_id.clone(), vehicles, vertipads).await?;
 
     // Itineraries
-    itineraries().await;
+    itinerary_scenario().await?;
 
     Ok(())
 }
