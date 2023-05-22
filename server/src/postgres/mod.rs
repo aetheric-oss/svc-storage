@@ -102,7 +102,7 @@ impl PostgresPool {
     /// }
     /// ```
     pub fn from_config() -> Result<PostgresPool, ArrErr> {
-        let mut settings = Config::from_env().unwrap_or_default();
+        let mut settings = Config::try_from_env().unwrap_or_default();
 
         settings.pg.manager = Some(ManagerConfig {
             recycling_method: RecyclingMethod::Fast,

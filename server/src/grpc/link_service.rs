@@ -32,10 +32,18 @@ where
         + From<Id>
         + Sync
         + Send
-        + Clone,
-    U: GrpcDataObjectType + TryFrom<Row>,
-    V: ObjectType<W> + PsqlLinkedType + LinkedResource<W> + From<Id> + Sync + Send + Clone,
-    W: GrpcDataObjectType + TryFrom<Row>,
+        + Clone
+        + 'static,
+    U: GrpcDataObjectType + TryFrom<Row> + 'static,
+    V: ObjectType<W>
+        + PsqlLinkedType
+        + LinkedResource<W>
+        + From<Id>
+        + Sync
+        + Send
+        + Clone
+        + 'static,
+    W: GrpcDataObjectType + TryFrom<Row> + 'static,
     Status: From<<U as TryFrom<Row>>::Error>,
 {
     /// Returns an empty [`tonic`] gRCP [`Response`] on success
@@ -59,7 +67,7 @@ where
         replace: bool,
     ) -> Result<Response<()>, Status>
     where
-        X: PsqlSimpleType + Send,
+        X: PsqlSimpleType + Send + 'static,
     {
         let id_field = <T as PsqlSimpleType>::try_get_id_field()?;
         let other_id_field = <X as PsqlSimpleType>::try_get_id_field()?;
@@ -150,8 +158,15 @@ where
         request: Request<Id>,
     ) -> Result<Response<IdList>, Status>
     where
-        X: ObjectType<Y> + PsqlSimpleType + PsqlSearch + SimpleResource<Y> + Sync + Send + Clone,
-        Y: GrpcDataObjectType + TryFrom<Row>,
+        X: ObjectType<Y>
+            + PsqlSimpleType
+            + PsqlSearch
+            + SimpleResource<Y>
+            + Sync
+            + Send
+            + Clone
+            + 'static,
+        Y: GrpcDataObjectType + TryFrom<Row> + 'static,
     {
         let id: Id = request.into_inner();
         let ids = Self::_get_linked::<X, Y>(id).await?;
@@ -173,9 +188,16 @@ where
     /// Returns [`Status`] with [`Code::Internal`] if any error is returned from the db search result.  
     async fn generic_get_linked<X, Y, Z>(&self, request: Request<Id>) -> Result<Response<Z>, Status>
     where
-        X: ObjectType<Y> + PsqlSimpleType + PsqlSearch + SimpleResource<Y> + Sync + Send + Clone,
-        Y: GrpcDataObjectType + TryFrom<Row>,
-        Z: TryFrom<Vec<Row>>,
+        X: ObjectType<Y>
+            + PsqlSimpleType
+            + PsqlSearch
+            + SimpleResource<Y>
+            + Sync
+            + Send
+            + Clone
+            + 'static,
+        Y: GrpcDataObjectType + TryFrom<Row> + 'static,
+        Z: TryFrom<Vec<Row>> + 'static,
         Status: From<<Z as TryFrom<Vec<Row>>>::Error>,
     {
         let id: Id = request.into_inner();
@@ -195,8 +217,15 @@ where
     /// Y: `other::Data` Data type of 'other' resource being linked
     async fn _get_linked<X, Y>(id: Id) -> Result<Vec<String>, ArrErr>
     where
-        X: ObjectType<Y> + PsqlSimpleType + PsqlSearch + SimpleResource<Y> + Sync + Send + Clone,
-        Y: GrpcDataObjectType + TryFrom<Row>,
+        X: ObjectType<Y>
+            + PsqlSimpleType
+            + PsqlSearch
+            + SimpleResource<Y>
+            + Sync
+            + Send
+            + Clone
+            + 'static,
+        Y: GrpcDataObjectType + TryFrom<Row> + 'static,
     {
         let resource: T = id.clone().into();
         if <T as PsqlSimpleType>::get_by_id(&resource.try_get_uuid()?)
