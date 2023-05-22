@@ -11,21 +11,26 @@ license-file.workspace = true
 repository.workspace   = true
 
 [features]
+# Will implement mock functions for the server, only use for tests!
 mock             = ["rand"]
+mock_server      = ["mock"]
 vendored-openssl = ['openssl/vendored']
 
 [dependencies]
 anyhow              = "1.0"
 cargo-husky         = "1"
-chrono              = "0.4"
+cfg-if              = "1.0"
+chrono              = { version = "0.4", features = ["serde"] }
+clap                = { version = "4.0", features = ["derive"] }
 config              = "0.13"
 deadpool            = "0.9"
 deadpool-postgres   = { version = "0.10", features = ["serde", "rt_tokio_1"] }
 dotenv              = "0.15"
 futures             = "0.3"
 geo-types           = "0.7"
+hyper               = "0.14"
 lazy_static         = "1.4"
-lib-common          = { git = "https://github.com/Arrow-air/lib-common.git", tag = "v0.1.0" }
+lib-common          = { git = "https://github.com/Arrow-air/lib-common.git", tag = "v0.1.1-develop.2" }
 log                 = "0.4"
 native-tls          = "0.2"
 num-derive          = "0.3"
@@ -36,16 +41,18 @@ ordered-float       = "3.3.0"
 paste               = "1.0"
 postgres-native-tls = "0.5"
 prost               = "0.11"
+prost-build         = "0.11"
 prost-types         = "0.11"
 rand                = { version = "0.8", optional = true }
 serde               = "1.0"
 serde_json          = "1.0"
 serde_yaml          = "0.9"
 thiserror           = "1.0"
-tokio               = { version = "1.20", features = ["full"] }
+tokio               = { version = "1.28", features = ["full"] }
 tokio-postgres      = { version = "0.7", features = ["with-uuid-1"] }
+tokio-util          = "0.7"
 tonic               = "0.8"
-tonic-health        = "0.7"
+tonic-health        = "0.8"
 uuid                = { version = "1.2", features = ["v4"] }
 
 [dependencies.log4rs]
@@ -66,23 +73,25 @@ features = [
 ]
 version = "0.2"
 
-[build-dependencies]
-tonic-build = "0.8"
-
-[build-dependencies.svc-storage-client-grpc]
-features = ["all-resources"]
-git      = "https://github.com/Arrow-air/svc-storage.git"
-tag      = "v0.10.1-develop.1"
-
 [dev-dependencies]
-svc-storage = { path = ".", features = ["mock"] }
+assert_matches = "1.4.0"
+logtest        = "2.0"
 
 [dev-dependencies.cargo-husky]
 default-features = false          # Disable features which are enabled by default
 features         = ["user-hooks"]
 version          = "1"
 
-[dev-dependencies.svc-storage-client-grpc]
+# Make sure we enable the 'mock_server' features when running tests
+[dev-dependencies.svc-storage]
+features = ["mock_server"]
+path     = "."
+
+# Needed to generate rust-doc on proto functions
+[dependencies.svc-storage-client-grpc]
 features = ["all-resources"]
 git      = "https://github.com/Arrow-air/svc-storage.git"
 tag      = "v0.10.1-develop.1"
+
+[build-dependencies]
+tonic-build = "0.8"

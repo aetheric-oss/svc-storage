@@ -26,6 +26,8 @@ crate::build_generic_resource_impl_from!();
 // Generate grpc server implementations
 crate::build_grpc_simple_resource_impl!(flight_plan);
 
+#[cfg(not(tarpaulin_include))]
+// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
 impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
@@ -307,5 +309,53 @@ impl GrpcDataObjectType for Data {
                 key
             ))),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use assert_matches::assert_matches;
+
+    #[test]
+    fn test_flight_status_from_str() {
+        // Test parsing valid flight status values
+        assert_matches!("READY".parse::<FlightStatus>(), Ok(FlightStatus::Ready));
+        assert_matches!(
+            "BOARDING".parse::<FlightStatus>(),
+            Ok(FlightStatus::Boarding)
+        );
+        assert_matches!(
+            "IN_FLIGHT".parse::<FlightStatus>(),
+            Ok(FlightStatus::InFlight)
+        );
+        assert_matches!(
+            "FINISHED".parse::<FlightStatus>(),
+            Ok(FlightStatus::Finished)
+        );
+        assert_matches!(
+            "CANCELLED".parse::<FlightStatus>(),
+            Ok(FlightStatus::Cancelled)
+        );
+        assert_matches!("DRAFT".parse::<FlightStatus>(), Ok(FlightStatus::Draft));
+
+        // Test parsing invalid flight status values
+        assert!("".parse::<FlightStatus>().is_err());
+        assert!("INVALID_STATUS".parse::<FlightStatus>().is_err());
+    }
+
+    #[test]
+    fn test_flight_priority_from_str() {
+        // Test parsing valid flight priority values
+        assert_matches!(
+            "EMERGENCY".parse::<FlightPriority>(),
+            Ok(FlightPriority::Emergency)
+        );
+        assert_matches!("HIGH".parse::<FlightPriority>(), Ok(FlightPriority::High));
+        assert_matches!("LOW".parse::<FlightPriority>(), Ok(FlightPriority::Low));
+
+        // Test parsing invalid flight priority values
+        assert!("".parse::<FlightPriority>().is_err());
+        assert!("INVALID_STATUS".parse::<FlightPriority>().is_err());
     }
 }
