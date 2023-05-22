@@ -19,51 +19,78 @@ include = [
   "tests/**",
 ]
 
+[features]
+adsb = []
+all_resources = [
+  "adsb",
+  "flight_plan",
+  "itinerary",
+  "parcel",
+  "pilot",
+  "vehicle",
+  "vertipad",
+  "vertiport",
+]
+flight_plan = []
+itinerary = ["flight_plan"]
+mock = ["chrono", "rand"]
+# Will implement mock functions for the client, only use for tests!
+mock_client = ["tower", "lazy_static", "tokio", "lib-common/grpc_mock"]
+parcel = []
+pilot = []
+test_util = [
+  "tower",
+  "tokio",
+  "lib-common/grpc_mock",
+  "svc-storage/mock_server",
+]
+vehicle = []
+vertipad = ["vertiport"]
+vertiport = []
+
 [dependencies]
 anyhow        = "1.0"
+cfg-if        = "1.0"
 chrono        = { version = "0.4", optional = true }
 futures       = "0.3"
 geo-types     = "0.7"
-lib-common    = { git = "https://github.com/Arrow-air/lib-common.git", tag = "v0.1.0", optional = true }
+lazy_static   = { version = "1.4", optional = true }
+log           = "0.4"
 num-derive    = "0.3"
 num-traits    = "0.2"
 ordered-float = "3.3"
 prost         = "0.11"
 prost-types   = "0.11"
 rand          = { version = "0.8", optional = true }
-tokio         = { version = "1.0", features = ["macros", "rt-multi-thread"] }
+svc-storage   = { path = "../server", optional = true }
 tonic         = "0.8"
+tower         = { version = "0.4", optional = true }
 uuid          = { version = "1.2", features = ["v4"] }
 
+[dependencies.lib-common]
+features = ["grpc"]
+git      = "https://github.com/Arrow-air/lib-common.git"
+tag      = "v0.1.1-develop.2"
+
+[dependencies.tokio]
+features = ["macros", "rt-multi-thread"]
+optional = true
+version  = "1.28"
+
 [dev-dependencies]
-chrono                  = "0.4"
-lib-common              = { git = "https://github.com/Arrow-air/lib-common.git", tag = "v0.1.0" }
-rand                    = "0.8"
-svc-storage-client-grpc = { path = ".", features = ["mock", "all-resources"] }
+chrono      = "0.4"
+futures     = "0.3"
+lazy_static = "1.4"
+logtest     = "2.0"
+rand        = "0.8"
+
+# Make sure we enable the required modules and have access to all resources when running tests
+[dev-dependencies.svc-storage-client-grpc]
+features = ["mock", "test_util", "all_resources"]
+path     = "."
 
 [build-dependencies]
 tonic-build = "0.8"
 
 [[example]]
 name = "grpc"
-
-[features]
-adsb = []
-all-resources = [
-  "adsb",
-  "flight_plan",
-  "itinerary",
-  "pilot",
-  "vehicle",
-  "parcel",
-  "vertipad",
-  "vertiport",
-]
-flight_plan = []
-itinerary = []
-mock = ["chrono", "rand", "lib-common"]
-parcel = []
-pilot = []
-vehicle = []
-vertipad = []
-vertiport = []

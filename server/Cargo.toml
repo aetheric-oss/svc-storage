@@ -67,14 +67,22 @@ features = [
 version = "0.2"
 
 [build-dependencies]
-svc-storage-client-grpc = { path = "../client-grpc" }
-tonic-build             = "0.8"
+tonic-build = "0.8"
+
+[build-dependencies.svc-storage-client-grpc]
+features = ["all-resources"]
+git      = "https://github.com/Arrow-air/svc-storage.git"
+tag      = "v0.10.1-develop.1"
 
 [dev-dependencies]
-svc-storage             = { path = ".", features = ["mock"] }
-svc-storage-client-grpc = { path = "../client-grpc" }
+svc-storage = { path = ".", features = ["mock"] }
 
 [dev-dependencies.cargo-husky]
 default-features = false          # Disable features which are enabled by default
 features         = ["user-hooks"]
 version          = "1"
+
+[dev-dependencies.svc-storage-client-grpc]
+features = ["all-resources"]
+git      = "https://github.com/Arrow-air/svc-storage.git"
+tag      = "v0.10.1-develop.1"

@@ -1,12 +1,11 @@
 //! GRPC Simple Service traits
 
-use tonic::transport::Error;
-
 /// Generic gRPC object traits to provide wrappers for simple `Resource` functions
 #[tonic::async_trait]
-pub trait Client
+pub trait Client<T>
 where
-    Self: Sized,
+    Self: Sized + super::Client<T> + super::ClientConnect<T>,
+    T: Send + Clone,
 {
     /// The type expected for Data structs.
     type Data;
@@ -18,14 +17,6 @@ where
     type List;
     /// The type expected for Response structs.
     type Response;
-    /// The type expected for Client structs.
-    type Client;
-
-    /// Create a new Client object with connected client.
-    async fn connect(address: &str) -> Result<Self, Error>;
-
-    /// Return the client.
-    fn get_client(&self) -> Self::Client;
 
     /// Wrapper for get_by_id function.
     async fn get_by_id(
