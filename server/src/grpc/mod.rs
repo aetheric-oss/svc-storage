@@ -20,7 +20,7 @@ use tokio::runtime::{Handle, Runtime};
 use tonic::Status;
 
 /// gRPC field types
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum GrpcField {
     /// Byte Array
     Bytes(Vec<u8>),
@@ -49,7 +49,7 @@ pub enum GrpcField {
 }
 
 /// gRPC field types as Option
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum GrpcFieldOption {
     /// Byte Array
     Bytes(Option<Vec<u8>>),
