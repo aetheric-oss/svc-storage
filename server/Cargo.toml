@@ -11,10 +11,12 @@ license-file.workspace = true
 repository.workspace   = true
 
 [features]
+default          = []
+mock             = ["dep:rand"]
+test_util        = ["mock", "svc-storage-client-grpc/all-resources"]
+vendored-openssl = ["openssl/vendored"]
 # Will implement mock functions for the server, only use for tests!
-mock             = ["rand"]
-mock_server      = ["mock"]
-vendored-openssl = ['openssl/vendored']
+mock_server = ["test_util"]
 
 [dependencies]
 anyhow              = "1.0"
@@ -76,22 +78,22 @@ version = "0.2"
 [dev-dependencies]
 assert_matches = "1.4.0"
 logtest        = "2.0"
+rand           = "0.8"
 
 [dev-dependencies.cargo-husky]
 default-features = false          # Disable features which are enabled by default
 features         = ["user-hooks"]
 version          = "1"
 
-# Make sure we enable the 'mock_server' features when running tests
+# Make sure we enable the required modules and have access to all resources when running tests
 [dev-dependencies.svc-storage]
-features = ["mock_server"]
+features = ["test_util"]
 path     = "."
 
 # Needed to generate rust-doc on proto functions
-[dependencies.svc-storage-client-grpc]
-features = ["all-resources"]
-git      = "https://github.com/Arrow-air/svc-storage.git"
-tag      = "v0.10.1-develop.1"
+[dev-dependencies.svc-storage-client-grpc]
+git = "https://github.com/Arrow-air/svc-storage.git"
+tag = "v0.10.1-develop.1"
 
 [build-dependencies]
 tonic-build = "0.8"

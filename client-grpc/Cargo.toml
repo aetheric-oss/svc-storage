@@ -20,7 +20,16 @@ include = [
 ]
 
 [features]
-adsb = []
+mock = ["chrono", "rand"]
+test_util = [
+  "svc-storage/mock_server",
+  "lib-common/grpc_mock",
+  "mock",
+  "tokio",
+  "tower",
+]
+# Supported resources
+adsb = ["any_resource"]
 all_resources = [
   "adsb",
   "flight_plan",
@@ -31,22 +40,23 @@ all_resources = [
   "vertipad",
   "vertiport",
 ]
-flight_plan = []
-itinerary = ["flight_plan"]
-mock = ["chrono", "rand"]
+any_resource = []
+flight_plan = ["any_resource"]
+itinerary = ["any_resource", "flight_plan"]
+parcel = ["any_resource"]
+pilot = ["any_resource"]
+vehicle = ["any_resource"]
+vertipad = ["any_resource", "vertiport"]
+vertiport = ["any_resource"]
 # Will implement mock functions for the client, only use for tests!
-mock_client = ["tower", "lazy_static", "tokio", "lib-common/grpc_mock"]
-parcel = []
-pilot = []
-test_util = [
-  "tower",
-  "tokio",
+mock_client = [
+  "all_resources",
   "lib-common/grpc_mock",
-  "svc-storage/mock_server",
+  "mock",
+  "tokio",
+  "tower",
+  "lazy_static",
 ]
-vehicle = []
-vertipad = ["vertiport"]
-vertiport = []
 
 [dependencies]
 anyhow        = "1.0"
@@ -62,10 +72,14 @@ ordered-float = "3.3"
 prost         = "0.11"
 prost-types   = "0.11"
 rand          = { version = "0.8", optional = true }
-svc-storage   = { path = "../server", optional = true }
 tonic         = "0.8"
 tower         = { version = "0.4", optional = true }
 uuid          = { version = "1.2", features = ["v4"] }
+
+[dependencies.svc-storage]
+git      = "https://github.com/Arrow-air/svc-storage.git"
+optional = true
+tag      = "v0.10.1-develop.2"
 
 [dependencies.lib-common]
 features = ["grpc"]
@@ -86,11 +100,12 @@ rand        = "0.8"
 
 # Make sure we enable the required modules and have access to all resources when running tests
 [dev-dependencies.svc-storage-client-grpc]
-features = ["mock", "test_util", "all_resources"]
+features = ["test_util"]
 path     = "."
 
 [build-dependencies]
 tonic-build = "0.8"
 
 [[example]]
-name = "grpc"
+name              = "grpc"
+required-features = ["all_resources"]
