@@ -75,8 +75,7 @@ impl Resource for ResourceObject<Data> {
                 ),
                 (
                     String::from("deleted_at"),
-                    FieldDefinition::new_internal(PsqlFieldType::TIMESTAMPTZ, true)
-                        .set_default(String::from("CURRENT_TIMESTAMP")),
+                    FieldDefinition::new_internal(PsqlFieldType::TIMESTAMPTZ, false),
                 ),
             ]),
         }
