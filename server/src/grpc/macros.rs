@@ -9,8 +9,9 @@ macro_rules! build_grpc_server_link_service_impl {
         use futures::lock::Mutex;
         use lazy_static::lazy_static;
         use std::collections::HashMap;
+
+        #[cfg(any(feature = "mock_server", test))]
         use std::str::FromStr;
-        use uuid::Uuid;
 
         lazy_static! {
             /// In memory data used for mock client implementation
@@ -46,7 +47,7 @@ macro_rules! build_grpc_server_link_service_impl {
                 &self,
                 request: Request<$link_other_resource>,
             ) -> Result<tonic::Response<()>, Status> {
-                grpc_warn!("(link) {} server.", self.get_name());
+                grpc_warn!("(link) {} server.", stringify!($resource));
                 grpc_debug!("(link) request: {:?}", request);
                 let data: $link_other_resource = request.into_inner();
                 self.generic_link::<ResourceObject<$other_resource::Data>>(data.id.clone(), data.get_other_ids().try_into()?, false)
@@ -75,7 +76,7 @@ macro_rules! build_grpc_server_link_service_impl {
                     return Err(tonic::Status::not_found(error));
                 }
 
-                match Uuid::from_str(&id) {
+                match uuid::Uuid::from_str(&id) {
                     Ok(uuid) => uuid,
                     Err(e) => {
                         let error = format!(
@@ -140,7 +141,7 @@ macro_rules! build_grpc_server_link_service_impl {
                     return Err(tonic::Status::not_found(error));
                 }
 
-                match Uuid::from_str(&id) {
+                match uuid::Uuid::from_str(&id) {
                     Ok(uuid) => uuid,
                     Err(e) => {
                         let error = format!(
@@ -190,7 +191,7 @@ macro_rules! build_grpc_server_link_service_impl {
                     return Err(tonic::Status::not_found(error));
                 }
 
-                match Uuid::from_str(&id) {
+                match uuid::Uuid::from_str(&id) {
                     Ok(uuid) => uuid,
                     Err(e) => {
                         let error = format!(
