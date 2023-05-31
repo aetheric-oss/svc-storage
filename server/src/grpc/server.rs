@@ -15,6 +15,7 @@ grpc_server!(adsb, "adsb");
 grpc_server!(flight_plan, "flight_plan");
 grpc_server!(itinerary, "itinerary");
 grpc_server!(parcel, "parcel");
+grpc_server!(scanner, "scanner");
 grpc_server!(pilot, "pilot");
 grpc_server!(vehicle, "vehicle");
 grpc_server!(vertipad, "vertipad");
@@ -96,6 +97,9 @@ pub async fn grpc_server(config: Config) {
         .set_serving::<parcel::RpcServiceServer<parcel::GrpcServer>>()
         .await;
     health_reporter
+        .set_serving::<scanner::RpcServiceServer<scanner::GrpcServer>>()
+        .await;
+    health_reporter
         .set_serving::<pilot::RpcServiceServer<pilot::GrpcServer>>()
         .await;
     health_reporter
@@ -122,6 +126,9 @@ pub async fn grpc_server(config: Config) {
             itinerary_flight_plan::GrpcServer::default(),
         ))
         .add_service(parcel::RpcServiceServer::new(parcel::GrpcServer::default()))
+        .add_service(scanner::RpcServiceServer::new(
+            scanner::GrpcServer::default(),
+        ))
         .add_service(pilot::RpcServiceServer::new(pilot::GrpcServer::default()))
         .add_service(vehicle::RpcServiceServer::new(
             vehicle::GrpcServer::default(),

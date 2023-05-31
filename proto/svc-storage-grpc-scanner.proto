@@ -1,0 +1,76 @@
+syntax = "proto3";
+package grpc.scanner;
+
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "svc-storage-grpc.proto";
+
+
+// Response struct returning an [Object] on success and [ValidationResult] if invalid fields were provided
+message Response {
+    // struct with field -> error pairs to provide feedback about invalid fields
+    grpc.ValidationResult validation_result = 1;
+    // Object struct with id [String] in [Uuid](uuid::Uuid) format and [Data] struct with scanner data
+    optional Object object = 2;
+}
+
+// Object struct with `id` and `data` field
+// * `id` [String] in [Uuid](uuid::Uuid) format
+// * `data` [Data] struct with scanner data
+message Object {
+    //id UUID v4
+    string id = 1;
+    //data
+    Data data = 2;
+}
+
+// UpdateObject struct with `id`, `data` and `mask` fields
+// * `id` [String] in [Uuid](uuid::Uuid) format
+// * `data` [Data] struct with scanner data which should be used for update
+// * `mask` [FieldMask] struct with scanner fields that should be updated
+message UpdateObject {
+    // `id` [String] in [Uuid](uuid::Uuid) format
+    string id = 1;
+    // struct with scanner data which should be used for update
+    Data data = 2;
+    // struct with scanner fields that should be updated
+    google.protobuf.FieldMask mask = 3;
+}
+
+// Scanner Type Enum
+enum ScannerType {
+    // Handheld Device - Smartphone App or Tablet
+    MOBILE = 0;
+    // Locker Scanner - Allows Customer to Access Package
+    LOCKER = 1;
+    // Facility - Warehouse or Distribution Center
+    FACILITY = 2;
+    // Aircraft or Drone-Mounted Scanner
+    UNDERBELLY = 3;
+}
+
+// Scanner Status Enum
+enum ScannerStatus {
+    // Allow scans from this device
+    ACTIVE = 0;
+    // Disabled scanner
+    DISABLED = 1;
+}
+
+// Data struct with scanner data
+message Data {
+    // the organization UUID associated with the scanner
+    string organization_id = 1;
+
+    // the device type of the scanner
+    ScannerType scanner_type = 2;
+
+    // the status of the scanner
+    ScannerStatus scanner_status = 3;
+}
+
+// Struct containing a `list` of scanner [Vec\<Object\>]
+message List {
+    // array/vector of scanner items
+    repeated Object list = 1;
+}
