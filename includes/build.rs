@@ -22,6 +22,7 @@ fn get_types() -> Vec<String> {
         "itinerary".to_owned(),
         "pilot".to_owned(),
         "parcel".to_owned(),
+        "scanner".to_owned(),
         "vehicle".to_owned(),
         "vertipad".to_owned(),
         "vertiport".to_owned(),
@@ -73,6 +74,10 @@ fn get_grpc_builder_config(out_path: &str) -> tonic_build::Builder {
         .type_attribute("VehicleData", "#[derive(Eq)]")
         .type_attribute("Parcel", "#[derive(Eq)]")
         .type_attribute("ParcelData", "#[derive(Eq)]")
+        .type_attribute("Scanner", "#[derive(Eq)]")
+        .type_attribute("ScannerData", "#[derive(Eq)]")
+        .type_attribute("ScannerType", "#[derive(num_derive::FromPrimitive)]")
+        .type_attribute("ScannerStatus", "#[derive(num_derive::FromPrimitive)]")
         .type_attribute("Vehicles", "#[derive(Eq)]")
         .type_attribute("Pilot", "#[derive(Eq)]")
         .type_attribute("PilotData", "#[derive(Eq)]")
