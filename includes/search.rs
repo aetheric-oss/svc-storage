@@ -5,7 +5,7 @@ use super::{AdvancedSearchFilter, ComparisonOperator, FilterOption, PredicateOpe
 ///
 /// Examples:
 /// ```
-/// use svc_storage_client_grpc::AdvancedSearchFilter;
+/// use svc_storage::resources::AdvancedSearchFilter;
 /// let filter = AdvancedSearchFilter::search_equals(String::from("status"), String::from("enabled"))
 ///     .and_equals(String::from("resource_id"), String::from("53acfe06-dd9b-42e8-8cb4-12a2fb2fa693"))
 ///     .and_between(String::from("created_at"), String::from("2022-04-10 22:10:57+02:00"), String::from("2022-04-12 22:10:57+02:00"))
@@ -114,7 +114,7 @@ impl AdvancedSearchFilter {
     /// * search_value: the provided `value` as single entry in a [Vec\<String\>]
     /// * predicate operator: [PredicateOperator::Greater]
     /// * comparison operator: [None]
-    pub fn greater(column: String, value: String) -> Self {
+    pub fn search_greater(column: String, value: String) -> Self {
         Self::search(column, vec![value], PredicateOperator::Greater)
     }
     /// wrapper function for internal `search` function returning a new [AdvancedSearchFilter] object
@@ -124,7 +124,7 @@ impl AdvancedSearchFilter {
     /// * search_value: the provided `value` as single entry in a [Vec\<String\>]
     /// * predicate operator: [PredicateOperator::GreaterOrEqual]
     /// * comparison operator: [None]
-    pub fn greater_or_equal(column: String, value: String) -> Self {
+    pub fn search_greater_or_equal(column: String, value: String) -> Self {
         Self::search(column, vec![value], PredicateOperator::GreaterOrEqual)
     }
     /// wrapper function for internal `search` function returning a new [AdvancedSearchFilter] object
@@ -134,7 +134,7 @@ impl AdvancedSearchFilter {
     /// * search_value: the provided `value` as single entry in a [Vec\<String\>]
     /// * predicate operator: [PredicateOperator::Less]
     /// * comparison operator: [None]
-    pub fn less(column: String, value: String) -> Self {
+    pub fn search_less(column: String, value: String) -> Self {
         Self::search(column, vec![value], PredicateOperator::Less)
     }
     /// wrapper function for internal `search` function returning a new [AdvancedSearchFilter] object
@@ -144,8 +144,41 @@ impl AdvancedSearchFilter {
     /// * search_value: the provided `value` as single entry in a [Vec\<String\>]
     /// * predicate operator: [PredicateOperator::LessOrEqual]
     /// * comparison operator: [None]
-    pub fn less_or_equal(column: String, value: String) -> Self {
+    pub fn search_less_or_equal(column: String, value: String) -> Self {
         Self::search(column, vec![value], PredicateOperator::LessOrEqual)
+    }
+    /// wrapper function for internal `search` function returning a new [AdvancedSearchFilter] object
+    ///
+    /// Adds a [FilterOption] to `filters` using:
+    /// * search_field: the provided `column` [String]
+    /// * search_value: the provided `value` as single entry in a
+    ///   [Vec\<String\>] in a [Well Know Text](https://www.cockroachlabs.com/docs/v23.1/well-known-text) format
+    /// * predicate operator: [PredicateOperator::GeoIntersect]
+    /// * comparison operator: [None]
+    pub fn search_geo_intersect(column: String, value: String) -> Self {
+        Self::search(column, vec![value], PredicateOperator::GeoIntersect)
+    }
+    /// wrapper function for internal `search` function returning a new [AdvancedSearchFilter] object
+    ///
+    /// Adds a [FilterOption] to `filters` using:
+    /// * search_field: the provided `column` [String]
+    /// * search_value: the provided `value` as single entry in a
+    ///   [Vec\<String\>] in a [Well Know Text](https://www.cockroachlabs.com/docs/v23.1/well-known-text) format
+    /// * predicate operator: [PredicateOperator::GeoWithin]
+    /// * comparison operator: [None]
+    pub fn search_geo_within(column: String, value: String) -> Self {
+        Self::search(column, vec![value], PredicateOperator::GeoWithin)
+    }
+    /// wrapper function for internal `search` function returning a new [AdvancedSearchFilter] object
+    ///
+    /// Adds a [FilterOption] to `filters` using:
+    /// * search_field: the provided `column` [String]
+    /// * search_value: the provided `value` as single entry in a
+    ///   [Vec\<String\>] in a [Well Know Text](https://www.cockroachlabs.com/docs/v23.1/well-known-text) format
+    /// * predicate operator: [PredicateOperator::GeoDisjoint]
+    /// * comparison operator: [None]
+    pub fn search_geo_disjoint(column: String, value: String) -> Self {
+        Self::search(column, vec![value], PredicateOperator::GeoDisjoint)
     }
 
     fn add_filter(
@@ -344,6 +377,54 @@ impl AdvancedSearchFilter {
             ComparisonOperator::And,
         )
     }
+    /// wrapper function for internal `add_filter` function returning [Self]
+    ///
+    /// Adds a [FilterOption] to `filters` using:
+    /// * search_field: the provided `column` [String]
+    /// * search_value: the provided `value` as single entry in a
+    ///   [Vec\<String\>] in a [Well Know Text](https://www.cockroachlabs.com/docs/v23.1/well-known-text) format
+    /// * predicate operator: [PredicateOperator::GeoIntersect]
+    /// * comparison operator: [ComparisonOperator::And]
+    pub fn and_geo_intersect(self, column: String, value: String) -> Self {
+        self.add_filter(
+            column,
+            vec![value],
+            PredicateOperator::GeoIntersect,
+            ComparisonOperator::And,
+        )
+    }
+    /// wrapper function for internal `add_filter` function returning [Self]
+    ///
+    /// Adds a [FilterOption] to `filters` using:
+    /// * search_field: the provided `column` [String]
+    /// * search_value: the provided `value` as single entry in a
+    ///   [Vec\<String\>] in a [Well Know Text](https://www.cockroachlabs.com/docs/v23.1/well-known-text) format
+    /// * predicate operator: [PredicateOperator::GeoWithin]
+    /// * comparison operator: [ComparisonOperator::And]
+    pub fn and_geo_within(self, column: String, value: String) -> Self {
+        self.add_filter(
+            column,
+            vec![value],
+            PredicateOperator::GeoWithin,
+            ComparisonOperator::And,
+        )
+    }
+    /// wrapper function for internal `add_filter` function returning [Self]
+    ///
+    /// Adds a [FilterOption] to `filters` using:
+    /// * search_field: the provided `column` [String]
+    /// * search_value: the provided `value` as single entry in a
+    ///   [Vec\<String\>] in a [Well Know Text](https://www.cockroachlabs.com/docs/v23.1/well-known-text) format
+    /// * predicate operator: [PredicateOperator::GeoDisjoint]
+    /// * comparison operator: [ComparisonOperator::And]
+    pub fn and_geo_disjoint(self, column: String, value: String) -> Self {
+        self.add_filter(
+            column,
+            vec![value],
+            PredicateOperator::GeoDisjoint,
+            ComparisonOperator::And,
+        )
+    }
 
     /// wrapper function for internal `add_filter` function returning [Self]
     ///
@@ -525,6 +606,54 @@ impl AdvancedSearchFilter {
             ComparisonOperator::Or,
         )
     }
+    /// wrapper function for internal `add_filter` function returning [Self]
+    ///
+    /// Adds a [FilterOption] to `filters` using:
+    /// * search_field: the provided `column` [String]
+    /// * search_value: the provided `value` as single entry in a
+    ///   [Vec\<String\>] in a [Well Know Text](https://www.cockroachlabs.com/docs/v23.1/well-known-text) format
+    /// * predicate operator: [PredicateOperator::GeoIntersect]
+    /// * comparison operator: [ComparisonOperator::Or]
+    pub fn or_geo_intersect(self, column: String, value: String) -> Self {
+        self.add_filter(
+            column,
+            vec![value],
+            PredicateOperator::GeoIntersect,
+            ComparisonOperator::Or,
+        )
+    }
+    /// wrapper function for internal `add_filter` function returning [Self]
+    ///
+    /// Adds a [FilterOption] to `filters` using:
+    /// * search_field: the provided `column` [String]
+    /// * search_value: the provided `value` as single entry in a
+    ///   [Vec\<String\>] in a [Well Know Text](https://www.cockroachlabs.com/docs/v23.1/well-known-text) format
+    /// * predicate operator: [PredicateOperator::GeoWithin]
+    /// * comparison operator: [ComparisonOperator::Or]
+    pub fn or_geo_within(self, column: String, value: String) -> Self {
+        self.add_filter(
+            column,
+            vec![value],
+            PredicateOperator::GeoWithin,
+            ComparisonOperator::Or,
+        )
+    }
+    /// wrapper function for internal `add_filter` function returning [Self]
+    ///
+    /// Adds a [FilterOption] to `filters` using:
+    /// * search_field: the provided `column` [String]
+    /// * search_value: the provided `value` as single entry in a
+    ///   [Vec\<String\>] in a [Well Know Text](https://www.cockroachlabs.com/docs/v23.1/well-known-text) format
+    /// * predicate operator: [PredicateOperator::GeoDisjoint]
+    /// * comparison operator: [ComparisonOperator::Or]
+    pub fn or_geo_disjoint(self, column: String, value: String) -> Self {
+        self.add_filter(
+            column,
+            vec![value],
+            PredicateOperator::GeoDisjoint,
+            ComparisonOperator::Or,
+        )
+    }
 
     /// sets `results_per_page` field with given `amount`
     pub fn results_per_page(mut self, amount: i32) -> Self {
@@ -536,5 +665,302 @@ impl AdvancedSearchFilter {
     pub fn page_number(mut self, page: i32) -> Self {
         self.page_number = page;
         self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::SortOrder;
+    use super::*;
+
+    // Test all of search, and, or options for predicate operator; equals
+    #[test]
+    fn test_search_equals() {
+        let filter =
+            AdvancedSearchFilter::search_equals(String::from("equals"), String::from("test"))
+                .and_equals(String::from("and_equals"), String::from("test"))
+                .or_equals(String::from("or_equals"), String::from("test"));
+
+        assert_eq!(filter.filters.len(), 3);
+
+        let filter_option1 = &filter.filters[0];
+        assert_eq!(filter_option1.search_field, "equals");
+        assert_eq!(filter_option1.search_value, vec!["test"]);
+        assert_eq!(
+            filter.filters[0].predicate_operator,
+            PredicateOperator::Equals as i32
+        );
+
+        let filter_option2 = &filter.filters[1];
+        assert_eq!(filter_option2.search_field, "and_equals");
+        assert_eq!(filter_option2.search_value, vec!["test"]);
+        assert_eq!(
+            filter_option2.predicate_operator,
+            PredicateOperator::Equals as i32
+        );
+        assert_eq!(
+            filter_option2.comparison_operator,
+            Some(ComparisonOperator::And as i32)
+        );
+
+        let filter_option3 = &filter.filters[2];
+        assert_eq!(filter_option3.search_field, "or_equals");
+        assert_eq!(filter_option3.search_value, vec!["test"]);
+        assert_eq!(
+            filter_option3.predicate_operator,
+            PredicateOperator::Equals as i32
+        );
+        assert_eq!(
+            filter_option3.comparison_operator,
+            Some(ComparisonOperator::Or as i32)
+        );
+    }
+
+    // Test all of search, and, or options for predicate operator; not_equals
+    #[test]
+    fn test_search_not_equals() {
+        let filter = AdvancedSearchFilter::search_not_equals(
+            String::from("not_equals"),
+            String::from("test"),
+        )
+        .and_not_equals(String::from("and_not_equals"), String::from("test"))
+        .or_not_equals(String::from("or_not_equals"), String::from("test"));
+
+        assert_eq!(filter.filters.len(), 3);
+
+        let filter_option1 = &filter.filters[0];
+        assert_eq!(filter_option1.search_field, "not_equals");
+        assert_eq!(filter_option1.search_value, vec!["test"]);
+        assert_eq!(
+            filter.filters[0].predicate_operator,
+            PredicateOperator::NotEquals as i32
+        );
+
+        let filter_option2 = &filter.filters[1];
+        assert_eq!(filter_option2.search_field, "and_not_equals");
+        assert_eq!(filter_option2.search_value, vec!["test"]);
+        assert_eq!(
+            filter_option2.predicate_operator,
+            PredicateOperator::NotEquals as i32
+        );
+        assert_eq!(
+            filter_option2.comparison_operator,
+            Some(ComparisonOperator::And as i32)
+        );
+
+        let filter_option3 = &filter.filters[2];
+        assert_eq!(filter_option3.search_field, "or_not_equals");
+        assert_eq!(filter_option3.search_value, vec!["test"]);
+        assert_eq!(
+            filter_option3.predicate_operator,
+            PredicateOperator::NotEquals as i32
+        );
+        assert_eq!(
+            filter_option3.comparison_operator,
+            Some(ComparisonOperator::Or as i32)
+        );
+    }
+
+    // Test all of search, and, or options for predicate operator; in
+    #[test]
+    fn test_search_in() {
+        let filter =
+            AdvancedSearchFilter::search_in(String::from("in"), vec![String::from("test")])
+                .and_in(String::from("and_in"), vec![String::from("test")])
+                .or_in(String::from("or_in"), vec![String::from("test")]);
+
+        assert_eq!(filter.filters.len(), 3);
+
+        let filter_option1 = &filter.filters[0];
+        assert_eq!(filter_option1.search_field, "in");
+        assert_eq!(filter_option1.search_value, vec!["test"]);
+        assert_eq!(
+            filter.filters[0].predicate_operator,
+            PredicateOperator::In as i32
+        );
+
+        let filter_option2 = &filter.filters[1];
+        assert_eq!(filter_option2.search_field, "and_in");
+        assert_eq!(filter_option2.search_value, vec!["test"]);
+        assert_eq!(
+            filter_option2.predicate_operator,
+            PredicateOperator::In as i32
+        );
+        assert_eq!(
+            filter_option2.comparison_operator,
+            Some(ComparisonOperator::And as i32)
+        );
+
+        let filter_option3 = &filter.filters[2];
+        assert_eq!(filter_option3.search_field, "or_in");
+        assert_eq!(filter_option3.search_value, vec!["test"]);
+        assert_eq!(
+            filter_option3.predicate_operator,
+            PredicateOperator::In as i32
+        );
+        assert_eq!(
+            filter_option3.comparison_operator,
+            Some(ComparisonOperator::Or as i32)
+        );
+    }
+
+    // Test all of search, and, or options for predicate operator; between
+    #[test]
+    fn test_search_between() {
+        let filter = AdvancedSearchFilter::search_between(
+            String::from("between"),
+            1.to_string(),
+            10.to_string(),
+        )
+        .and_between(String::from("and_between"), 1.to_string(), 5.to_string())
+        .or_between(String::from("or_between"), 7.to_string(), 5.to_string());
+
+        assert_eq!(filter.filters.len(), 3);
+
+        let filter_option1 = &filter.filters[0];
+        assert_eq!(filter_option1.search_field, "between");
+        assert_eq!(filter_option1.search_value, vec!["1", "10"]);
+        assert_eq!(
+            filter.filters[0].predicate_operator,
+            PredicateOperator::Between as i32
+        );
+
+        let filter_option2 = &filter.filters[1];
+        assert_eq!(filter_option2.search_field, "and_between");
+        assert_eq!(filter_option2.search_value, vec!["1", "5"]);
+        assert_eq!(
+            filter_option2.predicate_operator,
+            PredicateOperator::Between as i32
+        );
+        assert_eq!(
+            filter_option2.comparison_operator,
+            Some(ComparisonOperator::And as i32)
+        );
+
+        let filter_option3 = &filter.filters[2];
+        assert_eq!(filter_option3.search_field, "or_between");
+        assert_eq!(filter_option3.search_value, vec!["7", "5"]);
+        assert_eq!(
+            filter_option3.predicate_operator,
+            PredicateOperator::Between as i32
+        );
+        assert_eq!(
+            filter_option3.comparison_operator,
+            Some(ComparisonOperator::Or as i32)
+        );
+    }
+
+    #[test]
+    fn test_predicate_operator_as_str_name() {
+        assert_eq!(PredicateOperator::Equals.as_str_name(), "EQUALS");
+        assert_eq!(PredicateOperator::NotEquals.as_str_name(), "NOT_EQUALS");
+        assert_eq!(PredicateOperator::In.as_str_name(), "IN");
+        assert_eq!(PredicateOperator::Between.as_str_name(), "BETWEEN");
+        assert_eq!(PredicateOperator::IsNull.as_str_name(), "IS_NULL");
+        assert_eq!(PredicateOperator::IsNotNull.as_str_name(), "IS_NOT_NULL");
+        assert_eq!(PredicateOperator::Ilike.as_str_name(), "ILIKE");
+        assert_eq!(PredicateOperator::Like.as_str_name(), "LIKE");
+        assert_eq!(PredicateOperator::Greater.as_str_name(), "GREATER");
+        assert_eq!(
+            PredicateOperator::GreaterOrEqual.as_str_name(),
+            "GREATER_OR_EQUAL"
+        );
+        assert_eq!(PredicateOperator::Less.as_str_name(), "LESS");
+        assert_eq!(
+            PredicateOperator::LessOrEqual.as_str_name(),
+            "LESS_OR_EQUAL"
+        );
+        assert_eq!(
+            PredicateOperator::GeoIntersect.as_str_name(),
+            "GEO_INTERSECT"
+        );
+        assert_eq!(PredicateOperator::GeoWithin.as_str_name(), "GEO_WITHIN");
+        assert_eq!(PredicateOperator::GeoDisjoint.as_str_name(), "GEO_DISJOINT");
+    }
+
+    #[test]
+    fn test_predicate_operator_from_str_name() {
+        assert_eq!(
+            PredicateOperator::from_str_name("EQUALS"),
+            Some(PredicateOperator::Equals)
+        );
+        assert_eq!(
+            PredicateOperator::from_str_name("NOT_EQUALS"),
+            Some(PredicateOperator::NotEquals)
+        );
+        assert_eq!(
+            PredicateOperator::from_str_name("IN"),
+            Some(PredicateOperator::In)
+        );
+        assert_eq!(
+            PredicateOperator::from_str_name("BETWEEN"),
+            Some(PredicateOperator::Between)
+        );
+        assert_eq!(
+            PredicateOperator::from_str_name("IS_NULL"),
+            Some(PredicateOperator::IsNull)
+        );
+        assert_eq!(
+            PredicateOperator::from_str_name("IS_NOT_NULL"),
+            Some(PredicateOperator::IsNotNull)
+        );
+        assert_eq!(
+            PredicateOperator::from_str_name("ILIKE"),
+            Some(PredicateOperator::Ilike)
+        );
+        assert_eq!(
+            PredicateOperator::from_str_name("LIKE"),
+            Some(PredicateOperator::Like)
+        );
+        assert_eq!(
+            PredicateOperator::from_str_name("GREATER"),
+            Some(PredicateOperator::Greater)
+        );
+        assert_eq!(
+            PredicateOperator::from_str_name("GEO_INTERSECT"),
+            Some(PredicateOperator::GeoIntersect)
+        );
+        assert_eq!(
+            PredicateOperator::from_str_name("GEO_WITHIN"),
+            Some(PredicateOperator::GeoWithin)
+        );
+        assert_eq!(
+            PredicateOperator::from_str_name("GEO_DISJOINT"),
+            Some(PredicateOperator::GeoDisjoint)
+        );
+
+        assert_eq!(PredicateOperator::from_str_name("INVALID"), None);
+    }
+
+    #[test]
+    fn test_comparison_operator_as_str_name() {
+        assert_eq!(ComparisonOperator::And.as_str_name(), "AND");
+        assert_eq!(ComparisonOperator::Or.as_str_name(), "OR");
+    }
+
+    #[test]
+    fn test_comparison_operator_from_str_name() {
+        assert_eq!(
+            ComparisonOperator::from_str_name("AND"),
+            Some(ComparisonOperator::And)
+        );
+        assert_eq!(
+            ComparisonOperator::from_str_name("OR"),
+            Some(ComparisonOperator::Or)
+        );
+        assert_eq!(ComparisonOperator::from_str_name("INVALID"), None);
+    }
+
+    #[test]
+    fn test_sort_order_as_str_name() {
+        assert_eq!(SortOrder::Asc.as_str_name(), "ASC");
+        assert_eq!(SortOrder::Desc.as_str_name(), "DESC");
+    }
+
+    #[test]
+    fn test_sort_order_from_str_name() {
+        assert_eq!(SortOrder::from_str_name("ASC"), Some(SortOrder::Asc));
+        assert_eq!(SortOrder::from_str_name("DESC"), Some(SortOrder::Desc));
+        assert_eq!(SortOrder::from_str_name("INVALID"), None);
     }
 }

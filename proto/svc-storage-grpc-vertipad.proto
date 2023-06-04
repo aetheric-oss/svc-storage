@@ -41,16 +41,14 @@ message Data {
     string vertiport_id = 1;
     // human readable name of the vertipad
     string name = 2;
-    // vertipad latitude location
-    double latitude = 3;
-    // vertipad longitude location
-    double longitude = 4;
+    // geographical location of the vertiport
+    grpc.GeoPoint geo_location = 3;
     // indicates if the vertipad is in business
-    bool enabled = 5;
+    bool enabled = 4;
     // indicates if the vertipad is currently occupied
-    bool occupied = 6;
+    bool occupied = 5;
     // RRULE data string to indicate the vertipad's opening days and hours
-    optional string schedule = 7;
+    optional string schedule = 6;
 }
 
 // Struct containing a `list` of vertipad [Vec\<Object\>]

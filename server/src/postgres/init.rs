@@ -22,12 +22,12 @@ pub async fn create_db() -> Result<(), ArrErr> {
     ResourceObject::<vertipad::Data>::init_table().await?;
     ResourceObject::<vehicle::Data>::init_table().await?;
     ResourceObject::<pilot::Data>::init_table().await?;
-    ResourceObject::<parcel::Data>::init_table().await?;
-    ResourceObject::<scanner::Data>::init_table().await?;
     ResourceObject::<adsb::Data>::init_table().await?;
     ResourceObject::<flight_plan::Data>::init_table().await?;
     ResourceObject::<itinerary::Data>::init_table().await?;
     ResourceObject::<itinerary_flight_plan::Data>::init_table().await?;
+    ResourceObject::<parcel::Data>::init_table().await?;
+    ResourceObject::<scanner::Data>::init_table().await?;
     Ok(())
 }
 
@@ -36,12 +36,12 @@ pub async fn create_db() -> Result<(), ArrErr> {
 pub async fn drop_db() -> Result<(), ArrErr> {
     psql_warn!("Dropping database tables.");
     // Drop our tables (in the correct order)
+    ResourceObject::<scanner::Data>::drop_table().await?;
+    ResourceObject::<parcel::Data>::drop_table().await?;
     ResourceObject::<itinerary_flight_plan::Data>::drop_table().await?;
     ResourceObject::<itinerary::Data>::drop_table().await?;
     ResourceObject::<flight_plan::Data>::drop_table().await?;
     ResourceObject::<adsb::Data>::drop_table().await?;
-    ResourceObject::<parcel::Data>::drop_table().await?;
-    ResourceObject::<scanner::Data>::drop_table().await?;
     ResourceObject::<pilot::Data>::drop_table().await?;
     ResourceObject::<vehicle::Data>::drop_table().await?;
     ResourceObject::<vertipad::Data>::drop_table().await?;
@@ -77,7 +77,11 @@ where
         for index_query in queries {
             psql_debug!("{}", index_query);
             if let Err(e) = transaction.execute(&index_query, &[]).await {
-                psql_error!("Failed to create indices for table [flight_plan]: {}", e);
+                psql_error!(
+                    "Failed to create indices for table [{}]: {}",
+                    Self::get_psql_table(),
+                    e
+                );
                 return transaction.rollback().await.map_err(ArrErr::from);
             }
         }
@@ -205,6 +209,9 @@ fn get_create_table_fields_sql(fields: &HashMap<String, FieldDefinition>) -> Vec
             PsqlFieldType::INT8 => field_sql.push_str(" BIGINT"),
             PsqlFieldType::NUMERIC => field_sql.push_str(" DOUBLE PRECISION"),
             PsqlFieldType::BYTEA => field_sql.push_str(" BYTEA"),
+            PsqlFieldType::PATH => field_sql.push_str(" GEOMETRY"),
+            PsqlFieldType::POINT => field_sql.push_str(" GEOMETRY"),
+            PsqlFieldType::POLYGON => field_sql.push_str(" GEOMETRY"),
             _ => field_sql.push_str(&format!(" {}", field.field_type.name().to_uppercase())),
         }
 

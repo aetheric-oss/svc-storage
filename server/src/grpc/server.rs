@@ -3,6 +3,7 @@ use super::GrpcSimpleService;
 use crate::config::Config;
 use crate::resources::base::ResourceObject;
 use crate::shutdown_signal;
+use geo_types::{Coord, LineString, Point, Polygon};
 use std::net::SocketAddr;
 use tonic::transport::Server;
 use tonic::{Request, Status};
@@ -52,6 +53,9 @@ pub mod search {
     include!("../../../includes/search.rs");
 }
 pub use search::*;
+
+// Provide geo type conversions
+include!("../../../includes/geo_types.rs");
 
 /// Starts the grpc servers for this microservice using the provided configuration
 ///

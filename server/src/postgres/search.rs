@@ -90,8 +90,8 @@ where
         // Validate filter params making sure they are conform the column field type.
         // Adding the value to the list of query parameters if valid.
         let mut params: Vec<Box<PsqlFieldSend>> = vec![];
-        for param in filter_params.iter() {
-            params.push(Self::_param_from_search_col(param)?);
+        for search_col in filter_params.iter() {
+            params.push(Self::_param_from_search_col(search_col)?);
         }
 
         // Check if we need to order the results on given parameters
@@ -123,6 +123,7 @@ where
             definition.psql_table,
             search_query
         );
+        psql_debug!("Params: {:?}", params);
 
         let mut ref_params: Vec<&PsqlField> = vec![];
         for field in params.iter() {
@@ -192,14 +193,14 @@ pub(crate) fn get_filter_str(
             filter_str = format!(r#" "{}" = ${}"#, search_col.col_name, next_param_index);
             let val: String = get_single_search_value(values)?;
             search_col.set_value(val);
-            params.push(search_col);
+            params.push(search_col.clone());
             next_param_index += 1;
         }
         PredicateOperator::NotEquals => {
             filter_str = format!(r#" "{}" <> ${}"#, search_col.col_name, next_param_index);
             let val: String = get_single_search_value(values)?;
             search_col.set_value(val);
-            params.push(search_col);
+            params.push(search_col.clone());
             next_param_index += 1;
         }
         PredicateOperator::In => {
@@ -264,7 +265,7 @@ pub(crate) fn get_filter_str(
                 search_col.col_name, next_param_index
             );
             search_col.set_value(get_single_search_value(values)?);
-            params.push(search_col);
+            params.push(search_col.clone());
             next_param_index += 1;
         }
         PredicateOperator::Like => {
@@ -273,35 +274,62 @@ pub(crate) fn get_filter_str(
                 search_col.col_name, next_param_index
             );
             search_col.set_value(get_single_search_value(values)?);
-            params.push(search_col);
+            params.push(search_col.clone());
             next_param_index += 1;
         }
         PredicateOperator::Greater => {
             filter_str = format!(r#" "{}" > ${}"#, search_col.col_name, next_param_index);
             let val: String = get_single_search_value(values)?;
             search_col.set_value(val);
-            params.push(search_col);
+            params.push(search_col.clone());
             next_param_index += 1;
         }
         PredicateOperator::GreaterOrEqual => {
             filter_str = format!(r#" "{}" >= ${}"#, search_col.col_name, next_param_index);
             let val: String = get_single_search_value(values)?;
             search_col.set_value(val);
-            params.push(search_col);
+            params.push(search_col.clone());
             next_param_index += 1;
         }
         PredicateOperator::Less => {
             filter_str = format!(r#" "{}" < ${}"#, search_col.col_name, next_param_index);
             let val: String = get_single_search_value(values)?;
             search_col.set_value(val);
-            params.push(search_col);
+            params.push(search_col.clone());
             next_param_index += 1;
         }
         PredicateOperator::LessOrEqual => {
             filter_str = format!(r#" "{}" <= ${}"#, search_col.col_name, next_param_index);
             let val: String = get_single_search_value(values)?;
             search_col.set_value(val);
-            params.push(search_col);
+            params.push(search_col.clone());
+            next_param_index += 1;
+        }
+        PredicateOperator::GeoIntersect => {
+            filter_str = format!(
+                r#" st_intersect(st_geomfromtext(${}), "{}")"#,
+                next_param_index, search_col.col_name,
+            );
+            search_col.set_value(get_single_search_value(values)?);
+            params.push(search_col.clone());
+            next_param_index += 1;
+        }
+        PredicateOperator::GeoWithin => {
+            filter_str = format!(
+                r#" st_within(st_geomfromtext(${}), "{}")"#,
+                next_param_index, search_col.col_name,
+            );
+            search_col.set_value(get_single_search_value(values)?);
+            params.push(search_col.clone());
+            next_param_index += 1;
+        }
+        PredicateOperator::GeoDisjoint => {
+            filter_str = format!(
+                r#" st_disjoint(st_geomfromtext(${}), "{}")"#,
+                next_param_index, search_col.col_name,
+            );
+            search_col.set_value(get_single_search_value(values)?);
+            params.push(search_col.clone());
             next_param_index += 1;
         }
     }
@@ -328,6 +356,10 @@ pub(crate) fn try_get_sort_str(sort_option: &SortOption) -> Result<String, ArrEr
 }
 
 fn get_single_search_value(search_value: Vec<String>) -> Result<String, ArrErr> {
+    psql_debug!(
+        "(get_single_search_value) get value from: {:?}",
+        search_value
+    );
     if search_value.len() == 1 {
         Ok(search_value[0].clone())
     } else {

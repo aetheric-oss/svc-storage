@@ -20,13 +20,15 @@ include = [
 ]
 
 [features]
-mock = ["chrono", "rand"]
+dev = ["mock", "tokio", "all_resources", "svc-storage"]
+mock = ["chrono", "rand", "geo"]
 test_util = [
-  "svc-storage/mock_server",
   "lib-common/grpc_mock",
   "mock",
+  "svc-storage/mock_server",
   "tokio",
   "tower",
+  "all_resources",
 ]
 # Supported resources
 adsb = ["any_resource"]
@@ -50,12 +52,11 @@ vertipad = ["any_resource", "vertiport"]
 vertiport = ["any_resource"]
 # Will implement mock functions for the client, only use for tests!
 mock_client = [
-  "all_resources",
+  "lazy_static",
   "lib-common/grpc_mock",
-  "mock",
+  "svc-storage",
   "tokio",
   "tower",
-  "lazy_static",
 ]
 
 [dependencies]
@@ -63,6 +64,7 @@ anyhow        = "1.0"
 cfg-if        = "1.0"
 chrono        = { version = "0.4", optional = true }
 futures       = "0.3"
+geo           = { version = "0.25", optional = true }
 geo-types     = "0.7"
 lazy_static   = { version = "1.4", optional = true }
 log           = "0.4"
@@ -77,9 +79,8 @@ tower         = { version = "0.4", optional = true }
 uuid          = { version = "1.2", features = ["v4"] }
 
 [dependencies.svc-storage]
-git      = "https://github.com/Arrow-air/svc-storage.git"
 optional = true
-tag      = "v0.10.1-develop.2"
+path     = "../server"
 
 [dependencies.lib-common]
 features = ["grpc"]
@@ -100,7 +101,7 @@ rand        = "0.8"
 
 # Make sure we enable the required modules and have access to all resources when running tests
 [dev-dependencies.svc-storage-client-grpc]
-features = ["test_util"]
+features = ["dev"]
 path     = "."
 
 [build-dependencies]
@@ -108,4 +109,4 @@ tonic-build = "0.8"
 
 [[example]]
 name              = "grpc"
-required-features = ["all_resources"]
+required-features = ["all_resources", "mock"]

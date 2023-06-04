@@ -34,16 +34,12 @@ impl Resource for ResourceObject<Data> {
                     FieldDefinition::new(PsqlFieldType::TEXT, true),
                 ),
                 (
-                    "longitude".to_string(),
-                    FieldDefinition::new(PsqlFieldType::NUMERIC, true),
-                ),
-                (
-                    "latitude".to_string(),
-                    FieldDefinition::new(PsqlFieldType::NUMERIC, true),
+                    "geo_location".to_string(),
+                    FieldDefinition::new(PsqlFieldType::POLYGON, true),
                 ),
                 (
                     "schedule".to_string(),
-                    FieldDefinition::new(PsqlFieldType::TEXT, true),
+                    FieldDefinition::new(PsqlFieldType::TEXT, false),
                 ),
                 (
                     "created_at".to_string(),
@@ -62,6 +58,12 @@ impl Resource for ResourceObject<Data> {
             ]),
         }
     }
+
+    fn get_table_indices() -> Vec<String> {
+        [
+            r#"CREATE INDEX IF NOT EXISTS vertiport_geo_location_idx ON vertiport USING GIST(geo_location)"#.to_owned(),
+        ].to_vec()
+    }
 }
 
 impl GrpcDataObjectType for Data {
@@ -69,8 +71,7 @@ impl GrpcDataObjectType for Data {
         match key {
             "name" => Ok(GrpcField::String(self.name.clone())), // ::prost::alloc::string::String,
             "description" => Ok(GrpcField::String(self.description.clone())), // ::prost::alloc::string::String,
-            "latitude" => Ok(GrpcField::F64(self.latitude)),                  // f64,
-            "longitude" => Ok(GrpcField::F64(self.longitude)),                // f64,
+            "geo_location" => Ok(GrpcField::Option(self.geo_location.clone().into())),
             "schedule" => Ok(GrpcField::Option(GrpcFieldOption::String(
                 self.schedule.clone(),
             ))), // ::core::option::Option<::prost::alloc::string::String>,
@@ -82,17 +83,19 @@ impl GrpcDataObjectType for Data {
     }
 }
 
+#[cfg(not(tarpaulin_include))]
+// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
 impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
         debug!("Converting Row to vertiport::Data: {:?}", row);
         let schedule: Option<String> = row.get("schedule");
+        let geo_location = row.get::<&str, postgis::ewkb::Polygon>("geo_location");
         Ok(Data {
             name: row.get("name"),
             description: row.get("description"),
-            latitude: row.get("latitude"),
-            longitude: row.get("longitude"),
+            geo_location: Some(geo_location.into()),
             schedule,
         })
     }

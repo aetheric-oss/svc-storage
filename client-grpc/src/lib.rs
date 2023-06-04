@@ -4,6 +4,7 @@
 /// macros module exposing gRPC include macro
 mod macros;
 
+use geo_types::{Coord, LineString, Point, Polygon};
 use lib_common::log_macros;
 
 pub mod link_service;
@@ -19,6 +20,9 @@ pub use resources::*;
 pub mod search {
     include!("../includes/search.rs");
 }
+
+// Provide geo type conversions
+include!("../includes/geo_types.rs");
 
 cfg_if::cfg_if! {
     if #[cfg(any(feature = "all_resources", feature = "any_resource"))] {
@@ -75,7 +79,7 @@ cfg_if::cfg_if! {
                     pub use itinerary::RpcServiceClient as ItineraryClient;
 
                     cfg_if::cfg_if! {
-                        if #[cfg(feature = "mock_client")] {
+                        if #[cfg(any(feature = "test_util", feature = "mock_client"))] {
                             use svc_storage::grpc::server::itinerary_flight_plan::{RpcFlightPlanLinkServer, GrpcServer as ItineraryFlightPlanGrpcServer};
                             lib_common::grpc_mock_client!(ItineraryFlightPlanLinkClient, RpcFlightPlanLinkServer, ItineraryFlightPlanGrpcServer);
                         } else {

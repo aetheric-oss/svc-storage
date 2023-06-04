@@ -53,6 +53,12 @@ enum PredicateOperator {
     LESS = 10;
     // indicates a search query with \<col\> <= \<value\> filter
     LESS_OR_EQUAL = 11;
+    // indicates a geographic search query with \<col\> ST_Intersect filter
+    GEO_INTERSECT = 12;
+    // indicates a geographic search query with \<col\> ST_Within filter
+    GEO_WITHIN = 13;
+    // indicates a geographic search query with \<col\> IS NOT ST_Disjoint filter
+    GEO_DISJOINT = 14;
 }
 
 // Comparison operators which can be used for the [`FilterOption`]
@@ -117,4 +123,34 @@ message ValidationResult {
     bool success = 1;
     // list of ValidationErrors
     repeated ValidationError errors = 2;
+}
+
+// Geo Location Point representation
+message GeoPoint {
+    // x (longitude)
+    double x = 1;
+    // y (latitude)
+    double y = 2;
+}
+
+// Geo Location Line representation
+message GeoLine {
+    // line start point
+    GeoPoint start = 1;
+    // line end point
+    GeoPoint end = 2;
+}
+
+// Geo Location Shape representation
+message GeoLineString {
+    // list of points
+    repeated GeoPoint points = 1;
+}
+
+// Geo Location Polygon representation
+message GeoPolygon {
+    // exterior
+    GeoLineString exterior = 1;
+    // interiors
+    repeated GeoLineString interiors = 2;
 }

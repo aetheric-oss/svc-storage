@@ -90,4 +90,6 @@ fn get_grpc_builder_config(out_path: &str) -> tonic_build::Builder {
         .type_attribute("FlightPlans", "#[derive(Eq)]")
         .type_attribute("ReadyRequest", "#[derive(Eq, Copy)]")
         .type_attribute("ReadyResponse", "#[derive(Eq, Copy)]")
+        .type_attribute("GeoPoint", "#[derive(Copy)]")
+        .type_attribute("GeoLine", "#[derive(Copy)]")
 }
