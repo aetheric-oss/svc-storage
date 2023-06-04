@@ -34,16 +34,12 @@ impl Resource for ResourceObject<Data> {
                     FieldDefinition::new(PsqlFieldType::TEXT, true),
                 ),
                 (
-                    "longitude".to_string(),
-                    FieldDefinition::new(PsqlFieldType::NUMERIC, true),
-                ),
-                (
-                    "latitude".to_string(),
-                    FieldDefinition::new(PsqlFieldType::NUMERIC, true),
+                    "geo_location".to_string(),
+                    FieldDefinition::new(PsqlFieldType::POINT, true),
                 ),
                 (
                     "schedule".to_string(),
-                    FieldDefinition::new(PsqlFieldType::TEXT, true),
+                    FieldDefinition::new(PsqlFieldType::TEXT, false),
                 ),
                 (
                     "enabled".to_string(),
@@ -75,6 +71,7 @@ impl Resource for ResourceObject<Data> {
         [
             r#"ALTER TABLE vertipad ADD CONSTRAINT fk_vertiport_id FOREIGN KEY(vertiport_id) REFERENCES vertiport(vertiport_id)"#.to_owned(),
             r#"CREATE INDEX IF NOT EXISTS vertipad_occupied_idx ON vertipad(occupied)"#.to_owned(),
+            r#"CREATE INDEX IF NOT EXISTS vertipad_geo_location_idx ON vertipad USING GIST(geo_location)"#.to_owned(),
         ].to_vec()
     }
 }
@@ -84,8 +81,7 @@ impl GrpcDataObjectType for Data {
         match key {
             "vertiport_id" => Ok(GrpcField::String(self.vertiport_id.clone())),
             "name" => Ok(GrpcField::String(self.name.clone())), // ::prost::alloc::string::String,
-            "latitude" => Ok(GrpcField::F64(self.latitude)),    // f64,
-            "longitude" => Ok(GrpcField::F64(self.longitude)),  // f64,
+            "geo_location" => Ok(GrpcField::Option(self.geo_location.into())),
             "schedule" => Ok(GrpcField::Option(GrpcFieldOption::String(
                 self.schedule.clone(),
             ))), // ::core::option::Option<::prost::alloc::string::String>,
@@ -99,6 +95,8 @@ impl GrpcDataObjectType for Data {
     }
 }
 
+#[cfg(not(tarpaulin_include))]
+// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
 impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
@@ -106,11 +104,11 @@ impl TryFrom<Row> for Data {
         debug!("Converting Row to vertipad::Data: {:?}", row);
         let vertiport_id: Uuid = row.get("vertiport_id");
         let schedule: Option<String> = row.get("schedule");
+        let geo_location = row.get::<&str, crate::resources::GeoPoint>("geo_location");
         Ok(Data {
             vertiport_id: vertiport_id.to_string(),
             name: row.get("name"),
-            latitude: row.get("latitude"),
-            longitude: row.get("longitude"),
+            geo_location: Some(geo_location),
             schedule,
             enabled: row.get("enabled"),
             occupied: row.get("occupied"),

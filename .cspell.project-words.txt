@@ -79,3 +79,14 @@ Pickedup
 NOTDROPPEDOFF
 Enroute
 logtest
+byteorder
+Ewkb
+ewkb
+geomfromtext
+impls
+LINESTRING
+linestring
+Postgis
+postgis
+ptype
+srid

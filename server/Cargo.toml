@@ -12,14 +12,16 @@ repository.workspace   = true
 
 [features]
 default          = []
-mock             = ["dep:rand"]
-test_util        = ["mock", "svc-storage-client-grpc/all-resources"]
+mock             = ["rand", "geo"]
+test_util        = ["mock"]
 vendored-openssl = ["openssl/vendored"]
 # Will implement mock functions for the server, only use for tests!
 mock_server = ["test_util"]
 
 [dependencies]
 anyhow              = "1.0"
+byteorder           = "1.4"
+bytes               = "1.0"
 cargo-husky         = "1"
 cfg-if              = "1.0"
 chrono              = { version = "0.4", features = ["serde"] }
@@ -29,6 +31,7 @@ deadpool            = "0.9"
 deadpool-postgres   = { version = "0.10", features = ["serde", "rt_tokio_1"] }
 dotenv              = "0.15"
 futures             = "0.3"
+geo                 = { version = "0.25", optional = true }
 geo-types           = "0.7"
 hyper               = "0.14"
 lazy_static         = "1.4"
@@ -41,6 +44,7 @@ once_cell           = "1.16"
 openssl             = "0.10"
 ordered-float       = "3.3.0"
 paste               = "1.0"
+postgis             = "0.9"
 postgres-native-tls = "0.5"
 prost               = "0.11"
 prost-build         = "0.11"
@@ -51,7 +55,6 @@ serde_json          = "1.0"
 serde_yaml          = "0.9"
 thiserror           = "1.0"
 tokio               = { version = "1.28", features = ["full"] }
-tokio-postgres      = { version = "0.7", features = ["with-uuid-1"] }
 tokio-util          = "0.7"
 tonic               = "0.8"
 tonic-health        = "0.8"
@@ -75,8 +78,12 @@ features = [
 ]
 version = "0.2"
 
+[dependencies.tokio-postgres]
+features = ["with-uuid-1", "with-geo-types-0_7", "array-impls"]
+version  = "0.7"
+
 [dev-dependencies]
-assert_matches = "1.4.0"
+assert_matches = "1.4"
 logtest        = "2.0"
 rand           = "0.8"
 
@@ -90,10 +97,5 @@ version          = "1"
 features = ["test_util"]
 path     = "."
 
-# Needed to generate rust-doc on proto functions
-[dev-dependencies.svc-storage-client-grpc]
-git = "https://github.com/Arrow-air/svc-storage.git"
-tag = "v0.10.1-develop.1"
-
 [build-dependencies]
-tonic-build = "0.8"
+tonic-build = { version = "0.8", features = ["cleanup-markdown"] }

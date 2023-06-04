@@ -2,17 +2,17 @@
 
 pub mod linked_resource;
 pub mod simple_resource;
-use crate::grpc::server::{Id, IdList, ValidationError};
+use crate::grpc::server::{Id, IdList};
 use crate::postgres::PsqlJsonValue;
 use crate::{common::ArrErr, grpc::GrpcDataObjectType};
-use chrono::{DateTime, Utc};
 use core::fmt::Debug;
-use lib_common::time::timestamp_to_datetime;
 use log::error;
-use prost_types::Timestamp;
 use std::collections::HashMap;
 use tokio_postgres::types::Type as PsqlFieldType;
 use uuid::Uuid;
+
+#[cfg(test)]
+pub mod test_util;
 
 /// Generic trait providing useful functions for our resources
 pub trait Resource
@@ -290,67 +290,6 @@ impl TryFrom<PsqlJsonValue> for Vec<i64> {
                 error!("{}", error);
                 Err(ArrErr::Error(error))
             }
-        }
-    }
-}
-
-/// Convert a [`String`] (used by grpc) into a [`Uuid`] (used by postgres).
-/// Creates an error entry in the errors list if a conversion was not possible.
-pub fn validate_uuid(
-    field: String,
-    value: &str,
-    errors: &mut Vec<ValidationError>,
-) -> Option<Uuid> {
-    match Uuid::try_parse(value) {
-        Ok(id) => Some(id),
-        Err(e) => {
-            let error = format!("Could not convert [{}] to UUID: {}", field, e);
-            error!("{}", error);
-            errors.push(ValidationError { field, error });
-            None
-        }
-    }
-}
-
-/// Convert a [`prost_types::Timestamp`] (used by grpc) into a [`chrono::DateTime::<Utc>`] (used by postgres).
-/// Creates an error entry in the errors list if a conversion was not possible.
-pub fn validate_dt(
-    field: String,
-    value: &Timestamp,
-    errors: &mut Vec<ValidationError>,
-) -> Option<DateTime<Utc>> {
-    let dt = timestamp_to_datetime(value);
-    match dt {
-        Some(dt) => Some(dt),
-        None => {
-            let error = format!(
-                "Could not convert [{}] to NaiveDateTime::from_timestamp_opt({})",
-                field, value
-            );
-            error!("{}", error);
-            errors.push(ValidationError { field, error });
-            None
-        }
-    }
-}
-
-/// Convert an enum integer value (used by grpc) into a string (used by postgres).
-/// Creates an error entry in the errors list if a conversion was not possible.
-/// Relies on implementation of `get_enum_string_val`
-pub fn validate_enum(
-    field: String,
-    value: Option<String>,
-    errors: &mut Vec<ValidationError>,
-) -> Option<String> {
-    //let string_value = Self::get_enum_string_val(&field, value);
-
-    match value {
-        Some(val) => Some(val),
-        None => {
-            let error = format!("Could not convert enum [{}] to i32: value not found", field);
-            error!("{}", error);
-            errors.push(ValidationError { field, error });
-            None
         }
     }
 }

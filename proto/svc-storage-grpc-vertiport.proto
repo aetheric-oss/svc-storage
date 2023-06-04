@@ -41,12 +41,10 @@ message Data {
     string name = 1;
     // additional description of the vertiport
     string description = 2;
-    // vertipad latitude location
-    double latitude = 3;
-    // vertipad longitude location
-    double longitude = 4;
+    // geographical area location of the vertiport
+    grpc.GeoPolygon geo_location = 3;
     // RRULE data string to indicate the vertipad's opening days and hours
-    optional string schedule = 5;
+    optional string schedule = 4;
 }
 
 // Struct containing a `list` of vertiport [Vec\<Object\>]

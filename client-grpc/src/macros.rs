@@ -42,12 +42,14 @@ macro_rules! grpc_client_mod {
                 pub use rpc_service_client::RpcServiceClient;
                 use tonic::transport::Channel;
                 cfg_if::cfg_if! {
-                    if #[cfg(feature = "test_util")] {
+                    if #[cfg(any(feature = "test_util", feature = "mock_client"))] {
                         use lib_common::grpc_mock_client;
                         use svc_storage::grpc::server::$rpc_service::{GrpcServer, RpcServiceServer};
                         grpc_mock_client!(RpcServiceClient, RpcServiceServer, GrpcServer);
                     } else {
+                        use tonic::async_trait;
                         use lib_common::grpc_client;
+                        use lib_common::grpc::Client;
                         grpc_client!(RpcServiceClient);
                     }
                 }
@@ -81,7 +83,7 @@ macro_rules! grpc_client_mod {
 macro_rules! link_grpc_client {
     ($($rpc_service:ident, $rpc_link_client:ident, $link_object:ident, $link_service:ident),+) => {
         $(
-            #[async_trait]
+            #[tonic::async_trait]
             impl $crate::LinkClient<$rpc_link_client<Channel>> for $crate::GrpcClient<$rpc_link_client<Channel>> {
                 type LinkObject = $rpc_service::$link_object;
                 type List = $link_service::List;
@@ -152,7 +154,7 @@ macro_rules! link_grpc_client {
                 pub static ref MEM_DATA_LINKS: Mutex<HashMap<String, Vec<String>>> = Mutex::new(HashMap::new());
             }
 
-            #[async_trait]
+            #[tonic::async_trait]
             impl $crate::LinkClient<$rpc_link_client<Channel>> for $crate::GrpcClient<$rpc_link_client<Channel>> {
                 type LinkObject = $rpc_service::$link_object;
                 type List = $link_service::List;
@@ -339,7 +341,7 @@ macro_rules! link_grpc_client {
 macro_rules! simple_grpc_client {
     ($($rpc_service:tt),+) => {
         $(
-            #[async_trait]
+            #[tonic::async_trait]
             impl $crate::SimpleClient<$rpc_service::RpcServiceClient<Channel>> for $crate::GrpcClient<$rpc_service::RpcServiceClient<Channel>> {
                 type Data = $rpc_service::Data;
                 type Object = $rpc_service::Object;
@@ -403,7 +405,7 @@ macro_rules! simple_grpc_client {
 macro_rules! simple_grpc_client {
     ($($rpc_service:tt),+) => {
         $(
-            #[async_trait]
+            #[tonic::async_trait]
             impl $crate::SimpleClient<$rpc_service::RpcServiceClient<Channel>> for $crate::GrpcClient<$rpc_service::RpcServiceClient<Channel>> {
                 type Data = $rpc_service::Data;
                 type Object = $rpc_service::Object;
