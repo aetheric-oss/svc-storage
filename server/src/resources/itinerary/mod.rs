@@ -21,40 +21,6 @@ crate::build_generic_resource_impl_from!();
 // Generate grpc server implementations
 crate::build_grpc_simple_resource_impl!(itinerary);
 
-impl TryFrom<Row> for Data {
-    type Error = ArrErr;
-
-    fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("Converting Row to itinerary::Data: {:?}", row);
-        let user_id: String = row.get::<&str, Uuid>("user_id").to_string();
-
-        let result = ItineraryStatus::from_str(row.get("status"));
-        let Ok(status) = result else {
-            return Err(result.unwrap_err());
-        };
-
-        Ok(Data {
-            user_id,
-            status: status.into(),
-        })
-    }
-}
-
-impl FromStr for ItineraryStatus {
-    type Err = ArrErr;
-
-    fn from_str(s: &str) -> ::core::result::Result<ItineraryStatus, Self::Err> {
-        match s {
-            "ACTIVE" => ::core::result::Result::Ok(ItineraryStatus::Active),
-            "CANCELLED" => ::core::result::Result::Ok(ItineraryStatus::Cancelled),
-            _ => ::core::result::Result::Err(ArrErr::Error(format!(
-                "Unknown ItineraryStatus: {}",
-                s
-            ))),
-        }
-    }
-}
-
 impl Resource for ResourceObject<Data> {
     fn get_definition() -> ResourceDefinition {
         ResourceDefinition {
@@ -101,5 +67,141 @@ impl GrpcDataObjectType for Data {
                 key
             ))),
         }
+    }
+}
+
+#[cfg(not(tarpaulin_include))]
+// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
+impl TryFrom<Row> for Data {
+    type Error = ArrErr;
+
+    fn try_from(row: Row) -> Result<Self, ArrErr> {
+        debug!("Converting Row to itinerary::Data: {:?}", row);
+        let user_id: String = row.get::<&str, Uuid>("user_id").to_string();
+
+        let result = ItineraryStatus::from_str(row.get("status"));
+        let Ok(status) = result else {
+            return Err(result.unwrap_err());
+        };
+
+        Ok(Data {
+            user_id,
+            status: status.into(),
+        })
+    }
+}
+
+impl FromStr for ItineraryStatus {
+    type Err = ArrErr;
+
+    fn from_str(s: &str) -> ::core::result::Result<ItineraryStatus, Self::Err> {
+        match s {
+            "ACTIVE" => ::core::result::Result::Ok(ItineraryStatus::Active),
+            "CANCELLED" => ::core::result::Result::Ok(ItineraryStatus::Cancelled),
+            _ => ::core::result::Result::Err(ArrErr::Error(format!(
+                "Unknown ItineraryStatus: {}",
+                s
+            ))),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::base::test_util::*;
+    use super::*;
+
+    #[test]
+    fn test_itinerary_schema() {
+        let id = Uuid::new_v4().to_string();
+        let data = mock::get_data_obj();
+        let object: ResourceObject<Data> = Object {
+            id,
+            data: Some(data.clone()),
+        }
+        .into();
+        test_schema::<ResourceObject<Data>, Data>(object);
+
+        let result = <ResourceObject<Data> as PsqlType>::validate(&data);
+        assert!(result.is_ok());
+        if let Ok((sql_fields, validation_result)) = result {
+            println!("{:?}", sql_fields);
+            println!("{:?}", validation_result);
+            assert_eq!(validation_result.success, true);
+        }
+    }
+
+    #[test]
+    fn test_itinerary_invalid_data() {
+        let data = Data {
+            user_id: String::from("INVALID"),
+            status: -1,
+        };
+
+        let result = <ResourceObject<Data> as PsqlType>::validate(&data);
+        assert!(result.is_ok());
+        if let Ok((_, validation_result)) = result {
+            println!("{:?}", validation_result);
+            assert_eq!(validation_result.success, false);
+
+            let expected_errors = vec!["user_id", "status"];
+            assert_eq!(expected_errors.len(), validation_result.errors.len());
+            assert!(contains_field_errors(&validation_result, &expected_errors));
+        }
+    }
+
+    #[test]
+    fn test_itinerary_status_get_enum_string_val() {
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val("status", ItineraryStatus::Active.into()),
+            Some(String::from("ACTIVE"))
+        );
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val(
+                "status",
+                ItineraryStatus::Cancelled.into()
+            ),
+            Some(String::from("CANCELLED"))
+        );
+
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val("status", -1),
+            None
+        );
+    }
+
+    #[test]
+    fn test_itinerary_status_from_str() {
+        assert!(matches!(
+            "ACTIVE".parse::<ItineraryStatus>(),
+            Ok(ItineraryStatus::Active)
+        ));
+        assert!(matches!(
+            "CANCELLED".parse::<ItineraryStatus>(),
+            Ok(ItineraryStatus::Cancelled)
+        ));
+
+        assert!("".parse::<ItineraryStatus>().is_err());
+        assert!("INVALID_STATUS".parse::<ItineraryStatus>().is_err());
+    }
+
+    #[test]
+    fn test_itinerary_status_as_str_name() {
+        assert_eq!(ItineraryStatus::Active.as_str_name(), "ACTIVE");
+        assert_eq!(ItineraryStatus::Cancelled.as_str_name(), "CANCELLED");
+    }
+
+    #[test]
+    fn test_itinerary_status_from_str_name() {
+        assert_eq!(
+            ItineraryStatus::from_str_name("ACTIVE"),
+            Some(ItineraryStatus::Active)
+        );
+        assert_eq!(
+            ItineraryStatus::from_str_name("CANCELLED"),
+            Some(ItineraryStatus::Cancelled)
+        );
+
+        assert_eq!(ItineraryStatus::from_str_name("INVALID"), None);
     }
 }

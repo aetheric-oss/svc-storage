@@ -748,9 +748,23 @@ fn get_path_sql_val(path_option: GrpcField) -> Option<String> {
 mod tests {
     use super::*;
     use crate::resources::base::test_util::{
-        get_valid_test_data, validate_test_data_sql_val, TestData,
+        get_invalid_test_data, get_valid_test_data, validate_test_data_sql_val, TestData,
     };
     use lib_common::time::datetime_to_timestamp;
+
+    #[test]
+    fn test_validate_invalid_object() {
+        let invalid_data = get_invalid_test_data();
+
+        let (_, validation_result) = match <ResourceObject<TestData>>::validate(&invalid_data) {
+            Ok(result) => result,
+            Err(e) => {
+                panic!("Validation errors found but not expected: {}", e);
+            }
+        };
+
+        assert_eq!(validation_result.success, false);
+    }
 
     #[test]
     fn test_get_insert_vars() {
@@ -781,8 +795,8 @@ mod tests {
                 println!("Insert Statements: {:?}", inserts);
                 println!("Insert Fields: {:?}", fields);
                 println!("Insert Params: {:?}", params);
-                assert_eq!(inserts.len(), 20);
-                assert_eq!(params.len(), 14);
+                assert_eq!(inserts.len(), 21);
+                assert_eq!(params.len(), 15);
                 let field_params = fields.iter().zip(inserts.iter());
                 for (field, insert) in field_params {
                     let value = match insert.strip_prefix("$") {
@@ -849,8 +863,8 @@ mod tests {
             Ok((updates, params)) => {
                 println!("Update Statements: {:?}", updates);
                 println!("Update Params: {:?}", params);
-                assert_eq!(updates.len(), 20);
-                assert_eq!(params.len(), 14);
+                assert_eq!(updates.len(), 21);
+                assert_eq!(params.len(), 15);
                 for update in updates {
                     let update_split = update.split('=').collect::<Vec<&str>>();
                     let field: &str = update_split[0].trim();

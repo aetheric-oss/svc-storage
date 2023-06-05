@@ -150,7 +150,15 @@ impl From<GrpcField> for Vec<i64> {
     fn from(field: GrpcField) -> Self {
         match field {
             GrpcField::I64List(field) => field,
+            GrpcField::U32List(field) => {
+                let mut list: Vec<i64> = vec![];
+                for item in field {
+                    list.push(item.into())
+                }
+                list
+            }
             GrpcField::I64(field) => vec![field],
+            GrpcField::U32(field) => vec![field.into()],
             _ => vec![],
         }
     }

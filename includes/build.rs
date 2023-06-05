@@ -46,9 +46,17 @@ fn build_proto(
         .build_client(false)
         .compile(&files, &[proto_dir])?;
 
+    let types = get_types();
     let service_files = get_service_files(proto_dir);
-    get_grpc_builder_config(&format!("{}/{}", cur_dir, out_path))
-        .extern_path(".grpc", "crate::resources")
+    let mut builder = get_grpc_builder_config(&format!("{}/{}", cur_dir, out_path))
+        .extern_path(".grpc", "crate::resources");
+    for service_type in types {
+        let service = format!("grpc.{}.service", service_type);
+        builder = builder
+            .client_mod_attribute(&service, "#[cfg(not(tarpaulin_include))]")
+            .server_mod_attribute(&service, "#[cfg(not(tarpaulin_include))]");
+    }
+    builder
         .build_server(server)
         .build_client(client)
         .compile(&service_files, &[proto_dir])?;
@@ -70,24 +78,11 @@ fn get_grpc_builder_config(out_path: &str) -> tonic_build::Builder {
         .type_attribute("SortOrder", "#[derive(num_derive::FromPrimitive)]")
         .type_attribute("PredicateOperator", "#[derive(num_derive::FromPrimitive)]")
         .type_attribute("ComparisonOperator", "#[derive(num_derive::FromPrimitive)]")
-        .type_attribute("Vehicle", "#[derive(Eq)]")
-        .type_attribute("VehicleData", "#[derive(Eq)]")
-        .type_attribute("Parcel", "#[derive(Eq)]")
-        .type_attribute("ParcelData", "#[derive(Eq)]")
-        .type_attribute("Scanner", "#[derive(Eq)]")
-        .type_attribute("ScannerData", "#[derive(Eq)]")
         .type_attribute("ScannerType", "#[derive(num_derive::FromPrimitive)]")
         .type_attribute("ScannerStatus", "#[derive(num_derive::FromPrimitive)]")
-        .type_attribute("Vehicles", "#[derive(Eq)]")
-        .type_attribute("Pilot", "#[derive(Eq)]")
-        .type_attribute("PilotData", "#[derive(Eq)]")
-        .type_attribute("Pilots", "#[derive(Eq)]")
         .type_attribute("FlightStatus", "#[derive(num_derive::FromPrimitive)]")
         .type_attribute("FlightPriority", "#[derive(num_derive::FromPrimitive)]")
         .type_attribute("ParcelStatus", "#[derive(num_derive::FromPrimitive)]")
-        .type_attribute("FlightPlan", "#[derive(Eq)]")
-        .type_attribute("FlightPlanData", "#[derive(Eq)]")
-        .type_attribute("FlightPlans", "#[derive(Eq)]")
         .type_attribute("ReadyRequest", "#[derive(Eq, Copy)]")
         .type_attribute("ReadyResponse", "#[derive(Eq, Copy)]")
         .type_attribute("GeoPoint", "#[derive(Copy)]")

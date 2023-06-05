@@ -850,6 +850,179 @@ mod tests {
         );
     }
 
+    // Test all of search, and, or options for predicate operator; is_null
+    #[test]
+    fn test_search_is_null() {
+        let filter = AdvancedSearchFilter::search_is_null(String::from("is_null"))
+            .and_is_null(String::from("and_is_null"))
+            .or_is_null(String::from("or_is_null"));
+
+        assert_eq!(filter.filters.len(), 3);
+
+        let expected_values: Vec<String> = vec![];
+
+        let filter_option1 = &filter.filters[0];
+        assert_eq!(filter_option1.search_field, "is_null");
+        assert_eq!(filter_option1.search_value, expected_values);
+        assert_eq!(
+            filter.filters[0].predicate_operator,
+            PredicateOperator::IsNull as i32
+        );
+
+        let filter_option2 = &filter.filters[1];
+        assert_eq!(filter_option2.search_field, "and_is_null");
+        assert_eq!(filter_option2.search_value, expected_values);
+        assert_eq!(
+            filter_option2.predicate_operator,
+            PredicateOperator::IsNull as i32
+        );
+        assert_eq!(
+            filter_option2.comparison_operator,
+            Some(ComparisonOperator::And as i32)
+        );
+
+        let filter_option3 = &filter.filters[2];
+        assert_eq!(filter_option3.search_field, "or_is_null");
+        assert_eq!(filter_option3.search_value, expected_values);
+        assert_eq!(
+            filter_option3.predicate_operator,
+            PredicateOperator::IsNull as i32
+        );
+        assert_eq!(
+            filter_option3.comparison_operator,
+            Some(ComparisonOperator::Or as i32)
+        );
+    }
+
+    // Test all of search, and, or options for predicate operator; is_not_null
+    #[test]
+    fn test_search_is_not_null() {
+        let filter = AdvancedSearchFilter::search_is_not_null(String::from("is_not_null"))
+            .and_is_not_null(String::from("and_is_not_null"))
+            .or_is_not_null(String::from("or_is_not_null"));
+
+        assert_eq!(filter.filters.len(), 3);
+
+        let expected_values: Vec<String> = vec![];
+
+        let filter_option1 = &filter.filters[0];
+        assert_eq!(filter_option1.search_field, "is_not_null");
+        assert_eq!(filter_option1.search_value, expected_values);
+        assert_eq!(
+            filter.filters[0].predicate_operator,
+            PredicateOperator::IsNotNull as i32
+        );
+
+        let filter_option2 = &filter.filters[1];
+        assert_eq!(filter_option2.search_field, "and_is_not_null");
+        assert_eq!(filter_option2.search_value, expected_values);
+        assert_eq!(
+            filter_option2.predicate_operator,
+            PredicateOperator::IsNotNull as i32
+        );
+        assert_eq!(
+            filter_option2.comparison_operator,
+            Some(ComparisonOperator::And as i32)
+        );
+
+        let filter_option3 = &filter.filters[2];
+        assert_eq!(filter_option3.search_field, "or_is_not_null");
+        assert_eq!(filter_option3.search_value, expected_values);
+        assert_eq!(
+            filter_option3.predicate_operator,
+            PredicateOperator::IsNotNull as i32
+        );
+        assert_eq!(
+            filter_option3.comparison_operator,
+            Some(ComparisonOperator::Or as i32)
+        );
+    }
+
+    // Test all of search, and, or options for predicate operator; ilike
+    #[test]
+    fn test_search_ilike() {
+        let filter =
+            AdvancedSearchFilter::search_ilike(String::from("ilike"), String::from("test1"))
+                .and_ilike(String::from("and_ilike"), String::from("test2"))
+                .or_ilike(String::from("or_ilike"), String::from("test3"));
+
+        assert_eq!(filter.filters.len(), 3);
+
+        let filter_option1 = &filter.filters[0];
+        assert_eq!(filter_option1.search_field, "ilike");
+        assert_eq!(filter_option1.search_value, vec!["test1"]);
+        assert_eq!(
+            filter.filters[0].predicate_operator,
+            PredicateOperator::Ilike as i32
+        );
+
+        let filter_option2 = &filter.filters[1];
+        assert_eq!(filter_option2.search_field, "and_ilike");
+        assert_eq!(filter_option2.search_value, vec!["test2"]);
+        assert_eq!(
+            filter_option2.predicate_operator,
+            PredicateOperator::Ilike as i32
+        );
+        assert_eq!(
+            filter_option2.comparison_operator,
+            Some(ComparisonOperator::And as i32)
+        );
+
+        let filter_option3 = &filter.filters[2];
+        assert_eq!(filter_option3.search_field, "or_ilike");
+        assert_eq!(filter_option3.search_value, vec!["test3"]);
+        assert_eq!(
+            filter_option3.predicate_operator,
+            PredicateOperator::Ilike as i32
+        );
+        assert_eq!(
+            filter_option3.comparison_operator,
+            Some(ComparisonOperator::Or as i32)
+        );
+    }
+
+    // Test all of search, and, or options for predicate operator; like
+    #[test]
+    fn test_search_like() {
+        let filter = AdvancedSearchFilter::search_like(String::from("like"), String::from("test1"))
+            .and_like(String::from("and_like"), String::from("test2"))
+            .or_like(String::from("or_like"), String::from("test3"));
+
+        assert_eq!(filter.filters.len(), 3);
+
+        let filter_option1 = &filter.filters[0];
+        assert_eq!(filter_option1.search_field, "like");
+        assert_eq!(filter_option1.search_value, vec!["test1"]);
+        assert_eq!(
+            filter.filters[0].predicate_operator,
+            PredicateOperator::Like as i32
+        );
+
+        let filter_option2 = &filter.filters[1];
+        assert_eq!(filter_option2.search_field, "and_like");
+        assert_eq!(filter_option2.search_value, vec!["test2"]);
+        assert_eq!(
+            filter_option2.predicate_operator,
+            PredicateOperator::Like as i32
+        );
+        assert_eq!(
+            filter_option2.comparison_operator,
+            Some(ComparisonOperator::And as i32)
+        );
+
+        let filter_option3 = &filter.filters[2];
+        assert_eq!(filter_option3.search_field, "or_like");
+        assert_eq!(filter_option3.search_value, vec!["test3"]);
+        assert_eq!(
+            filter_option3.predicate_operator,
+            PredicateOperator::Like as i32
+        );
+        assert_eq!(
+            filter_option3.comparison_operator,
+            Some(ComparisonOperator::Or as i32)
+        );
+    }
+
     #[test]
     fn test_predicate_operator_as_str_name() {
         assert_eq!(PredicateOperator::Equals.as_str_name(), "EQUALS");

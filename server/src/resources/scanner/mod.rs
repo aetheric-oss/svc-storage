@@ -119,6 +119,8 @@ impl GrpcDataObjectType for Data {
     }
 }
 
+#[cfg(not(tarpaulin_include))]
+// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
 impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
@@ -141,5 +143,191 @@ impl TryFrom<Row> for Data {
             scanner_type: scanner_type.into(),
             scanner_status: status.into(),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::base::test_util::*;
+    use super::*;
+
+    #[test]
+    fn test_scanner_schema() {
+        let id = Uuid::new_v4().to_string();
+        let data = mock::get_data_obj();
+        let object: ResourceObject<Data> = Object {
+            id,
+            data: Some(data.clone()),
+        }
+        .into();
+        test_schema::<ResourceObject<Data>, Data>(object);
+
+        let result = <ResourceObject<Data> as PsqlType>::validate(&data);
+        assert!(result.is_ok());
+        if let Ok((sql_fields, validation_result)) = result {
+            println!("{:?}", sql_fields);
+            println!("{:?}", validation_result);
+            assert_eq!(validation_result.success, true);
+        }
+    }
+
+    #[test]
+    fn test_scanner_invalid_data() {
+        let data = Data {
+            organization_id: String::from("INVALID"),
+            scanner_status: -1,
+            scanner_type: -1,
+        };
+
+        let result = <ResourceObject<Data> as PsqlType>::validate(&data);
+        assert!(result.is_ok());
+        if let Ok((_, validation_result)) = result {
+            println!("{:?}", validation_result);
+            assert_eq!(validation_result.success, false);
+
+            let expected_errors = vec!["organization_id", "scanner_status", "scanner_type"];
+            assert_eq!(expected_errors.len(), validation_result.errors.len());
+            assert!(contains_field_errors(&validation_result, &expected_errors));
+        }
+    }
+
+    #[test]
+    fn test_scanner_type_get_enum_string_val() {
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val("scanner_type", ScannerType::Mobile.into()),
+            Some(String::from("MOBILE"))
+        );
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val("scanner_type", ScannerType::Locker.into()),
+            Some(String::from("LOCKER"))
+        );
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val(
+                "scanner_type",
+                ScannerType::Facility.into()
+            ),
+            Some(String::from("FACILITY"))
+        );
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val(
+                "scanner_type",
+                ScannerType::Underbelly.into()
+            ),
+            Some(String::from("UNDERBELLY"))
+        );
+
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val("scanner_type", -1),
+            None
+        );
+    }
+
+    #[test]
+    fn test_scanner_type_from_str() {
+        assert!(matches!(
+            "MOBILE".parse::<ScannerType>(),
+            Ok(ScannerType::Mobile)
+        ));
+        assert!(matches!(
+            "LOCKER".parse::<ScannerType>(),
+            Ok(ScannerType::Locker)
+        ));
+        assert!(matches!(
+            "FACILITY".parse::<ScannerType>(),
+            Ok(ScannerType::Facility)
+        ));
+        assert!(matches!(
+            "UNDERBELLY".parse::<ScannerType>(),
+            Ok(ScannerType::Underbelly)
+        ));
+
+        assert!("".parse::<ScannerType>().is_err());
+        assert!("INVALID_TYPE".parse::<ScannerType>().is_err());
+    }
+
+    #[test]
+    fn test_scanner_type_as_str_name() {
+        assert_eq!(ScannerType::Mobile.as_str_name(), "MOBILE");
+        assert_eq!(ScannerType::Locker.as_str_name(), "LOCKER");
+        assert_eq!(ScannerType::Facility.as_str_name(), "FACILITY");
+        assert_eq!(ScannerType::Underbelly.as_str_name(), "UNDERBELLY");
+    }
+
+    #[test]
+    fn test_scanner_type_from_str_name() {
+        assert_eq!(
+            ScannerType::from_str_name("MOBILE"),
+            Some(ScannerType::Mobile)
+        );
+        assert_eq!(
+            ScannerType::from_str_name("LOCKER"),
+            Some(ScannerType::Locker)
+        );
+        assert_eq!(
+            ScannerType::from_str_name("FACILITY"),
+            Some(ScannerType::Facility)
+        );
+        assert_eq!(
+            ScannerType::from_str_name("UNDERBELLY"),
+            Some(ScannerType::Underbelly)
+        );
+        assert_eq!(ScannerType::from_str_name("INVALID"), None);
+    }
+
+    #[test]
+    fn test_scanner_status_get_enum_string_val() {
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val(
+                "scanner_status",
+                ScannerStatus::Active.into()
+            ),
+            Some(String::from("ACTIVE"))
+        );
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val(
+                "scanner_status",
+                ScannerStatus::Disabled.into()
+            ),
+            Some(String::from("DISABLED"))
+        );
+
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val("scanner_status", -1),
+            None
+        );
+    }
+
+    #[test]
+    fn test_scanner_status_from_str() {
+        assert!(matches!(
+            "ACTIVE".parse::<ScannerStatus>(),
+            Ok(ScannerStatus::Active)
+        ));
+        assert!(matches!(
+            "DISABLED".parse::<ScannerStatus>(),
+            Ok(ScannerStatus::Disabled)
+        ));
+
+        assert!("".parse::<ScannerStatus>().is_err());
+        assert!("INVALID_STATUS".parse::<ScannerStatus>().is_err());
+    }
+
+    #[test]
+    fn test_scanner_status_as_str_name() {
+        assert_eq!(ScannerStatus::Active.as_str_name(), "ACTIVE");
+        assert_eq!(ScannerStatus::Disabled.as_str_name(), "DISABLED");
+    }
+
+    #[test]
+    fn test_scanner_status_from_str_name() {
+        assert_eq!(
+            ScannerStatus::from_str_name("ACTIVE"),
+            Some(ScannerStatus::Active)
+        );
+        assert_eq!(
+            ScannerStatus::from_str_name("DISABLED"),
+            Some(ScannerStatus::Disabled)
+        );
+        assert_eq!(ScannerStatus::from_str_name("INVALID"), None);
     }
 }

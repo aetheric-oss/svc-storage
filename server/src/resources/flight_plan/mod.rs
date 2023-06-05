@@ -313,7 +313,95 @@ impl FromStr for FlightPriority {
 
 #[cfg(test)]
 mod tests {
+    use super::super::base::test_util::*;
     use super::*;
+
+    #[test]
+    fn test_flight_plan_schema() {
+        let id = Uuid::new_v4().to_string();
+        let data = mock::get_data_obj();
+        let object: ResourceObject<Data> = Object {
+            id,
+            data: Some(data.clone()),
+        }
+        .into();
+        test_schema::<ResourceObject<Data>, Data>(object);
+
+        let result = <ResourceObject<Data> as PsqlType>::validate(&data);
+        assert!(result.is_ok());
+        if let Ok((sql_fields, validation_result)) = result {
+            println!("{:?}", sql_fields);
+            println!("{:?}", validation_result);
+            assert_eq!(validation_result.success, true);
+        }
+    }
+
+    #[test]
+    fn test_flight_plan_invalid_data() {
+        let data = Data {
+            pilot_id: String::from("INVALID"),
+            vehicle_id: String::from("INVALID"),
+            flight_distance_meters: 1,
+            cargo_weight_grams: vec![1, 23, 123],
+            weather_conditions: Some(String::from("")),
+            departure_vertiport_id: None,
+            departure_vertipad_id: String::from("INVALID"),
+            destination_vertiport_id: None,
+            destination_vertipad_id: String::from("INVALID"),
+            scheduled_departure: Some(prost_types::Timestamp {
+                seconds: -1,
+                nanos: -1,
+            }),
+            scheduled_arrival: Some(prost_types::Timestamp {
+                seconds: -1,
+                nanos: -1,
+            }),
+            actual_departure: Some(prost_types::Timestamp {
+                seconds: -1,
+                nanos: -1,
+            }),
+            actual_arrival: Some(prost_types::Timestamp {
+                seconds: -1,
+                nanos: -1,
+            }),
+            flight_release_approval: Some(prost_types::Timestamp {
+                seconds: -1,
+                nanos: -1,
+            }),
+            flight_plan_submitted: Some(prost_types::Timestamp {
+                seconds: -1,
+                nanos: -1,
+            }),
+            approved_by: Some(String::from("INVALID")),
+            flight_status: 1234,
+            flight_priority: 1234,
+        };
+
+        let result = <ResourceObject<Data> as PsqlType>::validate(&data);
+        assert!(result.is_ok());
+        if let Ok((_, validation_result)) = result {
+            println!("{:?}", validation_result);
+            assert_eq!(validation_result.success, false);
+
+            let expected_errors = vec![
+                "pilot_id",
+                "vehicle_id",
+                "departure_vertipad_id",
+                "destination_vertipad_id",
+                "scheduled_departure",
+                "scheduled_arrival",
+                "actual_departure",
+                "actual_arrival",
+                "flight_release_approval",
+                "flight_plan_submitted",
+                "approved_by",
+                "flight_status",
+                "flight_priority",
+            ];
+            assert!(contains_field_errors(&validation_result, &expected_errors));
+            assert_eq!(expected_errors.len(), validation_result.errors.len());
+        }
+    }
 
     #[test]
     fn test_flight_status_get_enum_string_val() {
@@ -352,11 +440,15 @@ mod tests {
             ),
             Some(String::from("CANCELLED"))
         );
+
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val("flight_status", -1),
+            None
+        );
     }
 
     #[test]
     fn test_flight_status_from_str() {
-        // Test parsing valid flight status values
         assert!(matches!(
             "READY".parse::<FlightStatus>(),
             Ok(FlightStatus::Ready)
@@ -382,7 +474,6 @@ mod tests {
             Ok(FlightStatus::Draft)
         ));
 
-        // Test parsing invalid flight status values
         assert!("".parse::<FlightStatus>().is_err());
         assert!("INVALID_STATUS".parse::<FlightStatus>().is_err());
     }
@@ -450,11 +541,15 @@ mod tests {
             ),
             Some(String::from("LOW"))
         );
+
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val("flight_priority", -1),
+            None
+        );
     }
 
     #[test]
     fn test_flight_priority_from_str() {
-        // Test parsing valid flight priority values
         assert!(matches!(
             "EMERGENCY".parse::<FlightPriority>(),
             Ok(FlightPriority::Emergency)
@@ -468,9 +563,8 @@ mod tests {
             Ok(FlightPriority::Low)
         ));
 
-        // Test parsing invalid flight priority values
         assert!("".parse::<FlightPriority>().is_err());
-        assert!("INVALID_STATUS".parse::<FlightPriority>().is_err());
+        assert!("INVALID_PRIORITY".parse::<FlightPriority>().is_err());
     }
 
     #[test]

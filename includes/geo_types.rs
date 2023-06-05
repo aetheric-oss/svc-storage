@@ -93,8 +93,8 @@ mod tests {
 
     #[test]
     fn test_from_point_to_geo_point() {
-        let x = 120.8;
-        let y = -45.12;
+        let x = -45.12;
+        let y = 120.8;
         let from = Point::new(x, y);
         let expected = GeoPoint { x, y };
 
@@ -104,8 +104,8 @@ mod tests {
     }
     #[test]
     fn test_from_geo_point_to_point() {
-        let x = 120.8;
-        let y = -45.12;
+        let x = -45.12;
+        let y = 120.8;
         let from = GeoPoint { x, y };
         let expected = Point::new(x, y);
 
@@ -115,8 +115,8 @@ mod tests {
     }
     #[test]
     fn test_from_geo_point_to_coord() {
-        let x = 120.8;
-        let y = -45.12;
+        let x = -45.12;
+        let y = 120.8;
         let from = GeoPoint { x, y };
         let expected = Coord { x, y };
 
@@ -127,10 +127,10 @@ mod tests {
 
     #[test]
     fn test_from_line_string_to_geo_line_string() {
-        let x_1 = 120.8;
-        let y_1 = -45.12;
-        let x_2 = 121.8;
-        let y_2 = -46.12;
+        let x_1 = -45.12;
+        let y_1 = 120.8;
+        let x_2 = -46.12;
+        let y_2 = 121.8;
         let from = LineString::from(vec![(x_1, y_1), (x_2, y_2)]);
         let expected = GeoLineString {
             points: vec![GeoPoint { x: x_1, y: y_1 }, GeoPoint { x: x_2, y: y_2 }],
@@ -142,10 +142,10 @@ mod tests {
     }
     #[test]
     fn test_from_geo_line_string_to_line_string() {
-        let x_1 = 120.8;
-        let y_1 = -45.12;
-        let x_2 = 121.8;
-        let y_2 = -46.12;
+        let x_1 = -45.12;
+        let y_1 = 120.8;
+        let x_2 = -46.12;
+        let y_2 = 121.8;
         let from = GeoLineString {
             points: vec![GeoPoint { x: x_1, y: y_1 }, GeoPoint { x: x_2, y: y_2 }],
         };
@@ -158,8 +158,8 @@ mod tests {
 
     #[test]
     fn test_from_polygon_to_geo_polygon() {
-        let x_1 = 120.8;
-        let y_1 = -45.12;
+        let x_1 = -45.12;
+        let y_1 = 120.8;
         let x_2 = x_1 - 0.001;
         let y_2 = y_1 - 0.001;
         let exterior = LineString::from(vec![(x_1, y_1), (x_2, y_2)]);
@@ -200,8 +200,8 @@ mod tests {
     }
     #[test]
     fn test_from_geo_polygon_to_polygon() {
-        let x_1 = 120.8;
-        let y_1 = -45.12;
+        let x_1 = -45.12;
+        let y_1 = 120.8;
         let x_2 = x_1 - 0.001;
         let y_2 = y_1 - 0.001;
         let exterior = LineString::from(vec![(x_1, y_1), (x_2, y_2)]);
@@ -242,8 +242,8 @@ mod tests {
     }
     #[test]
     fn test_from_vec_line_string_to_geo_polygon() {
-        let x_1 = 120.8;
-        let y_1 = -45.12;
+        let x_1 = -45.12;
+        let y_1 = 120.8;
         let x_2 = x_1 - 0.001;
         let y_2 = y_1 - 0.001;
         let from = vec![
