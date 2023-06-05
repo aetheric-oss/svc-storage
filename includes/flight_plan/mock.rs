@@ -64,10 +64,10 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
     let mut rng = rand::thread_rng();
 
     // let's have a minimum of 500 meters and a maximum range of about 200km
-    let flight_distance_meters = rng.gen_range(500..200000);
+    let flight_distance_meters: u32 = rng.gen_range(500..200000);
     // use a somewhat realistic duration based on the flight distance (+/- 100km per hour avg.)
     let avg_speed = rng.gen_range(95..105);
-    let flight_duration_hours = flight_distance_meters / 1000 / avg_speed;
+    let flight_duration_hours = flight_distance_meters as i64 / 1000 / avg_speed;
 
     let departure_date = now
         + Duration::days(rng.gen_range(days_from_now_min..days_from_now_max))

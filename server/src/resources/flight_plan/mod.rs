@@ -26,127 +26,6 @@ crate::build_generic_resource_impl_from!();
 // Generate grpc server implementations
 crate::build_grpc_simple_resource_impl!(flight_plan);
 
-#[cfg(not(tarpaulin_include))]
-// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
-impl TryFrom<Row> for Data {
-    type Error = ArrErr;
-
-    fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("Converting Row to flight_plan::Data: {:?}", row);
-        let pilot_id: String = row.get::<&str, Uuid>("pilot_id").to_string();
-        let vehicle_id: String = row.get::<&str, Uuid>("vehicle_id").to_string();
-        let departure_vertipad_id: String =
-            row.get::<&str, Uuid>("departure_vertipad_id").to_string();
-        let destination_vertipad_id: String =
-            row.get::<&str, Uuid>("destination_vertipad_id").to_string();
-
-        let approved_by: Option<Uuid> = row.get("approved_by");
-        let approved_by = approved_by.map(|val| val.to_string());
-
-        let handle = get_runtime_handle()?;
-        let vertipad_id = row.get("departure_vertipad_id");
-        let data = task::block_in_place(move || {
-            handle.block_on(async move {
-                <ResourceObject<vertipad::Data> as PsqlType>::get_by_id(&vertipad_id).await
-            })
-        })?;
-        let departure_vertiport_id = data.get::<&str, Uuid>("vertiport_id").to_string();
-
-        let handle = get_runtime_handle()?;
-        let vertipad_id = row.get("destination_vertipad_id");
-        let data = task::block_in_place(move || {
-            handle.block_on(async move {
-                <ResourceObject<vertipad::Data> as PsqlType>::get_by_id(&vertipad_id).await
-            })
-        })?;
-        let destination_vertiport_id = data.get::<&str, Uuid>("vertiport_id").to_string();
-
-        let cargo_weight_grams = PsqlJsonValue {
-            value: row.get("cargo_weight_grams"),
-        };
-        let cargo_weight_grams: Vec<i64> = cargo_weight_grams.try_into()?;
-
-        let flight_plan_submitted: Option<prost_types::Timestamp> = row
-            .get::<&str, Option<DateTime<Utc>>>("flight_plan_submitted")
-            .and_then(|val| datetime_to_timestamp(&val));
-
-        let scheduled_departure: Option<prost_types::Timestamp> = row
-            .get::<&str, Option<DateTime<Utc>>>("scheduled_departure")
-            .and_then(|val| datetime_to_timestamp(&val));
-
-        let scheduled_arrival: Option<prost_types::Timestamp> = row
-            .get::<&str, Option<DateTime<Utc>>>("scheduled_arrival")
-            .and_then(|val| datetime_to_timestamp(&val));
-
-        let actual_departure: Option<prost_types::Timestamp> = row
-            .get::<&str, Option<DateTime<Utc>>>("actual_departure")
-            .and_then(|val| datetime_to_timestamp(&val));
-
-        let actual_arrival: Option<prost_types::Timestamp> = row
-            .get::<&str, Option<DateTime<Utc>>>("actual_arrival")
-            .and_then(|val| datetime_to_timestamp(&val));
-
-        let flight_release_approval: Option<prost_types::Timestamp> = row
-            .get::<&str, Option<DateTime<Utc>>>("flight_release_approval")
-            .and_then(|val| datetime_to_timestamp(&val));
-
-        let flight_status = FlightStatus::from_str(row.get("flight_status"))?.into();
-        let flight_priority = FlightPriority::from_str(row.get("flight_priority"))?.into();
-
-        Ok(Data {
-            pilot_id,
-            vehicle_id,
-            flight_distance_meters: row.get("flight_distance_meters"),
-            weather_conditions: row.get("weather_conditions"),
-            departure_vertiport_id: Some(departure_vertiport_id),
-            departure_vertipad_id,
-            destination_vertiport_id: Some(destination_vertiport_id),
-            destination_vertipad_id,
-            scheduled_departure,
-            scheduled_arrival,
-            actual_departure,
-            actual_arrival,
-            flight_release_approval,
-            flight_plan_submitted,
-            cargo_weight_grams,
-            approved_by,
-            flight_status,
-            flight_priority,
-        })
-    }
-}
-
-impl FromStr for FlightStatus {
-    type Err = ArrErr;
-
-    fn from_str(s: &str) -> ::core::result::Result<FlightStatus, Self::Err> {
-        match s {
-            "READY" => ::core::result::Result::Ok(FlightStatus::Ready),
-            "BOARDING" => ::core::result::Result::Ok(FlightStatus::Boarding),
-            "IN_FLIGHT" => ::core::result::Result::Ok(FlightStatus::InFlight),
-            "FINISHED" => ::core::result::Result::Ok(FlightStatus::Finished),
-            "CANCELLED" => ::core::result::Result::Ok(FlightStatus::Cancelled),
-            "DRAFT" => ::core::result::Result::Ok(FlightStatus::Draft),
-            _ => ::core::result::Result::Err(ArrErr::Error(format!("Unknown FlightStatus: {}", s))),
-        }
-    }
-}
-
-impl FromStr for FlightPriority {
-    type Err = ArrErr;
-
-    fn from_str(s: &str) -> ::core::result::Result<FlightPriority, Self::Err> {
-        match s {
-            "EMERGENCY" => ::core::result::Result::Ok(FlightPriority::Emergency),
-            "HIGH" => ::core::result::Result::Ok(FlightPriority::High),
-            "LOW" => ::core::result::Result::Ok(FlightPriority::Low),
-            _ => {
-                ::core::result::Result::Err(ArrErr::Error(format!("Unknown FlightPriority: {}", s)))
-            }
-        }
-    }
-}
-
 impl Resource for ResourceObject<Data> {
     fn get_definition() -> ResourceDefinition {
         ResourceDefinition {
@@ -265,8 +144,8 @@ impl GrpcDataObjectType for Data {
         match key {
             "pilot_id" => Ok(GrpcField::String(self.pilot_id.clone())), //::prost::alloc::string::String,
             "vehicle_id" => Ok(GrpcField::String(self.vehicle_id.clone())), //::prost::alloc::string::String,
-            "cargo_weight_grams" => Ok(GrpcField::I64List(self.cargo_weight_grams.clone())), //::prost::alloc::vec::Vec<i64>,
-            "flight_distance_meters" => Ok(GrpcField::I64(self.flight_distance_meters)),     //i64,
+            "cargo_weight_grams" => Ok(GrpcField::U32List(self.cargo_weight_grams.clone())), //::prost::alloc::vec::Vec<u32>,
+            "flight_distance_meters" => Ok(GrpcField::U32(self.flight_distance_meters)),     //u32,
             "weather_conditions" => Ok(GrpcField::Option(GrpcFieldOption::String(
                 self.weather_conditions.clone(),
             ))), //::core::option::Option<::prost::alloc::string::String>,
@@ -311,32 +190,197 @@ impl GrpcDataObjectType for Data {
     }
 }
 
+#[cfg(not(tarpaulin_include))]
+// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
+impl TryFrom<Row> for Data {
+    type Error = ArrErr;
+
+    fn try_from(row: Row) -> Result<Self, ArrErr> {
+        debug!("Converting Row to flight_plan::Data: {:?}", row);
+        let pilot_id: String = row.get::<&str, Uuid>("pilot_id").to_string();
+        let vehicle_id: String = row.get::<&str, Uuid>("vehicle_id").to_string();
+        let departure_vertipad_id: String =
+            row.get::<&str, Uuid>("departure_vertipad_id").to_string();
+        let destination_vertipad_id: String =
+            row.get::<&str, Uuid>("destination_vertipad_id").to_string();
+
+        let approved_by: Option<Uuid> = row.get("approved_by");
+        let approved_by = approved_by.map(|val| val.to_string());
+
+        let handle = get_runtime_handle()?;
+        let vertipad_id = row.get("departure_vertipad_id");
+        let data = task::block_in_place(move || {
+            handle.block_on(async move {
+                <ResourceObject<vertipad::Data> as PsqlType>::get_by_id(&vertipad_id).await
+            })
+        })?;
+        let departure_vertiport_id = data.get::<&str, Uuid>("vertiport_id").to_string();
+
+        let handle = get_runtime_handle()?;
+        let vertipad_id = row.get("destination_vertipad_id");
+        let data = task::block_in_place(move || {
+            handle.block_on(async move {
+                <ResourceObject<vertipad::Data> as PsqlType>::get_by_id(&vertipad_id).await
+            })
+        })?;
+        let destination_vertiport_id = data.get::<&str, Uuid>("vertiport_id").to_string();
+
+        let cargo_weight_grams = PsqlJsonValue {
+            value: row.get("cargo_weight_grams"),
+        };
+        let cargo_weight_grams: Vec<u32> = cargo_weight_grams.try_into()?;
+
+        let flight_plan_submitted: Option<prost_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("flight_plan_submitted")
+            .and_then(|val| datetime_to_timestamp(&val));
+
+        let scheduled_departure: Option<prost_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("scheduled_departure")
+            .and_then(|val| datetime_to_timestamp(&val));
+
+        let scheduled_arrival: Option<prost_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("scheduled_arrival")
+            .and_then(|val| datetime_to_timestamp(&val));
+
+        let actual_departure: Option<prost_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("actual_departure")
+            .and_then(|val| datetime_to_timestamp(&val));
+
+        let actual_arrival: Option<prost_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("actual_arrival")
+            .and_then(|val| datetime_to_timestamp(&val));
+
+        let flight_release_approval: Option<prost_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("flight_release_approval")
+            .and_then(|val| datetime_to_timestamp(&val));
+
+        let flight_status = FlightStatus::from_str(row.get("flight_status"))?.into();
+        let flight_priority = FlightPriority::from_str(row.get("flight_priority"))?.into();
+
+        Ok(Data {
+            pilot_id,
+            vehicle_id,
+            flight_distance_meters: row.get("flight_distance_meters"),
+            weather_conditions: row.get("weather_conditions"),
+            departure_vertiport_id: Some(departure_vertiport_id),
+            departure_vertipad_id,
+            destination_vertiport_id: Some(destination_vertiport_id),
+            destination_vertipad_id,
+            scheduled_departure,
+            scheduled_arrival,
+            actual_departure,
+            actual_arrival,
+            flight_release_approval,
+            flight_plan_submitted,
+            cargo_weight_grams,
+            approved_by,
+            flight_status,
+            flight_priority,
+        })
+    }
+}
+
+impl FromStr for FlightStatus {
+    type Err = ArrErr;
+
+    fn from_str(s: &str) -> ::core::result::Result<FlightStatus, Self::Err> {
+        match s {
+            "READY" => ::core::result::Result::Ok(FlightStatus::Ready),
+            "BOARDING" => ::core::result::Result::Ok(FlightStatus::Boarding),
+            "IN_FLIGHT" => ::core::result::Result::Ok(FlightStatus::InFlight),
+            "FINISHED" => ::core::result::Result::Ok(FlightStatus::Finished),
+            "CANCELLED" => ::core::result::Result::Ok(FlightStatus::Cancelled),
+            "DRAFT" => ::core::result::Result::Ok(FlightStatus::Draft),
+            _ => ::core::result::Result::Err(ArrErr::Error(format!("Unknown FlightStatus: {}", s))),
+        }
+    }
+}
+
+impl FromStr for FlightPriority {
+    type Err = ArrErr;
+
+    fn from_str(s: &str) -> ::core::result::Result<FlightPriority, Self::Err> {
+        match s {
+            "EMERGENCY" => ::core::result::Result::Ok(FlightPriority::Emergency),
+            "HIGH" => ::core::result::Result::Ok(FlightPriority::High),
+            "LOW" => ::core::result::Result::Ok(FlightPriority::Low),
+            _ => {
+                ::core::result::Result::Err(ArrErr::Error(format!("Unknown FlightPriority: {}", s)))
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use assert_matches::assert_matches;
+
+    #[test]
+    fn test_flight_status_get_enum_string_val() {
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val(
+                "flight_status",
+                FlightStatus::Ready.into()
+            ),
+            Some(String::from("READY"))
+        );
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val(
+                "flight_status",
+                FlightStatus::Boarding.into()
+            ),
+            Some(String::from("BOARDING"))
+        );
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val(
+                "flight_status",
+                FlightStatus::InFlight.into()
+            ),
+            Some(String::from("IN_FLIGHT"))
+        );
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val(
+                "flight_status",
+                FlightStatus::Finished.into()
+            ),
+            Some(String::from("FINISHED"))
+        );
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val(
+                "flight_status",
+                FlightStatus::Cancelled.into()
+            ),
+            Some(String::from("CANCELLED"))
+        );
+    }
 
     #[test]
     fn test_flight_status_from_str() {
         // Test parsing valid flight status values
-        assert_matches!("READY".parse::<FlightStatus>(), Ok(FlightStatus::Ready));
-        assert_matches!(
+        assert!(matches!(
+            "READY".parse::<FlightStatus>(),
+            Ok(FlightStatus::Ready)
+        ));
+        assert!(matches!(
             "BOARDING".parse::<FlightStatus>(),
             Ok(FlightStatus::Boarding)
-        );
-        assert_matches!(
+        ));
+        assert!(matches!(
             "IN_FLIGHT".parse::<FlightStatus>(),
             Ok(FlightStatus::InFlight)
-        );
-        assert_matches!(
+        ));
+        assert!(matches!(
             "FINISHED".parse::<FlightStatus>(),
             Ok(FlightStatus::Finished)
-        );
-        assert_matches!(
+        ));
+        assert!(matches!(
             "CANCELLED".parse::<FlightStatus>(),
             Ok(FlightStatus::Cancelled)
-        );
-        assert_matches!("DRAFT".parse::<FlightStatus>(), Ok(FlightStatus::Draft));
+        ));
+        assert!(matches!(
+            "DRAFT".parse::<FlightStatus>(),
+            Ok(FlightStatus::Draft)
+        ));
 
         // Test parsing invalid flight status values
         assert!("".parse::<FlightStatus>().is_err());
@@ -344,17 +388,112 @@ mod tests {
     }
 
     #[test]
+    fn test_flight_status_as_str_name() {
+        assert_eq!(FlightStatus::Ready.as_str_name(), "READY");
+        assert_eq!(FlightStatus::Boarding.as_str_name(), "BOARDING");
+        assert_eq!(FlightStatus::InFlight.as_str_name(), "IN_FLIGHT");
+        assert_eq!(FlightStatus::Finished.as_str_name(), "FINISHED");
+        assert_eq!(FlightStatus::Cancelled.as_str_name(), "CANCELLED");
+        assert_eq!(FlightStatus::Draft.as_str_name(), "DRAFT");
+    }
+
+    #[test]
+    fn test_flight_status_from_str_name() {
+        assert_eq!(
+            FlightStatus::from_str_name("READY"),
+            Some(FlightStatus::Ready)
+        );
+        assert_eq!(
+            FlightStatus::from_str_name("BOARDING"),
+            Some(FlightStatus::Boarding)
+        );
+        assert_eq!(
+            FlightStatus::from_str_name("IN_FLIGHT"),
+            Some(FlightStatus::InFlight)
+        );
+        assert_eq!(
+            FlightStatus::from_str_name("FINISHED"),
+            Some(FlightStatus::Finished)
+        );
+        assert_eq!(
+            FlightStatus::from_str_name("CANCELLED"),
+            Some(FlightStatus::Cancelled)
+        );
+        assert_eq!(
+            FlightStatus::from_str_name("DRAFT"),
+            Some(FlightStatus::Draft)
+        );
+
+        assert_eq!(FlightPriority::from_str_name("INVALID"), None);
+    }
+
+    #[test]
+    fn test_flight_priority_get_enum_string_val() {
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val(
+                "flight_priority",
+                FlightPriority::Emergency.into()
+            ),
+            Some(String::from("EMERGENCY"))
+        );
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val(
+                "flight_priority",
+                FlightPriority::High.into()
+            ),
+            Some(String::from("HIGH"))
+        );
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val(
+                "flight_priority",
+                FlightPriority::Low.into()
+            ),
+            Some(String::from("LOW"))
+        );
+    }
+
+    #[test]
     fn test_flight_priority_from_str() {
         // Test parsing valid flight priority values
-        assert_matches!(
+        assert!(matches!(
             "EMERGENCY".parse::<FlightPriority>(),
             Ok(FlightPriority::Emergency)
-        );
-        assert_matches!("HIGH".parse::<FlightPriority>(), Ok(FlightPriority::High));
-        assert_matches!("LOW".parse::<FlightPriority>(), Ok(FlightPriority::Low));
+        ));
+        assert!(matches!(
+            "HIGH".parse::<FlightPriority>(),
+            Ok(FlightPriority::High)
+        ));
+        assert!(matches!(
+            "LOW".parse::<FlightPriority>(),
+            Ok(FlightPriority::Low)
+        ));
 
         // Test parsing invalid flight priority values
         assert!("".parse::<FlightPriority>().is_err());
         assert!("INVALID_STATUS".parse::<FlightPriority>().is_err());
+    }
+
+    #[test]
+    fn test_flight_priority_as_str_name() {
+        assert_eq!(FlightPriority::Low.as_str_name(), "LOW");
+        assert_eq!(FlightPriority::High.as_str_name(), "HIGH");
+        assert_eq!(FlightPriority::Emergency.as_str_name(), "EMERGENCY");
+    }
+
+    #[test]
+    fn test_flight_priority_from_str_name() {
+        assert_eq!(
+            FlightPriority::from_str_name("LOW"),
+            Some(FlightPriority::Low)
+        );
+        assert_eq!(
+            FlightPriority::from_str_name("HIGH"),
+            Some(FlightPriority::High)
+        );
+        assert_eq!(
+            FlightPriority::from_str_name("EMERGENCY"),
+            Some(FlightPriority::Emergency)
+        );
+        assert_eq!(FlightPriority::from_str_name("INVALID"), None);
     }
 }

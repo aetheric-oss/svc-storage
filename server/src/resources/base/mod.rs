@@ -267,24 +267,24 @@ impl TryFrom<IdList> for Vec<Uuid> {
     }
 }
 
-impl TryFrom<PsqlJsonValue> for Vec<i64> {
+impl TryFrom<PsqlJsonValue> for Vec<u32> {
     type Error = ArrErr;
     fn try_from(json_value: PsqlJsonValue) -> Result<Self, ArrErr> {
         match json_value.value.as_array() {
             Some(arr) => {
                 let iter = arr.iter();
-                let mut vec: Vec<i64> = vec![];
+                let mut vec: Vec<u32> = vec![];
                 for val in iter {
-                    vec.push(val.as_i64().ok_or(ArrErr::Error(format!(
-                        "json_value did not contain array with i64: {}",
+                    vec.push(val.as_u64().ok_or(ArrErr::Error(format!(
+                        "json_value did not contain array with u32: {}",
                         json_value.value
-                    )))?);
+                    )))? as u32);
                 }
                 Ok(vec)
             }
             None => {
                 let error = format!(
-                    "Could not convert [PsqlJsonValue] to [Vec<i64>]: {:?}",
+                    "Could not convert [PsqlJsonValue] to [Vec<u32>]: {:?}",
                     json_value
                 );
                 error!("{}", error);
