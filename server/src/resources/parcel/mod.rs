@@ -19,22 +19,6 @@ crate::build_generic_resource_impl_from!();
 // Generate grpc server implementations
 crate::build_grpc_simple_resource_impl!(parcel);
 
-impl FromStr for ParcelStatus {
-    type Err = ArrErr;
-
-    fn from_str(s: &str) -> ::core::result::Result<ParcelStatus, Self::Err> {
-        match s {
-            "NOTDROPPEDOFF" => ::core::result::Result::Ok(ParcelStatus::Notdroppedoff),
-            "DROPPEDOFF" => ::core::result::Result::Ok(ParcelStatus::Droppedoff),
-            "ENROUTE" => ::core::result::Result::Ok(ParcelStatus::Enroute),
-            "ARRIVED" => ::core::result::Result::Ok(ParcelStatus::Arrived),
-            "PICKEDUP" => ::core::result::Result::Ok(ParcelStatus::Pickedup),
-            "COMPLETE" => ::core::result::Result::Ok(ParcelStatus::Complete),
-            _ => ::core::result::Result::Err(ArrErr::Error(format!("Unknown ParcelStatus: {}", s))),
-        }
-    }
-}
-
 impl Resource for ResourceObject<Data> {
     fn get_definition() -> ResourceDefinition {
         ResourceDefinition {
@@ -96,6 +80,8 @@ impl GrpcDataObjectType for Data {
     }
 }
 
+#[cfg(not(tarpaulin_include))]
+// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
 impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
@@ -111,5 +97,173 @@ impl TryFrom<Row> for Data {
             itinerary_id: itinerary_id.to_string(),
             status: status.into(),
         })
+    }
+}
+
+impl FromStr for ParcelStatus {
+    type Err = ArrErr;
+
+    fn from_str(s: &str) -> ::core::result::Result<ParcelStatus, Self::Err> {
+        match s {
+            "NOTDROPPEDOFF" => ::core::result::Result::Ok(ParcelStatus::Notdroppedoff),
+            "DROPPEDOFF" => ::core::result::Result::Ok(ParcelStatus::Droppedoff),
+            "ENROUTE" => ::core::result::Result::Ok(ParcelStatus::Enroute),
+            "ARRIVED" => ::core::result::Result::Ok(ParcelStatus::Arrived),
+            "PICKEDUP" => ::core::result::Result::Ok(ParcelStatus::Pickedup),
+            "COMPLETE" => ::core::result::Result::Ok(ParcelStatus::Complete),
+            _ => ::core::result::Result::Err(ArrErr::Error(format!("Unknown ParcelStatus: {}", s))),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::base::test_util::*;
+    use super::*;
+
+    #[test]
+    fn test_parcel_schema() {
+        let id = Uuid::new_v4().to_string();
+        let data = mock::get_data_obj();
+        let object: ResourceObject<Data> = Object {
+            id,
+            data: Some(data.clone()),
+        }
+        .into();
+        test_schema::<ResourceObject<Data>, Data>(object);
+
+        let result = <ResourceObject<Data> as PsqlType>::validate(&data);
+        assert!(result.is_ok());
+        if let Ok((sql_fields, validation_result)) = result {
+            println!("{:?}", sql_fields);
+            println!("{:?}", validation_result);
+            assert_eq!(validation_result.success, true);
+        }
+    }
+
+    #[test]
+    fn test_parcel_invalid_data() {
+        let data = Data {
+            itinerary_id: String::from("INVALID"),
+            status: -1,
+        };
+
+        let result = <ResourceObject<Data> as PsqlType>::validate(&data);
+        assert!(result.is_ok());
+        if let Ok((_, validation_result)) = result {
+            println!("{:?}", validation_result);
+            assert_eq!(validation_result.success, false);
+
+            let expected_errors = vec!["itinerary_id", "status"];
+            assert_eq!(expected_errors.len(), validation_result.errors.len());
+            assert!(contains_field_errors(&validation_result, &expected_errors));
+        }
+    }
+
+    #[test]
+    fn test_parcel_status_get_enum_string_val() {
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val(
+                "status",
+                ParcelStatus::Notdroppedoff.into()
+            ),
+            Some(String::from("NOTDROPPEDOFF"))
+        );
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val("status", ParcelStatus::Droppedoff.into()),
+            Some(String::from("DROPPEDOFF"))
+        );
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val("status", ParcelStatus::Enroute.into()),
+            Some(String::from("ENROUTE"))
+        );
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val("status", ParcelStatus::Arrived.into()),
+            Some(String::from("ARRIVED"))
+        );
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val("status", ParcelStatus::Pickedup.into()),
+            Some(String::from("PICKEDUP"))
+        );
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val("status", ParcelStatus::Complete.into()),
+            Some(String::from("COMPLETE"))
+        );
+
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val("status", -1),
+            None
+        );
+    }
+
+    #[test]
+    fn test_parcel_status_from_str() {
+        assert!(matches!(
+            "NOTDROPPEDOFF".parse::<ParcelStatus>(),
+            Ok(ParcelStatus::Notdroppedoff)
+        ));
+        assert!(matches!(
+            "DROPPEDOFF".parse::<ParcelStatus>(),
+            Ok(ParcelStatus::Droppedoff)
+        ));
+        assert!(matches!(
+            "ENROUTE".parse::<ParcelStatus>(),
+            Ok(ParcelStatus::Enroute)
+        ));
+        assert!(matches!(
+            "ARRIVED".parse::<ParcelStatus>(),
+            Ok(ParcelStatus::Arrived)
+        ));
+        assert!(matches!(
+            "PICKEDUP".parse::<ParcelStatus>(),
+            Ok(ParcelStatus::Pickedup)
+        ));
+        assert!(matches!(
+            "COMPLETE".parse::<ParcelStatus>(),
+            Ok(ParcelStatus::Complete)
+        ));
+
+        assert!("".parse::<ParcelStatus>().is_err());
+        assert!("INVALID_STATUS".parse::<ParcelStatus>().is_err());
+    }
+
+    #[test]
+    fn test_parcel_status_as_str_name() {
+        assert_eq!(ParcelStatus::Notdroppedoff.as_str_name(), "NOTDROPPEDOFF");
+        assert_eq!(ParcelStatus::Droppedoff.as_str_name(), "DROPPEDOFF");
+        assert_eq!(ParcelStatus::Enroute.as_str_name(), "ENROUTE");
+        assert_eq!(ParcelStatus::Arrived.as_str_name(), "ARRIVED");
+        assert_eq!(ParcelStatus::Pickedup.as_str_name(), "PICKEDUP");
+        assert_eq!(ParcelStatus::Complete.as_str_name(), "COMPLETE");
+    }
+
+    #[test]
+    fn test_parcel_status_from_str_name() {
+        assert_eq!(
+            ParcelStatus::from_str_name("NOTDROPPEDOFF"),
+            Some(ParcelStatus::Notdroppedoff)
+        );
+        assert_eq!(
+            ParcelStatus::from_str_name("DROPPEDOFF"),
+            Some(ParcelStatus::Droppedoff)
+        );
+        assert_eq!(
+            ParcelStatus::from_str_name("ENROUTE"),
+            Some(ParcelStatus::Enroute)
+        );
+        assert_eq!(
+            ParcelStatus::from_str_name("ARRIVED"),
+            Some(ParcelStatus::Arrived)
+        );
+        assert_eq!(
+            ParcelStatus::from_str_name("PICKEDUP"),
+            Some(ParcelStatus::Pickedup)
+        );
+        assert_eq!(
+            ParcelStatus::from_str_name("COMPLETE"),
+            Some(ParcelStatus::Complete)
+        );
+
+        assert_eq!(ParcelStatus::from_str_name("INVALID"), None);
     }
 }

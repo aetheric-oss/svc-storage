@@ -293,3 +293,140 @@ impl TryFrom<PsqlJsonValue> for Vec<u32> {
         }
     }
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio_postgres::types::Type as PsqlFieldType;
+
+    // FieldDefinition tests
+    #[test]
+    fn test_field_definition_new() {
+        let field_type = PsqlFieldType::VARCHAR;
+        let mandatory = true;
+        let field_def = FieldDefinition::new(field_type.clone(), mandatory);
+
+        assert_eq!(field_def.field_type, field_type);
+        assert_eq!(field_def.is_mandatory(), mandatory);
+        assert!(!field_def.is_internal());
+        assert!(!field_def.has_default());
+    }
+
+    #[test]
+    fn test_field_definition_internal_field() {
+        let field_type = PsqlFieldType::FLOAT8;
+        let mandatory = false;
+        let field_def = FieldDefinition::new_internal(field_type.clone(), mandatory);
+
+        assert_eq!(field_def.field_type, field_type);
+        assert_eq!(field_def.is_mandatory(), mandatory);
+        assert!(field_def.is_internal());
+        assert!(!field_def.has_default());
+    }
+
+    #[test]
+    fn test_field_definition_set_default() {
+        let field_type = PsqlFieldType::BOOL;
+        let mandatory = true;
+        let mut field_def = FieldDefinition::new(field_type, mandatory);
+
+        assert!(!field_def.has_default());
+
+        let default_value = "true".to_owned();
+        field_def.set_default(default_value.clone());
+
+        assert!(field_def.has_default());
+        assert_eq!(field_def.get_default(), default_value);
+    }
+
+    #[test]
+    #[should_panic(expected = "get_default called on a field without a default value")]
+    fn test_field_definition_get_default_without_default() {
+        let field_type = PsqlFieldType::TEXT;
+        let mandatory = false;
+        let field_def = FieldDefinition::new_internal(field_type, mandatory);
+
+        field_def.get_default();
+    }
+
+    #[test]
+    fn test_field_definition_get_default_with_default() {
+        let field_type = PsqlFieldType::FLOAT4;
+        let mandatory = false;
+        let default_value = "3.14".to_owned();
+        let mut field_def = FieldDefinition::new(field_type, mandatory);
+        field_def.set_default(default_value.clone());
+
+        assert_eq!(field_def.get_default(), default_value);
+    }
+
+    // ResourceDefinition tests
+    #[test]
+    fn test_resource_definition_get_psql_table() {
+        let psql_table = "my_table".to_owned();
+        let resource_def = ResourceDefinition {
+            psql_table: psql_table.clone(),
+            psql_id_cols: Vec::new(),
+            fields: HashMap::new(),
+        };
+
+        assert_eq!(resource_def.get_psql_table(), psql_table);
+    }
+
+    #[test]
+    fn test_resource_definition_get_psql_id_cols() {
+        let psql_id_cols = vec!["id".to_owned(), "name".to_owned()];
+        let resource_def = ResourceDefinition {
+            psql_table: String::new(),
+            psql_id_cols: psql_id_cols.clone(),
+            fields: HashMap::new(),
+        };
+
+        assert_eq!(resource_def.get_psql_id_cols(), psql_id_cols);
+    }
+
+    #[test]
+    fn test_resource_definition_has_field() {
+        let field_name = "field1";
+        let field_def = FieldDefinition::new(PsqlFieldType::TEXT, true);
+
+        let mut fields = HashMap::new();
+        fields.insert(field_name.to_owned(), field_def);
+
+        let resource_def = ResourceDefinition {
+            psql_table: String::new(),
+            psql_id_cols: Vec::new(),
+            fields,
+        };
+
+        assert!(resource_def.has_field(field_name));
+        assert!(!resource_def.has_field("nonexistent_field"));
+    }
+
+    #[test]
+    fn test_resource_definition_try_get_field() {
+        let field_name = "field1";
+        let field_def = FieldDefinition::new(PsqlFieldType::TEXT, true);
+
+        let mut fields = HashMap::new();
+        fields.insert(field_name.to_owned(), field_def.clone());
+
+        let resource_def = ResourceDefinition {
+            psql_table: String::from("test"),
+            psql_id_cols: vec![String::from("test_id")],
+            fields,
+        };
+
+        let result = resource_def.try_get_field(field_name);
+        assert!(result.is_ok());
+        assert!(matches!(result.unwrap(), _field_def));
+
+        let result = resource_def.try_get_field("nonexistent_field");
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            format!(
+                "error: Tried to get field [nonexistent_field] for table [{}], but the field does not exist.", resource_def.get_psql_table()
+            )
+        );
+    }
+}

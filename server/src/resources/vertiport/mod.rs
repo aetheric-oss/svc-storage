@@ -100,3 +100,60 @@ impl TryFrom<Row> for Data {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::super::base::test_util::*;
+    use super::*;
+
+    #[test]
+    fn test_vertiport_schema() {
+        let id = Uuid::new_v4().to_string();
+        let data = mock::get_data_obj();
+        let object: ResourceObject<Data> = Object {
+            id,
+            data: Some(data.clone()),
+        }
+        .into();
+        test_schema::<ResourceObject<Data>, Data>(object);
+
+        let result = <ResourceObject<Data> as PsqlType>::validate(&data);
+        assert!(result.is_ok());
+        if let Ok((sql_fields, validation_result)) = result {
+            println!("{:?}", sql_fields);
+            println!("{:?}", validation_result);
+            assert_eq!(validation_result.success, true);
+        }
+    }
+
+    #[test]
+    fn test_vertiport_invalid_data() {
+        let data = Data {
+            name: String::from(""),
+            description: String::from(""),
+            geo_location: Some(
+                geo_types::Polygon::new(
+                    geo_types::LineString::from(vec![
+                        (4.78565097, 53.01922827),
+                        (204.78650928, 253.01922827),
+                    ]),
+                    vec![],
+                )
+                .into(),
+            ),
+            schedule: Some(String::from("")),
+        };
+
+        let result = <ResourceObject<Data> as PsqlType>::validate(&data);
+        assert!(result.is_ok());
+        if let Ok((_, validation_result)) = result {
+            println!("{:?}", validation_result);
+            assert_eq!(validation_result.success, false);
+
+            // expecting 2x geo_location error due to 2 points being out of range
+            let expected_errors = vec!["geo_location", "geo_location"];
+            assert_eq!(expected_errors.len(), validation_result.errors.len());
+            assert!(contains_field_errors(&validation_result, &expected_errors));
+        }
+    }
+}

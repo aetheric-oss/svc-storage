@@ -65,6 +65,8 @@ impl GrpcDataObjectType for Data {
     }
 }
 
+#[cfg(not(tarpaulin_include))]
+// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
 impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
@@ -74,5 +76,31 @@ impl TryFrom<Row> for Data {
             first_name: row.get("first_name"),
             last_name: row.get("last_name"),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::base::test_util::*;
+    use super::*;
+
+    #[test]
+    fn test_pilot_schema() {
+        let id = Uuid::new_v4().to_string();
+        let data = mock::get_data_obj();
+        let object: ResourceObject<Data> = Object {
+            id,
+            data: Some(data.clone()),
+        }
+        .into();
+        test_schema::<ResourceObject<Data>, Data>(object);
+
+        let result = <ResourceObject<Data> as PsqlType>::validate(&data);
+        assert!(result.is_ok());
+        if let Ok((sql_fields, validation_result)) = result {
+            println!("{:?}", sql_fields);
+            println!("{:?}", validation_result);
+            assert_eq!(validation_result.success, true);
+        }
     }
 }

@@ -1,7 +1,10 @@
+use lib_common::time::datetime_to_timestamp;
 use prost_types::Timestamp;
 
 use super::*;
 use crate::grpc::{GrpcDataObjectType, GrpcField, GrpcFieldOption};
+use crate::postgres::simple_resource;
+use crate::resources::ValidationResult;
 use std::collections::HashMap;
 
 /// Test struct providing all data types we need to convert between gRPC
@@ -25,6 +28,8 @@ pub struct TestData {
     pub u8_vec: ::prost::alloc::vec::Vec<u8>,
     #[prost(int64, repeated, tag = "8")]
     pub i64_vec: ::prost::alloc::vec::Vec<i64>,
+    #[prost(uint32, repeated, tag = "9")]
+    pub u32_vec: ::prost::alloc::vec::Vec<u32>,
 
     #[prost(message, optional, tag = "10")]
     pub geo_point: ::core::option::Option<crate::resources::GeoPoint>, // Always passed as an option, but will check for mandatory state
@@ -90,6 +95,10 @@ impl Resource for ResourceObject<TestData> {
                     FieldDefinition::new(PsqlFieldType::JSON, true),
                 ),
                 (
+                    "u32_vec".to_string(),
+                    FieldDefinition::new(PsqlFieldType::JSON, true),
+                ),
+                (
                     "uuid".to_string(),
                     FieldDefinition::new(PsqlFieldType::UUID, true),
                 ),
@@ -107,44 +116,44 @@ impl Resource for ResourceObject<TestData> {
                 ),
                 (
                     "optional_string".to_string(),
-                    FieldDefinition::new(PsqlFieldType::TEXT, true),
+                    FieldDefinition::new(PsqlFieldType::TEXT, false),
                 ),
                 (
                     "optional_bool".to_string(),
-                    FieldDefinition::new(PsqlFieldType::BOOL, true),
+                    FieldDefinition::new(PsqlFieldType::BOOL, false),
                 ),
                 (
                     "optional_i32".to_string(),
-                    FieldDefinition::new(PsqlFieldType::INT4, true),
+                    FieldDefinition::new(PsqlFieldType::INT4, false),
                 ),
                 (
                     "optional_i64".to_string(),
-                    FieldDefinition::new(PsqlFieldType::INT8, true),
+                    FieldDefinition::new(PsqlFieldType::INT8, false),
                 ),
                 (
                     "optional_timestamp".to_string(),
-                    FieldDefinition::new(PsqlFieldType::TIMESTAMPTZ, true)
+                    FieldDefinition::new(PsqlFieldType::TIMESTAMPTZ, false)
                         .set_default(String::from("CURRENT_TIMESTAMP")),
                 ),
                 (
                     "optional_uuid".to_string(),
-                    FieldDefinition::new(PsqlFieldType::UUID, true),
+                    FieldDefinition::new(PsqlFieldType::UUID, false),
                 ),
                 (
                     "optional_geo_point".to_string(),
-                    FieldDefinition::new(PsqlFieldType::POINT, true),
+                    FieldDefinition::new(PsqlFieldType::POINT, false),
                 ),
                 (
                     "optional_geo_polygon".to_string(),
-                    FieldDefinition::new(PsqlFieldType::POLYGON, true),
+                    FieldDefinition::new(PsqlFieldType::POLYGON, false),
                 ),
                 (
                     "optional_geo_line_string".to_string(),
-                    FieldDefinition::new(PsqlFieldType::PATH, true),
+                    FieldDefinition::new(PsqlFieldType::PATH, false),
                 ),
                 (
                     "internal".to_string(),
-                    FieldDefinition::new_internal(PsqlFieldType::TEXT, true),
+                    FieldDefinition::new_internal(PsqlFieldType::TEXT, false),
                 ),
             ]),
         }
@@ -164,6 +173,7 @@ impl GrpcDataObjectType for TestData {
             "uuid" => Ok(GrpcField::String(self.uuid.clone())),
             "u8_vec" => Ok(GrpcField::Bytes(self.u8_vec.clone())),
             "i64_vec" => Ok(GrpcField::I64List(self.i64_vec.clone())),
+            "u32_vec" => Ok(GrpcField::U32List(self.u32_vec.clone())),
             "geo_point" => Ok(GrpcField::Option(self.geo_point.clone().into())),
             "geo_polygon" => Ok(GrpcField::Option(self.geo_polygon.clone().into())),
             "geo_line_string" => Ok(GrpcField::Option(self.geo_line_string.clone().into())),
@@ -211,14 +221,15 @@ pub(crate) fn get_valid_test_data(
         uuid: uuid.to_string(),
         u8_vec: vec![1, 2],
         i64_vec: vec![-20, 2, -3000],
+        u32_vec: vec![20, 2, 3000],
 
-        geo_point: Some(geo_types::Point::new(180.0, 90.0).into()),
+        geo_point: Some(geo_types::Point::new(90.0, 180.0).into()),
         geo_polygon: Some(
             geo_types::Polygon::new(
                 geo_types::LineString::from(vec![(1.0, 1.0), (2.0, 2.0), (3.0, 3.0)]),
                 vec![
                     geo_types::LineString::from(vec![(11.0, 11.0), (12.0, 12.0)]),
-                    geo_types::LineString::from(vec![(179.1, 89.1), (179.2, 89.2), (179.3, 89.3)]),
+                    geo_types::LineString::from(vec![(89.1, 179.1), (89.2, 179.2), (89.3, 179.3)]),
                 ],
             )
             .into(),
@@ -234,16 +245,16 @@ pub(crate) fn get_valid_test_data(
         optional_timestamp: optional_timestamp.clone(),
         optional_uuid: Some(optional_uuid.to_string()),
 
-        optional_geo_point: Some(geo_types::Point::new(-180.0, -90.0).into()),
+        optional_geo_point: Some(geo_types::Point::new(-90.0, -180.0).into()),
         optional_geo_polygon: Some(
             geo_types::Polygon::new(
                 geo_types::LineString::from(vec![(-1.0, -1.0), (-2.0, -2.0), (-3.0, -3.0)]),
                 vec![
                     geo_types::LineString::from(vec![(-11.0, -11.0), (-12.0, -12.0)]),
                     geo_types::LineString::from(vec![
-                        (-179.1, -89.1),
-                        (-179.2, -89.2),
-                        (-179.3, -89.3),
+                        (-89.1, -179.1),
+                        (-89.2, -179.2),
+                        (-89.3, -179.3),
                     ]),
                 ],
             )
@@ -275,10 +286,13 @@ pub(crate) fn validate_test_data_sql_val(field: &str, value: &str) {
         "i64_vec" => {
             assert_eq!(value, "Array [Number(-20), Number(2), Number(-3000)]");
         }
+        "u32_vec" => {
+            assert_eq!(value, "Array [Number(20), Number(2), Number(3000)]");
+        }
         "geo_point" => {
             assert_eq!(
                 value,
-                format!("ST_GeomFromText('POINT({:.15} {:.15})')", 180.0, 90.0)
+                format!("ST_GeomFromText('POINT({:.15} {:.15})')", 90.0, 180.0)
             );
         }
         "geo_polygon" => {
@@ -287,7 +301,7 @@ pub(crate) fn validate_test_data_sql_val(field: &str, value: &str) {
                 format!("ST_GeomFromText('POLYGON(({:.15} {:.15},{:.15} {:.15},{:.15} {:.15},{:.15} {:.15}),({:.15} {:.15},{:.15} {:.15},{:.15} {:.15}),({:.15} {:.15},{:.15} {:.15},{:.15} {:.15},{:.15} {:.15}))')",
                     1.0, 1.0, 2.0, 2.0, 3.0, 3.0, 1.0, 1.0,
                     11.0, 11.0, 12.0, 12.0, 11.0, 11.0,
-                    179.1, 89.1, 179.2, 89.2, 179.3, 89.3, 179.1, 89.1
+                    89.1, 179.1, 89.2, 179.2, 89.3, 179.3, 89.1, 179.1
                 )
             );
         }
@@ -316,7 +330,7 @@ pub(crate) fn validate_test_data_sql_val(field: &str, value: &str) {
         "optional_geo_point" => {
             assert_eq!(
                 value,
-                format!("ST_GeomFromText('POINT({:.15} {:.15})')", -180.0, -90.0)
+                format!("ST_GeomFromText('POINT({:.15} {:.15})')", -90.0, -180.0)
             );
         }
         "optional_geo_polygon" => {
@@ -325,7 +339,7 @@ pub(crate) fn validate_test_data_sql_val(field: &str, value: &str) {
                 format!("ST_GeomFromText('POLYGON(({:.15} {:.15},{:.15} {:.15},{:.15} {:.15},{:.15} {:.15}),({:.15} {:.15},{:.15} {:.15},{:.15} {:.15}),({:.15} {:.15},{:.15} {:.15},{:.15} {:.15},{:.15} {:.15}))')",
                     -1.0, -1.0, -2.0, -2.0, -3.0, -3.0, -1.0, -1.0,
                     -11.0, -11.0, -12.0, -12.0, -11.0, -11.0,
-                    -179.1, -89.1, -179.2, -89.2, -179.3, -89.3, -179.1, -89.1
+                    -89.1, -179.1, -89.2, -179.2, -89.3, -179.3, -89.1, -179.1
                 )
             );
         }
@@ -342,4 +356,332 @@ pub(crate) fn validate_test_data_sql_val(field: &str, value: &str) {
             panic!("Unknown field! [{}], value [{:?}]", field, value);
         }
     }
+}
+
+pub(crate) fn get_invalid_test_data() -> TestData {
+    TestData {
+        string: String::from("test_value"),
+        bool: true,
+        i32: 0,
+        i64: 0,
+        timestamp: Some(Timestamp {
+            seconds: -1,
+            nanos: -1,
+        }),
+        uuid: String::from("invalid_uuid"),
+        u8_vec: vec![1, 2],
+        i64_vec: vec![-20, 2, -3000],
+        u32_vec: vec![20, 2, 3000],
+
+        geo_point: Some(geo_types::Point::new(91.0, 181.0).into()),
+        geo_polygon: Some(
+            geo_types::Polygon::new(
+                geo_types::LineString::from(vec![(91.0, 181.0)]),
+                vec![geo_types::LineString::from(vec![(-91.0, -181.0)])],
+            )
+            .into(),
+        ),
+        geo_line_string: Some(
+            geo_types::LineString::from(vec![(91.0, 181.0), (-91.0, -181.0), (3.0, 3.0)]).into(),
+        ),
+
+        optional_string: None,
+        optional_bool: None,
+        optional_i32: None,
+        optional_i64: None,
+        optional_timestamp: Some(Timestamp {
+            seconds: -1,
+            nanos: -1,
+        }),
+        optional_uuid: Some(String::from("invalid_optional_uuid")),
+
+        optional_geo_point: Some(geo_types::Point::new(-91.0, -181.0).into()),
+        optional_geo_polygon: Some(
+            geo_types::Polygon::new(
+                geo_types::LineString::from(vec![(-91.0, -181.0), (-2.0, -2.0), (-3.0, -3.0)]),
+                vec![
+                    geo_types::LineString::from(vec![(-91.0, -181.0), (-12.0, -12.0)]),
+                    geo_types::LineString::from(vec![
+                        (-91.0, -21.0),
+                        (-22.0, -22.0),
+                        (-23.0, -23.0),
+                    ]),
+                ],
+            )
+            .into(),
+        ),
+        optional_geo_line_string: Some(
+            geo_types::LineString::from(vec![(-91.0, -181.0), (-2.0, -2.0), (-3.0, -3.0)]).into(),
+        ),
+    }
+}
+
+pub(crate) fn contains_field_errors(validation_result: &ValidationResult, fields: &[&str]) -> bool {
+    let mut found_fields = vec![false; fields.len()];
+
+    for error in &validation_result.errors {
+        for (index, field) in fields.iter().enumerate() {
+            if error.field == *field {
+                println!("Found expected error field: {}", field);
+                found_fields[index] = true;
+            }
+        }
+    }
+
+    found_fields.iter().all(|&found| found)
+}
+
+pub(crate) fn test_schema<T, U>(object: T)
+where
+    T: ObjectType<U> + simple_resource::PsqlType + simple_resource::PsqlObjectType<U> + Resource,
+    U: GrpcDataObjectType + prost::Message,
+{
+    let data = object.get_data();
+    assert!(data.is_some());
+    let data: U = data.unwrap();
+
+    // simple check, not much to validate here other than that the function call
+    // works
+    {
+        let indices = T::get_table_indices();
+        assert!(indices.is_empty() || indices.len() > 0);
+    }
+
+    // test invalid key for get_field_value function
+    {
+        let invalid_field = "invalid_field";
+        let invalid = data.get_field_value(invalid_field);
+        assert!(matches!(invalid, Err(ArrErr::Error(_))));
+        assert_eq!(
+            invalid.unwrap_err().to_string(),
+            format!(
+                "error: Invalid key specified [{}], no such field found",
+                invalid_field
+            )
+        );
+    }
+
+    // test schema definition
+    {
+        let schema = T::get_definition();
+        for (field, definition) in schema.fields {
+            //let value = <U as GrpcDataObjectType>::get_field_value(&data, &field);
+            let value = data.get_field_value(&field);
+
+            // Check if internal field, should not be part of Object fields
+            match definition.is_internal() {
+                true => {
+                    if value.is_ok() {
+                        println!("Object defines an internal field [{}]!", field);
+                    }
+                    assert!(value.is_err());
+                }
+                false => {
+                    if value.is_err() {
+                        println!("Object is missing a field definition for [{}]!", field);
+                    }
+                    assert!(value.is_ok());
+
+                    let value = value.unwrap();
+
+                    // Check if mandatory field, should be an [`Option`] type if not
+                    match value {
+                        GrpcField::Option(_) => {
+                            match definition.field_type {
+                                // Skip checks for non scalar types.
+                                // They will always be passed as an [`Option`].
+                                // https://github.com/tokio-rs/prost#field-modifiers
+                                PsqlFieldType::TIMESTAMPTZ
+                                | PsqlFieldType::POINT
+                                | PsqlFieldType::PATH
+                                | PsqlFieldType::POLYGON => assert!(true),
+                                _ => {
+                                    if definition.is_mandatory() {
+                                        println!("GrpcField defined an Option type for {} but database schema defines it as mandatory!", field);
+                                        println!("GrpcField value: {:?}", value);
+                                        println!("Psql definition: {:?}", definition);
+                                    }
+                                    assert!(!definition.is_mandatory())
+                                }
+                            }
+                        }
+                        _ => {
+                            if !definition.is_mandatory() {
+                                println!("GrpcField does not define an Option type for {} but database schema defines it as optional!", field);
+                                println!("GrpcField value: {:?}", value);
+                                println!("Psql definition: {:?}", definition);
+                            }
+                            assert!(definition.is_mandatory())
+                        }
+                    }
+
+                    // Check if field_type matches [`Object`] definition type
+                    if definition.is_mandatory() {
+                        test_field_type_matches_grpc_field(definition.field_type, value);
+                    } else {
+                        test_field_type_matches_optional_grpc_field(definition.field_type, value);
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn test_field_type_matches_grpc_field(field_type: PsqlFieldType, grpc_field: GrpcField) {
+    match field_type {
+        PsqlFieldType::BYTEA => assert!(matches!(grpc_field, GrpcField::Bytes(_))),
+        PsqlFieldType::VARCHAR_ARRAY => {
+            assert!(matches!(grpc_field, GrpcField::String(_)))
+        }
+        PsqlFieldType::TEXT => assert!(matches!(grpc_field, GrpcField::String(_))),
+        PsqlFieldType::UUID => assert!(matches!(grpc_field, GrpcField::String(_))),
+        PsqlFieldType::JSON => assert!(
+            matches!(grpc_field, GrpcField::I64List(_))
+                || matches!(grpc_field, GrpcField::U32List(_))
+        ),
+        PsqlFieldType::INT8 => assert!(
+            matches!(grpc_field, GrpcField::I64(_)) || matches!(grpc_field, GrpcField::U32(_))
+        ),
+        PsqlFieldType::FLOAT8 => assert!(matches!(grpc_field, GrpcField::F64(_))),
+        PsqlFieldType::ANYENUM => assert!(matches!(grpc_field, GrpcField::I32(_))),
+        PsqlFieldType::INT4 => assert!(matches!(grpc_field, GrpcField::I32(_))),
+        PsqlFieldType::INT2 => assert!(matches!(grpc_field, GrpcField::I16(_))),
+        PsqlFieldType::FLOAT4 => assert!(matches!(grpc_field, GrpcField::F32(_))),
+        PsqlFieldType::BOOL => assert!(matches!(grpc_field, GrpcField::Bool(_))),
+        PsqlFieldType::TIMESTAMPTZ => assert!(matches!(
+            grpc_field,
+            GrpcField::Option(GrpcFieldOption::Timestamp(_))
+        )),
+        PsqlFieldType::POINT => assert!(matches!(
+            grpc_field,
+            GrpcField::Option(GrpcFieldOption::GeoPoint(_))
+        )),
+        PsqlFieldType::POLYGON => assert!(matches!(
+            grpc_field,
+            GrpcField::Option(GrpcFieldOption::GeoPolygon(_))
+        )),
+        PsqlFieldType::PATH => assert!(matches!(
+            grpc_field,
+            GrpcField::Option(GrpcFieldOption::GeoLineString(_))
+        )),
+        _ => {
+            println!(
+                "No matching GrpcField implemented for field_type: {:?}",
+                field_type
+            );
+            assert!(false);
+        }
+    }
+}
+
+fn test_field_type_matches_optional_grpc_field(field_type: PsqlFieldType, grpc_field: GrpcField) {
+    match field_type {
+        PsqlFieldType::BYTEA => assert!(matches!(
+            grpc_field,
+            GrpcField::Option(GrpcFieldOption::Bytes(_))
+        )),
+        PsqlFieldType::VARCHAR_ARRAY => {
+            assert!(matches!(
+                grpc_field,
+                GrpcField::Option(GrpcFieldOption::String(_))
+            ))
+        }
+        PsqlFieldType::TEXT => assert!(matches!(
+            grpc_field,
+            GrpcField::Option(GrpcFieldOption::String(_))
+        )),
+        PsqlFieldType::UUID => assert!(matches!(
+            grpc_field,
+            GrpcField::Option(GrpcFieldOption::String(_))
+        )),
+        PsqlFieldType::ANYENUM => {
+            assert!(matches!(
+                grpc_field,
+                GrpcField::Option(GrpcFieldOption::String(_))
+            ))
+        }
+        PsqlFieldType::JSON => {
+            assert!(
+                matches!(grpc_field, GrpcField::Option(GrpcFieldOption::I64List(_)))
+                    || matches!(grpc_field, GrpcField::Option(GrpcFieldOption::U32List(_)))
+            )
+        }
+        PsqlFieldType::INT8 => {
+            assert!(matches!(
+                grpc_field,
+                GrpcField::Option(GrpcFieldOption::I64(_))
+            ))
+        }
+        PsqlFieldType::FLOAT8 => {
+            assert!(matches!(
+                grpc_field,
+                GrpcField::Option(GrpcFieldOption::F64(_))
+            ))
+        }
+        PsqlFieldType::INT4 => {
+            assert!(matches!(
+                grpc_field,
+                GrpcField::Option(GrpcFieldOption::I32(_))
+            ))
+        }
+        PsqlFieldType::INT2 => {
+            assert!(matches!(
+                grpc_field,
+                GrpcField::Option(GrpcFieldOption::I16(_))
+            ))
+        }
+        PsqlFieldType::FLOAT4 => {
+            assert!(matches!(
+                grpc_field,
+                GrpcField::Option(GrpcFieldOption::F32(_))
+            ))
+        }
+        PsqlFieldType::BOOL => {
+            assert!(matches!(
+                grpc_field,
+                GrpcField::Option(GrpcFieldOption::Bool(_))
+            ))
+        }
+        PsqlFieldType::TIMESTAMPTZ => {
+            assert!(matches!(
+                grpc_field,
+                GrpcField::Option(GrpcFieldOption::Timestamp(_))
+            ))
+        }
+        PsqlFieldType::POINT => assert!(matches!(
+            grpc_field,
+            GrpcField::Option(GrpcFieldOption::GeoPoint(_))
+        )),
+        PsqlFieldType::POLYGON => assert!(matches!(
+            grpc_field,
+            GrpcField::Option(GrpcFieldOption::GeoPolygon(_))
+        )),
+        PsqlFieldType::PATH => assert!(matches!(
+            grpc_field,
+            GrpcField::Option(GrpcFieldOption::GeoLineString(_))
+        )),
+        _ => {
+            println!(
+                "No matching GrpcField implemented for field_type: {:?}",
+                field_type
+            );
+            assert!(false);
+        }
+    }
+}
+
+#[test]
+fn test_test_data_schema() {
+    let uuid = Uuid::new_v4();
+    let optional_uuid = Uuid::new_v4();
+    let timestamp = datetime_to_timestamp(&chrono::Utc::now());
+    let optional_timestamp = datetime_to_timestamp(&chrono::Utc::now());
+
+    let valid_data = get_valid_test_data(
+        uuid,
+        optional_uuid,
+        timestamp.clone(),
+        optional_timestamp.clone(),
+    );
+    test_schema::<ResourceObject<TestData>, TestData>(valid_data.into());
 }

@@ -68,3 +68,14 @@ pub fn get_data_obj() -> Data {
         next_maintenance,
     }
 }
+
+#[test]
+fn test_get_data_obj() {
+    let data: Data = get_data_obj();
+
+    assert!(Uuid::parse_str(&data.vehicle_model_id).is_ok());
+    assert!(data.serial_number.len() > 0);
+    assert!(data.registration_number.len() > 0);
+    assert!(data.description.is_some());
+    assert!(data.schedule.is_some());
+}

@@ -6,6 +6,7 @@ use chrono::{DateTime, Utc};
 use lib_common::time::datetime_to_timestamp;
 use log::debug;
 use std::collections::HashMap;
+use std::str::FromStr;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
 use uuid::Uuid;
@@ -120,6 +121,8 @@ impl GrpcDataObjectType for Data {
     }
 }
 
+#[cfg(not(tarpaulin_include))]
+// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
 impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
@@ -150,5 +153,122 @@ impl TryFrom<Row> for Data {
             last_maintenance,
             next_maintenance,
         })
+    }
+}
+
+impl FromStr for VehicleModelType {
+    type Err = ArrErr;
+
+    fn from_str(s: &str) -> ::core::result::Result<VehicleModelType, Self::Err> {
+        match s {
+            "VTOL_CARGO" => ::core::result::Result::Ok(VehicleModelType::VtolCargo),
+            "VTOL_PASSENGER" => ::core::result::Result::Ok(VehicleModelType::VtolPassenger),
+            _ => ::core::result::Result::Err(ArrErr::Error(format!(
+                "Unknown VehicleModelType: {}",
+                s
+            ))),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::base::test_util::*;
+    use super::*;
+
+    #[test]
+    fn test_vehicle_schema() {
+        let id = Uuid::new_v4().to_string();
+        let data = mock::get_data_obj();
+        let object: ResourceObject<Data> = Object {
+            id,
+            data: Some(data.clone()),
+        }
+        .into();
+        test_schema::<ResourceObject<Data>, Data>(object);
+
+        let result = <ResourceObject<Data> as PsqlType>::validate(&data);
+        assert!(result.is_ok());
+        if let Ok((sql_fields, validation_result)) = result {
+            println!("{:?}", sql_fields);
+            println!("{:?}", validation_result);
+            assert_eq!(validation_result.success, true);
+        }
+    }
+
+    #[test]
+    fn test_vehicle_invalid_data() {
+        let data = Data {
+            vehicle_model_id: String::from("INVALID"),
+            serial_number: String::from(""),
+            registration_number: String::from(""),
+            description: Some(String::from("")),
+            asset_group_id: Some(String::from("INVALID")),
+            schedule: Some(String::from("")),
+            last_vertiport_id: Some(String::from("INVALID")),
+            last_maintenance: Some(prost_types::Timestamp {
+                seconds: -1,
+                nanos: -1,
+            }),
+            next_maintenance: Some(prost_types::Timestamp {
+                seconds: -1,
+                nanos: -1,
+            }),
+        };
+
+        let result = <ResourceObject<Data> as PsqlType>::validate(&data);
+        assert!(result.is_ok());
+        if let Ok((_, validation_result)) = result {
+            println!("{:?}", validation_result);
+            assert_eq!(validation_result.success, false);
+
+            let expected_errors = vec![
+                "last_vertiport_id",
+                "next_maintenance",
+                "last_maintenance",
+                "vehicle_model_id",
+                "asset_group_id",
+            ];
+            assert_eq!(expected_errors.len(), validation_result.errors.len());
+            assert!(contains_field_errors(&validation_result, &expected_errors));
+        }
+    }
+
+    #[test]
+    fn test_vehicle_model_type_from_str() {
+        assert!(matches!(
+            "VTOL_CARGO".parse::<VehicleModelType>(),
+            Ok(VehicleModelType::VtolCargo)
+        ));
+        assert!(matches!(
+            "VTOL_PASSENGER".parse::<VehicleModelType>(),
+            Ok(VehicleModelType::VtolPassenger)
+        ));
+
+        assert!("".parse::<VehicleModelType>().is_err());
+        assert!("INVALID_MODEL_TYPE".parse::<VehicleModelType>().is_err());
+    }
+
+    #[test]
+    fn test_vehicle_model_type_as_str_name() {
+        assert_eq!(VehicleModelType::VtolCargo.as_str_name(), "VTOL_CARGO");
+        assert_eq!(
+            VehicleModelType::VtolPassenger.as_str_name(),
+            "VTOL_PASSENGER"
+        );
+    }
+
+    #[test]
+    fn test_vehicle_model_type_from_str_name() {
+        assert_eq!(
+            VehicleModelType::from_str_name("VTOL_CARGO"),
+            Some(VehicleModelType::VtolCargo)
+        );
+        assert_eq!(
+            VehicleModelType::from_str_name("VTOL_PASSENGER"),
+            Some(VehicleModelType::VtolPassenger)
+        );
+
+        assert_eq!(VehicleModelType::from_str_name("INVALID"), None);
     }
 }

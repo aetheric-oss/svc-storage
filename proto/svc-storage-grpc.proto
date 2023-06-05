@@ -127,9 +127,11 @@ message ValidationResult {
 
 // Geo Location Point representation
 message GeoPoint {
-    // x (longitude)
+    // x (longitude / vertical / north-south)
+    // range: -90 - 90
     double x = 1;
-    // y (latitude)
+    // y (latitude / horizontal / east-west)
+    // range: -180 - 180
     double y = 2;
 }
 

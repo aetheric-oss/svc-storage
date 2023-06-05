@@ -468,3 +468,96 @@ pub(super) fn param_from_search_col(
         _ => Ok(Box::new(col_val.clone())),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::resources::base::test_util::TestData;
+    use crate::resources::base::ResourceObject;
+
+    #[test]
+    fn test_get_param_from_search_col() {
+        // Our TestData object should have fields for each possible field_type.
+        // We'll use it to loop over all the fields and test the expected return
+        // value for that type.
+        let definition = ResourceObject::<TestData>::get_definition();
+        for (field, field_definition) in definition.fields {
+            let (string_val, display_val) = match field_definition.field_type {
+                PsqlFieldType::UUID => {
+                    let val = uuid::Uuid::new_v4();
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::TIMESTAMPTZ => {
+                    let val = &chrono::Utc::now();
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::ANYENUM => {
+                    let val = "TEST";
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::POINT => {
+                    let val = "Point(1.0 2.0)";
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::POLYGON => {
+                    let val = "Polygon((1.1 1.1, 2.1 2.2), (3.1 3.2, 4.1 4.2))";
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::PATH => {
+                    let val = "LineString(1.1 1.1, 2.1 2.2)";
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::TEXT => {
+                    let val: String = String::from("search text");
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::INT2 => {
+                    let val: i16 = 16;
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::INT4 => {
+                    let val: i32 = 32;
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::INT8 => {
+                    let val: i64 = 64;
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::FLOAT8 => {
+                    let val: f64 = 64.0;
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::JSON => {
+                    let val = "[1,2,3]";
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::BOOL => {
+                    let val: bool = true;
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::BYTEA => {
+                    let val = b"Test".to_vec();
+                    (
+                        std::str::from_utf8(&val).unwrap().to_string(),
+                        format!("{:?}", val),
+                    )
+                }
+                _ => {
+                    panic!(
+                        "Conversion errors found in fields for table [{}], unknown field type [{}].",
+                        definition.psql_table, field_definition.field_type.name()
+                    )
+                }
+            };
+            let search_col = SearchCol {
+                col_name: field.clone(),
+                col_type: field_definition.field_type,
+                value: Some(string_val),
+            };
+            let result = param_from_search_col(&search_col);
+            assert!(result.is_ok());
+            let value = result.unwrap();
+            assert_eq!(display_val, format!("{:?}", value))
+        }
+    }
+}
