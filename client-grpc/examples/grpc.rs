@@ -543,7 +543,7 @@ async fn generate_sample_vertiports() -> Result<vertiport::List, Status> {
     (4.78565097, 53.01922827),
     (4.78650928, 53.01922827),
     (4.78607476, 53.01896366),
-     */
+    */
     let filter = AdvancedSearchFilter::search_geo_within(
         "geo_location".to_owned(),
         "POINT(4.7862 53.0191)".to_string(),

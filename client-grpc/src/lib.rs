@@ -64,6 +64,14 @@ cfg_if::cfg_if! {
             }
 
             cfg_if::cfg_if! {
+                if #[cfg(feature = "scanner")] {
+                    grpc_client_mod!(scanner);
+                    simple_grpc_client!(scanner);
+                    pub use scanner::RpcServiceClient as ScannerClient;
+                }
+            }
+
+            cfg_if::cfg_if! {
                 if #[cfg(feature = "pilot")] {
                     grpc_client_mod!(pilot);
                     simple_grpc_client!(pilot);
@@ -130,6 +138,8 @@ cfg_if::cfg_if! {
             flight_plan: GrpcClient<FlightPlanClient<Channel>>,
             #[cfg(feature = "parcel")]
             parcel: GrpcClient<ParcelClient<Channel>>,
+            #[cfg(feature = "scanner")]
+            scanner: GrpcClient<ScannerClient<Channel>>,
             #[cfg(feature = "pilot")]
             pilot: GrpcClient<PilotClient<Channel>>,
             #[cfg(feature = "itinerary")]
@@ -185,6 +195,14 @@ cfg_if::cfg_if! {
                 &self,
             ) -> tonic::Result<parcel::RpcServiceClient<Channel>, tonic::Status> {
                 self.parcel.get_client().await
+            }
+
+            #[cfg(feature = "scanner")]
+            /// get connected scanner client
+            pub async fn get_scanner_client(
+                &self,
+            ) -> tonic::Result<scanner::RpcServiceClient<Channel>, tonic::Status> {
+                self.scanner.get_client().await
             }
 
             #[cfg(feature = "pilot")]
@@ -243,6 +261,9 @@ cfg_if::cfg_if! {
             #[cfg(feature = "parcel")]
             let parcel = GrpcClient::<parcel::RpcServiceClient<Channel>>::new_client(&host, port, "parcel");
 
+            #[cfg(feature = "scanner")]
+            let scanner = GrpcClient::<scanner::RpcServiceClient<Channel>>::new_client(&host, port, "scanner");
+
             #[cfg(feature = "pilot")]
             let pilot = GrpcClient::<pilot::RpcServiceClient<Channel>>::new_client(&host, port, "pilot");
 
@@ -269,6 +290,8 @@ cfg_if::cfg_if! {
                 itinerary_flight_plan_link,
                 #[cfg(feature = "parcel")]
                 parcel,
+                #[cfg(feature = "scanner")]
+                scanner,
                 #[cfg(feature = "pilot")]
                 pilot,
                 #[cfg(feature = "vehicle")]
