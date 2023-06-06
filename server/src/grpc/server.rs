@@ -17,6 +17,7 @@ grpc_server!(flight_plan, "flight_plan");
 grpc_server!(itinerary, "itinerary");
 grpc_server!(parcel, "parcel");
 grpc_server!(scanner, "scanner");
+grpc_server!(parcel_scan, "parcel_scan");
 grpc_server!(pilot, "pilot");
 grpc_server!(vehicle, "vehicle");
 grpc_server!(vertipad, "vertipad");
@@ -104,6 +105,9 @@ pub async fn grpc_server(config: Config) {
         .set_serving::<scanner::RpcServiceServer<scanner::GrpcServer>>()
         .await;
     health_reporter
+        .set_serving::<parcel_scan::RpcServiceServer<parcel_scan::GrpcServer>>()
+        .await;
+    health_reporter
         .set_serving::<pilot::RpcServiceServer<pilot::GrpcServer>>()
         .await;
     health_reporter
@@ -130,6 +134,9 @@ pub async fn grpc_server(config: Config) {
             itinerary_flight_plan::GrpcServer::default(),
         ))
         .add_service(parcel::RpcServiceServer::new(parcel::GrpcServer::default()))
+        .add_service(parcel_scan::RpcServiceServer::new(
+            parcel_scan::GrpcServer::default(),
+        ))
         .add_service(scanner::RpcServiceServer::new(
             scanner::GrpcServer::default(),
         ))
@@ -142,6 +149,12 @@ pub async fn grpc_server(config: Config) {
         ))
         .add_service(vertiport::RpcServiceServer::new(
             vertiport::GrpcServer::default(),
+        ))
+        .add_service(itinerary::RpcServiceServer::new(
+            itinerary::GrpcServer::default(),
+        ))
+        .add_service(itinerary_flight_plan::RpcFlightPlanLinkServer::new(
+            itinerary_flight_plan::GrpcServer::default(),
         ))
         .serve_with_shutdown(full_grpc_addr, shutdown_signal("grpc"))
         .await

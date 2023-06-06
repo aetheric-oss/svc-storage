@@ -64,6 +64,14 @@ cfg_if::cfg_if! {
             }
 
             cfg_if::cfg_if! {
+                if #[cfg(feature = "parcel_scan")] {
+                    grpc_client_mod!(parcel_scan);
+                    simple_grpc_client!(parcel_scan);
+                    pub use parcel_scan::RpcServiceClient as ParcelScanClient;
+                }
+            }
+
+            cfg_if::cfg_if! {
                 if #[cfg(feature = "scanner")] {
                     grpc_client_mod!(scanner);
                     simple_grpc_client!(scanner);
@@ -138,6 +146,8 @@ cfg_if::cfg_if! {
             flight_plan: GrpcClient<FlightPlanClient<Channel>>,
             #[cfg(feature = "parcel")]
             parcel: GrpcClient<ParcelClient<Channel>>,
+            #[cfg(feature = "parcel_scan")]
+            parcel_scan: GrpcClient<ParcelScanClient<Channel>>,
             #[cfg(feature = "scanner")]
             scanner: GrpcClient<ScannerClient<Channel>>,
             #[cfg(feature = "pilot")]
@@ -195,6 +205,14 @@ cfg_if::cfg_if! {
                 &self,
             ) -> tonic::Result<parcel::RpcServiceClient<Channel>, tonic::Status> {
                 self.parcel.get_client().await
+            }
+
+            #[cfg(feature = "parcel_scan")]
+            /// get connected parcel client
+            pub async fn get_parcel_scan_client(
+                &self,
+            ) -> tonic::Result<parcel_scan::RpcServiceClient<Channel>, tonic::Status> {
+                self.parcel_scan.get_client().await
             }
 
             #[cfg(feature = "scanner")]
@@ -261,6 +279,9 @@ cfg_if::cfg_if! {
             #[cfg(feature = "parcel")]
             let parcel = GrpcClient::<parcel::RpcServiceClient<Channel>>::new_client(&host, port, "parcel");
 
+            #[cfg(feature = "parcel_scan")]
+            let parcel_scan = GrpcClient::<parcel_scan::RpcServiceClient<Channel>>::new_client(&host, port, "parcel_scan");
+
             #[cfg(feature = "scanner")]
             let scanner = GrpcClient::<scanner::RpcServiceClient<Channel>>::new_client(&host, port, "scanner");
 
@@ -290,6 +311,8 @@ cfg_if::cfg_if! {
                 itinerary_flight_plan_link,
                 #[cfg(feature = "parcel")]
                 parcel,
+                #[cfg(feature = "parcel_scan")]
+                parcel_scan,
                 #[cfg(feature = "scanner")]
                 scanner,
                 #[cfg(feature = "pilot")]
