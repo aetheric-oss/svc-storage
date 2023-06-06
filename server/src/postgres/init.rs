@@ -6,8 +6,8 @@ use super::linked_resource::PsqlType as LinkedPsqlType;
 use super::simple_resource::PsqlType as SimplePsqlType;
 use super::{get_psql_pool, ArrErr, PsqlFieldType};
 use crate::grpc::server::{
-    adsb, flight_plan, itinerary, itinerary_flight_plan, parcel, pilot, scanner, vehicle, vertipad,
-    vertiport,
+    adsb, flight_plan, itinerary, itinerary_flight_plan, parcel, parcel_scan, pilot, scanner,
+    vehicle, vertipad, vertiport,
 };
 use crate::resources::{
     base::FieldDefinition,
@@ -27,6 +27,7 @@ pub async fn create_db() -> Result<(), ArrErr> {
     ResourceObject::<itinerary::Data>::init_table().await?;
     ResourceObject::<itinerary_flight_plan::Data>::init_table().await?;
     ResourceObject::<parcel::Data>::init_table().await?;
+    ResourceObject::<parcel_scan::Data>::init_table().await?;
     ResourceObject::<scanner::Data>::init_table().await?;
     Ok(())
 }
@@ -38,6 +39,7 @@ pub async fn drop_db() -> Result<(), ArrErr> {
     // Drop our tables (in the correct order)
     ResourceObject::<scanner::Data>::drop_table().await?;
     ResourceObject::<parcel::Data>::drop_table().await?;
+    ResourceObject::<parcel_scan::Data>::drop_table().await?;
     ResourceObject::<itinerary_flight_plan::Data>::drop_table().await?;
     ResourceObject::<itinerary::Data>::drop_table().await?;
     ResourceObject::<flight_plan::Data>::drop_table().await?;
