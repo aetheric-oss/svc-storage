@@ -10,7 +10,7 @@ macro_rules! build_grpc_server_link_service_impl {
         use lazy_static::lazy_static;
         use std::collections::HashMap;
 
-        #[cfg(any(feature = "mock_server", test))]
+        #[cfg(feature = "stub_server")]
         use std::str::FromStr;
 
         lazy_static! {
@@ -42,7 +42,7 @@ macro_rules! build_grpc_server_link_service_impl {
             /// # Errors
             ///
             /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
-            #[cfg(not(any(feature = "mock_server", test)))]
+            #[cfg(not(feature = "stub_server"))]
             async fn link(
                 &self,
                 request: Request<$link_other_resource>,
@@ -54,7 +54,7 @@ macro_rules! build_grpc_server_link_service_impl {
                     .await
             }
             // MOCK implementation
-            #[cfg(any(feature = "mock_server", test))]
+            #[cfg(feature = "stub_server")]
             async fn link(
                 &self,
                 request: Request<$link_other_resource>,
@@ -109,7 +109,7 @@ macro_rules! build_grpc_server_link_service_impl {
             /// # Errors
             ///
             /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
-            #[cfg(not(any(feature = "mock_server", test)))]
+            #[cfg(not(feature = "stub_server"))]
             async fn replace_linked(
                 &self,
                 request: Request<$link_other_resource>,
@@ -119,7 +119,7 @@ macro_rules! build_grpc_server_link_service_impl {
                     .await
             }
             // MOCK implementation
-            #[cfg(any(feature = "mock_server", test))]
+            #[cfg(feature = "stub_server")]
             async fn replace_linked(
                 &self,
                 request: Request<$link_other_resource>,
@@ -168,12 +168,12 @@ macro_rules! build_grpc_server_link_service_impl {
             /// # Errors
             ///
             /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
-            #[cfg(not(any(feature = "mock_server", test)))]
+            #[cfg(not(feature = "stub_server"))]
             async fn unlink(&self, request: Request<Id>) -> Result<tonic::Response<()>, Status> {
                 self.generic_unlink(request).await
             }
             // MOCK implementation
-            #[cfg(any(feature = "mock_server", test))]
+            #[cfg(feature = "stub_server")]
             async fn unlink(&self, request: Request<Id>) -> Result<tonic::Response<()>, Status> {
                 grpc_warn!("(unlink MOCK) {} server.", stringify!($resource));
                 grpc_debug!("(unlink MOCK) request: {:?}", request);
@@ -213,7 +213,7 @@ macro_rules! build_grpc_server_link_service_impl {
             /// # Errors
             ///
             /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
-            #[cfg(not(any(feature = "mock_server", test)))]
+            #[cfg(not(feature = "stub_server"))]
             async fn get_linked_ids(
                 &self,
                 request: Request<Id>,
@@ -222,7 +222,7 @@ macro_rules! build_grpc_server_link_service_impl {
                     .await
             }
             // MOCK implementation
-            #[cfg(any(feature = "mock_server", test))]
+            #[cfg(feature = "stub_server")]
             async fn get_linked_ids(
                 &self,
                 request: Request<Id>,
@@ -241,7 +241,7 @@ macro_rules! build_grpc_server_link_service_impl {
             /// # Errors
             ///
             /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
-            #[cfg(not(any(feature = "mock_server", test)))]
+            #[cfg(not(feature = "stub_server"))]
             async fn get_linked(
                 &self,
                 request: Request<Id>,
@@ -252,7 +252,7 @@ macro_rules! build_grpc_server_link_service_impl {
                 .await
             }
             // MOCK implementation
-            #[cfg(any(feature = "mock_server", test))]
+            #[cfg(feature = "stub_server")]
             async fn get_linked(
                 &self,
                 request: Request<Id>,
@@ -304,7 +304,7 @@ macro_rules! grpc_server {
             };
 
             cfg_if::cfg_if! {
-                if #[cfg(any(feature = "mock_server", test))] {
+                if #[cfg(feature = "stub_server")] {
                     use futures::lock::Mutex;
                     use lazy_static::lazy_static;
                     use std::collections::HashMap;
@@ -368,7 +368,7 @@ macro_rules! grpc_server {
                 ///     Ok(result)
                 /// }
                 /// ```
-                #[cfg(not(any(feature = "mock_server", test)))]
+                #[cfg(not(feature = "stub_server"))]
                 async fn get_by_id(
                     &self,
                     request: Request<Id>,
@@ -378,7 +378,7 @@ macro_rules! grpc_server {
                     self.generic_get_by_id(request).await
                 }
                 // MOCK implementation
-                #[cfg(any(feature = "mock_server", test))]
+                #[cfg(feature = "stub_server")]
                 async fn get_by_id(
                     &self,
                     request: Request<Id>,
@@ -425,7 +425,7 @@ macro_rules! grpc_server {
                 ///     Ok(())
                 /// }
                 /// ```
-                #[cfg(not(any(feature = "mock_server", test)))]
+                #[cfg(not(feature = "stub_server"))]
                 async fn search(
                     &self,
                     request: Request<AdvancedSearchFilter>,
@@ -435,7 +435,7 @@ macro_rules! grpc_server {
                     self.generic_search::<List>(request).await
                 }
                 // MOCK implementation
-                #[cfg(any(feature = "mock_server", test))]
+                #[cfg(feature = "stub_server")]
                 async fn search(
                     &self,
                     request: Request<AdvancedSearchFilter>,
@@ -479,7 +479,7 @@ macro_rules! grpc_server {
                 ///     Ok(())
                 /// }
                 /// ```
-                #[cfg(not(any(feature = "mock_server", test)))]
+                #[cfg(not(feature = "stub_server"))]
                 async fn insert(
                     &self,
                     request: Request<Data>,
@@ -489,7 +489,7 @@ macro_rules! grpc_server {
                     self.generic_insert::<Response>(request).await
                 }
                 // MOCK implementation
-                #[cfg(any(feature = "mock_server", test))]
+                #[cfg(feature = "stub_server")]
                 async fn insert(
                     &self,
                     request: tonic::Request<Data>,
@@ -543,7 +543,7 @@ macro_rules! grpc_server {
                 ///     Ok(())
                 /// }
                 /// ```
-                #[cfg(not(any(feature = "mock_server", test)))]
+                #[cfg(not(feature = "stub_server"))]
                 async fn update(
                     &self,
                     request: Request<UpdateObject>,
@@ -553,7 +553,7 @@ macro_rules! grpc_server {
                     self.generic_update::<Response, UpdateObject>(request).await
                 }
                 // MOCK implementation
-                #[cfg(any(feature = "mock_server", test))]
+                #[cfg(feature = "stub_server")]
                 async fn update(
                     &self,
                     request: tonic::Request<UpdateObject>,
@@ -607,13 +607,13 @@ macro_rules! grpc_server {
                 ///     Ok(())
                 /// }
                 /// ```
-                #[cfg(not(any(feature = "mock_server", test)))]
+                #[cfg(not(feature = "stub_server"))]
                 async fn delete(&self, request: Request<Id>) -> Result<tonic::Response<()>, Status> {
                     grpc_info!("(delete) {}.", $rpc_string);
                     grpc_debug!("(delete) request: {:?}", request);
                     self.generic_delete(request).await
                 }
-                #[cfg(any(feature = "mock_server", test))]
+                #[cfg(feature = "stub_server")]
                 async fn delete(
                     &self,
                     request: tonic::Request<Id>,

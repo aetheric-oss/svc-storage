@@ -55,7 +55,7 @@ impl Config {
 
         config::Config::builder()
             .set_default("docker_port_grpc", 50051)?
-            .set_default("log_config", String::from("./log4rs.yaml"))?
+            .set_default("log_config", String::from("log4rs.yaml"))?
             .set_default("use_tls", true)?
             .add_source(Environment::default().separator("__"))
             .build()?

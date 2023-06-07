@@ -19,7 +19,7 @@ fn get_clients() -> BoxFuture<'static, Result<&'static Clients, Status>> {
         match CLIENTS.get() {
             Some(clients) => Ok(clients),
             None => {
-                let clients = svc_storage_client_grpc::get_clients(host, port);
+                let clients = svc_storage_client_grpc::Clients::new(host, port);
                 CLIENTS
                     .set(clients)
                     .map_err(|e| Status::internal(format!("Could not set CLIENTS: {}", e)))?;
@@ -35,7 +35,7 @@ fn get_clients() -> BoxFuture<'static, Result<&'static Clients, Status>> {
 /// should receive a valid response from the server
 async fn get_vehicles() -> Result<vehicle::List, Status> {
     let clients = get_clients().await?;
-    let mut vehicle_client = clients.get_vehicle_client().await?;
+    let vehicle_client = &clients.vehicle;
     println!("Vehicle Client created");
 
     let filter =
@@ -53,7 +53,7 @@ async fn get_vehicles() -> Result<vehicle::List, Status> {
 /// Inserts example vehicle's into the database using the `mock` library to generate data.
 async fn generate_sample_vehicles(amount: i16, vertiports: &vertiport::List) -> Result<(), Status> {
     let clients = get_clients().await?;
-    let mut vehicle_client = clients.get_vehicle_client().await?;
+    let vehicle_client = &clients.vehicle;
     println!("Vehicle Client created");
 
     let vertiport_id = vertiports.list.last().unwrap().id.clone();
@@ -82,7 +82,7 @@ async fn itinerary_scenario() -> Result<(), Status> {
     let clients = get_clients()
         .await
         .expect("Error getting connected itinerary client");
-    let mut itinerary_client = clients.get_itinerary_client().await?;
+    let itinerary_client = &clients.itinerary;
     println!("Itinerary Client created");
 
     //
@@ -126,7 +126,7 @@ async fn itinerary_scenario() -> Result<(), Status> {
     // Link with flight_plan
     //
 
-    let mut flight_plan_client = clients.get_flight_plan_client().await?;
+    let flight_plan_client = &clients.flight_plan;
     println!("FlightPlan Client created");
 
     let fp_filter = AdvancedSearchFilter::search_equals(
@@ -165,7 +165,7 @@ async fn itinerary_scenario() -> Result<(), Status> {
         fp_ids.push(list.pop().unwrap().id);
     }
 
-    let mut link_client = clients.get_itinerary_flight_plan_link_client().await?;
+    let link_client = &clients.itinerary_flight_plan_link;
     println!("Itinerary FlightPlan Link Client created");
 
     match link_client
@@ -241,7 +241,7 @@ async fn itinerary_scenario() -> Result<(), Status> {
 ///  packets into the database and searches with advanced filters.
 async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
     let clients = get_clients().await?;
-    let mut client = clients.get_adsb_client().await?;
+    let client = &clients.adsb;
     println!("ADS-B Client created");
 
     let timestamp_1 = prost_types::Timestamp::from(SystemTime::now());
@@ -394,7 +394,7 @@ async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
 /// should receive a valid response from the server
 async fn get_pilots() -> Result<pilot::List, Status> {
     let clients = get_clients().await?;
-    let mut pilot_client = clients.get_pilot_client().await?;
+    let pilot_client = &clients.pilot;
     println!("Pilot Client created");
 
     let filter = AdvancedSearchFilter::search_is_null("deleted_at".to_owned())
@@ -425,7 +425,7 @@ RRULE:FREQ=WEEKLY;BYDAY=SA,SU";
 /// should receive a valid response from the server
 async fn vertipad_scenario(vertiports: vertiport::List) -> Result<vertipad::List, Status> {
     let clients = get_clients().await?;
-    let mut vertipad_client = clients.get_vertipad_client().await?;
+    let vertipad_client = &clients.vertipad;
     println!("Vertipad Client created");
 
     let filter = AdvancedSearchFilter::search_equals("occupied".to_owned(), false.to_string())
@@ -498,7 +498,7 @@ async fn vertipad_scenario(vertiports: vertiport::List) -> Result<vertipad::List
 
 async fn generate_sample_vertiports() -> Result<vertiport::List, Status> {
     let clients = get_clients().await?;
-    let mut vertiport_client = clients.get_vertiport_client().await?;
+    let vertiport_client = &clients.vertiport;
     println!("Vertiport Client created");
 
     match vertiport_client
@@ -577,7 +577,7 @@ async fn flight_plan_scenario(
     mut vertipads: vertipad::List,
 ) -> Result<flight_plan::List, Status> {
     let clients = get_clients().await?;
-    let mut flight_plan_client = clients.get_flight_plan_client().await?;
+    let flight_plan_client = &clients.flight_plan;
     println!("FlightPlan Client created");
 
     println!("Retrieving list of flight plans");
@@ -759,11 +759,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _pilots = get_pilots().await?;
     let pilot_id = Uuid::new_v4().to_string();
 
-    let mut vertiport_client = clients.get_vertiport_client().await?;
+    let vertiport_client = &clients.vertiport;
     let vertiport_filter = AdvancedSearchFilter::search_is_not_null("deleted_at".to_owned())
         .page_number(1)
         .results_per_page(50);
-    let vertiports = vertiport_client.search(vertiport_filter).await?;
+    let vertiports = vertiport_client
+        .search(tonic::Request::new(vertiport_filter))
+        .await?;
     println!("RESPONSE Vertiports={:#?}", vertiports.into_inner());
 
     // Play flight plan scenario

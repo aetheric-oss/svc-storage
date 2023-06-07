@@ -12,11 +12,13 @@ repository.workspace   = true
 
 [features]
 default          = []
-mock             = ["rand", "geo"]
+dev              = ["mock"]
 test_util        = ["mock"]
 vendored-openssl = ["openssl/vendored"]
-# Will implement mock functions for the server, only use for tests!
-mock_server = ["test_util"]
+# Will add a 'mock' module for the enabled resources, providing access to mock data generation functions
+mock = ["rand", "geo"]
+# Will implement stub functions for the server, only use for tests!
+stub_server = []
 
 [dependencies]
 anyhow              = "1.0"
@@ -94,7 +96,7 @@ version          = "1"
 
 # Make sure we enable the required modules and have access to all resources when running tests
 [dev-dependencies.svc-storage]
-features = ["test_util"]
+features = ["dev"]
 path     = "."
 
 [build-dependencies]
