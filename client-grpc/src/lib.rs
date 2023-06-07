@@ -32,12 +32,12 @@ cfg_if::cfg_if! {
         pub mod resources {
             #![allow(unused_qualifications)]
             include!("../out/grpc/grpc.rs");
-            use super::{Channel, Client};
-            use tonic::async_trait;
-            super::log_macros!("grpc", "app::client::storage");
+            use super::*;
 
-            #[cfg(not(feature = "mock_client"))]
-            use lib_common::grpc::ClientConnect;
+            #[cfg(not(feature = "stub_backends"))]
+            use tonic::async_trait;
+
+            super::log_macros!("grpc", "app::client::storage");
 
             cfg_if::cfg_if! {
                 if #[cfg(feature = "adsb")] {
@@ -72,14 +72,6 @@ cfg_if::cfg_if! {
             }
 
             cfg_if::cfg_if! {
-                if #[cfg(feature = "scanner")] {
-                    grpc_client_mod!(scanner);
-                    simple_grpc_client!(scanner);
-                    pub use scanner::RpcServiceClient as ScannerClient;
-                }
-            }
-
-            cfg_if::cfg_if! {
                 if #[cfg(feature = "pilot")] {
                     grpc_client_mod!(pilot);
                     simple_grpc_client!(pilot);
@@ -95,7 +87,7 @@ cfg_if::cfg_if! {
                     pub use itinerary::RpcServiceClient as ItineraryClient;
 
                     cfg_if::cfg_if! {
-                        if #[cfg(any(feature = "test_util", feature = "mock_client"))] {
+                        if #[cfg(feature = "stub_backends")] {
                             use svc_storage::grpc::server::itinerary_flight_plan::{RpcFlightPlanLinkServer, GrpcServer as ItineraryFlightPlanGrpcServer};
                             lib_common::grpc_mock_client!(ItineraryFlightPlanLinkClient, RpcFlightPlanLinkServer, ItineraryFlightPlanGrpcServer);
                         } else {
@@ -109,6 +101,14 @@ cfg_if::cfg_if! {
                         ItineraryFlightPlans,
                         flight_plan
                     );
+                }
+            }
+
+            cfg_if::cfg_if! {
+                if #[cfg(feature = "scanner")] {
+                    grpc_client_mod!(scanner);
+                    simple_grpc_client!(scanner);
+                    pub use scanner::RpcServiceClient as ScannerClient;
                 }
             }
 
@@ -141,192 +141,120 @@ cfg_if::cfg_if! {
         #[derive(Debug, Clone)]
         pub struct Clients {
             #[cfg(feature = "adsb")]
-            adsb: GrpcClient<AdsbClient<Channel>>,
+            /// GrpcClient representation of the AdsbClient
+            pub adsb: GrpcClient<AdsbClient<Channel>>,
             #[cfg(feature = "flight_plan")]
-            flight_plan: GrpcClient<FlightPlanClient<Channel>>,
+            /// GrpcClient representation of the FlightPlanClient
+            pub flight_plan: GrpcClient<FlightPlanClient<Channel>>,
             #[cfg(feature = "parcel")]
-            parcel: GrpcClient<ParcelClient<Channel>>,
+            /// GrpcClient representation of the ParcelClient
+            pub parcel: GrpcClient<ParcelClient<Channel>>,
             #[cfg(feature = "parcel_scan")]
-            parcel_scan: GrpcClient<ParcelScanClient<Channel>>,
-            #[cfg(feature = "scanner")]
-            scanner: GrpcClient<ScannerClient<Channel>>,
+            /// GrpcClient representation of the ParcelScanClient
+            pub parcel_scan: GrpcClient<ParcelScanClient<Channel>>,
             #[cfg(feature = "pilot")]
-            pilot: GrpcClient<PilotClient<Channel>>,
+            /// GrpcClient representation of the PilotClient
+            pub pilot: GrpcClient<PilotClient<Channel>>,
             #[cfg(feature = "itinerary")]
-            itinerary: GrpcClient<ItineraryClient<Channel>>,
+            /// GrpcClient representation of the ItineraryClient
+            pub itinerary: GrpcClient<ItineraryClient<Channel>>,
             #[cfg(feature = "itinerary")]
-            itinerary_flight_plan_link: GrpcClient<ItineraryFlightPlanLinkClient<Channel>>,
+            /// GrpcClient representation of the ItineraryFlightPlanLinkClient
+            pub itinerary_flight_plan_link: GrpcClient<ItineraryFlightPlanLinkClient<Channel>>,
+            #[cfg(feature = "scanner")]
+            /// GrpcClient representation of the ScannerClient
+            pub scanner: GrpcClient<ScannerClient<Channel>>,
             #[cfg(feature = "vehicle")]
-            vehicle: GrpcClient<VehicleClient<Channel>>,
+            /// GrpcClient representation of the VehicleClient
+            pub vehicle: GrpcClient<VehicleClient<Channel>>,
             #[cfg(feature = "vertiport")]
-            vertiport: GrpcClient<VertiportClient<Channel>>,
+            /// GrpcClient representation of the VertiportClient
+            pub vertiport: GrpcClient<VertiportClient<Channel>>,
             #[cfg(feature = "vertipad")]
-            vertipad: GrpcClient<VertipadClient<Channel>>,
+            /// GrpcClient representation of the VertipadClient
+            pub vertipad: GrpcClient<VertipadClient<Channel>>,
         }
 
         impl Clients {
-            #[cfg(feature = "adsb")]
-            /// get connected adsb client
-            pub async fn get_adsb_client(
-                &self,
-            ) -> tonic::Result<adsb::RpcServiceClient<Channel>, tonic::Status> {
-                self.adsb.get_client().await
-            }
-
-            #[cfg(feature = "flight_plan")]
-            /// get connected flight_plan client
-            pub async fn get_flight_plan_client(
-                &self,
-            ) -> tonic::Result<flight_plan::RpcServiceClient<Channel>, tonic::Status> {
-                self.flight_plan.get_client().await
-            }
-
-            #[cfg(feature = "itinerary")]
-            /// get connected itinerary client
-            pub async fn get_itinerary_client(
-                &self,
-            ) -> tonic::Result<itinerary::RpcServiceClient<Channel>, tonic::Status> {
-                self.itinerary.get_client().await
-            }
-            #[cfg(feature = "itinerary")]
-            /// get connected itinerary flight_plan link client
-            pub async fn get_itinerary_flight_plan_link_client(
-                &self,
-            ) -> tonic::Result<
-                itinerary::rpc_flight_plan_link_client::RpcFlightPlanLinkClient<Channel>,
-                tonic::Status,
-            > {
-                self.itinerary_flight_plan_link.get_client().await
-            }
-
-            #[cfg(feature = "parcel")]
-            /// get connected parcel client
-            pub async fn get_parcel_client(
-                &self,
-            ) -> tonic::Result<parcel::RpcServiceClient<Channel>, tonic::Status> {
-                self.parcel.get_client().await
-            }
-
-            #[cfg(feature = "parcel_scan")]
-            /// get connected parcel client
-            pub async fn get_parcel_scan_client(
-                &self,
-            ) -> tonic::Result<parcel_scan::RpcServiceClient<Channel>, tonic::Status> {
-                self.parcel_scan.get_client().await
-            }
-
-            #[cfg(feature = "scanner")]
-            /// get connected scanner client
-            pub async fn get_scanner_client(
-                &self,
-            ) -> tonic::Result<scanner::RpcServiceClient<Channel>, tonic::Status> {
-                self.scanner.get_client().await
-            }
-
-            #[cfg(feature = "pilot")]
-            /// get connected pilot client
-            pub async fn get_pilot_client(
-                &self,
-            ) -> tonic::Result<pilot::RpcServiceClient<Channel>, tonic::Status> {
-                self.pilot.get_client().await
-            }
-
-            #[cfg(feature = "vehicle")]
-            /// get connected vehicle client
-            pub async fn get_vehicle_client(
-                &self,
-            ) -> tonic::Result<vehicle::RpcServiceClient<Channel>, tonic::Status> {
-                self.vehicle.get_client().await
-            }
-
-            #[cfg(feature = "vertiport")]
-            /// get connected vertiport client
-            pub async fn get_vertiport_client(
-                &self,
-            ) -> tonic::Result<vertiport::RpcServiceClient<Channel>, tonic::Status> {
-                self.vertiport.get_client().await
-            }
-
-            #[cfg(feature = "vertipad")]
-            /// get connected vertipad client
-            pub async fn get_vertipad_client(
-                &self,
-            ) -> tonic::Result<vertipad::RpcServiceClient<Channel>, tonic::Status> {
-                self.vertipad.get_client().await
-            }
-        }
-
-        /// Provides a way to get and connect all clients at once.
-        pub fn get_clients(host: String, port: u16) -> Clients {
-            #[cfg(feature = "adsb")]
-            let adsb = GrpcClient::<adsb::RpcServiceClient<Channel>>::new_client(&host, port, "adsb");
-
-            #[cfg(feature = "flight_plan")]
-            let flight_plan = GrpcClient::<flight_plan::RpcServiceClient<Channel>>::new_client(
-                &host,
-                port,
-                "flight_plan",
-            );
-
-            #[cfg(feature = "itinerary")]
-            let itinerary =
-                GrpcClient::<itinerary::RpcServiceClient<Channel>>::new_client(&host, port, "itinerary");
-            #[cfg(feature = "itinerary")]
-            let itinerary_flight_plan_link = GrpcClient::<
-                itinerary::rpc_flight_plan_link_client::RpcFlightPlanLinkClient<Channel>,
-            >::new_client(&host, port, "itinerary");
-
-            #[cfg(feature = "parcel")]
-            let parcel = GrpcClient::<parcel::RpcServiceClient<Channel>>::new_client(&host, port, "parcel");
-
-            #[cfg(feature = "parcel_scan")]
-            let parcel_scan = GrpcClient::<parcel_scan::RpcServiceClient<Channel>>::new_client(&host, port, "parcel_scan");
-
-            #[cfg(feature = "scanner")]
-            let scanner = GrpcClient::<scanner::RpcServiceClient<Channel>>::new_client(&host, port, "scanner");
-
-            #[cfg(feature = "pilot")]
-            let pilot = GrpcClient::<pilot::RpcServiceClient<Channel>>::new_client(&host, port, "pilot");
-
-            #[cfg(feature = "vehicle")]
-            let vehicle =
-                GrpcClient::<vehicle::RpcServiceClient<Channel>>::new_client(&host, port, "vehicle");
-
-            #[cfg(feature = "vertiport")]
-            let vertiport =
-                GrpcClient::<vertiport::RpcServiceClient<Channel>>::new_client(&host, port, "vertiport");
-
-            #[cfg(feature = "vertipad")]
-            let vertipad =
-                GrpcClient::<vertipad::RpcServiceClient<Channel>>::new_client(&host, port, "vertipad");
-
-            Clients {
+            /// Provides a way to get and connect all clients at once.
+            pub fn new(host: String, port: u16) -> Self {
                 #[cfg(feature = "adsb")]
-                adsb,
+                let adsb = GrpcClient::<adsb::RpcServiceClient<Channel>>::new_client(&host, port, "adsb");
+
                 #[cfg(feature = "flight_plan")]
-                flight_plan,
+                let flight_plan = GrpcClient::<flight_plan::RpcServiceClient<Channel>>::new_client(
+                    &host,
+                    port,
+                    "flight_plan",
+                );
+
                 #[cfg(feature = "itinerary")]
-                itinerary,
+                let itinerary =
+                    GrpcClient::<itinerary::RpcServiceClient<Channel>>::new_client(&host, port, "itinerary");
                 #[cfg(feature = "itinerary")]
-                itinerary_flight_plan_link,
+                let itinerary_flight_plan_link = GrpcClient::<
+                    itinerary::rpc_flight_plan_link_client::RpcFlightPlanLinkClient<Channel>,
+                >::new_client(&host, port, "itinerary");
+
                 #[cfg(feature = "parcel")]
-                parcel,
+                let parcel = GrpcClient::<parcel::RpcServiceClient<Channel>>::new_client(&host, port, "parcel");
+
                 #[cfg(feature = "parcel_scan")]
-                parcel_scan,
-                #[cfg(feature = "scanner")]
-                scanner,
+                let parcel_scan = GrpcClient::<parcel_scan::RpcServiceClient<Channel>>::new_client(&host, port, "parcel_scan");
+
                 #[cfg(feature = "pilot")]
-                pilot,
+                let pilot = GrpcClient::<pilot::RpcServiceClient<Channel>>::new_client(&host, port, "pilot");
+
+                #[cfg(feature = "scanner")]
+                let scanner = GrpcClient::<scanner::RpcServiceClient<Channel>>::new_client(&host, port, "scanner");
+
                 #[cfg(feature = "vehicle")]
-                vehicle,
+                let vehicle =
+                    GrpcClient::<vehicle::RpcServiceClient<Channel>>::new_client(&host, port, "vehicle");
+
                 #[cfg(feature = "vertiport")]
-                vertiport,
+                let vertiport =
+                    GrpcClient::<vertiport::RpcServiceClient<Channel>>::new_client(&host, port, "vertiport");
+
                 #[cfg(feature = "vertipad")]
-                vertipad,
+                let vertipad =
+                    GrpcClient::<vertipad::RpcServiceClient<Channel>>::new_client(&host, port, "vertipad");
+
+                Clients {
+                    #[cfg(feature = "adsb")]
+                    adsb,
+                    #[cfg(feature = "flight_plan")]
+                    flight_plan,
+                    #[cfg(feature = "itinerary")]
+                    itinerary,
+                    #[cfg(feature = "itinerary")]
+                    itinerary_flight_plan_link,
+                    #[cfg(feature = "parcel")]
+                    parcel,
+                    #[cfg(feature = "parcel_scan")]
+                    parcel_scan,
+                    #[cfg(feature = "pilot")]
+                    pilot,
+                    #[cfg(feature = "scanner")]
+                    scanner,
+                    #[cfg(feature = "vehicle")]
+                    vehicle,
+                    #[cfg(feature = "vertiport")]
+                    vertiport,
+                    #[cfg(feature = "vertipad")]
+                    vertipad,
+                }
             }
         }
     } else {
-        /// Include all proto resource
+        impl Clients {
+            /// Provides a way to get and connect all clients at once.
+            pub fn new(host: String, port: u16) -> Self {
+                Self {}
+            }
+        }
+
+        /// Include base proto resource
         pub mod resources {
             #![allow(unused_qualifications)]
             include!("../out/grpc/grpc.rs");

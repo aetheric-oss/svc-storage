@@ -199,6 +199,7 @@ impl TryFrom<Row> for Data {
         debug!("Converting Row to flight_plan::Data: {:?}", row);
         let pilot_id: String = row.get::<&str, Uuid>("pilot_id").to_string();
         let vehicle_id: String = row.get::<&str, Uuid>("vehicle_id").to_string();
+        let flight_distance_meters = row.get::<&str, i64>("flight_distance_meters") as u32;
         let departure_vertipad_id: String =
             row.get::<&str, Uuid>("departure_vertipad_id").to_string();
         let destination_vertipad_id: String =
@@ -260,7 +261,7 @@ impl TryFrom<Row> for Data {
         Ok(Data {
             pilot_id,
             vehicle_id,
-            flight_distance_meters: row.get("flight_distance_meters"),
+            flight_distance_meters,
             weather_conditions: row.get("weather_conditions"),
             departure_vertiport_id: Some(departure_vertiport_id),
             departure_vertipad_id,
