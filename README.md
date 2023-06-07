@@ -105,6 +105,92 @@ Learn more about us:
 - [Arrow Docs](https://www.arrowair.com/docs/intro)
 - [Discord](https://discord.com/invite/arrow)
 
+## Adding new resources
+The storage module currently supports `simple` and `linked` resources types.
+`simple` types are resources that reflect a table with 1 or more id fields and additional data fields.
+`linked` types are resources that reflect a linked table (linking 2 resources together on a many-to-many or one-to-many relationship).
+
+To add a new resource, you can simply pick one of the existing resources and fine all references, copying the resource specific files where needed.
+
+### Simple resource
+The following steps can be followed to create a new simple resource using an
+existing  resource as a reference.
+
+#### Example create new files and search/replace commands
+```
+export COPY_RESOURCE=<existing resource name you want to use as basis for your new resource>
+export NEW_RESOURCE=<your new resource name>
+cp proto/svc-storage-grpc-${COPY_RESOURCE}-service.proto proto/svc-storage-grpc-${NEW_RESOURCE}-service.proto
+cp proto/svc-storage-grpc-${COPY_RESOURCE}.proto proto/svc-storage-grpc-${NEW_RESOURCE}.proto
+cp -r includes/${COPY_RESOURCE} includes/${NEW_RESOURCE}
+cp -r server/src/resources/${COPY_RESOURCE} server/src/resources/${NEW_RESOURCE}
+cp client-grpc/tests/resources/${COPY_RESOURCE}.rs client-grpc/tests/resources/${NEW_RESOURCE}.rs
+
+sed -i "s/${COPY_RESOURCE^}/${NEW_RESOURCE^}/g" proto/svc-storage-grpc-${NEW_RESOURCE}-service.proto
+sed -i "s/${COPY_RESOURCE}/${NEW_RESOURCE}/g" proto/svc-storage-grpc-${NEW_RESOURCE}-service.proto
+
+sed -i "s/${COPY_RESOURCE^}/${NEW_RESOURCE^}/g" proto/svc-storage-grpc-${NEW_RESOURCE}.proto
+sed -i "s/${COPY_RESOURCE}/${NEW_RESOURCE}/g" proto/svc-storage-grpc-${NEW_RESOURCE}.proto
+
+sed -i "s/${COPY_RESOURCE^}/${NEW_RESOURCE^}/g" includes/${NEW_RESOURCE}/mock.rs
+sed -i "s/${COPY_RESOURCE}/${NEW_RESOURCE}/g" includes/${NEW_RESOURCE}/mock.rs
+
+sed -i "s/${COPY_RESOURCE^}/${NEW_RESOURCE^}/g" server/src/resources/${NEW_RESOURCE}/mod.rs
+sed -i "s/${COPY_RESOURCE}/${NEW_RESOURCE}/g" server/src/resources/${NEW_RESOURCE}/mod.rs
+
+sed -i "s/${COPY_RESOURCE^}/${NEW_RESOURCE^}/g" client-grpc/tests/resources/${NEW_RESOURCE}.rs
+sed -i "s/${COPY_RESOURCE}/${NEW_RESOURCE}/g" client-grpc/tests/resources/${NEW_RESOURCE}.rs
+```
+
+Make sure to add all newly created files to git after creation:
+```
+git add server/
+git add proto/
+git add includes/
+git add client-grpc/
+```
+
+#### List of files that need to be updated
+
+**proto**
+- includes/build.rs 
+  * Add the new resource name to the `get_types` function.
+  * Add `derive` rules for new Enums in the `get_grpc_builder_config` function if needed. 
+- proto/svc-storage-grpc-\<your new resource name\>.proto 
+  * Edit the `Data` message object to reflect the correct fields.
+  * Add Enums if needed
+
+**server**
+- server/src/resources/mod.rs
+  * Add the new resource's module
+- server/src/resources/\<your new resource name\>/mod.rs 
+  * Update `Resource` `get_definition()` function to reflect the correct fields.
+  * Update `GrpcDataObjectType` `get_field_value` function to reflect the correct fields.
+  * Update `TryFrom<Row>` `try_from` function to reflect the correct fields.
+  * Add enum `FromStr` implementations if applicable (check `vehicle` resource for example).
+  * Add `test_<your new resource name>_invalid_data()` function to tests if needed (check any other resource for examples).
+  * Add enum tests if applicable (check `vehicle` resource for examples).
+- server/src/postgres/init.rs
+  * Add your resource to the `create_db` function (make sure possible dependencies are created first).
+  * Add your resource to the `drop_db` function (make sure possible dependencies
+    are deleted after).
+- server/src/grpc/server.rs
+  * add the grpc_server macro for the new resource
+  * add the new resource services to the `grpc_server` function
+
+**client**
+- client-grpc/src/lib.rs
+  * Copy/paste all occurrences of the copied resource's blocks for your new resource.
+- client-grpc/Cargo.toml
+  * Add your resource to the `all_resources` feature.
+  * Create a feature for your new resource with a `any_resource` dependency.
+- client-grpc/tests/resources/\<your ne resource name\>.rs
+  * Update the `assert_eq` tests for the correct data fields.
+- client-grpc/tests/integration_test.rs
+  * Add a scenario for the new resource, testing all service functions.
+- client-grpc/tests/resources/mod.rs
+  * Add the new resource's module
+
 ## Cockroachdb
 The database connection requires TLS.
 When running cockroachdb for development, certificates will automatically be generated and used by the server.
@@ -119,25 +205,6 @@ Run the example:
 ```
 make rust-example-grpc
 ```
-
-## MacOS troubleshooting
-
-1. Currently, the `make build` command does not work on MacOS with M1 processor so running the example will fail.
-As a workaround we can start only the cockroachdb with `docker-compose up cockroachdb` and then `cargo run` to start the svc-storage server.
-
-2. The other problem on MacOS is that it doesn't trust automatically generated cockroachdb certificates. (Errors like "certificate not trusted" or "bad certificate")
-As a workaround we need to add/change these env variables in .env file
-```
-PG__HOST=localhost
-PG__SSLMODE=disable
-USE_TLS=false
-```
-and then modify the `docker-compose.yml` file and replace line
-`command: start-single-node --certs-dir=/cockroach/ssl/certs --advertise-addr=cockroachdb`
-with:
-`command: start-single-node --insecure --advertise-addr=cockroachdb`
-
-This will run the cockroachdb and svc-storage without TLS using username/password.
 
 ## LICENSE Notice
 
