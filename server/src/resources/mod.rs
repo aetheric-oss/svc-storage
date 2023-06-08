@@ -9,6 +9,7 @@ pub mod parcel;
 pub mod parcel_scan;
 pub mod pilot;
 pub mod scanner;
+pub mod user;
 pub mod vehicle;
 pub mod vertipad;
 pub mod vertiport;

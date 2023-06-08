@@ -29,9 +29,10 @@ all_resources = [
   "flight_plan",
   "itinerary",
   "parcel",
+  "pilot",
   "scanner",
   "parcel_scan",
-  "pilot",
+  "user",
   "vehicle",
   "vertipad",
   "vertiport",
@@ -43,6 +44,7 @@ parcel = ["any_resource"]
 parcel_scan = ["any_resource", "scanner", "parcel"]
 pilot = ["any_resource"]
 scanner = ["any_resource"]
+user = ["any_resource"]
 vehicle = ["any_resource"]
 vertipad = ["any_resource", "vertiport"]
 vertiport = ["any_resource"]

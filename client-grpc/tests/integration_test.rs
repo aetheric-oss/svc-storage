@@ -84,4 +84,18 @@ async fn test_client_requests_and_logs() {
     // play scenario
     let _vehicles: vehicle::List =
         vehicle::scenario(&clients.vehicle, vehicles_data, &mut logger).await;
+
+    //----------------------------------------------------
+    // Users
+    //----------------------------------------------------
+    // generate mock users
+    let mut users_data: Vec<user::Data> = vec![];
+    for index in 1..5 {
+        let mut user = user::mock::get_data_obj();
+        user.display_name = format!("User {}", index);
+        users_data.push(user);
+    }
+
+    // play scenario
+    let _users: user::List = user::scenario(&clients.user, users_data, &mut logger).await;
 }
