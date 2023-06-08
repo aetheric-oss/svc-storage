@@ -2,11 +2,11 @@
 
 pub use crate::grpc::server::vehicle::*;
 
+use anyhow::Result;
 use chrono::{DateTime, Utc};
 use lib_common::time::datetime_to_timestamp;
 use log::debug;
 use std::collections::HashMap;
-use std::str::FromStr;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
 use uuid::Uuid;
@@ -156,21 +156,6 @@ impl TryFrom<Row> for Data {
     }
 }
 
-impl FromStr for VehicleModelType {
-    type Err = ArrErr;
-
-    fn from_str(s: &str) -> ::core::result::Result<VehicleModelType, Self::Err> {
-        match s {
-            "VTOL_CARGO" => ::core::result::Result::Ok(VehicleModelType::VtolCargo),
-            "VTOL_PASSENGER" => ::core::result::Result::Ok(VehicleModelType::VtolPassenger),
-            _ => ::core::result::Result::Err(ArrErr::Error(format!(
-                "Unknown VehicleModelType: {}",
-                s
-            ))),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::super::base::test_util::*;
@@ -232,21 +217,6 @@ mod tests {
             assert_eq!(expected_errors.len(), validation_result.errors.len());
             assert!(contains_field_errors(&validation_result, &expected_errors));
         }
-    }
-
-    #[test]
-    fn test_vehicle_model_type_from_str() {
-        assert!(matches!(
-            "VTOL_CARGO".parse::<VehicleModelType>(),
-            Ok(VehicleModelType::VtolCargo)
-        ));
-        assert!(matches!(
-            "VTOL_PASSENGER".parse::<VehicleModelType>(),
-            Ok(VehicleModelType::VtolPassenger)
-        ));
-
-        assert!("".parse::<VehicleModelType>().is_err());
-        assert!("INVALID_MODEL_TYPE".parse::<VehicleModelType>().is_err());
     }
 
     #[test]

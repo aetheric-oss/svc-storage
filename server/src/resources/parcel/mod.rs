@@ -2,9 +2,9 @@
 
 pub use crate::grpc::server::parcel::*;
 
+use anyhow::{Context, Result};
 use log::debug;
 use std::collections::HashMap;
-use std::str::FromStr;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
 use uuid::Uuid;
@@ -88,31 +88,14 @@ impl TryFrom<Row> for Data {
     fn try_from(row: Row) -> Result<Self, ArrErr> {
         debug!("Converting Row to parcel::Data: {:?}", row);
         let itinerary_id: Uuid = row.get("itinerary_id");
+        let status = ParcelStatus::from_str_name(row.get("status"))
+            .context("(try_from) Could not convert database value to ParcelStatus Enum type.")?
+            as i32;
 
-        let result = ParcelStatus::from_str(row.get("status"));
-        let Ok(status) = result else {
-            return Err(result.unwrap_err());
-        };
         Ok(Data {
             itinerary_id: itinerary_id.to_string(),
-            status: status.into(),
+            status,
         })
-    }
-}
-
-impl FromStr for ParcelStatus {
-    type Err = ArrErr;
-
-    fn from_str(s: &str) -> ::core::result::Result<ParcelStatus, Self::Err> {
-        match s {
-            "NOTDROPPEDOFF" => ::core::result::Result::Ok(ParcelStatus::Notdroppedoff),
-            "DROPPEDOFF" => ::core::result::Result::Ok(ParcelStatus::Droppedoff),
-            "ENROUTE" => ::core::result::Result::Ok(ParcelStatus::Enroute),
-            "ARRIVED" => ::core::result::Result::Ok(ParcelStatus::Arrived),
-            "PICKEDUP" => ::core::result::Result::Ok(ParcelStatus::Pickedup),
-            "COMPLETE" => ::core::result::Result::Ok(ParcelStatus::Complete),
-            _ => ::core::result::Result::Err(ArrErr::Error(format!("Unknown ParcelStatus: {}", s))),
-        }
     }
 }
 
@@ -194,37 +177,6 @@ mod tests {
             ResourceObject::<Data>::get_enum_string_val("status", -1),
             None
         );
-    }
-
-    #[test]
-    fn test_parcel_status_from_str() {
-        assert!(matches!(
-            "NOTDROPPEDOFF".parse::<ParcelStatus>(),
-            Ok(ParcelStatus::Notdroppedoff)
-        ));
-        assert!(matches!(
-            "DROPPEDOFF".parse::<ParcelStatus>(),
-            Ok(ParcelStatus::Droppedoff)
-        ));
-        assert!(matches!(
-            "ENROUTE".parse::<ParcelStatus>(),
-            Ok(ParcelStatus::Enroute)
-        ));
-        assert!(matches!(
-            "ARRIVED".parse::<ParcelStatus>(),
-            Ok(ParcelStatus::Arrived)
-        ));
-        assert!(matches!(
-            "PICKEDUP".parse::<ParcelStatus>(),
-            Ok(ParcelStatus::Pickedup)
-        ));
-        assert!(matches!(
-            "COMPLETE".parse::<ParcelStatus>(),
-            Ok(ParcelStatus::Complete)
-        ));
-
-        assert!("".parse::<ParcelStatus>().is_err());
-        assert!("INVALID_STATUS".parse::<ParcelStatus>().is_err());
     }
 
     #[test]

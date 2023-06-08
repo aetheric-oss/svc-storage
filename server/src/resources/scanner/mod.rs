@@ -2,9 +2,9 @@
 
 pub use crate::grpc::server::scanner::*;
 
+use anyhow::{Context, Result};
 use log::debug;
 use std::collections::HashMap;
-use std::str::FromStr;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
 use uuid::Uuid;
@@ -18,34 +18,6 @@ crate::build_generic_resource_impl_from!();
 
 // Generate grpc server implementations
 crate::build_grpc_simple_resource_impl!(scanner);
-
-impl FromStr for ScannerStatus {
-    type Err = ArrErr;
-
-    fn from_str(s: &str) -> ::core::result::Result<ScannerStatus, Self::Err> {
-        match s {
-            "ACTIVE" => ::core::result::Result::Ok(ScannerStatus::Active),
-            "DISABLED" => ::core::result::Result::Ok(ScannerStatus::Disabled),
-            _ => {
-                ::core::result::Result::Err(ArrErr::Error(format!("Unknown ScannerStatus: {}", s)))
-            }
-        }
-    }
-}
-
-impl FromStr for ScannerType {
-    type Err = ArrErr;
-
-    fn from_str(s: &str) -> ::core::result::Result<ScannerType, Self::Err> {
-        match s {
-            "MOBILE" => ::core::result::Result::Ok(ScannerType::Mobile),
-            "LOCKER" => ::core::result::Result::Ok(ScannerType::Locker),
-            "FACILITY" => ::core::result::Result::Ok(ScannerType::Facility),
-            "UNDERBELLY" => ::core::result::Result::Ok(ScannerType::Underbelly),
-            _ => ::core::result::Result::Err(ArrErr::Error(format!("Unknown ScannerType: {}", s))),
-        }
-    }
-}
 
 impl Resource for ResourceObject<Data> {
     fn get_definition() -> ResourceDefinition {
@@ -128,20 +100,17 @@ impl TryFrom<Row> for Data {
         debug!("Converting Row to scanner::Data: {:?}", row);
         let organization_id: Uuid = row.get("organization_id");
 
-        let status = match ScannerStatus::from_str(row.get("scanner_status")) {
-            Ok(status) => status,
-            Err(e) => return Err(e),
-        };
-
-        let scanner_type = match ScannerType::from_str(row.get("scanner_type")) {
-            Ok(scanner_type) => scanner_type,
-            Err(e) => return Err(e),
-        };
+        let scanner_status = ScannerStatus::from_str_name(row.get("scanner_status"))
+            .context("(try_from) Could not convert database value to ScannerStatus Enum type.")?
+            as i32;
+        let scanner_type = ScannerType::from_str_name(row.get("scanner_type"))
+            .context("(try_from) Could not convert database value to ScannerType Enum type.")?
+            as i32;
 
         Ok(Data {
             organization_id: organization_id.to_string(),
-            scanner_type: scanner_type.into(),
-            scanner_status: status.into(),
+            scanner_type,
+            scanner_status,
         })
     }
 }
@@ -223,29 +192,6 @@ mod tests {
     }
 
     #[test]
-    fn test_scanner_type_from_str() {
-        assert!(matches!(
-            "MOBILE".parse::<ScannerType>(),
-            Ok(ScannerType::Mobile)
-        ));
-        assert!(matches!(
-            "LOCKER".parse::<ScannerType>(),
-            Ok(ScannerType::Locker)
-        ));
-        assert!(matches!(
-            "FACILITY".parse::<ScannerType>(),
-            Ok(ScannerType::Facility)
-        ));
-        assert!(matches!(
-            "UNDERBELLY".parse::<ScannerType>(),
-            Ok(ScannerType::Underbelly)
-        ));
-
-        assert!("".parse::<ScannerType>().is_err());
-        assert!("INVALID_TYPE".parse::<ScannerType>().is_err());
-    }
-
-    #[test]
     fn test_scanner_type_as_str_name() {
         assert_eq!(ScannerType::Mobile.as_str_name(), "MOBILE");
         assert_eq!(ScannerType::Locker.as_str_name(), "LOCKER");
@@ -295,21 +241,6 @@ mod tests {
             ResourceObject::<Data>::get_enum_string_val("scanner_status", -1),
             None
         );
-    }
-
-    #[test]
-    fn test_scanner_status_from_str() {
-        assert!(matches!(
-            "ACTIVE".parse::<ScannerStatus>(),
-            Ok(ScannerStatus::Active)
-        ));
-        assert!(matches!(
-            "DISABLED".parse::<ScannerStatus>(),
-            Ok(ScannerStatus::Disabled)
-        ));
-
-        assert!("".parse::<ScannerStatus>().is_err());
-        assert!("INVALID_STATUS".parse::<ScannerStatus>().is_err());
     }
 
     #[test]
