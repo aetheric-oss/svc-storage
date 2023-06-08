@@ -17,6 +17,24 @@ async fn test_client_requests_and_logs() {
     let mut logger = Logger::start();
 
     //----------------------------------------------------
+    // Adsb
+    //----------------------------------------------------
+    #[cfg(not(any(feature = "stub_backends", feature = "stub_client")))]
+    let result = adsb::test_telemetry(&clients.adsb).await;
+    #[cfg(not(any(feature = "stub_backends", feature = "stub_client")))]
+    assert!(result.is_ok());
+
+    // generate 5 random messages
+    let mut messages_data: Vec<adsb::Data> = vec![];
+    for _ in 1..5 {
+        let adsb = adsb::mock::get_data_obj();
+        messages_data.push(adsb);
+    }
+
+    // play scenario
+    let _messages: adsb::List = adsb::scenario(&clients.adsb, messages_data, &mut logger).await;
+
+    //----------------------------------------------------
     // Vertiports
     //----------------------------------------------------
     // generate 5 random vertiports
