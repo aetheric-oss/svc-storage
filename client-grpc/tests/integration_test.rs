@@ -28,6 +28,21 @@ async fn test_client_requests_and_logs() {
     }
 
     // play scenario
-    let _vertiports: vertiport::List =
+    let vertiports: vertiport::List =
         vertiport::scenario(&clients.vertiport, vertiports_data, &mut logger).await;
+
+    //----------------------------------------------------
+    // Vertipads
+    //----------------------------------------------------
+    // generate random vertipads for vertiports
+    let mut vertipads_data: Vec<vertipad::Data> = vec![];
+    for vertiport in vertiports.list {
+        let mut vertipad = vertipad::mock::get_data_obj_for_vertiport(vertiport);
+        vertipad.name = format!("First vertipad for {}", vertipad.vertiport_id.clone());
+        vertipads_data.push(vertipad);
+    }
+
+    // play scenario
+    let _vertipads: vertipad::List =
+        vertipad::scenario(&clients.vertipad, vertipads_data, &mut logger).await;
 }
