@@ -3,9 +3,9 @@
 pub use crate::grpc::server::itinerary::*;
 pub mod flight_plan;
 
+use anyhow::{Context, Result};
 use log::debug;
 use std::collections::HashMap;
-use std::str::FromStr;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
 use uuid::Uuid;
@@ -79,30 +79,11 @@ impl TryFrom<Row> for Data {
         debug!("Converting Row to itinerary::Data: {:?}", row);
         let user_id: String = row.get::<&str, Uuid>("user_id").to_string();
 
-        let result = ItineraryStatus::from_str(row.get("status"));
-        let Ok(status) = result else {
-            return Err(result.unwrap_err());
-        };
+        let status = ItineraryStatus::from_str_name(row.get("status"))
+            .context("(try_from) Could not convert database value to ItineraryStatus Enum type.")?
+            as i32;
 
-        Ok(Data {
-            user_id,
-            status: status.into(),
-        })
-    }
-}
-
-impl FromStr for ItineraryStatus {
-    type Err = ArrErr;
-
-    fn from_str(s: &str) -> ::core::result::Result<ItineraryStatus, Self::Err> {
-        match s {
-            "ACTIVE" => ::core::result::Result::Ok(ItineraryStatus::Active),
-            "CANCELLED" => ::core::result::Result::Ok(ItineraryStatus::Cancelled),
-            _ => ::core::result::Result::Err(ArrErr::Error(format!(
-                "Unknown ItineraryStatus: {}",
-                s
-            ))),
-        }
+        Ok(Data { user_id, status })
     }
 }
 
@@ -168,21 +149,6 @@ mod tests {
             ResourceObject::<Data>::get_enum_string_val("status", -1),
             None
         );
-    }
-
-    #[test]
-    fn test_itinerary_status_from_str() {
-        assert!(matches!(
-            "ACTIVE".parse::<ItineraryStatus>(),
-            Ok(ItineraryStatus::Active)
-        ));
-        assert!(matches!(
-            "CANCELLED".parse::<ItineraryStatus>(),
-            Ok(ItineraryStatus::Cancelled)
-        ));
-
-        assert!("".parse::<ItineraryStatus>().is_err());
-        assert!("INVALID_STATUS".parse::<ItineraryStatus>().is_err());
     }
 
     #[test]

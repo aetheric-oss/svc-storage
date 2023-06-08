@@ -49,4 +49,8 @@ pub enum ArrErr {
     #[error("uuid error: {0}")]
     /// return new [`uuid::Error`] with calling params
     UuidError(#[from] uuid::Error),
+
+    #[error("error: {0}")]
+    /// return new [`anyhow::Error`] with calling params
+    AnyhowError(#[from] anyhow::Error),
 }

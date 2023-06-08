@@ -2,11 +2,11 @@
 
 pub use crate::grpc::server::flight_plan::*;
 
+use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use lib_common::time::datetime_to_timestamp;
 use log::debug;
 use std::collections::HashMap;
-use std::str::FromStr;
 use tokio::task;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
@@ -255,8 +255,12 @@ impl TryFrom<Row> for Data {
             .get::<&str, Option<DateTime<Utc>>>("flight_release_approval")
             .and_then(|val| datetime_to_timestamp(&val));
 
-        let flight_status = FlightStatus::from_str(row.get("flight_status"))?.into();
-        let flight_priority = FlightPriority::from_str(row.get("flight_priority"))?.into();
+        let flight_status = FlightStatus::from_str_name(row.get("flight_status"))
+            .context("(try_from) Could not convert database value to FlightStatus Enum type.")?
+            as i32;
+        let flight_priority = FlightPriority::from_str_name(row.get("flight_priority"))
+            .context("(try_from) Could not convert database value to FlightPriority Enum type.")?
+            as i32;
 
         Ok(Data {
             pilot_id,
@@ -278,37 +282,6 @@ impl TryFrom<Row> for Data {
             flight_status,
             flight_priority,
         })
-    }
-}
-
-impl FromStr for FlightStatus {
-    type Err = ArrErr;
-
-    fn from_str(s: &str) -> ::core::result::Result<FlightStatus, Self::Err> {
-        match s {
-            "READY" => ::core::result::Result::Ok(FlightStatus::Ready),
-            "BOARDING" => ::core::result::Result::Ok(FlightStatus::Boarding),
-            "IN_FLIGHT" => ::core::result::Result::Ok(FlightStatus::InFlight),
-            "FINISHED" => ::core::result::Result::Ok(FlightStatus::Finished),
-            "CANCELLED" => ::core::result::Result::Ok(FlightStatus::Cancelled),
-            "DRAFT" => ::core::result::Result::Ok(FlightStatus::Draft),
-            _ => ::core::result::Result::Err(ArrErr::Error(format!("Unknown FlightStatus: {}", s))),
-        }
-    }
-}
-
-impl FromStr for FlightPriority {
-    type Err = ArrErr;
-
-    fn from_str(s: &str) -> ::core::result::Result<FlightPriority, Self::Err> {
-        match s {
-            "EMERGENCY" => ::core::result::Result::Ok(FlightPriority::Emergency),
-            "HIGH" => ::core::result::Result::Ok(FlightPriority::High),
-            "LOW" => ::core::result::Result::Ok(FlightPriority::Low),
-            _ => {
-                ::core::result::Result::Err(ArrErr::Error(format!("Unknown FlightPriority: {}", s)))
-            }
-        }
     }
 }
 
@@ -449,37 +422,6 @@ mod tests {
     }
 
     #[test]
-    fn test_flight_status_from_str() {
-        assert!(matches!(
-            "READY".parse::<FlightStatus>(),
-            Ok(FlightStatus::Ready)
-        ));
-        assert!(matches!(
-            "BOARDING".parse::<FlightStatus>(),
-            Ok(FlightStatus::Boarding)
-        ));
-        assert!(matches!(
-            "IN_FLIGHT".parse::<FlightStatus>(),
-            Ok(FlightStatus::InFlight)
-        ));
-        assert!(matches!(
-            "FINISHED".parse::<FlightStatus>(),
-            Ok(FlightStatus::Finished)
-        ));
-        assert!(matches!(
-            "CANCELLED".parse::<FlightStatus>(),
-            Ok(FlightStatus::Cancelled)
-        ));
-        assert!(matches!(
-            "DRAFT".parse::<FlightStatus>(),
-            Ok(FlightStatus::Draft)
-        ));
-
-        assert!("".parse::<FlightStatus>().is_err());
-        assert!("INVALID_STATUS".parse::<FlightStatus>().is_err());
-    }
-
-    #[test]
     fn test_flight_status_as_str_name() {
         assert_eq!(FlightStatus::Ready.as_str_name(), "READY");
         assert_eq!(FlightStatus::Boarding.as_str_name(), "BOARDING");
@@ -547,25 +489,6 @@ mod tests {
             ResourceObject::<Data>::get_enum_string_val("flight_priority", -1),
             None
         );
-    }
-
-    #[test]
-    fn test_flight_priority_from_str() {
-        assert!(matches!(
-            "EMERGENCY".parse::<FlightPriority>(),
-            Ok(FlightPriority::Emergency)
-        ));
-        assert!(matches!(
-            "HIGH".parse::<FlightPriority>(),
-            Ok(FlightPriority::High)
-        ));
-        assert!(matches!(
-            "LOW".parse::<FlightPriority>(),
-            Ok(FlightPriority::Low)
-        ));
-
-        assert!("".parse::<FlightPriority>().is_err());
-        assert!("INVALID_PRIORITY".parse::<FlightPriority>().is_err());
     }
 
     #[test]
