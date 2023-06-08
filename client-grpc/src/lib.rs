@@ -56,30 +56,6 @@ cfg_if::cfg_if! {
             }
 
             cfg_if::cfg_if! {
-                if #[cfg(feature = "parcel")] {
-                    grpc_client_mod!(parcel);
-                    simple_grpc_client!(parcel);
-                    pub use parcel::RpcServiceClient as ParcelClient;
-                }
-            }
-
-            cfg_if::cfg_if! {
-                if #[cfg(feature = "parcel_scan")] {
-                    grpc_client_mod!(parcel_scan);
-                    simple_grpc_client!(parcel_scan);
-                    pub use parcel_scan::RpcServiceClient as ParcelScanClient;
-                }
-            }
-
-            cfg_if::cfg_if! {
-                if #[cfg(feature = "pilot")] {
-                    grpc_client_mod!(pilot);
-                    simple_grpc_client!(pilot);
-                    pub use pilot::RpcServiceClient as PilotClient;
-                }
-            }
-
-            cfg_if::cfg_if! {
                 if #[cfg(feature = "itinerary")] {
                     grpc_client_mod!(itinerary);
                     simple_grpc_client!(itinerary);
@@ -104,11 +80,44 @@ cfg_if::cfg_if! {
                 }
             }
 
+
+            cfg_if::cfg_if! {
+                if #[cfg(feature = "parcel")] {
+                    grpc_client_mod!(parcel);
+                    simple_grpc_client!(parcel);
+                    pub use parcel::RpcServiceClient as ParcelClient;
+                }
+            }
+
+            cfg_if::cfg_if! {
+                if #[cfg(feature = "parcel_scan")] {
+                    grpc_client_mod!(parcel_scan);
+                    simple_grpc_client!(parcel_scan);
+                    pub use parcel_scan::RpcServiceClient as ParcelScanClient;
+                }
+            }
+
+            cfg_if::cfg_if! {
+                if #[cfg(feature = "pilot")] {
+                    grpc_client_mod!(pilot);
+                    simple_grpc_client!(pilot);
+                    pub use pilot::RpcServiceClient as PilotClient;
+                }
+            }
+
             cfg_if::cfg_if! {
                 if #[cfg(feature = "scanner")] {
                     grpc_client_mod!(scanner);
                     simple_grpc_client!(scanner);
                     pub use scanner::RpcServiceClient as ScannerClient;
+                }
+            }
+
+            cfg_if::cfg_if! {
+                if #[cfg(feature = "user")] {
+                    grpc_client_mod!(user);
+                    simple_grpc_client!(user);
+                    pub use user::RpcServiceClient as UserClient;
                 }
             }
 
@@ -155,6 +164,9 @@ cfg_if::cfg_if! {
             #[cfg(feature = "pilot")]
             /// GrpcClient representation of the PilotClient
             pub pilot: GrpcClient<PilotClient<Channel>>,
+            #[cfg(feature = "user")]
+            /// GrpcClient representation of the UserClient
+            pub user: GrpcClient<UserClient<Channel>>,
             #[cfg(feature = "itinerary")]
             /// GrpcClient representation of the ItineraryClient
             pub itinerary: GrpcClient<ItineraryClient<Channel>>,
@@ -208,6 +220,9 @@ cfg_if::cfg_if! {
                 #[cfg(feature = "scanner")]
                 let scanner = GrpcClient::<scanner::RpcServiceClient<Channel>>::new_client(&host, port, "scanner");
 
+                #[cfg(feature = "user")]
+                let user = GrpcClient::<user::RpcServiceClient<Channel>>::new_client(&host, port, "user");
+
                 #[cfg(feature = "vehicle")]
                 let vehicle =
                     GrpcClient::<vehicle::RpcServiceClient<Channel>>::new_client(&host, port, "vehicle");
@@ -237,6 +252,8 @@ cfg_if::cfg_if! {
                     pilot,
                     #[cfg(feature = "scanner")]
                     scanner,
+                    #[cfg(feature = "user")]
+                    user,
                     #[cfg(feature = "vehicle")]
                     vehicle,
                     #[cfg(feature = "vertiport")]

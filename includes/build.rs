@@ -24,6 +24,7 @@ fn get_types() -> Vec<String> {
         "parcel".to_owned(),
         "parcel_scan".to_owned(),
         "scanner".to_owned(),
+        "user".to_owned(),
         "vehicle".to_owned(),
         "vertipad".to_owned(),
         "vertiport".to_owned(),
@@ -84,6 +85,7 @@ fn get_grpc_builder_config(out_path: &str) -> tonic_build::Builder {
         .type_attribute("FlightStatus", "#[derive(num_derive::FromPrimitive)]")
         .type_attribute("FlightPriority", "#[derive(num_derive::FromPrimitive)]")
         .type_attribute("ParcelStatus", "#[derive(num_derive::FromPrimitive)]")
+        .type_attribute("AuthMethod", "#[derive(num_derive::FromPrimitive)]")
         .type_attribute("ReadyRequest", "#[derive(Eq, Copy)]")
         .type_attribute("ReadyResponse", "#[derive(Eq, Copy)]")
         .type_attribute("GeoPoint", "#[derive(Copy)]")

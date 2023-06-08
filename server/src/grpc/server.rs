@@ -14,11 +14,13 @@ include!("../../../out/grpc/grpc.rs");
 // include gRPC services for all resources
 grpc_server!(adsb, "adsb");
 grpc_server!(flight_plan, "flight_plan");
+grpc_server!(group, "group");
 grpc_server!(itinerary, "itinerary");
 grpc_server!(parcel, "parcel");
-grpc_server!(scanner, "scanner");
-grpc_server!(parcel_scan, "parcel_scan");
 grpc_server!(pilot, "pilot");
+grpc_server!(parcel_scan, "parcel_scan");
+grpc_server!(scanner, "scanner");
+grpc_server!(user, "user");
 grpc_server!(vehicle, "vehicle");
 grpc_server!(vertipad, "vertipad");
 grpc_server!(vertiport, "vertiport");
@@ -102,13 +104,16 @@ pub async fn grpc_server(config: Config) {
         .set_serving::<parcel::RpcServiceServer<parcel::GrpcServer>>()
         .await;
     health_reporter
-        .set_serving::<scanner::RpcServiceServer<scanner::GrpcServer>>()
-        .await;
-    health_reporter
         .set_serving::<parcel_scan::RpcServiceServer<parcel_scan::GrpcServer>>()
         .await;
     health_reporter
         .set_serving::<pilot::RpcServiceServer<pilot::GrpcServer>>()
+        .await;
+    health_reporter
+        .set_serving::<scanner::RpcServiceServer<scanner::GrpcServer>>()
+        .await;
+    health_reporter
+        .set_serving::<user::RpcServiceServer<user::GrpcServer>>()
         .await;
     health_reporter
         .set_serving::<vehicle::RpcServiceServer<vehicle::GrpcServer>>()
@@ -137,10 +142,11 @@ pub async fn grpc_server(config: Config) {
         .add_service(parcel_scan::RpcServiceServer::new(
             parcel_scan::GrpcServer::default(),
         ))
+        .add_service(pilot::RpcServiceServer::new(pilot::GrpcServer::default()))
         .add_service(scanner::RpcServiceServer::new(
             scanner::GrpcServer::default(),
         ))
-        .add_service(pilot::RpcServiceServer::new(pilot::GrpcServer::default()))
+        .add_service(user::RpcServiceServer::new(user::GrpcServer::default()))
         .add_service(vehicle::RpcServiceServer::new(
             vehicle::GrpcServer::default(),
         ))
