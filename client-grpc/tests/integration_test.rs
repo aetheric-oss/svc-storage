@@ -98,4 +98,18 @@ async fn test_client_requests_and_logs() {
 
     // play scenario
     let _users: user::List = user::scenario(&clients.user, users_data, &mut logger).await;
+
+    //----------------------------------------------------
+    // groups
+    //----------------------------------------------------
+    // generate mock groups
+    let mut groups_data: Vec<group::Data> = vec![];
+    for index in 1..5 {
+        let mut group = group::mock::get_data_obj();
+        group.name = format!("group {}", index);
+        groups_data.push(group);
+    }
+
+    // play scenario
+    let _groups: group::List = group::scenario(&clients.group, groups_data, &mut logger).await;
 }

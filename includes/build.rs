@@ -19,6 +19,7 @@ fn get_types() -> Vec<String> {
     vec![
         "adsb".to_owned(),
         "flight_plan".to_owned(),
+        "group".to_owned(),
         "itinerary".to_owned(),
         "pilot".to_owned(),
         "parcel".to_owned(),

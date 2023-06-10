@@ -56,6 +56,14 @@ cfg_if::cfg_if! {
             }
 
             cfg_if::cfg_if! {
+                if #[cfg(feature = "group")] {
+                    grpc_client_mod!(group);
+                    simple_grpc_client!(group);
+                    pub use group::RpcServiceClient as GroupClient;
+                }
+            }
+
+            cfg_if::cfg_if! {
                 if #[cfg(feature = "itinerary")] {
                     grpc_client_mod!(itinerary);
                     simple_grpc_client!(itinerary);
@@ -155,6 +163,9 @@ cfg_if::cfg_if! {
             #[cfg(feature = "flight_plan")]
             /// GrpcClient representation of the FlightPlanClient
             pub flight_plan: GrpcClient<FlightPlanClient<Channel>>,
+            #[cfg(feature = "group")]
+            /// GrpcClient representation of the GroupClient
+            pub group: GrpcClient<GroupClient<Channel>>,
             #[cfg(feature = "parcel")]
             /// GrpcClient representation of the ParcelClient
             pub parcel: GrpcClient<ParcelClient<Channel>>,
@@ -200,6 +211,13 @@ cfg_if::cfg_if! {
                     "flight_plan",
                 );
 
+                #[cfg(feature = "group")]
+                let group = GrpcClient::<group::RpcServiceClient<Channel>>::new_client(
+                    &host,
+                    port,
+                    "group",
+                );
+
                 #[cfg(feature = "itinerary")]
                 let itinerary =
                     GrpcClient::<itinerary::RpcServiceClient<Channel>>::new_client(&host, port, "itinerary");
@@ -240,6 +258,8 @@ cfg_if::cfg_if! {
                     adsb,
                     #[cfg(feature = "flight_plan")]
                     flight_plan,
+                    #[cfg(feature = "group")]
+                    group,
                     #[cfg(feature = "itinerary")]
                     itinerary,
                     #[cfg(feature = "itinerary")]
