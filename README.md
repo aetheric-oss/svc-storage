@@ -113,31 +113,33 @@ The storage module currently supports `simple` and `linked` resources types.
 To add a new resource, you can simply pick one of the existing resources and fine all references, copying the resource specific files where needed.
 
 ### Simple resource
-The following steps can be followed to create a new simple resource using the  `pilot` resource as a reference.
+The following steps can be followed to create a new simple resource using an
+existing  resource as a reference.
 
 #### Example create new files and search/replace commands
 ```
+export COPY_RESOURCE=<existing resource name you want to use as basis for your new resource>
 export NEW_RESOURCE=<your new resource name>
-cp proto/svc-storage-grpc-pilot-service.proto proto/svc-storage-grpc-${NEW_RESOURCE}-service.proto
-cp proto/svc-storage-grpc-pilot.proto proto/svc-storage-grpc-${NEW_RESOURCE}.proto
-cp -r includes/pilot includes/${NEW_RESOURCE}
-cp -r server/src/resources/pilot server/src/resources/${NEW_RESOURCE}
-cp client-grpc/tests/resources/pilot.rs client-grpc/tests/resources/{NEW_RESOURCE}.rs
+cp proto/svc-storage-grpc-${COPY_RESOURCE}-service.proto proto/svc-storage-grpc-${NEW_RESOURCE}-service.proto
+cp proto/svc-storage-grpc-${COPY_RESOURCE}.proto proto/svc-storage-grpc-${NEW_RESOURCE}.proto
+cp -r includes/${COPY_RESOURCE} includes/${NEW_RESOURCE}
+cp -r server/src/resources/${COPY_RESOURCE} server/src/resources/${NEW_RESOURCE}
+cp client-grpc/tests/resources/${COPY_RESOURCE}.rs client-grpc/tests/resources/${NEW_RESOURCE}.rs
 
-sed -i "s/Pilot/${NEW_RESOURCE^}/g" proto/svc-storage-grpc-${NEW_RESOURCE}-service.proto
-sed -i "s/pilot/${NEW_RESOURCE}/g" proto/svc-storage-grpc-${NEW_RESOURCE}-service.proto
+sed -i "s/${COPY_RESOURCE^}/${NEW_RESOURCE^}/g" proto/svc-storage-grpc-${NEW_RESOURCE}-service.proto
+sed -i "s/${COPY_RESOURCE}/${NEW_RESOURCE}/g" proto/svc-storage-grpc-${NEW_RESOURCE}-service.proto
 
-sed -i "s/Pilot/${NEW_RESOURCE^}/g" proto/svc-storage-grpc-${NEW_RESOURCE}.proto
-sed -i "s/pilot/${NEW_RESOURCE}/g" proto/svc-storage-grpc-${NEW_RESOURCE}.proto
+sed -i "s/${COPY_RESOURCE^}/${NEW_RESOURCE^}/g" proto/svc-storage-grpc-${NEW_RESOURCE}.proto
+sed -i "s/${COPY_RESOURCE}/${NEW_RESOURCE}/g" proto/svc-storage-grpc-${NEW_RESOURCE}.proto
 
-sed -i "s/Pilot/${NEW_RESOURCE^}/g" includes/${NEW_RESOURCE}/mock.rs
-sed -i "s/pilot/${NEW_RESOURCE}/g" includes/${NEW_RESOURCE}/mock.rs
+sed -i "s/${COPY_RESOURCE^}/${NEW_RESOURCE^}/g" includes/${NEW_RESOURCE}/mock.rs
+sed -i "s/${COPY_RESOURCE}/${NEW_RESOURCE}/g" includes/${NEW_RESOURCE}/mock.rs
 
-sed -i "s/Pilot/${NEW_RESOURCE^}/g" server/src/resources/${NEW_RESOURCE}/mod.rs
-sed -i "s/pilot/${NEW_RESOURCE}/g" server/src/resources/${NEW_RESOURCE}/mod.rs
+sed -i "s/${COPY_RESOURCE^}/${NEW_RESOURCE^}/g" server/src/resources/${NEW_RESOURCE}/mod.rs
+sed -i "s/${COPY_RESOURCE}/${NEW_RESOURCE}/g" server/src/resources/${NEW_RESOURCE}/mod.rs
 
-sed -i "s/Pilot/${NEW_RESOURCE^}/g" client-grpc/tests/{NEW_RESOURCE}.rs
-sed -i "s/pilot/${NEW_RESOURCE}/g" client-grpc/tests/{NEW_RESOURCE}.rs
+sed -i "s/${COPY_RESOURCE^}/${NEW_RESOURCE^}/g" client-grpc/tests/resources/${NEW_RESOURCE}.rs
+sed -i "s/${COPY_RESOURCE}/${NEW_RESOURCE}/g" client-grpc/tests/resources/${NEW_RESOURCE}.rs
 ```
 
 Make sure to add all newly created files to git after creation:
@@ -154,14 +156,14 @@ git add client-grpc/
 - includes/build.rs 
   * Add the new resource name to the `get_types` function.
   * Add `derive` rules for new Enums in the `get_grpc_builder_config` function if needed. 
-- proto/svc-storage-grpc-<your new resource name>.proto 
+- proto/svc-storage-grpc-\<your new resource name\>.proto 
   * Edit the `Data` message object to reflect the correct fields.
   * Add Enums if needed
 
 **server**
 - server/src/resources/mod.rs
   * Add the new resource's module
-- server/src/resources/<your new resource name>/mod.rs 
+- server/src/resources/\<your new resource name\>/mod.rs 
   * Update `Resource` `get_definition()` function to reflect the correct fields.
   * Update `GrpcDataObjectType` `get_field_value` function to reflect the correct fields.
   * Update `TryFrom<Row>` `try_from` function to reflect the correct fields.
@@ -178,11 +180,11 @@ git add client-grpc/
 
 **client**
 - client-grpc/src/lib.rs
-  * Copy/paste all occurrences of the `pilot` blocks for your new resource.
+  * Copy/paste all occurrences of the copied resource's blocks for your new resource.
 - client-grpc/Cargo.toml
   * Add your resource to the `all_resources` feature.
   * Create a feature for your new resource with a `any_resource` dependency.
-- client-grpc/tests/resources/<your ne resource name>.rs
+- client-grpc/tests/resources/\<your ne resource name\>.rs
   * Update the `assert_eq` tests for the correct data fields.
 - client-grpc/tests/integration_test.rs
   * Add a scenario for the new resource, testing all service functions.
