@@ -95,6 +95,9 @@ pub async fn grpc_server(config: Config) {
         .set_serving::<flight_plan::RpcServiceServer<flight_plan::GrpcServer>>()
         .await;
     health_reporter
+        .set_serving::<group::RpcServiceServer<group::GrpcServer>>()
+        .await;
+    health_reporter
         .set_serving::<itinerary::RpcServiceServer<itinerary::GrpcServer>>()
         .await;
     health_reporter
@@ -132,6 +135,7 @@ pub async fn grpc_server(config: Config) {
         .add_service(flight_plan::RpcServiceServer::new(
             flight_plan::GrpcServer::default(),
         ))
+        .add_service(group::RpcServiceServer::new(group::GrpcServer::default()))
         .add_service(itinerary::RpcServiceServer::new(
             itinerary::GrpcServer::default(),
         ))

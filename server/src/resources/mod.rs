@@ -4,6 +4,7 @@ pub mod base;
 
 pub mod adsb;
 pub mod flight_plan;
+pub mod group;
 pub mod itinerary;
 pub mod parcel;
 pub mod parcel_scan;

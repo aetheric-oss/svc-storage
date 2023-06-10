@@ -27,6 +27,7 @@ adsb = ["any_resource"]
 all_resources = [
   "adsb",
   "flight_plan",
+  "group",
   "itinerary",
   "parcel",
   "pilot",
@@ -39,6 +40,7 @@ all_resources = [
 ]
 any_resource = []
 flight_plan = ["any_resource"]
+group = ["any_resource"]
 itinerary = ["any_resource", "flight_plan"]
 parcel = ["any_resource"]
 parcel_scan = ["any_resource", "scanner", "parcel"]
