@@ -20,8 +20,8 @@ include = [
 ]
 
 [features]
-dev       = ["mock", "tokio", "all_resources", "svc-storage"]
-test_util = ["mock", "stub_backends", "tokio", "all_resources"]
+dev       = ["mock", "all_resources", "svc-storage"]
+test_util = ["mock", "stub_backends", "all_resources"]
 # Supported resources
 adsb = ["any_resource"]
 all_resources = [
@@ -87,7 +87,6 @@ tag      = "v0.1.1-develop.2"
 
 [dependencies.tokio]
 features = ["macros", "rt-multi-thread"]
-optional = true
 version  = "1.28"
 
 [dev-dependencies]
