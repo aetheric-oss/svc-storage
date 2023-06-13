@@ -59,7 +59,7 @@ impl Resource for ResourceObject<Data> {
         [
             r#"ALTER TABLE parcel_scan ADD CONSTRAINT fk_parcel_id FOREIGN KEY(parcel_id) REFERENCES parcel(parcel_id)"#.to_owned(),
             r#"ALTER TABLE parcel_scan ADD CONSTRAINT fk_scanner_id FOREIGN KEY(scanner_id) REFERENCES scanner(scanner_id)"#.to_owned(),
-            r#"ALTER TABLE parcel_scan ADD CONSTRAINT unique_key UNIQUE (parcel_id, scanner_id, geo_location)"#.to_owned(),
+            r#"ALTER TABLE parcel_scan ADD CONSTRAINT uk_parcel_id_scanner_id_geo_location UNIQUE (parcel_id, scanner_id, geo_location)"#.to_owned(),
         ].to_vec()
     }
 }
