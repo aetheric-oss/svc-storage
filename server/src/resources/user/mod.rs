@@ -1,6 +1,7 @@
 //! Users
 
 pub use crate::grpc::server::user::*;
+pub mod group;
 
 use anyhow::{Context, Result};
 use log::debug;

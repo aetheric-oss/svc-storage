@@ -31,6 +31,7 @@ pub mod itinerary_flight_plan {
     use super::itinerary;
     pub use super::itinerary::rpc_flight_plan_link_server::*;
     use super::itinerary::ItineraryFlightPlans;
+    pub use super::user::rpc_group_link_server::*;
     use super::{Id, IdList};
     use crate::grpc::GrpcLinkService;
     use crate::resources::base::linked_resource::LinkOtherResource;
@@ -49,6 +50,27 @@ pub mod itinerary_flight_plan {
         RpcFlightPlanLink,
         ItineraryFlightPlans
     );
+}
+
+/// Module to expose linked resource implementations for user_group
+pub mod user_group {
+    use super::group;
+    use super::user;
+    pub use super::user::rpc_group_link_server::*;
+    use super::user::UserGroups;
+    use super::{Id, IdList};
+    use crate::grpc::GrpcLinkService;
+    use crate::resources::base::linked_resource::LinkOtherResource;
+    use crate::resources::base::ResourceObject;
+    use prost::Message;
+    use tonic::{Request, Status};
+
+    /// Dummy struct for UserGroup Data
+    /// Allows us to implement the required traits
+    #[derive(Clone, Message, Copy)]
+    pub struct Data {}
+
+    build_grpc_server_link_service_impl!(user, group, RpcGroupLink, UserGroups);
 }
 
 /// Provide search helpers
@@ -119,6 +141,9 @@ pub async fn grpc_server(config: Config) {
         .set_serving::<user::RpcServiceServer<user::GrpcServer>>()
         .await;
     health_reporter
+        .set_serving::<user_group::RpcGroupLinkServer<user_group::GrpcServer>>()
+        .await;
+    health_reporter
         .set_serving::<vehicle::RpcServiceServer<vehicle::GrpcServer>>()
         .await;
     health_reporter
@@ -151,6 +176,9 @@ pub async fn grpc_server(config: Config) {
             scanner::GrpcServer::default(),
         ))
         .add_service(user::RpcServiceServer::new(user::GrpcServer::default()))
+        .add_service(user_group::RpcGroupLinkServer::new(
+            user_group::GrpcServer::default(),
+        ))
         .add_service(vehicle::RpcServiceServer::new(
             vehicle::GrpcServer::default(),
         ))
