@@ -7,7 +7,7 @@ use super::simple_resource::PsqlType as SimplePsqlType;
 use super::{get_psql_pool, ArrErr, PsqlFieldType};
 use crate::grpc::server::{
     adsb, flight_plan, group, itinerary, itinerary_flight_plan, parcel, parcel_scan, pilot,
-    scanner, user, vehicle, vertipad, vertiport,
+    scanner, user, user_group, vehicle, vertipad, vertiport,
 };
 use crate::resources::{
     base::FieldDefinition,
@@ -20,6 +20,7 @@ pub async fn create_db() -> Result<(), ArrErr> {
     psql_info!("Creating database tables.");
     ResourceObject::<group::Data>::init_table().await?;
     ResourceObject::<user::Data>::init_table().await?;
+    ResourceObject::<user_group::Data>::init_table().await?;
     ResourceObject::<vertiport::Data>::init_table().await?;
     ResourceObject::<vertipad::Data>::init_table().await?;
     ResourceObject::<vehicle::Data>::init_table().await?;
@@ -50,6 +51,7 @@ pub async fn drop_db() -> Result<(), ArrErr> {
     ResourceObject::<vehicle::Data>::drop_table().await?;
     ResourceObject::<vertipad::Data>::drop_table().await?;
     ResourceObject::<vertiport::Data>::drop_table().await?;
+    ResourceObject::<user_group::Data>::drop_table().await?;
     ResourceObject::<user::Data>::drop_table().await?;
     ResourceObject::<group::Data>::drop_table().await?;
     Ok(())

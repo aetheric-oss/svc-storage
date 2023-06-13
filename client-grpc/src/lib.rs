@@ -37,6 +37,9 @@ cfg_if::cfg_if! {
             #[cfg(not(feature = "stub_backends"))]
             use tonic::async_trait;
 
+            #[cfg(feature = "stub_client")]
+            use std::str::FromStr;
+
             super::log_macros!("grpc", "app::client::storage");
 
             cfg_if::cfg_if! {
@@ -125,7 +128,24 @@ cfg_if::cfg_if! {
                 if #[cfg(feature = "user")] {
                     grpc_client_mod!(user);
                     simple_grpc_client!(user);
+                    pub use user::rpc_group_link_client::RpcGroupLinkClient as UserGroupLinkClient;
                     pub use user::RpcServiceClient as UserClient;
+
+                    cfg_if::cfg_if! {
+                        if #[cfg(feature = "stub_backends")] {
+                            use svc_storage::grpc::server::user_group::{RpcGroupLinkServer, GrpcServer as UserGroupGrpcServer};
+                            lib_common::grpc_mock_client!(UserGroupLinkClient, RpcGroupLinkServer, UserGroupGrpcServer);
+                        } else {
+                            lib_common::grpc_client!(UserGroupLinkClient);
+                        }
+                    }
+
+                    link_grpc_client!(
+                        user,
+                        UserGroupLinkClient,
+                        UserGroups,
+                        group
+                    );
                 }
             }
 
@@ -178,6 +198,9 @@ cfg_if::cfg_if! {
             #[cfg(feature = "user")]
             /// GrpcClient representation of the UserClient
             pub user: GrpcClient<UserClient<Channel>>,
+            #[cfg(feature = "user")]
+            /// GrpcClient representation of the UserGroupClient
+            pub user_group_link: GrpcClient<UserGroupLinkClient<Channel>>,
             #[cfg(feature = "itinerary")]
             /// GrpcClient representation of the ItineraryClient
             pub itinerary: GrpcClient<ItineraryClient<Channel>>,
@@ -224,7 +247,7 @@ cfg_if::cfg_if! {
                 #[cfg(feature = "itinerary")]
                 let itinerary_flight_plan_link = GrpcClient::<
                     itinerary::rpc_flight_plan_link_client::RpcFlightPlanLinkClient<Channel>,
-                >::new_client(&host, port, "itinerary");
+                >::new_client(&host, port, "itinerary_flight_plan_link");
 
                 #[cfg(feature = "parcel")]
                 let parcel = GrpcClient::<parcel::RpcServiceClient<Channel>>::new_client(&host, port, "parcel");
@@ -240,6 +263,10 @@ cfg_if::cfg_if! {
 
                 #[cfg(feature = "user")]
                 let user = GrpcClient::<user::RpcServiceClient<Channel>>::new_client(&host, port, "user");
+                #[cfg(feature = "user")]
+                let user_group_link = GrpcClient::<
+                    user::rpc_group_link_client::RpcGroupLinkClient<Channel>,
+                >::new_client(&host, port, "user_group_link");
 
                 #[cfg(feature = "vehicle")]
                 let vehicle =
@@ -274,6 +301,8 @@ cfg_if::cfg_if! {
                     scanner,
                     #[cfg(feature = "user")]
                     user,
+                    #[cfg(feature = "user")]
+                    user_group_link,
                     #[cfg(feature = "vehicle")]
                     vehicle,
                     #[cfg(feature = "vertiport")]

@@ -21,6 +21,12 @@ macro_rules! build_grpc_server_link_service_impl {
         ///Implementation of gRPC endpoints
         #[derive(Clone, Default, Debug, Copy)]
         pub struct GrpcServer {}
+        impl GrpcServer {
+            /// Get name string for service
+            pub fn get_name(&self) -> String {
+                String::from(format!("{}_{}_link", stringify!($resource), stringify!($other_resource)))
+            }
+        }
 
         impl GrpcLinkService<ResourceObject<$resource::Data>, $resource::Data, ResourceObject<Data>, Data>
             for GrpcServer
@@ -47,7 +53,7 @@ macro_rules! build_grpc_server_link_service_impl {
                 &self,
                 request: Request<$link_other_resource>,
             ) -> Result<tonic::Response<()>, Status> {
-                grpc_warn!("(link) {} server.", stringify!($resource));
+                grpc_warn!("(link) {} server.", self.get_name());
                 grpc_debug!("(link) request: {:?}", request);
                 let data: $link_other_resource = request.into_inner();
                 self.generic_link::<ResourceObject<$other_resource::Data>>(data.id.clone(), data.get_other_ids().try_into()?, false)
@@ -59,7 +65,7 @@ macro_rules! build_grpc_server_link_service_impl {
                 &self,
                 request: Request<$link_other_resource>,
             ) -> Result<tonic::Response<()>, Status> {
-                grpc_warn!("(link MOCK) {} server.", stringify!($resource));
+                grpc_warn!("(link MOCK) {} server.", self.get_name());
                 grpc_debug!("(link MOCK) request: {:?}", request);
                 let request = request.into_inner();
                 let id = request.id;
@@ -124,7 +130,7 @@ macro_rules! build_grpc_server_link_service_impl {
                 &self,
                 request: Request<$link_other_resource>,
             ) -> Result<tonic::Response<()>, Status> {
-                grpc_warn!("(replace_linked MOCK) {} server.", stringify!($resource));
+                grpc_warn!("(replace_linked MOCK) {} server.", self.get_name());
                 grpc_debug!("(replace_linked MOCK) request: {:?}", request);
                 let request = request.into_inner();
                 let id = request.id;
@@ -175,7 +181,7 @@ macro_rules! build_grpc_server_link_service_impl {
             // MOCK implementation
             #[cfg(feature = "stub_server")]
             async fn unlink(&self, request: Request<Id>) -> Result<tonic::Response<()>, Status> {
-                grpc_warn!("(unlink MOCK) {} server.", stringify!($resource));
+                grpc_warn!("(unlink MOCK) {} server.", self.get_name());
                 grpc_debug!("(unlink MOCK) request: {:?}", request);
                 let request = request.into_inner();
                 let id = request.id;
@@ -227,7 +233,7 @@ macro_rules! build_grpc_server_link_service_impl {
                 &self,
                 request: Request<Id>,
             ) -> Result<tonic::Response<IdList>, Status> {
-                grpc_warn!("(get_linked_ids MOCK) {} server.", stringify!($resource));
+                grpc_warn!("(get_linked_ids MOCK) {} server.", self.get_name());
                 grpc_debug!("(get_linked_ids MOCK) request: {:?}", request);
                 let id = request.into_inner().id;
                 match MEM_DATA_LINKS.lock().await.get(&id) {
@@ -257,7 +263,7 @@ macro_rules! build_grpc_server_link_service_impl {
                 &self,
                 request: Request<Id>,
             ) -> Result<tonic::Response<$other_resource::List>, Status> {
-                grpc_warn!("(get_linked MOCK) {} server.", stringify!($resource));
+                grpc_warn!("(get_linked MOCK) {} server.", self.get_name());
                 grpc_debug!("(get_linked MOCK) request: {:?}", request);
                 let id = request.into_inner().id;
                 match MEM_DATA_LINKS.lock().await.get(&id) {

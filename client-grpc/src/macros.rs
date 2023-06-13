@@ -60,6 +60,8 @@ macro_rules! grpc_client_mod {
                         lazy_static! {
                             /// In memory data used for mock client implementation
                             pub static ref MEM_DATA: Mutex<HashMap<String, Object>> = Mutex::new(HashMap::new());
+                            /// In memory data used for mock link client implementation
+                            pub static ref MEM_DATA_LINKS: Mutex<HashMap<String, Vec<String>>> = Mutex::new(HashMap::new());
                         }
                     }
                 }
@@ -141,17 +143,6 @@ macro_rules! link_grpc_client {
 macro_rules! link_grpc_client {
     ($($rpc_service:ident, $rpc_link_client:ident, $link_object:ident, $link_service:ident),+) => {
         $(
-            use futures::lock::Mutex;
-            use lazy_static::lazy_static;
-            use std::collections::HashMap;
-            use std::str::FromStr;
-            use uuid::Uuid;
-
-            lazy_static! {
-                /// In memory data used for mock client implementation
-                pub static ref MEM_DATA_LINKS: Mutex<HashMap<String, Vec<String>>> = Mutex::new(HashMap::new());
-            }
-
             #[tonic::async_trait]
             impl $crate::LinkClient<$rpc_link_client<Channel>> for $crate::GrpcClient<$rpc_link_client<Channel>> {
                 type LinkObject = $rpc_service::$link_object;
@@ -166,19 +157,19 @@ macro_rules! link_grpc_client {
                     let request = request.into_inner();
                     let id = request.id;
                     let other_ids = request.other_id_list.unwrap();
-                    let mut mem_data_links = MEM_DATA_LINKS.lock().await;
+                    let mut mem_data_links = $rpc_service::MEM_DATA_LINKS.lock().await;
 
                     if !$rpc_service::MEM_DATA.lock().await.get(&id).is_some() {
                         let error = format!(
-                            "No [{}] found for specified uuid: {}",
-                            self.get_name(),
-                            id
+                            "No [{}] found for specified uuid: {}, got: {:?}",
+                            stringify!($rpc_service),
+                            id, $rpc_service::MEM_DATA.lock().await
                         );
                         grpc_error!("(link MOCK) {}", error);
                         return Err(tonic::Status::not_found(error));
                     }
 
-                    match Uuid::from_str(&id) {
+                    match uuid::Uuid::from_str(&id) {
                         Ok(uuid) => uuid,
                         Err(e) => {
                             let error = format!(
@@ -213,19 +204,19 @@ macro_rules! link_grpc_client {
                     let request = request.into_inner();
                     let id = request.id;
                     let other_ids = request.other_id_list.unwrap();
-                    let mut mem_data_links = MEM_DATA_LINKS.lock().await;
+                    let mut mem_data_links = $rpc_service::MEM_DATA_LINKS.lock().await;
 
                     if !$rpc_service::MEM_DATA.lock().await.get(&id).is_some() {
                         let error = format!(
                             "No [{}] found for specified uuid: {}",
-                            self.get_name(),
+                            stringify!($rpc_service),
                             id
                         );
                         grpc_error!("(replace_linked MOCK) {}", error);
                         return Err(tonic::Status::not_found(error));
                     }
 
-                    match Uuid::from_str(&id) {
+                    match uuid::Uuid::from_str(&id) {
                         Ok(uuid) => uuid,
                         Err(e) => {
                             let error = format!(
@@ -255,19 +246,19 @@ macro_rules! link_grpc_client {
                     grpc_debug!("(unlink MOCK) request: {:?}", request);
                     let request = request.into_inner();
                     let id = request.id;
-                    let mut mem_data_links = MEM_DATA_LINKS.lock().await;
+                    let mut mem_data_links = $rpc_service::MEM_DATA_LINKS.lock().await;
 
                     if !$rpc_service::MEM_DATA.lock().await.get(&id).is_some() {
                         let error = format!(
                             "No [{}] found for specified uuid: {}",
-                            self.get_name(),
+                            stringify!($rpc_service),
                             id
                         );
                         grpc_error!("(unlink MOCK) {}", error);
                         return Err(tonic::Status::not_found(error));
                     }
 
-                    match Uuid::from_str(&id) {
+                    match uuid::Uuid::from_str(&id) {
                         Ok(uuid) => uuid,
                         Err(e) => {
                             let error = format!(
@@ -291,7 +282,7 @@ macro_rules! link_grpc_client {
                     grpc_warn!("(get_linked_ids MOCK) {} client.", self.get_name());
                     grpc_debug!("(get_linked_ids MOCK) request: {:?}", request);
                     let id = request.into_inner().id;
-                    match MEM_DATA_LINKS.lock().await.get(&id) {
+                    match $rpc_service::MEM_DATA_LINKS.lock().await.get(&id) {
                         Some(object) => Ok(tonic::Response::new(IdList { ids: object.clone() })),
                         _ => Err(tonic::Status::not_found("Not found")),
                     }
@@ -304,7 +295,7 @@ macro_rules! link_grpc_client {
                     grpc_warn!("(get_linked MOCK) {} client.", self.get_name());
                     grpc_debug!("(get_linked MOCK) request: {:?}", request);
                     let id = request.into_inner().id;
-                    match MEM_DATA_LINKS.lock().await.get(&id) {
+                    match $rpc_service::MEM_DATA_LINKS.lock().await.get(&id) {
                         Some(ids) => {
                             let mut objects: Vec<$link_service::Object> = vec![];
                             for id in ids {
