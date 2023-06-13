@@ -150,12 +150,6 @@ pub async fn grpc_server(config: Config) {
         .add_service(vertiport::RpcServiceServer::new(
             vertiport::GrpcServer::default(),
         ))
-        .add_service(itinerary::RpcServiceServer::new(
-            itinerary::GrpcServer::default(),
-        ))
-        .add_service(itinerary_flight_plan::RpcFlightPlanLinkServer::new(
-            itinerary_flight_plan::GrpcServer::default(),
-        ))
         .serve_with_shutdown(full_grpc_addr, shutdown_signal("grpc"))
         .await
     {

@@ -49,8 +49,7 @@ impl Resource for ResourceObject<Data> {
                 ),
                 (
                     "deleted_at".to_string(),
-                    FieldDefinition::new_internal(PsqlFieldType::TIMESTAMPTZ, true)
-                        .set_default(String::from("CURRENT_TIMESTAMP")),
+                    FieldDefinition::new_internal(PsqlFieldType::TIMESTAMPTZ, false),
                 ),
             ]),
         }
@@ -60,6 +59,7 @@ impl Resource for ResourceObject<Data> {
         [
             r#"ALTER TABLE parcel_scan ADD CONSTRAINT fk_parcel_id FOREIGN KEY(parcel_id) REFERENCES parcel(parcel_id)"#.to_owned(),
             r#"ALTER TABLE parcel_scan ADD CONSTRAINT fk_scanner_id FOREIGN KEY(scanner_id) REFERENCES scanner(scanner_id)"#.to_owned(),
+            r#"ALTER TABLE parcel_scan ADD CONSTRAINT unique_key UNIQUE (parcel_id, scanner_id, geo_location)"#.to_owned(),
         ].to_vec()
     }
 }

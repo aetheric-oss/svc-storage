@@ -27,8 +27,8 @@ pub async fn create_db() -> Result<(), ArrErr> {
     ResourceObject::<itinerary::Data>::init_table().await?;
     ResourceObject::<itinerary_flight_plan::Data>::init_table().await?;
     ResourceObject::<parcel::Data>::init_table().await?;
-    ResourceObject::<parcel_scan::Data>::init_table().await?;
     ResourceObject::<scanner::Data>::init_table().await?;
+    ResourceObject::<parcel_scan::Data>::init_table().await?;
     Ok(())
 }
 
