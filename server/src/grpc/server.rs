@@ -73,6 +73,23 @@ pub mod user_group {
     build_grpc_server_link_service_impl!(user, group, RpcGroupLink, UserGroups);
 }
 
+/// Module to expose linked resource implementations for user_group
+/// Uses the user_group Data object implementation for database schema definitions
+pub mod group_user {
+    use super::group;
+    pub use super::group::rpc_user_link_server::*;
+    use super::group::GroupUsers;
+    use super::user;
+    pub use super::user_group::Data;
+    use super::{Id, IdList};
+    use crate::grpc::GrpcLinkService;
+    use crate::resources::base::linked_resource::LinkOtherResource;
+    use crate::resources::base::ResourceObject;
+    use tonic::{Request, Status};
+
+    build_grpc_server_link_service_impl!(group, user, RpcUserLink, GroupUsers);
+}
+
 /// Provide search helpers
 pub mod search {
     include!("../../../includes/search.rs");
@@ -120,6 +137,9 @@ pub async fn grpc_server(config: Config) {
         .set_serving::<group::RpcServiceServer<group::GrpcServer>>()
         .await;
     health_reporter
+        .set_serving::<group_user::RpcUserLinkServer<group_user::GrpcServer>>()
+        .await;
+    health_reporter
         .set_serving::<itinerary::RpcServiceServer<itinerary::GrpcServer>>()
         .await;
     health_reporter
@@ -161,6 +181,9 @@ pub async fn grpc_server(config: Config) {
             flight_plan::GrpcServer::default(),
         ))
         .add_service(group::RpcServiceServer::new(group::GrpcServer::default()))
+        .add_service(group_user::RpcUserLinkServer::new(
+            group_user::GrpcServer::default(),
+        ))
         .add_service(itinerary::RpcServiceServer::new(
             itinerary::GrpcServer::default(),
         ))

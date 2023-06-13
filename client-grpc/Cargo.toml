@@ -40,7 +40,7 @@ all_resources = [
 ]
 any_resource = []
 flight_plan = ["any_resource"]
-group = ["any_resource"]
+group = ["any_resource", "user"]
 itinerary = ["any_resource", "flight_plan"]
 parcel = ["any_resource"]
 parcel_scan = ["any_resource", "scanner", "parcel"]
