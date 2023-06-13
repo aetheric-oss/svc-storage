@@ -118,4 +118,9 @@ async fn test_client_requests_and_logs() {
     //----------------------------------------------------
     // play scenario
     user_group::scenario(&clients.user_group_link, &users, &groups, &mut logger).await;
+    //----------------------------------------------------
+    // group_users
+    //----------------------------------------------------
+    // play scenario
+    group_user::scenario(&clients.group_user_link, &groups, &users, &mut logger).await;
 }

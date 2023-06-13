@@ -41,7 +41,6 @@ service RpcGroupLink {
     // ```
     rpc link(UserGroups) returns (google.protobuf.Empty);
     // Link provided list `other_id_list` (group_ids) with the provided user `id`.
-    // Same as link_groups, but will delete existing entries first.
     // Will delete existing entries first and then add the new ones present in the provided `other_id_list` vector
     //
     // # Errors

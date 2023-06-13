@@ -62,7 +62,24 @@ cfg_if::cfg_if! {
                 if #[cfg(feature = "group")] {
                     grpc_client_mod!(group);
                     simple_grpc_client!(group);
+                    pub use group::rpc_user_link_client::RpcUserLinkClient as GroupUserLinkClient;
                     pub use group::RpcServiceClient as GroupClient;
+
+                    cfg_if::cfg_if! {
+                        if #[cfg(feature = "stub_backends")] {
+                            use svc_storage::grpc::server::group_user::{RpcUserLinkServer, GrpcServer as GroupUserGrpcServer};
+                            lib_common::grpc_mock_client!(GroupUserLinkClient, RpcUserLinkServer, GroupUserGrpcServer);
+                        } else {
+                            lib_common::grpc_client!(GroupUserLinkClient);
+                        }
+                    }
+
+                    link_grpc_client!(
+                        group,
+                        GroupUserLinkClient,
+                        GroupUsers,
+                        user
+                    );
                 }
             }
 
@@ -186,6 +203,9 @@ cfg_if::cfg_if! {
             #[cfg(feature = "group")]
             /// GrpcClient representation of the GroupClient
             pub group: GrpcClient<GroupClient<Channel>>,
+            #[cfg(feature = "group")]
+            /// GrpcClient representation of the GroupUserClient
+            pub group_user_link: GrpcClient<GroupUserLinkClient<Channel>>,
             #[cfg(feature = "parcel")]
             /// GrpcClient representation of the ParcelClient
             pub parcel: GrpcClient<ParcelClient<Channel>>,
@@ -240,6 +260,10 @@ cfg_if::cfg_if! {
                     port,
                     "group",
                 );
+                #[cfg(feature = "group")]
+                let group_user_link = GrpcClient::<
+                    group::rpc_user_link_client::RpcUserLinkClient<Channel>,
+                >::new_client(&host, port, "group_user_link");
 
                 #[cfg(feature = "itinerary")]
                 let itinerary =
@@ -287,6 +311,8 @@ cfg_if::cfg_if! {
                     flight_plan,
                     #[cfg(feature = "group")]
                     group,
+                    #[cfg(feature = "group")]
+                    group_user_link,
                     #[cfg(feature = "itinerary")]
                     itinerary,
                     #[cfg(feature = "itinerary")]
