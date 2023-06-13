@@ -4,7 +4,7 @@
 /// macros module exposing gRPC include macro
 mod macros;
 
-use geo_types::{Coord, LineString, Point, Polygon};
+pub use geo_types::{Coord, LineString, Point, Polygon};
 use lib_common::log_macros;
 
 pub mod link_service;
