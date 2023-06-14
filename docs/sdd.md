@@ -638,6 +638,13 @@ sequenceDiagram
 
 ```mermaid
 erDiagram
+    %field {
+    %    serial field_id PK
+    %    text field_name
+    %    text field_type "string / int / bool / datetime / etc..."
+    %    text re_validation "Optional - regex validation string"
+    %    text validation_message "Optional"
+    %}
     flight_plan {
         uuid flight_plan_id PK
         uuid pilot_id FK
@@ -658,7 +665,7 @@ erDiagram
         text flight_priority "Default LOW"
         timestamp created_at "Default NOW"
         timestamp updated_at "Default NOW"
-        timestamp deleted_at "Default NULL"
+        timestamp deleted_at "Optional Default NULL"
     }
     itinerary {
         uuid itinerary_id PK
@@ -674,25 +681,23 @@ erDiagram
         uuid vertiport_id PK
         text name
         text description
-        float longitude
-        float latitude
+        geometry geo_location "POLYGON"
         text schedule
         timestamp created_at "Default NOW"
         timestamp updated_at "Default NOW"
-        timestamp deleted_at "Default NULL"
+        timestamp deleted_at "Optional Default NULL"
     }
     vertipad {
         uuid vertipad_id PK
         uuid vertiport_id FK
         text name
-        float longitude
-        float latitude
+        geometry geo_location "POINT"
         text schedule
         bool enabled "Default true"
         bool occupied "Default false"
         timestamp created_at "Default NOW"
         timestamp updated_at "Default NOW"
-        timestamp deleted_at "Default NULL"
+        timestamp deleted_at "Optional Default NULL"
     }
     pilot {
         uuid pilot_id PK
@@ -700,7 +705,7 @@ erDiagram
         text last_name
         timestamp created_at "Default NOW"
         timestamp updated_at "Default NOW"
-        timestamp deleted_at "Default NULL"
+        timestamp deleted_at "Optional Default NULL"
     }
     vehicle {
         uuid vehicle_id PK
@@ -715,8 +720,73 @@ erDiagram
         uuid last_vertiport_id FK "Optional"
         timestamp created_at "Default NOW"
         timestamp updated_at "Default NOW"
-        timestamp deleted_at "Default NULL"
+        timestamp deleted_at "Optional Default NULL"
     }
+    scanner {
+        uuid scanner_id PK
+        uuid organization_id
+        text scanner_type "ENUM(MOBILE,LOCKER,FACILITY,UNDERBELLY)"
+        text scanner_status "ENUM(ACTIVE,DISABLED)"
+        timestamp created_at "Default NOW"
+        timestamp updated_at "Default NOW"
+        timestamp deleted_at "Optional Default NULL"
+    }
+    parcel {
+        uuid parcel_id PK
+        uuid itinerary_id FK
+        text status "ENUM(NOTDROPPEDOFF,DROPPEDOFF,ENROUTE,ARRIVED,PICKEDUP,COMPLETE)"
+        timestamp created_at "Default NOW"
+        timestamp updated_at "Default NOW"
+        timestamp deleted_at "Optional Default NULL"
+    }
+    parcel_scan {
+        uuid parcel_id FK
+        uuid scanner_id FK
+        geometry geo_location "POINT"
+        timestamp created_at "Default NOW"
+        timestamp updated_at "Default NOW"
+        timestamp deleted_at "Optional Default NULL"
+    }
+    user {
+        uuid user_id PK
+        text auth_method "ENUM (OAUTH_GOOGLE,OAUTH_FACEBOOK,OAUTH_AZURE_AD,LOCAL)"
+        text display_name
+        timestamp created_at "Default NOW"
+        timestamp updated_at "Default NOW"
+        timestamp deleted_at "Optional Default NULL"
+    }
+    %user_field {
+    %    serial user_field_id PK
+    %    serial field_id FK
+    %    bool is_mandatory "Default false"
+    %    text category "ENUM (additional_info, settings)"
+    %}
+    %user_field_value {
+    %    serial user_field_id PK
+    %    uuid user_id PK
+    %    text value
+    %    timestamp updated_at "Default NOW"
+    %}
+    group {
+        uuid group_id PK
+        text name
+        text description
+        uuid parent_group_id FK "Optional"
+        timestamp created_at "Default NOW"
+        timestamp updated_at "Default NOW"
+        timestamp deleted_at "Optional Default NULL"
+    }
+    user_group {
+        uuid user_id FK
+        uuid group_id FK
+    }
+
+    %field }o--o{ user_field : field_id
+    %user_field }o--o{ user_field_value : user_field_id
+    %user }o--|| user_field_value : user_id
+
+    user }o--o{ user_group : user_id
+    group }o--o{ user_group : group_id
 
     flight_plan }o--|| vertipad : departure_vertipad_id
     flight_plan }o--|| vertipad : destination_vertipad_id
@@ -727,4 +797,8 @@ erDiagram
     itinerary_flight_plan |o--|| itinerary : itinerary_id
 
     vertipad }o--|| vertiport : vertiport_id
+
+    parcel }o--o{ parcel_scan : parcel_id
+    parcel }o--o{ itinerary : itinerary_id
+    scanner }o--o{ parcel_scan : scanner_id
 ```
