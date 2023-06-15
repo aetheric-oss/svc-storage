@@ -671,6 +671,9 @@ fn get_point_sql_val(point_option: GrpcField) -> Option<String> {
             match point {
                 Some(val) => {
                     let val: Point = val.into();
+                    // POINT expects (x y) which is (long lat)
+                    // geo_types::geometry::point::Point has a x and y which
+                    // we've aligned with the POINT(x y)/POINT(long lat)
                     Some(format!(
                         "ST_GeomFromText('POINT({:.15} {:.15})')",
                         val.x(),

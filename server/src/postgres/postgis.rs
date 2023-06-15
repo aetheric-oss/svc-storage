@@ -28,10 +28,10 @@ fn read_f64<R: Read>(raw: &mut R, is_be: bool) -> Result<f64, postgis::error::Er
 }
 impl postgis::Point for GeoPoint {
     fn x(&self) -> f64 {
-        self.x
+        self.longitude
     }
     fn y(&self) -> f64 {
-        self.y
+        self.latitude
     }
 }
 impl EwkbRead for GeoPoint {
@@ -44,9 +44,12 @@ impl EwkbRead for GeoPoint {
         _type_id: u32,
         _srid: Option<i32>,
     ) -> Result<Self, postgis::error::Error> {
-        let x = read_f64(raw, is_be)?;
-        let y = read_f64(raw, is_be)?;
-        Ok(GeoPoint { x, y })
+        let longitude = read_f64(raw, is_be)?;
+        let latitude = read_f64(raw, is_be)?;
+        Ok(GeoPoint {
+            longitude,
+            latitude,
+        })
     }
 }
 impl<'a> AsEwkbPoint<'a> for GeoPoint {
@@ -89,8 +92,8 @@ impl<'a> postgis::LineString<'a> for GeoLineString {
 impl From<Point> for GeoPoint {
     fn from(field: Point) -> Self {
         GeoPoint {
-            x: field.x,
-            y: field.y,
+            longitude: field.x,
+            latitude: field.y,
         }
     }
 }

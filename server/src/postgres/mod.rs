@@ -304,10 +304,10 @@ pub fn validate_enum(
 /// Returns `true` on success, `false` if the conversion failed.
 pub fn validate_point(field: String, value: &Point, errors: &mut Vec<ValidationError>) -> bool {
     let mut success = true;
-    if value.x() < -90.0 || value.x() > 90.0 {
+    if value.x() < -180.0 || value.x() > 180.0 {
         let error = format!(
                 "(validate_point) Could not convert [{}] to POINT: The provided value contains an invalid Long value, [{}] is out of range.",
-                field, value.y()
+                field, value.x()
             );
         psql_info!("{}", error);
         errors.push(ValidationError {
@@ -316,10 +316,10 @@ pub fn validate_point(field: String, value: &Point, errors: &mut Vec<ValidationE
         });
         success = false
     }
-    if value.y() < -180.0 || value.y() > 180.0 {
+    if value.y() < -90.0 || value.y() > 90.0 {
         let error = format!(
                 "(validate_point) Could not convert [{}] to POINT: The provided value contains an invalid Lat value, [{}] is out of range.",
-                field, value.x()
+                field, value.y()
             );
         psql_info!("{}", error);
         errors.push(ValidationError { field, error });
@@ -414,7 +414,7 @@ fn validate_coord(
     polygon_field: &str,
 ) -> bool {
     let mut success = true;
-    if coord.x < -90.0 || coord.x > 90.0 {
+    if coord.x < -180.0 || coord.x > 180.0 {
         let error = format!(
                 "(validate_coord) Could not convert [{}] to POLYGON: The provided {} LineString contains 1 or more invalid Long values. [{}] is out of range.",
                 field, polygon_field, coord.x
@@ -426,7 +426,7 @@ fn validate_coord(
         });
         success = false
     }
-    if coord.y < -180.0 || coord.y > 180.0 {
+    if coord.y < -90.0 || coord.y > 90.0 {
         let error = format!(
                 "(validate_coord) Could not convert [{}] to POLYGON: The provided {} LineString contains 1 or more invalid Lat values. [{}] is out of range.",
                 field, polygon_field, coord.y

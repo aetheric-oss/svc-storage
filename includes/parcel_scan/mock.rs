@@ -11,8 +11,8 @@ pub fn get_data_obj() -> Data {
         parcel_id,
         scanner_id,
         geo_location: Some(GeoPoint {
-            x: 37.7746,
-            y: -122.4194,
+            longitude: -122.4194,
+            latitude: 37.7746,
         }),
     }
 }

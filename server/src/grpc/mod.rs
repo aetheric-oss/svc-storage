@@ -248,7 +248,11 @@ impl From<GrpcField> for Point {
     fn from(field: GrpcField) -> Self {
         match field {
             GrpcField::GeoPoint(field) => field,
-            _ => GeoPoint { x: 0.0, y: 0.0 }.into(),
+            _ => GeoPoint {
+                longitude: 0.0,
+                latitude: 0.0,
+            }
+            .into(),
         }
     }
 }

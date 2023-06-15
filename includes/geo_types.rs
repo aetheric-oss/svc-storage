@@ -1,22 +1,23 @@
 impl From<Point> for GeoPoint {
     fn from(field: Point) -> Self {
         Self {
-            x: field.x(),
-            y: field.y(),
+            longitude: field.x(),
+            latitude: field.y(),
         }
     }
 }
 
 impl From<GeoPoint> for Point {
     fn from(field: GeoPoint) -> Self {
-        Self::new(field.x, field.y)
+        Self::new(field.longitude, field.latitude)
     }
 }
+
 impl From<GeoPoint> for Coord {
     fn from(field: GeoPoint) -> Self {
         Coord {
-            x: field.x,
-            y: field.y,
+            x: field.longitude,
+            y: field.latitude,
         }
     }
 }
@@ -93,10 +94,13 @@ mod tests {
 
     #[test]
     fn test_from_point_to_geo_point() {
-        let x = -45.12;
-        let y = 120.8;
+        let x = 120.8;
+        let y = -45.12;
         let from = Point::new(x, y);
-        let expected = GeoPoint { x, y };
+        let expected = GeoPoint {
+            longitude: x,
+            latitude: y,
+        };
 
         // Point into GeoPoint
         let result: GeoPoint = from.into();
@@ -104,9 +108,12 @@ mod tests {
     }
     #[test]
     fn test_from_geo_point_to_point() {
-        let x = -45.12;
-        let y = 120.8;
-        let from = GeoPoint { x, y };
+        let x = 120.8;
+        let y = -45.12;
+        let from = GeoPoint {
+            longitude: x,
+            latitude: y,
+        };
         let expected = Point::new(x, y);
 
         // GeoPoint into Point
@@ -115,9 +122,12 @@ mod tests {
     }
     #[test]
     fn test_from_geo_point_to_coord() {
-        let x = -45.12;
-        let y = 120.8;
-        let from = GeoPoint { x, y };
+        let x = 120.8;
+        let y = -45.12;
+        let from = GeoPoint {
+            longitude: x,
+            latitude: y,
+        };
         let expected = Coord { x, y };
 
         // GeoPoint into Coord
@@ -127,13 +137,22 @@ mod tests {
 
     #[test]
     fn test_from_line_string_to_geo_line_string() {
-        let x_1 = -45.12;
-        let y_1 = 120.8;
-        let x_2 = -46.12;
-        let y_2 = 121.8;
+        let x_1 = 120.8;
+        let y_1 = -45.12;
+        let x_2 = 121.8;
+        let y_2 = -46.12;
         let from = LineString::from(vec![(x_1, y_1), (x_2, y_2)]);
         let expected = GeoLineString {
-            points: vec![GeoPoint { x: x_1, y: y_1 }, GeoPoint { x: x_2, y: y_2 }],
+            points: vec![
+                GeoPoint {
+                    longitude: x_1,
+                    latitude: y_1,
+                },
+                GeoPoint {
+                    longitude: x_2,
+                    latitude: y_2,
+                },
+            ],
         };
 
         // LineString into GeoLineString
@@ -142,12 +161,21 @@ mod tests {
     }
     #[test]
     fn test_from_geo_line_string_to_line_string() {
-        let x_1 = -45.12;
-        let y_1 = 120.8;
-        let x_2 = -46.12;
-        let y_2 = 121.8;
+        let x_1 = 120.8;
+        let y_1 = -45.12;
+        let x_2 = 121.8;
+        let y_2 = -46.12;
         let from = GeoLineString {
-            points: vec![GeoPoint { x: x_1, y: y_1 }, GeoPoint { x: x_2, y: y_2 }],
+            points: vec![
+                GeoPoint {
+                    longitude: x_1,
+                    latitude: y_1,
+                },
+                GeoPoint {
+                    longitude: x_2,
+                    latitude: y_2,
+                },
+            ],
         };
         let expected = LineString::from(vec![(x_1, y_1), (x_2, y_2)]);
 
@@ -158,8 +186,8 @@ mod tests {
 
     #[test]
     fn test_from_polygon_to_geo_polygon() {
-        let x_1 = -45.12;
-        let y_1 = 120.8;
+        let x_1 = 120.8;
+        let y_1 = -45.12;
         let x_2 = x_1 - 0.001;
         let y_2 = y_1 - 0.001;
         let exterior = LineString::from(vec![(x_1, y_1), (x_2, y_2)]);
@@ -171,24 +199,33 @@ mod tests {
         let expected = GeoPolygon {
             exterior: Some(GeoLineString {
                 points: vec![
-                    GeoPoint { x: x_1, y: y_1 },
-                    GeoPoint { x: x_2, y: y_2 },
-                    GeoPoint { x: x_1, y: y_1 },
+                    GeoPoint {
+                        longitude: x_1,
+                        latitude: y_1,
+                    },
+                    GeoPoint {
+                        longitude: x_2,
+                        latitude: y_2,
+                    },
+                    GeoPoint {
+                        longitude: x_1,
+                        latitude: y_1,
+                    },
                 ],
             }),
             interiors: vec![GeoLineString {
                 points: vec![
                     GeoPoint {
-                        x: x_1 - 1.0,
-                        y: y_1 - 1.0,
+                        longitude: x_1 - 1.0,
+                        latitude: y_1 - 1.0,
                     },
                     GeoPoint {
-                        x: x_2 - 1.0,
-                        y: y_2 - 1.0,
+                        longitude: x_2 - 1.0,
+                        latitude: y_2 - 1.0,
                     },
                     GeoPoint {
-                        x: x_1 - 1.0,
-                        y: y_1 - 1.0,
+                        longitude: x_1 - 1.0,
+                        latitude: y_1 - 1.0,
                     },
                 ],
             }],
@@ -200,8 +237,8 @@ mod tests {
     }
     #[test]
     fn test_from_geo_polygon_to_polygon() {
-        let x_1 = -45.12;
-        let y_1 = 120.8;
+        let x_1 = 120.8;
+        let y_1 = -45.12;
         let x_2 = x_1 - 0.001;
         let y_2 = y_1 - 0.001;
         let exterior = LineString::from(vec![(x_1, y_1), (x_2, y_2)]);
@@ -212,24 +249,33 @@ mod tests {
         let from = GeoPolygon {
             exterior: Some(GeoLineString {
                 points: vec![
-                    GeoPoint { x: x_1, y: y_1 },
-                    GeoPoint { x: x_2, y: y_2 },
-                    GeoPoint { x: x_1, y: y_1 },
+                    GeoPoint {
+                        longitude: x_1,
+                        latitude: y_1,
+                    },
+                    GeoPoint {
+                        longitude: x_2,
+                        latitude: y_2,
+                    },
+                    GeoPoint {
+                        longitude: x_1,
+                        latitude: y_1,
+                    },
                 ],
             }),
             interiors: vec![GeoLineString {
                 points: vec![
                     GeoPoint {
-                        x: x_1 - 1.0,
-                        y: y_1 - 1.0,
+                        longitude: x_1 - 1.0,
+                        latitude: y_1 - 1.0,
                     },
                     GeoPoint {
-                        x: x_2 - 1.0,
-                        y: y_2 - 1.0,
+                        longitude: x_2 - 1.0,
+                        latitude: y_2 - 1.0,
                     },
                     GeoPoint {
-                        x: x_1 - 1.0,
-                        y: y_1 - 1.0,
+                        longitude: x_1 - 1.0,
+                        latitude: y_1 - 1.0,
                     },
                 ],
             }],
@@ -242,8 +288,8 @@ mod tests {
     }
     #[test]
     fn test_from_vec_line_string_to_geo_polygon() {
-        let x_1 = -45.12;
-        let y_1 = 120.8;
+        let x_1 = 120.8;
+        let y_1 = -45.12;
         let x_2 = x_1 - 0.001;
         let y_2 = y_1 - 0.001;
         let from = vec![
@@ -253,24 +299,33 @@ mod tests {
         let expected = GeoPolygon {
             exterior: Some(GeoLineString {
                 points: vec![
-                    GeoPoint { x: x_1, y: y_1 },
-                    GeoPoint { x: x_2, y: y_2 },
-                    GeoPoint { x: x_1, y: y_1 },
+                    GeoPoint {
+                        longitude: x_1,
+                        latitude: y_1,
+                    },
+                    GeoPoint {
+                        longitude: x_2,
+                        latitude: y_2,
+                    },
+                    GeoPoint {
+                        longitude: x_1,
+                        latitude: y_1,
+                    },
                 ],
             }),
             interiors: vec![GeoLineString {
                 points: vec![
                     GeoPoint {
-                        x: x_1 - 1.0,
-                        y: y_1 - 1.0,
+                        longitude: x_1 - 1.0,
+                        latitude: y_1 - 1.0,
                     },
                     GeoPoint {
-                        x: x_2 - 1.0,
-                        y: y_2 - 1.0,
+                        longitude: x_2 - 1.0,
+                        latitude: y_2 - 1.0,
                     },
                     GeoPoint {
-                        x: x_1 - 1.0,
-                        y: y_1 - 1.0,
+                        longitude: x_1 - 1.0,
+                        latitude: y_1 - 1.0,
                     },
                 ],
             }],

@@ -34,8 +34,8 @@ pub fn get_data_obj() -> Data {
         vertiport_id,
         name: format!("Demo vertipad {:0>8}", rng.gen_range(0..10000000)),
         geo_location: Some(GeoPoint {
-            x: 37.7746,
-            y: -122.4194,
+            longitude: -122.4194,
+            latitude: 37.7746,
         }),
         enabled: true,
         occupied: false,

@@ -223,13 +223,13 @@ pub(crate) fn get_valid_test_data(
         i64_vec: vec![-20, 2, -3000],
         u32_vec: vec![20, 2, 3000],
 
-        geo_point: Some(geo_types::Point::new(90.0, 180.0).into()),
+        geo_point: Some(geo_types::Point::new(180.0, 90.0).into()),
         geo_polygon: Some(
             geo_types::Polygon::new(
                 geo_types::LineString::from(vec![(1.0, 1.0), (2.0, 2.0), (3.0, 3.0)]),
                 vec![
                     geo_types::LineString::from(vec![(11.0, 11.0), (12.0, 12.0)]),
-                    geo_types::LineString::from(vec![(89.1, 179.1), (89.2, 179.2), (89.3, 179.3)]),
+                    geo_types::LineString::from(vec![(179.1, 89.1), (179.2, 89.2), (179.3, 89.3)]),
                 ],
             )
             .into(),
@@ -245,16 +245,16 @@ pub(crate) fn get_valid_test_data(
         optional_timestamp: optional_timestamp.clone(),
         optional_uuid: Some(optional_uuid.to_string()),
 
-        optional_geo_point: Some(geo_types::Point::new(-90.0, -180.0).into()),
+        optional_geo_point: Some(geo_types::Point::new(-180.0, -90.0).into()),
         optional_geo_polygon: Some(
             geo_types::Polygon::new(
                 geo_types::LineString::from(vec![(-1.0, -1.0), (-2.0, -2.0), (-3.0, -3.0)]),
                 vec![
                     geo_types::LineString::from(vec![(-11.0, -11.0), (-12.0, -12.0)]),
                     geo_types::LineString::from(vec![
-                        (-89.1, -179.1),
-                        (-89.2, -179.2),
-                        (-89.3, -179.3),
+                        (-179.1, -89.1),
+                        (-179.2, -89.2),
+                        (-179.3, -89.3),
                     ]),
                 ],
             )
@@ -292,7 +292,7 @@ pub(crate) fn validate_test_data_sql_val(field: &str, value: &str) {
         "geo_point" => {
             assert_eq!(
                 value,
-                format!("ST_GeomFromText('POINT({:.15} {:.15})')", 90.0, 180.0)
+                format!("ST_GeomFromText('POINT({:.15} {:.15})')", 180.0, 90.0)
             );
         }
         "geo_polygon" => {
@@ -301,7 +301,7 @@ pub(crate) fn validate_test_data_sql_val(field: &str, value: &str) {
                 format!("ST_GeomFromText('POLYGON(({:.15} {:.15},{:.15} {:.15},{:.15} {:.15},{:.15} {:.15}),({:.15} {:.15},{:.15} {:.15},{:.15} {:.15}),({:.15} {:.15},{:.15} {:.15},{:.15} {:.15},{:.15} {:.15}))')",
                     1.0, 1.0, 2.0, 2.0, 3.0, 3.0, 1.0, 1.0,
                     11.0, 11.0, 12.0, 12.0, 11.0, 11.0,
-                    89.1, 179.1, 89.2, 179.2, 89.3, 179.3, 89.1, 179.1
+                    179.1, 89.1, 179.2, 89.2, 179.3, 89.3, 179.1, 89.1
                 )
             );
         }
@@ -330,7 +330,7 @@ pub(crate) fn validate_test_data_sql_val(field: &str, value: &str) {
         "optional_geo_point" => {
             assert_eq!(
                 value,
-                format!("ST_GeomFromText('POINT({:.15} {:.15})')", -90.0, -180.0)
+                format!("ST_GeomFromText('POINT({:.15} {:.15})')", -180.0, -90.0)
             );
         }
         "optional_geo_polygon" => {
@@ -339,7 +339,7 @@ pub(crate) fn validate_test_data_sql_val(field: &str, value: &str) {
                 format!("ST_GeomFromText('POLYGON(({:.15} {:.15},{:.15} {:.15},{:.15} {:.15},{:.15} {:.15}),({:.15} {:.15},{:.15} {:.15},{:.15} {:.15}),({:.15} {:.15},{:.15} {:.15},{:.15} {:.15},{:.15} {:.15}))')",
                     -1.0, -1.0, -2.0, -2.0, -3.0, -3.0, -1.0, -1.0,
                     -11.0, -11.0, -12.0, -12.0, -11.0, -11.0,
-                    -89.1, -179.1, -89.2, -179.2, -89.3, -179.3, -89.1, -179.1
+                    -179.1, -89.1, -179.2, -89.2, -179.3, -89.3, -179.1, -89.1
                 )
             );
         }
@@ -373,16 +373,16 @@ pub(crate) fn get_invalid_test_data() -> TestData {
         i64_vec: vec![-20, 2, -3000],
         u32_vec: vec![20, 2, 3000],
 
-        geo_point: Some(geo_types::Point::new(91.0, 181.0).into()),
+        geo_point: Some(geo_types::Point::new(181.0, 91.0).into()),
         geo_polygon: Some(
             geo_types::Polygon::new(
-                geo_types::LineString::from(vec![(91.0, 181.0)]),
-                vec![geo_types::LineString::from(vec![(-91.0, -181.0)])],
+                geo_types::LineString::from(vec![(181.0, 91.0)]),
+                vec![geo_types::LineString::from(vec![(-181.0, -91.0)])],
             )
             .into(),
         ),
         geo_line_string: Some(
-            geo_types::LineString::from(vec![(91.0, 181.0), (-91.0, -181.0), (3.0, 3.0)]).into(),
+            geo_types::LineString::from(vec![(181.0, 91.0), (-181.0, -91.0), (3.0, 3.0)]).into(),
         ),
 
         optional_string: None,
@@ -395,12 +395,12 @@ pub(crate) fn get_invalid_test_data() -> TestData {
         }),
         optional_uuid: Some(String::from("invalid_optional_uuid")),
 
-        optional_geo_point: Some(geo_types::Point::new(-91.0, -181.0).into()),
+        optional_geo_point: Some(geo_types::Point::new(-181.0, -91.0).into()),
         optional_geo_polygon: Some(
             geo_types::Polygon::new(
-                geo_types::LineString::from(vec![(-91.0, -181.0), (-2.0, -2.0), (-3.0, -3.0)]),
+                geo_types::LineString::from(vec![(-181.0, -91.0), (-2.0, -2.0), (-3.0, -3.0)]),
                 vec![
-                    geo_types::LineString::from(vec![(-91.0, -181.0), (-12.0, -12.0)]),
+                    geo_types::LineString::from(vec![(-181.0, -91.0), (-12.0, -12.0)]),
                     geo_types::LineString::from(vec![
                         (-91.0, -21.0),
                         (-22.0, -22.0),
@@ -411,7 +411,7 @@ pub(crate) fn get_invalid_test_data() -> TestData {
             .into(),
         ),
         optional_geo_line_string: Some(
-            geo_types::LineString::from(vec![(-91.0, -181.0), (-2.0, -2.0), (-3.0, -3.0)]).into(),
+            geo_types::LineString::from(vec![(-181.0, -91.0), (-2.0, -2.0), (-3.0, -3.0)]).into(),
         ),
     }
 }
