@@ -44,8 +44,8 @@ impl Resource for ResourceObject<Data> {
                     FieldDefinition::new(PsqlFieldType::JSON, true),
                 ),
                 (
-                    "flight_distance_meters".to_string(),
-                    FieldDefinition::new(PsqlFieldType::INT8, true),
+                    "path".to_string(),
+                    FieldDefinition::new(PsqlFieldType::PATH, true),
                 ),
                 (
                     "weather_conditions".to_string(),
@@ -144,7 +144,7 @@ impl GrpcDataObjectType for Data {
             "pilot_id" => Ok(GrpcField::String(self.pilot_id.clone())), //::prost::alloc::string::String,
             "vehicle_id" => Ok(GrpcField::String(self.vehicle_id.clone())), //::prost::alloc::string::String,
             "cargo_weight_grams" => Ok(GrpcField::U32List(self.cargo_weight_grams.clone())), //::prost::alloc::vec::Vec<u32>,
-            "flight_distance_meters" => Ok(GrpcField::U32(self.flight_distance_meters)),     //u32,
+            "path" => Ok(GrpcField::Option(self.path.clone().into())),                       //u32,
             "weather_conditions" => Ok(GrpcField::Option(GrpcFieldOption::String(
                 self.weather_conditions.clone(),
             ))), //::core::option::Option<::prost::alloc::string::String>,
@@ -198,7 +198,7 @@ impl TryFrom<Row> for Data {
         debug!("Converting Row to flight_plan::Data: {:?}", row);
         let pilot_id: String = row.get::<&str, Uuid>("pilot_id").to_string();
         let vehicle_id: String = row.get::<&str, Uuid>("vehicle_id").to_string();
-        let flight_distance_meters = row.get::<&str, i64>("flight_distance_meters") as u32;
+        let path = row.get::<&str, postgis::ewkb::LineString>("path");
         let departure_vertipad_id: String =
             row.get::<&str, Uuid>("departure_vertipad_id").to_string();
         let destination_vertipad_id: String =
@@ -264,7 +264,7 @@ impl TryFrom<Row> for Data {
         Ok(Data {
             pilot_id,
             vehicle_id,
-            flight_distance_meters,
+            path: Some(path.into()),
             weather_conditions: row.get("weather_conditions"),
             departure_vertiport_id: Some(departure_vertiport_id),
             departure_vertipad_id,
@@ -288,6 +288,7 @@ impl TryFrom<Row> for Data {
 mod tests {
     use super::super::base::test_util::*;
     use super::*;
+    use crate::resources::GeoLineString;
 
     #[test]
     fn test_flight_plan_schema() {
@@ -314,7 +315,7 @@ mod tests {
         let data = Data {
             pilot_id: String::from("INVALID"),
             vehicle_id: String::from("INVALID"),
-            flight_distance_meters: 1,
+            path: Some(GeoLineString { points: vec![] }),
             cargo_weight_grams: vec![1, 23, 123],
             weather_conditions: Some(String::from("")),
             departure_vertiport_id: None,

@@ -1,4 +1,5 @@
 use super::{Data, FlightPriority, FlightStatus};
+use crate::resources::{GeoPoint, GeoLineString};
 use chrono::naive::NaiveDate;
 use chrono::{Datelike, Duration, Local, Timelike, Utc};
 use rand::seq::SliceRandom;
@@ -64,6 +65,21 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
 
     // let's have a minimum of 500 meters and a maximum range of about 200km
     let flight_distance_meters: u32 = rng.gen_range(500..200000);
+
+    let start_point = GeoPoint {
+        longitude: 4.9164,
+        latitude: 52.37466,
+    };
+
+    // Flight straight north
+    // Quick and dirty conversion - 111,111 meters ~= 1 degree latitude
+    let end_point = GeoPoint {
+        longitude: 4.9164,
+        latitude: start_point.latitude + flight_distance_meters as f64 / 111111.0,
+    };
+
+    let path = GeoLineString { points: vec![start_point, end_point] };
+
     // use a somewhat realistic duration based on the flight distance (+/- 100km per hour avg.)
     let avg_speed = rng.gen_range(95..105);
     let flight_duration_hours = flight_distance_meters as i64 / 1000 / avg_speed;
@@ -150,7 +166,7 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
     Data {
         pilot_id: Uuid::new_v4().to_string(),
         vehicle_id: Uuid::new_v4().to_string(),
-        flight_distance_meters,
+        path: Some(path),
         cargo_weight_grams: vec![rng.gen_range(30..20000)],
         weather_conditions: Some(String::from("cold and windy")),
         departure_vertiport_id: Some(Uuid::new_v4().to_string()),
@@ -178,6 +194,9 @@ fn test_get_past_data_obj() {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_secs();
+
+        // Check path is set
+        assert!(past_data.path.is_some());
 
         // Check flight_release_approval is set
         assert!(past_data.flight_release_approval.is_some());

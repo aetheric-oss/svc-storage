@@ -68,7 +68,7 @@ service RpcService {
     //         vehicle_id,
     //         pilot_id,
     //         cargo_weight_grams: vec![20],
-    //         flight_distance_meters: 6000,
+    //         path: GeoLineString { points: vec![] },
     //         weather_conditions: Some("Cloudy, low wind".to_owned()),
     //         departure_vertipad_id,
     //         departure_vertiport_id: None,

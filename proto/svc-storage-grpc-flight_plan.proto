@@ -70,8 +70,8 @@ message Data {
     string vehicle_id = 2;
     // cargo weight in grams per package
     repeated uint32 cargo_weight_grams = 3;
-    // flight_distance in meters
-    uint32 flight_distance_meters = 4;
+    // the path of the flight
+    grpc.GeoLineString path = 4;
     // weather_conditions
     optional string weather_conditions = 5;
     // departure_vertiport_id UUID v4, only listed for get results, not needed for creation (known through pad_id)

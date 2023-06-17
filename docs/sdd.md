@@ -650,7 +650,7 @@ erDiagram
         uuid pilot_id FK
         uuid vehicle_id FK
         json cargo_weight_grams
-        integer flight_distance_meters
+        geometry path "LINESTRING"
         text weather_conditions "Optional"
         uuid departure_vertipad_id FK
         uuid destination_vertipad_id FK

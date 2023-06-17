@@ -106,6 +106,7 @@ impl From<LineString> for GeoLineString {
         GeoLineString { points }
     }
 }
+
 impl From<Polygon> for GeoPolygon {
     fn from(field: Polygon) -> Self {
         let mut polygon: Self = Self {
