@@ -63,6 +63,9 @@ message Data {
     // the weight (in grams)
     uint32 weight_grams = 2;
 
+    // the weight (in grams)
+    uint32 weight_grams = 2;
+
     // the status of the parcel
     ParcelStatus status = 3;
 }

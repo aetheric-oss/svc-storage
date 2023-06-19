@@ -124,3 +124,15 @@ message FlightPlanParcels {
     // If the parcels are delivered at the destination vertiport
     bool deliver = 4;
 }
+
+// Struct used to link parcels to flight plans
+message FlightPlanParcels {
+    // `id` [String] in [Uuid](uuid::Uuid) format
+    string id = 1;
+    // parcel ids as [Vec\<String\>] in [Uuid](uuid::Uuid) format
+    IdList other_id_list = 2;
+    // If the parcels are picked up at the departure vertiport
+    bool acquire = 3;
+    // If the parcels are delivered at the destination vertiport
+    bool deliver = 4;
+}

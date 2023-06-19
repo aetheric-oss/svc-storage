@@ -47,6 +47,41 @@ pub mod itinerary_flight_plan {
     );
 }
 
+/// Module to expose linked resource implementations for flight_plan_parcel
+pub mod flight_plan_parcel {
+    use super::flight_plan;
+    use super::parcel;
+    pub use super::flight_plan::rpc_parcel_link_server::*;
+    use super::flight_plan::FlightPlanParcels;
+    pub use super::user::rpc_group_link_server::*;
+    use super::{Id, IdList};
+    use crate::grpc::GrpcLinkService;
+    use crate::resources::base::linked_resource::LinkOtherResource;
+    use crate::resources::base::ResourceObject;
+    use prost::Message;
+    use tonic::{Request, Status};
+
+    /// Dummy struct for FlightPlanParcel Data
+    /// Allows us to implement the required traits
+    #[derive(Clone, Message, Copy)]
+    pub struct Data {
+        /// If parcel is acquired at the departure port
+        #[prost(bool, tag = 1)]
+        pub acquire: bool,
+
+        /// If parcel is delivered at the destination port
+        #[prost(bool, tag = 2)]
+        pub deliver: bool,
+    }
+
+    build_grpc_server_link_service_impl!(
+        flight_plan,
+        parcel,
+        RpcParcelLink,
+        FlightPlanParcels
+    );
+}
+
 /// Module to expose linked resource implementations for user_group
 pub mod user_group {
     pub use super::user::rpc_group_link_server::*;
@@ -185,6 +220,9 @@ pub async fn grpc_server(config: Config, shutdown_rx: Option<tokio::sync::onesho
         .set_serving::<parcel_scan::RpcServiceServer<parcel_scan::GrpcServer>>()
         .await;
     health_reporter
+        .set_serving::<flight_plan_parcel::RpcParcelLinkServer<flight_plan_parcel::GrpcServer>>()
+        .await;
+    health_reporter
         .set_serving::<pilot::RpcServiceServer<pilot::GrpcServer>>()
         .await;
     health_reporter
@@ -233,6 +271,9 @@ pub async fn grpc_server(config: Config, shutdown_rx: Option<tokio::sync::onesho
         .add_service(parcel::RpcServiceServer::new(parcel::GrpcServer::default()))
         .add_service(parcel_scan::RpcServiceServer::new(
             parcel_scan::GrpcServer::default(),
+        ))
+        .add_service(flight_plan_parcel::RpcParcelLinkServer::new(
+            flight_plan_parcel::GrpcServer::default(),
         ))
         .add_service(pilot::RpcServiceServer::new(pilot::GrpcServer::default()))
         .add_service(scanner::RpcServiceServer::new(
