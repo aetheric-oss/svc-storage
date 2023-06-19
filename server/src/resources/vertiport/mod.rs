@@ -2,6 +2,7 @@
 
 pub use crate::grpc::server::vertiport::*;
 
+use chrono::{DateTime, Utc};
 use log::debug;
 use std::collections::HashMap;
 use tokio_postgres::row::Row;
@@ -43,12 +44,12 @@ impl Resource for ResourceObject<Data> {
                 ),
                 (
                     "created_at".to_string(),
-                    FieldDefinition::new_internal(PsqlFieldType::TIMESTAMPTZ, true)
+                    FieldDefinition::new_read_only(PsqlFieldType::TIMESTAMPTZ, true)
                         .set_default(String::from("CURRENT_TIMESTAMP")),
                 ),
                 (
                     "updated_at".to_string(),
-                    FieldDefinition::new_internal(PsqlFieldType::TIMESTAMPTZ, true)
+                    FieldDefinition::new_read_only(PsqlFieldType::TIMESTAMPTZ, true)
                         .set_default(String::from("CURRENT_TIMESTAMP")),
                 ),
                 (
@@ -75,6 +76,12 @@ impl GrpcDataObjectType for Data {
             "schedule" => Ok(GrpcField::Option(GrpcFieldOption::String(
                 self.schedule.clone(),
             ))), // ::core::option::Option<::prost::alloc::string::String>,
+            "created_at" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
+                self.created_at.clone(),
+            ))), //::core::option::Option<::prost_types::Timestamp>,
+            "updated_at" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
+                self.updated_at.clone(),
+            ))), //::core::option::Option<::prost_types::Timestamp>,
             _ => Err(ArrErr::Error(format!(
                 "Invalid key specified [{}], no such field found",
                 key
@@ -92,11 +99,21 @@ impl TryFrom<Row> for Data {
         debug!("Converting Row to vertiport::Data: {:?}", row);
         let schedule: Option<String> = row.get("schedule");
         let geo_location = row.get::<&str, postgis::ewkb::Polygon>("geo_location");
+
+        let created_at: Option<prost_wkt_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("created_at")
+            .map(|val| val.into());
+        let updated_at: Option<prost_wkt_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("updated_at")
+            .map(|val| val.into());
+
         Ok(Data {
             name: row.get("name"),
             description: row.get("description"),
             geo_location: Some(geo_location.into()),
             schedule,
+            created_at,
+            updated_at,
         })
     }
 }
@@ -142,6 +159,16 @@ mod tests {
                 .into(),
             ),
             schedule: Some(String::from("")),
+            // The fields below are read_only, should not be returned as invalid
+            // by validation even though they are invalid
+            created_at: Some(prost_wkt_types::Timestamp {
+                seconds: -1,
+                nanos: -1,
+            }),
+            updated_at: Some(prost_wkt_types::Timestamp {
+                seconds: -1,
+                nanos: -1,
+            }),
         };
 
         let result = <ResourceObject<Data> as PsqlType>::validate(&data);

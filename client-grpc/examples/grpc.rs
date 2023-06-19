@@ -529,6 +529,8 @@ async fn generate_sample_vertiports() -> Result<vertiport::List, Status> {
                 .into(),
             ),
             schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
+            created_at: None,
+            updated_at: None,
         }))
         .await
     {
