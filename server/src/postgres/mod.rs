@@ -20,7 +20,7 @@ use lib_common::time::timestamp_to_datetime;
 use native_tls::{Certificate, Identity, TlsConnector};
 use postgres_native_tls::MakeTlsConnector;
 use postgres_types::ToSql;
-use prost_types::Timestamp;
+use prost_wkt_types::Timestamp;
 use serde_json::Value as JsonValue;
 use std::fmt::Debug;
 use std::{collections::HashMap, fs};
@@ -256,14 +256,17 @@ pub fn validate_uuid(
     }
 }
 
-/// Convert a [`prost_types::Timestamp`] (used by grpc) into a [`chrono::DateTime::<Utc>`] (used by postgres).
+/// Convert a [`prost_wkt_types::Timestamp`] (used by grpc) into a [`chrono::DateTime::<Utc>`] (used by postgres).
 /// Creates an error entry in the errors list if a conversion was not possible.
 pub fn validate_dt(
     field: String,
     value: &Timestamp,
     errors: &mut Vec<ValidationError>,
 ) -> Option<DateTime<Utc>> {
-    let dt = timestamp_to_datetime(value);
+    let dt = timestamp_to_datetime(&prost_types::Timestamp {
+        nanos: value.nanos,
+        seconds: value.seconds,
+    });
     match dt {
         Some(dt) => Some(dt),
         None => {

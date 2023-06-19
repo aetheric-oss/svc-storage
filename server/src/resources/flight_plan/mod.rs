@@ -4,7 +4,6 @@ pub use crate::grpc::server::flight_plan::*;
 
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
-use lib_common::time::datetime_to_timestamp;
 use log::debug;
 use std::collections::HashMap;
 use tokio::task;
@@ -231,29 +230,29 @@ impl TryFrom<Row> for Data {
         };
         let cargo_weight_grams: Vec<u32> = cargo_weight_grams.try_into()?;
 
-        let flight_plan_submitted: Option<prost_types::Timestamp> = row
+        let flight_plan_submitted: Option<prost_wkt_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("flight_plan_submitted")
-            .and_then(|val| datetime_to_timestamp(&val));
+            .map(|val| val.into());
 
-        let scheduled_departure: Option<prost_types::Timestamp> = row
+        let scheduled_departure: Option<prost_wkt_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("scheduled_departure")
-            .and_then(|val| datetime_to_timestamp(&val));
+            .map(|val| val.into());
 
-        let scheduled_arrival: Option<prost_types::Timestamp> = row
+        let scheduled_arrival: Option<prost_wkt_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("scheduled_arrival")
-            .and_then(|val| datetime_to_timestamp(&val));
+            .map(|val| val.into());
 
-        let actual_departure: Option<prost_types::Timestamp> = row
+        let actual_departure: Option<prost_wkt_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("actual_departure")
-            .and_then(|val| datetime_to_timestamp(&val));
+            .map(|val| val.into());
 
-        let actual_arrival: Option<prost_types::Timestamp> = row
+        let actual_arrival: Option<prost_wkt_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("actual_arrival")
-            .and_then(|val| datetime_to_timestamp(&val));
+            .map(|val| val.into());
 
-        let flight_release_approval: Option<prost_types::Timestamp> = row
+        let flight_release_approval: Option<prost_wkt_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("flight_release_approval")
-            .and_then(|val| datetime_to_timestamp(&val));
+            .map(|val| val.into());
 
         let flight_status = FlightStatus::from_str_name(row.get("flight_status"))
             .context("(try_from) Could not convert database value to FlightStatus Enum type.")?
@@ -322,27 +321,27 @@ mod tests {
             departure_vertipad_id: String::from("INVALID"),
             destination_vertiport_id: None,
             destination_vertipad_id: String::from("INVALID"),
-            scheduled_departure: Some(prost_types::Timestamp {
+            scheduled_departure: Some(prost_wkt_types::Timestamp {
                 seconds: -1,
                 nanos: -1,
             }),
-            scheduled_arrival: Some(prost_types::Timestamp {
+            scheduled_arrival: Some(prost_wkt_types::Timestamp {
                 seconds: -1,
                 nanos: -1,
             }),
-            actual_departure: Some(prost_types::Timestamp {
+            actual_departure: Some(prost_wkt_types::Timestamp {
                 seconds: -1,
                 nanos: -1,
             }),
-            actual_arrival: Some(prost_types::Timestamp {
+            actual_arrival: Some(prost_wkt_types::Timestamp {
                 seconds: -1,
                 nanos: -1,
             }),
-            flight_release_approval: Some(prost_types::Timestamp {
+            flight_release_approval: Some(prost_wkt_types::Timestamp {
                 seconds: -1,
                 nanos: -1,
             }),
-            flight_plan_submitted: Some(prost_types::Timestamp {
+            flight_plan_submitted: Some(prost_wkt_types::Timestamp {
                 seconds: -1,
                 nanos: -1,
             }),

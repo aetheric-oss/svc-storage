@@ -753,7 +753,6 @@ mod tests {
     use crate::resources::base::test_util::{
         get_invalid_test_data, get_valid_test_data, validate_test_data_sql_val, TestData,
     };
-    use lib_common::time::datetime_to_timestamp;
 
     #[test]
     fn test_validate_invalid_object() {
@@ -773,8 +772,8 @@ mod tests {
     fn test_get_insert_vars() {
         let uuid = Uuid::new_v4();
         let optional_uuid = Uuid::new_v4();
-        let timestamp = datetime_to_timestamp(&chrono::Utc::now());
-        let optional_timestamp = datetime_to_timestamp(&chrono::Utc::now());
+        let timestamp = Some(chrono::Utc::now().into());
+        let optional_timestamp = Some(chrono::Utc::now().into());
 
         let valid_data = get_valid_test_data(
             uuid,
@@ -843,8 +842,8 @@ mod tests {
     fn test_get_update_vars() {
         let uuid = Uuid::new_v4();
         let optional_uuid = Uuid::new_v4();
-        let timestamp = datetime_to_timestamp(&chrono::Utc::now());
-        let optional_timestamp = datetime_to_timestamp(&chrono::Utc::now());
+        let timestamp = Some(chrono::Utc::now().into());
+        let optional_timestamp = Some(chrono::Utc::now().into());
 
         let valid_data = get_valid_test_data(
             uuid,

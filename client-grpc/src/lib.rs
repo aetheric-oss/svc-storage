@@ -4,16 +4,17 @@
 /// macros module exposing gRPC include macro
 mod macros;
 
-pub use geo_types::{Coord, LineString, Point, Polygon};
 use lib_common::log_macros;
 
+pub use geo_types::{Coord, LineString, Point, Polygon};
+pub use prost_types::FieldMask;
+pub use prost_wkt_types::Timestamp;
 pub mod link_service;
 pub use link_service::Client as LinkClient;
 pub mod simple_service;
 pub use simple_service::Client as SimpleClient;
 
 pub use lib_common::grpc::{Client, ClientConnect, GrpcClient};
-pub use prost_types::FieldMask;
 pub use resources::*;
 
 /// Provide search helpers
@@ -31,8 +32,11 @@ cfg_if::cfg_if! {
         /// Include all proto resource
         pub mod resources {
             #![allow(unused_qualifications)]
-            include!("../out/grpc/grpc.rs");
+            include!("../out/grpc/client/grpc.rs");
+
             use super::*;
+            pub use serde::{Deserialize, Serialize};
+            pub use utoipa::{IntoParams, ToSchema};
 
             #[cfg(not(feature = "stub_backends"))]
             use tonic::async_trait;

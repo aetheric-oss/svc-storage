@@ -15,7 +15,7 @@ pub use link_service::GrpcLinkService;
 pub use simple_service::GrpcSimpleService;
 
 use anyhow::Error;
-use prost_types::Timestamp;
+use prost_wkt_types::Timestamp;
 use std::time::SystemTime;
 use std::{fmt::Debug, vec};
 use tokio::runtime::{Handle, Runtime};
@@ -348,7 +348,7 @@ pub fn get_runtime_handle() -> Result<Handle, ArrErr> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use prost_types::Timestamp;
+    use prost_wkt_types::Timestamp;
     use tonic::Status;
 
     #[test]

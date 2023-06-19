@@ -1,7 +1,6 @@
 use super::{Data, FlightPriority, FlightStatus};
 use chrono::naive::NaiveDate;
 use chrono::{Datelike, Duration, Local, Timelike, Utc};
-use lib_common::time::datetime_to_timestamp;
 use rand::seq::SliceRandom;
 use rand::Rng;
 use uuid::Uuid;
@@ -80,9 +79,9 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
     let arrival_date = departure_date + Duration::hours(flight_duration_hours);
 
     let flight_plan_submitted =
-        datetime_to_timestamp(&(departure_date - Duration::days(rng.gen_range(1..90))));
-    let scheduled_departure = datetime_to_timestamp(&departure_date);
-    let scheduled_arrival = datetime_to_timestamp(&arrival_date);
+        Some((departure_date - Duration::days(rng.gen_range(1..90))).into());
+    let scheduled_departure = Some(departure_date.into());
+    let scheduled_arrival = Some(arrival_date.into());
     let mut flight_status = FlightStatus::Draft as i32;
     let mut flight_release_approval = None;
     let mut approved_by = None;
@@ -96,10 +95,10 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
         flight_status = FlightStatus::InFlight as i32;
         // departure was in the past, set actual departure +/- 6 min
         actual_departure =
-            datetime_to_timestamp(&(departure_date + Duration::seconds(rng.gen_range(-360..360))));
+            Some((departure_date + Duration::seconds(rng.gen_range(-360..360))).into());
         // set release approval 12h to 1h before departure
         flight_release_approval =
-            datetime_to_timestamp(&(departure_date - Duration::seconds(rng.gen_range(60..43200))));
+            Some((departure_date - Duration::seconds(rng.gen_range(60..43200))).into());
         // if we have an approval date, someone must have approved it
         approved_by = Some(Uuid::new_v4().to_string());
     } else if now.signed_duration_since(departure_date).num_hours() <= 1 {
@@ -110,8 +109,7 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
             now.signed_duration_since(departure_date)
         );
         // for now, expect to have a sign off at least 1 hour before scheduled departure
-        flight_release_approval =
-            datetime_to_timestamp(&(now - Duration::hours(rng.gen_range(2..12))));
+        flight_release_approval = Some((now - Duration::hours(rng.gen_range(2..12))).into());
         // if we have an approval date, someone must have approved it
         approved_by = Some(Uuid::new_v4().to_string());
         // we have an approval, so we're at least ready
@@ -144,8 +142,7 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
         );
 
         // arrival was in the past, set actual arrival +/- 6 min
-        actual_arrival =
-            datetime_to_timestamp(&(arrival_date + Duration::seconds(rng.gen_range(-360..360))));
+        actual_arrival = Some((arrival_date + Duration::seconds(rng.gen_range(-360..360))).into());
         // we've arrived
         flight_status = FlightStatus::Finished as i32;
     }

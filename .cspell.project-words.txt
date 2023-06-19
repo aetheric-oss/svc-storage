@@ -90,3 +90,4 @@ Postgis
 postgis
 ptype
 srid
+utoipa

@@ -33,12 +33,13 @@ macro_rules! grpc_client_mod {
             /// }
             /// ```
             pub mod $rpc_service {
-                include!(concat!("../out/grpc/grpc.", stringify!($rpc_service), ".rs"));
+                include!(concat!("../out/grpc/client/grpc.", stringify!($rpc_service), ".rs"));
                 include!(concat!(
                     "../out/grpc/client/grpc.",
                     stringify!($rpc_service),
                     ".service.rs"
                 ));
+                pub use $crate::resources::{IntoParams, ToSchema, Serialize, Deserialize};
                 pub use rpc_service_client::RpcServiceClient;
                 use tonic::transport::Channel;
                 cfg_if::cfg_if! {

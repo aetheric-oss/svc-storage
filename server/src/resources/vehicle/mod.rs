@@ -4,7 +4,6 @@ pub use crate::grpc::server::vehicle::*;
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use lib_common::time::datetime_to_timestamp;
 use log::debug;
 use std::collections::HashMap;
 use tokio_postgres::row::Row;
@@ -128,14 +127,13 @@ impl TryFrom<Row> for Data {
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
         debug!("Converting Row to vehicle::Data: {:?}", row);
-        let last_maintenance = match row.get::<&str, Option<DateTime<Utc>>>("last_maintenance") {
-            Some(val) => datetime_to_timestamp(&val),
-            None => None,
-        };
-        let next_maintenance = match row.get::<&str, Option<DateTime<Utc>>>("next_maintenance") {
-            Some(val) => datetime_to_timestamp(&val),
-            None => None,
-        };
+
+        let last_maintenance: Option<prost_wkt_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("last_maintenance")
+            .map(|val| val.into());
+        let next_maintenance: Option<prost_wkt_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("next_maintenance")
+            .map(|val| val.into());
 
         let asset_group_id: Option<Uuid> = row.get("asset_group_id");
         let asset_group_id = asset_group_id.map(|val| val.to_string());
@@ -191,11 +189,11 @@ mod tests {
             asset_group_id: Some(String::from("INVALID")),
             schedule: Some(String::from("")),
             last_vertiport_id: Some(String::from("INVALID")),
-            last_maintenance: Some(prost_types::Timestamp {
+            last_maintenance: Some(prost_wkt_types::Timestamp {
                 seconds: -1,
                 nanos: -1,
             }),
-            next_maintenance: Some(prost_types::Timestamp {
+            next_maintenance: Some(prost_wkt_types::Timestamp {
                 seconds: -1,
                 nanos: -1,
             }),

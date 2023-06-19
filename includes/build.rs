@@ -44,7 +44,12 @@ fn build_proto(
     fs::create_dir_all(out_path)?;
 
     let files = get_files(proto_dir);
-    get_grpc_builder_config(&format!("{}/{}", cur_dir, "../out/grpc/"))
+    let mut builder = get_grpc_builder_config(&format!("{}/{}", cur_dir, "../out/grpc/"));
+    if client {
+        builder = get_grpc_builder_config(&format!("{}/{}", cur_dir, "../out/grpc/client/"));
+        builder = add_utoipa_attributes(builder);
+    }
+    builder
         .build_server(false)
         .build_client(false)
         .compile(&files, &[proto_dir])?;
@@ -58,6 +63,9 @@ fn build_proto(
         builder = builder
             .client_mod_attribute(&service, "#[cfg(not(tarpaulin_include))]")
             .server_mod_attribute(&service, "#[cfg(not(tarpaulin_include))]");
+    }
+    if client {
+        builder = add_utoipa_attributes(builder);
     }
     builder
         .build_server(server)
@@ -73,6 +81,7 @@ fn get_grpc_builder_config(out_path: &str) -> tonic_build::Builder {
     tonic_build::configure()
         .emit_rerun_if_changed(true)
         .out_dir(out_path)
+        .extern_path(".google.protobuf.Timestamp", "::prost_wkt_types::Timestamp")
         .type_attribute("Id", "#[derive(Eq)]")
         .type_attribute("SearchFilter", "#[derive(Eq)]")
         .type_attribute("AdvancedSearchFilter", "#[derive(Eq)]")
@@ -91,4 +100,57 @@ fn get_grpc_builder_config(out_path: &str) -> tonic_build::Builder {
         .type_attribute("ReadyResponse", "#[derive(Eq, Copy)]")
         .type_attribute("GeoPoint", "#[derive(Copy)]")
         .type_attribute("GeoLine", "#[derive(Copy)]")
+}
+
+fn add_utoipa_attributes(builder: tonic_build::Builder) -> tonic_build::Builder {
+    // Add utoipa derive macro's for client exposed structs
+    builder
+        .type_attribute(
+            "Id",
+            "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
+        )
+        .type_attribute(
+            "List",
+            "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
+        )
+        .type_attribute(
+            "IdList",
+            "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
+        )
+        .type_attribute(
+            "ValidationError",
+            "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
+        )
+        .type_attribute(
+            "ValidationResult",
+            "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
+        )
+        .type_attribute(
+            "Object",
+            "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
+        )
+        .type_attribute(
+            "Data",
+            "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
+        )
+        .type_attribute(
+            "Response",
+            "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
+        )
+        .type_attribute(
+            "GeoPoint",
+            "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
+        )
+        .type_attribute(
+            "GeoLine",
+            "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
+        )
+        .type_attribute(
+            "GeoLineString",
+            "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
+        )
+        .type_attribute(
+            "GeoPolygon",
+            "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
+        )
 }

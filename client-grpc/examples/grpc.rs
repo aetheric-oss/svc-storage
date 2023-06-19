@@ -1,9 +1,10 @@
 //! gRPC client implementation
+use chrono::naive::NaiveDate;
+use chrono::{Datelike, Duration, Local, Timelike, Utc};
 use futures::future::{BoxFuture, FutureExt};
 use geo_types::LineString;
 use lib_common::grpc::get_endpoint_from_env;
 use prost_types::FieldMask;
-use std::time::SystemTime;
 use svc_storage_client_grpc::flight_plan::{self, FlightStatus};
 use svc_storage_client_grpc::itinerary::{self, ItineraryFlightPlans, ItineraryStatus};
 use svc_storage_client_grpc::*;
@@ -244,12 +245,27 @@ async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
     let client = &clients.adsb;
     println!("ADS-B Client created");
 
-    let timestamp_1 = prost_types::Timestamp::from(SystemTime::now());
-    let timestamp_2 = lib_common::time::datetime_to_timestamp(
-        &(lib_common::time::timestamp_to_datetime(&timestamp_1).unwrap()
-            + chrono::Duration::seconds(10)),
-    )
-    .unwrap();
+    let now = Local::now();
+    let now = match NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
+        .unwrap_or_else(|| {
+            panic!(
+                "invalid current date from year [{}], month [{}] and day [{}].",
+                now.year(),
+                now.month(),
+                now.day()
+            )
+        })
+        .and_hms_opt(now.time().hour(), 0, 0)
+        .expect("could not set hms to full hour")
+        .and_local_timezone(Utc)
+        .earliest()
+    {
+        Some(res) => res,
+        None => panic!("Could not get current time for timezone Utc"),
+    };
+
+    let timestamp_1: Timestamp = now.into();
+    let timestamp_2: Timestamp = (now + Duration::seconds(10)).into();
 
     let payload_1 = [
         0x8D, 0x48, 0x40, 0xD6, 0x20, 0x2C, 0xC3, 0x71, 0xC3, 0x2C, 0xE0, 0x57, 0x60, 0x98,
@@ -296,6 +312,7 @@ async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
         panic!("Failed to return object.");
     };
     let id_2 = object.id;
+    let filter_time: Timestamp = (now + Duration::seconds(5)).into();
 
     // Search for the same ICAO address
     {
@@ -306,12 +323,7 @@ async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
         .and_between(
             "network_timestamp".to_owned(),
             timestamp_1.clone().to_string(),
-            lib_common::time::datetime_to_timestamp(
-                &(lib_common::time::timestamp_to_datetime(&timestamp_1).unwrap()
-                    + chrono::Duration::seconds(5)),
-            )
-            .unwrap()
-            .to_string(),
+            filter_time.to_string(),
         )
         .page_number(1)
         .results_per_page(50);
@@ -662,9 +674,9 @@ async fn flight_plan_scenario(
     }
 
     let scheduled_departure_min =
-        prost_types::Timestamp::date_time(2022, 10, 12, 23, 00, 00).unwrap();
+        prost_wkt_types::Timestamp::date_time(2022, 10, 12, 23, 00, 00).unwrap();
     let scheduled_departure_max =
-        prost_types::Timestamp::date_time(2024, 10, 13, 23, 00, 00).unwrap();
+        prost_wkt_types::Timestamp::date_time(2024, 10, 13, 23, 00, 00).unwrap();
     let time_filter = AdvancedSearchFilter::search_equals("pilot_id".to_string(), pilot_id.clone())
         .and_between(
             "scheduled_departure".to_owned(),

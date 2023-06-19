@@ -3,7 +3,6 @@
 pub use crate::grpc::server::adsb::*;
 
 use chrono::{DateTime, Utc};
-use lib_common::time::datetime_to_timestamp;
 use log::debug;
 use std::collections::HashMap;
 use tokio_postgres::row::Row;
@@ -72,11 +71,9 @@ impl TryFrom<Row> for Data {
     fn try_from(row: Row) -> Result<Self, ArrErr> {
         debug!("Converting Row to adsb::Data: {:?}", row);
 
-        let result = row.get::<&str, Option<DateTime<Utc>>>("network_timestamp");
-        let network_timestamp = match result {
-            Some(val) => datetime_to_timestamp(&val),
-            None => None,
-        };
+        let network_timestamp: Option<prost_wkt_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("network_timestamp")
+            .map(|val| val.into());
 
         Ok(Data {
             icao_address: row.get::<&str, i64>("icao_address"),
@@ -116,7 +113,7 @@ mod tests {
         let data = Data {
             icao_address: -1,
             message_type: -1,
-            network_timestamp: Some(prost_types::Timestamp {
+            network_timestamp: Some(prost_wkt_types::Timestamp {
                 seconds: -1,
                 nanos: -1,
             }),

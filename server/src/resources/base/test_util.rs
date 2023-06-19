@@ -1,5 +1,4 @@
-use lib_common::time::datetime_to_timestamp;
-use prost_types::Timestamp;
+use prost_wkt_types::Timestamp;
 
 use super::*;
 use crate::grpc::{GrpcDataObjectType, GrpcField, GrpcFieldOption};
@@ -21,7 +20,7 @@ pub struct TestData {
     #[prost(int64, tag = "4")]
     pub i64: i64,
     #[prost(message, optional, tag = "5")]
-    pub timestamp: ::core::option::Option<::prost_types::Timestamp>, // Always passed as an option, but will check for mandatory state
+    pub timestamp: ::core::option::Option<::prost_wkt_types::Timestamp>, // Always passed as an option, but will check for mandatory state
     #[prost(string, tag = "6")]
     pub uuid: ::prost::alloc::string::String,
     #[prost(bytes = "vec", tag = "7")]
@@ -47,7 +46,7 @@ pub struct TestData {
     #[prost(int64, optional, tag = "24")]
     pub optional_i64: ::core::option::Option<i64>,
     #[prost(message, optional, tag = "25")]
-    pub optional_timestamp: ::core::option::Option<::prost_types::Timestamp>,
+    pub optional_timestamp: ::core::option::Option<::prost_wkt_types::Timestamp>,
     #[prost(string, optional, tag = "26")]
     pub optional_uuid: ::core::option::Option<::prost::alloc::string::String>,
 
@@ -674,8 +673,8 @@ fn test_field_type_matches_optional_grpc_field(field_type: PsqlFieldType, grpc_f
 fn test_test_data_schema() {
     let uuid = Uuid::new_v4();
     let optional_uuid = Uuid::new_v4();
-    let timestamp = datetime_to_timestamp(&chrono::Utc::now());
-    let optional_timestamp = datetime_to_timestamp(&chrono::Utc::now());
+    let timestamp: Option<Timestamp> = Some(chrono::Utc::now().into());
+    let optional_timestamp: Option<Timestamp> = Some(chrono::Utc::now().into());
 
     let valid_data = get_valid_test_data(
         uuid,

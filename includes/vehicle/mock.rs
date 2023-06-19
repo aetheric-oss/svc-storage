@@ -1,6 +1,5 @@
 use super::Data;
 use chrono::{Datelike, Duration, Local, NaiveDate, Timelike, Utc};
-use lib_common::time::datetime_to_timestamp;
 use rand::seq::SliceRandom;
 use rand::Rng;
 use uuid::Uuid;
@@ -42,7 +41,7 @@ pub fn get_data_obj() -> Data {
                 .choose(&mut rng)
                 .expect("invalid minutes generated"),
         );
-    let last_maintenance = datetime_to_timestamp(&last_maintenance);
+    let last_maintenance = Some(last_maintenance.into());
 
     let next_maintenance = now
         + Duration::days(rng.gen_range(0..1000))
@@ -52,7 +51,7 @@ pub fn get_data_obj() -> Data {
                 .choose(&mut rng)
                 .expect("invalid minutes generated"),
         );
-    let next_maintenance = datetime_to_timestamp(&next_maintenance);
+    let next_maintenance = Some(next_maintenance.into());
 
     let vehicle_model_id = Uuid::new_v4().to_string();
 
