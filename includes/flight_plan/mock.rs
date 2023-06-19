@@ -98,6 +98,7 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
 
     let flight_plan_submitted =
         Some((departure_date - Duration::days(rng.gen_range(1..90))).into());
+    let carrier_ack = flight_plan_submitted.clone();
     let scheduled_departure = Some(departure_date.into());
     let scheduled_arrival = Some(arrival_date.into());
     let mut flight_status = FlightStatus::Draft as i32;
@@ -169,12 +170,12 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
         pilot_id: Uuid::new_v4().to_string(),
         vehicle_id: Uuid::new_v4().to_string(),
         path: Some(path),
-        cargo_weight_grams: vec![rng.gen_range(30..20000)],
         weather_conditions: Some(String::from("cold and windy")),
         departure_vertiport_id: Some(Uuid::new_v4().to_string()),
         departure_vertipad_id: Uuid::new_v4().to_string(),
         destination_vertiport_id: Some(Uuid::new_v4().to_string()),
         destination_vertipad_id: Uuid::new_v4().to_string(),
+        carrier_ack,
         scheduled_departure,
         scheduled_arrival,
         actual_departure,

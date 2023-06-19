@@ -57,13 +57,19 @@ mock = ["chrono", "rand", "geo"]
 # Will use a stubbed server connection, only use for tests!
 stub_backends = ["svc-storage/stub_server", "lib-common/grpc_mock", "tower"]
 # Will implement stub functions for the client, only use for tests!
-stub_client = ["lazy_static", "all_resources", "svc-storage", "paste"]
+stub_client = [
+  "lazy_static",
+  "all_resources",
+  "svc-storage",
+  "paste",
+  "futures",
+]
 
 [dependencies]
 anyhow          = "1.0"
 cfg-if          = "1.0"
 chrono          = { version = "0.4", optional = true }
-futures         = "0.3"
+futures         = { version = "0.3", optional = true }
 geo             = { version = "0.25", optional = true }
 geo-types       = "0.7"
 lazy_static     = { version = "1.4", optional = true }
