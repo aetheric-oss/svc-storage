@@ -41,6 +41,8 @@ pub fn get_data_obj() -> Data {
                 .choose(&mut rng)
                 .expect("invalid minutes generated"),
         );
+    let created_at = Some((last_maintenance + Duration::days(30)).into());
+    let updated_at = created_at.clone();
     let last_maintenance = Some(last_maintenance.into());
 
     let next_maintenance = now
@@ -65,6 +67,8 @@ pub fn get_data_obj() -> Data {
         last_vertiport_id: None,
         last_maintenance,
         next_maintenance,
+        created_at,
+        updated_at,
     }
 }
 
@@ -77,4 +81,6 @@ fn test_get_data_obj() {
     assert!(data.registration_number.len() > 0);
     assert!(data.description.is_some());
     assert!(data.schedule.is_some());
+    assert!(data.created_at.is_some());
+    assert!(data.updated_at.is_some());
 }

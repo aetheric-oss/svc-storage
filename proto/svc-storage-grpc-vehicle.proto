@@ -64,6 +64,10 @@ message Data {
     optional google.protobuf.Timestamp last_maintenance = 8;
     // optional date  of vehicle's next planned maintenance
     optional google.protobuf.Timestamp next_maintenance = 9;
+    // timestamp of the date and time the vehicle has been created
+    optional google.protobuf.Timestamp created_at = 10;
+    // timestamp of the last update action performed on the data
+    optional google.protobuf.Timestamp updated_at = 11;
 }
 
 // Struct containing a `list` of vehicle [Vec\<Object\>]

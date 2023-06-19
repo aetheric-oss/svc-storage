@@ -65,12 +65,12 @@ impl Resource for ResourceObject<Data> {
                 ),
                 (
                     String::from("created_at"),
-                    FieldDefinition::new_internal(PsqlFieldType::TIMESTAMPTZ, true)
+                    FieldDefinition::new_read_only(PsqlFieldType::TIMESTAMPTZ, true)
                         .set_default(String::from("CURRENT_TIMESTAMP")),
                 ),
                 (
                     String::from("updated_at"),
-                    FieldDefinition::new_internal(PsqlFieldType::TIMESTAMPTZ, true)
+                    FieldDefinition::new_read_only(PsqlFieldType::TIMESTAMPTZ, true)
                         .set_default(String::from("CURRENT_TIMESTAMP")),
                 ),
                 (
@@ -112,6 +112,12 @@ impl GrpcDataObjectType for Data {
             "next_maintenance" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
                 self.next_maintenance.clone(),
             ))), //::core::option::Option<::prost_types::Timestamp>,
+            "created_at" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
+                self.created_at.clone(),
+            ))), //::core::option::Option<::prost_types::Timestamp>,
+            "updated_at" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
+                self.updated_at.clone(),
+            ))), //::core::option::Option<::prost_types::Timestamp>,
             _ => Err(ArrErr::Error(format!(
                 "Invalid key specified [{}], no such field found",
                 key
@@ -134,6 +140,12 @@ impl TryFrom<Row> for Data {
         let next_maintenance: Option<prost_wkt_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("next_maintenance")
             .map(|val| val.into());
+        let created_at: Option<prost_wkt_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("created_at")
+            .map(|val| val.into());
+        let updated_at: Option<prost_wkt_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("updated_at")
+            .map(|val| val.into());
 
         let asset_group_id: Option<Uuid> = row.get("asset_group_id");
         let asset_group_id = asset_group_id.map(|val| val.to_string());
@@ -150,6 +162,8 @@ impl TryFrom<Row> for Data {
             last_vertiport_id,
             last_maintenance,
             next_maintenance,
+            created_at,
+            updated_at,
         })
     }
 }
@@ -194,6 +208,16 @@ mod tests {
                 nanos: -1,
             }),
             next_maintenance: Some(prost_wkt_types::Timestamp {
+                seconds: -1,
+                nanos: -1,
+            }),
+            // The fields below are read_only, should not be returned as invalid
+            // by validation even though they are invalid
+            created_at: Some(prost_wkt_types::Timestamp {
+                seconds: -1,
+                nanos: -1,
+            }),
+            updated_at: Some(prost_wkt_types::Timestamp {
                 seconds: -1,
                 nanos: -1,
             }),
