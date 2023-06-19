@@ -2,6 +2,7 @@ syntax = "proto3";
 package grpc.vertipad;
 
 import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
 import "svc-storage-grpc.proto";
 
 // Response struct returning an [Object] on success and [ValidationResult] if invalid fields were provided
@@ -49,6 +50,10 @@ message Data {
     bool occupied = 5;
     // RRULE data string to indicate the vertipad's opening days and hours
     optional string schedule = 6;
+    // timestamp of the date and time the vertipad has been created
+    optional google.protobuf.Timestamp created_at = 7;
+    // timestamp of the last update action performed on the data
+    optional google.protobuf.Timestamp updated_at = 8;
 }
 
 // Struct containing a `list` of vertipad [Vec\<Object\>]
