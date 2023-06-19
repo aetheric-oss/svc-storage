@@ -56,6 +56,9 @@ pub struct TestData {
     pub optional_geo_polygon: ::core::option::Option<crate::resources::GeoPolygon>,
     #[prost(message, optional, tag = "32")]
     pub optional_geo_line_string: ::core::option::Option<crate::resources::GeoLineString>,
+
+    #[prost(string, optional, tag = "40")]
+    pub read_only: ::core::option::Option<::prost::alloc::string::String>,
 }
 
 impl Resource for ResourceObject<TestData> {
@@ -151,6 +154,10 @@ impl Resource for ResourceObject<TestData> {
                     FieldDefinition::new(PsqlFieldType::PATH, false),
                 ),
                 (
+                    "read_only".to_string(),
+                    FieldDefinition::new_read_only(PsqlFieldType::TEXT, false),
+                ),
+                (
                     "internal".to_string(),
                     FieldDefinition::new_internal(PsqlFieldType::TEXT, false),
                 ),
@@ -196,6 +203,10 @@ impl GrpcDataObjectType for TestData {
             "optional_geo_line_string" => Ok(GrpcField::Option(
                 self.optional_geo_line_string.clone().into(),
             )),
+
+            "read_only" => Ok(GrpcField::Option(GrpcFieldOption::String(
+                self.read_only.clone(),
+            ))),
 
             _ => Err(ArrErr::Error(format!(
                 "Invalid key specified [{}], no such field found",
@@ -262,6 +273,7 @@ pub(crate) fn get_valid_test_data(
         optional_geo_line_string: Some(
             geo_types::LineString::from(vec![(-1.0, -1.0), (-2.0, -2.0), (-3.0, -3.0)]).into(),
         ),
+        read_only: Some(String::from("read_only")),
     }
 }
 
@@ -412,6 +424,7 @@ pub(crate) fn get_invalid_test_data() -> TestData {
         optional_geo_line_string: Some(
             geo_types::LineString::from(vec![(-181.0, -91.0), (-2.0, -2.0), (-3.0, -3.0)]).into(),
         ),
+        read_only: Some(String::from("read_only")),
     }
 }
 

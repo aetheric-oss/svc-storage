@@ -195,6 +195,8 @@ pub struct FieldDefinition {
     mandatory: bool,
     /// [`bool`] to set if field should not be exposed to gRPC object
     internal: bool,
+    /// [`bool`] to set if field should be read only for clients
+    read_only: bool,
     /// [`String`] option to provide a default value used during database inserts
     default: Option<String>,
 }
@@ -206,6 +208,7 @@ impl FieldDefinition {
             field_type,
             mandatory,
             internal: false,
+            read_only: false,
             default: None,
         }
     }
@@ -215,6 +218,17 @@ impl FieldDefinition {
             field_type,
             mandatory,
             internal: true,
+            read_only: true,
+            default: None,
+        }
+    }
+    /// Create a new read_only [`FieldDefinition`] with provided field_type and mandatory setting
+    pub fn new_read_only(field_type: PsqlFieldType, mandatory: bool) -> Self {
+        Self {
+            field_type,
+            mandatory,
+            internal: false,
+            read_only: true,
             default: None,
         }
     }
@@ -227,6 +241,11 @@ impl FieldDefinition {
     pub fn is_internal(&self) -> bool {
         self.internal
     }
+    /// Returns [`bool`] internal
+    pub fn is_read_only(&self) -> bool {
+        self.read_only
+    }
+
     /// Returns [`bool`] `true` if a `default` value has been provided for this field and `false`if not
     pub fn has_default(&self) -> bool {
         self.default.is_some()
@@ -308,6 +327,7 @@ mod tests {
         assert_eq!(field_def.field_type, field_type);
         assert_eq!(field_def.is_mandatory(), mandatory);
         assert!(!field_def.is_internal());
+        assert!(!field_def.is_read_only());
         assert!(!field_def.has_default());
     }
 
@@ -320,6 +340,20 @@ mod tests {
         assert_eq!(field_def.field_type, field_type);
         assert_eq!(field_def.is_mandatory(), mandatory);
         assert!(field_def.is_internal());
+        assert!(field_def.is_read_only());
+        assert!(!field_def.has_default());
+    }
+
+    #[test]
+    fn test_field_definition_read_only_field() {
+        let field_type = PsqlFieldType::FLOAT8;
+        let mandatory = false;
+        let field_def = FieldDefinition::new_read_only(field_type.clone(), mandatory);
+
+        assert_eq!(field_def.field_type, field_type);
+        assert_eq!(field_def.is_mandatory(), mandatory);
+        assert!(!field_def.is_internal());
+        assert!(field_def.is_read_only());
         assert!(!field_def.has_default());
     }
 

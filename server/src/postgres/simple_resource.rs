@@ -121,8 +121,8 @@ where
         // Only validate fields that are defined in self.definition.
         // All other fields will be ignored (they will not be stored in the database either).
         for (key, field) in definition.fields {
-            if field.is_internal() {
-                // internal field, skip for validation
+            if field.is_internal() || field.is_read_only() {
+                // internal / read_only field, skip for validation
                 continue;
             }
 
@@ -404,7 +404,11 @@ where
         let id_col = Self::try_get_id_field()?;
         let id = self.try_get_uuid()?;
 
-        let (updates, mut params) = Self::get_update_vars(data, &psql_data)?;
+        let (mut updates, mut params) = Self::get_update_vars(data, &psql_data)?;
+
+        if definition.has_field("updated_at") {
+            updates.push("updated_at = NOW()".to_string());
+        }
 
         let update_sql = &format!(
             "UPDATE {} SET {} WHERE {} = ${}",
@@ -775,12 +779,15 @@ mod tests {
         let timestamp = Some(chrono::Utc::now().into());
         let optional_timestamp = Some(chrono::Utc::now().into());
 
-        let valid_data = get_valid_test_data(
+        let mut valid_data = get_valid_test_data(
             uuid,
             optional_uuid,
             timestamp.clone(),
             optional_timestamp.clone(),
         );
+        valid_data.read_only = Some(String::from(
+            "This is read_only, should not be part of update vars.",
+        ));
 
         let (psql_data, validation_result) = match <ResourceObject<TestData>>::validate(&valid_data)
         {
@@ -827,6 +834,9 @@ mod tests {
                         "optional_uuid" => {
                             assert_eq!(value, optional_uuid.to_string());
                         }
+                        "read_only" => {
+                            panic!("This field is read_only and should not have been returned!");
+                        }
                         _ => validate_test_data_sql_val(field, &value),
                     }
                 }
@@ -845,12 +855,15 @@ mod tests {
         let timestamp = Some(chrono::Utc::now().into());
         let optional_timestamp = Some(chrono::Utc::now().into());
 
-        let valid_data = get_valid_test_data(
+        let mut valid_data = get_valid_test_data(
             uuid,
             optional_uuid,
             timestamp.clone(),
             optional_timestamp.clone(),
         );
+        valid_data.read_only = Some(String::from(
+            "This is read_only, should not be part of update vars.",
+        ));
 
         let (psql_data, validation_result) = match <ResourceObject<TestData>>::validate(&valid_data)
         {
@@ -895,6 +908,9 @@ mod tests {
                         }
                         "optional_uuid" => {
                             assert_eq!(value, optional_uuid.to_string());
+                        }
+                        "read_only" => {
+                            panic!("This field is read_only and should not have been returned!");
                         }
                         _ => validate_test_data_sql_val(field, &value),
                     }
