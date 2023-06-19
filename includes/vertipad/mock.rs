@@ -1,7 +1,9 @@
 use super::super::GeoPoint;
 use super::Data;
+use chrono::{Datelike, Duration, Local, NaiveDate, Timelike, Utc};
 use geo::algorithm::bounding_rect::BoundingRect;
 use geo::{Contains, Point, Polygon};
+use rand::seq::SliceRandom;
 use rand::Rng;
 use uuid::Uuid;
 
@@ -30,6 +32,36 @@ fn generate_random_point_in_polygon(polygon: &Polygon<f64>) -> Option<GeoPoint> 
 pub fn get_data_obj() -> Data {
     let vertiport_id = Uuid::new_v4().to_string();
     let mut rng = rand::thread_rng();
+    let now = Local::now();
+    let now = match NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
+        .unwrap_or_else(|| {
+            panic!(
+                "invalid current date from year [{}], month [{}] and day [{}].",
+                now.year(),
+                now.month(),
+                now.day()
+            )
+        })
+        .and_hms_opt(now.time().hour(), 0, 0)
+        .expect("could not set hms to full hour")
+        .and_local_timezone(Utc)
+        .earliest()
+    {
+        Some(res) => res,
+        None => panic!("Could not get current time for timezone Utc"),
+    };
+
+    let created_at = now
+        + Duration::days(rng.gen_range(-1000..0))
+        + Duration::hours(rng.gen_range(0..24))
+        + Duration::minutes(
+            *[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
+                .choose(&mut rng)
+                .expect("invalid minutes generated"),
+        );
+    let created_at = Some(created_at.into());
+    let updated_at = created_at.clone();
+
     Data {
         vertiport_id,
         name: format!("Demo vertipad {:0>8}", rng.gen_range(0..10000000)),
@@ -40,6 +72,8 @@ pub fn get_data_obj() -> Data {
         enabled: true,
         occupied: false,
         schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
+        created_at,
+        updated_at,
     }
 }
 
@@ -47,6 +81,36 @@ pub fn get_data_obj() -> Data {
 /// Uses the provided vertiport id instead of a random id
 pub fn get_data_obj_for_vertiport(vertiport: super::super::vertiport::Object) -> Data {
     let mut rng = rand::thread_rng();
+
+    let now = Local::now();
+    let now = match NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
+        .unwrap_or_else(|| {
+            panic!(
+                "invalid current date from year [{}], month [{}] and day [{}].",
+                now.year(),
+                now.month(),
+                now.day()
+            )
+        })
+        .and_hms_opt(now.time().hour(), 0, 0)
+        .expect("could not set hms to full hour")
+        .and_local_timezone(Utc)
+        .earliest()
+    {
+        Some(res) => res,
+        None => panic!("Could not get current time for timezone Utc"),
+    };
+
+    let created_at = now
+        + Duration::days(rng.gen_range(-1000..0))
+        + Duration::hours(rng.gen_range(0..24))
+        + Duration::minutes(
+            *[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
+                .choose(&mut rng)
+                .expect("invalid minutes generated"),
+        );
+    let created_at = Some(created_at.into());
+    let updated_at = created_at.clone();
 
     let vertiport_location: geo_types::Polygon = vertiport
         .data
@@ -62,6 +126,8 @@ pub fn get_data_obj_for_vertiport(vertiport: super::super::vertiport::Object) ->
         enabled: true,
         occupied: false,
         schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
+        created_at,
+        updated_at,
     }
 }
 
@@ -75,6 +141,8 @@ fn test_get_data_obj() {
     assert_eq!(data.enabled, true);
     assert_eq!(data.occupied, false);
     assert!(data.schedule.is_some());
+    assert!(data.created_at.is_some());
+    assert!(data.updated_at.is_some());
 }
 
 #[test]
@@ -93,4 +161,6 @@ fn test_get_data_obj_for_vertiport() {
     assert_eq!(data.enabled, true);
     assert_eq!(data.occupied, false);
     assert!(data.schedule.is_some());
+    assert!(data.created_at.is_some());
+    assert!(data.updated_at.is_some());
 }
