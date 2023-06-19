@@ -46,7 +46,7 @@ pub async fn scenario(
         assert_eq!(data.actual_arrival, flight_plan_data.actual_arrival);
         assert_eq!(data.actual_departure, flight_plan_data.actual_departure);
         assert_eq!(data.approved_by, flight_plan_data.approved_by);
-        assert_eq!(data.cargo_weight_grams, flight_plan_data.cargo_weight_grams);
+        assert_eq!(data.carrier_ack, flight_plan_data.carrier_ack);
         assert_eq!(
             data.departure_vertipad_id,
             flight_plan_data.departure_vertipad_id

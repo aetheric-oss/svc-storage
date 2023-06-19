@@ -1,7 +1,6 @@
 //! gRPC client implementation
 use chrono::naive::NaiveDate;
 use chrono::{Datelike, Duration, Local, Timelike, Utc};
-use futures::future::{BoxFuture, FutureExt};
 use geo_types::LineString;
 use lib_common::grpc::get_endpoint_from_env;
 use prost_types::FieldMask;
@@ -14,28 +13,24 @@ use uuid::Uuid;
 
 pub(crate) static CLIENTS: OnceCell<Clients> = OnceCell::const_new();
 
-fn get_clients() -> BoxFuture<'static, Result<&'static Clients, Status>> {
-    async move {
-        let (host, port) = get_endpoint_from_env("SERVER_HOSTNAME", "SERVER_PORT_GRPC");
-        match CLIENTS.get() {
-            Some(clients) => Ok(clients),
-            None => {
-                let clients = svc_storage_client_grpc::Clients::new(host, port);
-                CLIENTS
-                    .set(clients)
-                    .map_err(|e| Status::internal(format!("Could not set CLIENTS: {}", e)))?;
-                get_clients().await
-            }
-        }
-    }
-    .boxed()
+/// Returns CLIENTS, a GrpcClients object with default values.
+/// Uses host and port configurations using a Config object generated from
+/// environment variables.
+/// Initializes CLIENTS if it hasn't been initialized yet.
+pub async fn get_clients() -> &'static Clients {
+    CLIENTS
+        .get_or_init(|| async move {
+            let (host, port) = get_endpoint_from_env("SERVER_HOSTNAME", "SERVER_PORT_GRPC");
+            svc_storage_client_grpc::Clients::new(host, port)
+        })
+        .await
 }
 
 /// Example VehicleRpcClient
 /// Assuming the server is running, this method calls `client.vehicles` and
 /// should receive a valid response from the server
 async fn get_vehicles() -> Result<vehicle::List, Status> {
-    let clients = get_clients().await?;
+    let clients = get_clients().await;
     let vehicle_client = &clients.vehicle;
     println!("Vehicle Client created");
 
@@ -53,7 +48,7 @@ async fn get_vehicles() -> Result<vehicle::List, Status> {
 
 /// Inserts example vehicle's into the database using the `mock` library to generate data.
 async fn generate_sample_vehicles(amount: i16, vertiports: &vertiport::List) -> Result<(), Status> {
-    let clients = get_clients().await?;
+    let clients = get_clients().await;
     let vehicle_client = &clients.vehicle;
     println!("Vehicle Client created");
 
@@ -76,13 +71,127 @@ async fn generate_sample_vehicles(amount: i16, vertiports: &vertiport::List) -> 
     Ok(())
 }
 
+async fn flight_plan_parcel_scenario() -> Result<(), Status> {
+    let clients = get_clients().await;
+
+    //
+    // 1) Create a user
+    //
+    let client = &clients.user;
+    let data = user::Data {
+        ..Default::default()
+    };
+
+    let response = match client.insert(data).await {
+        Ok(response) => response.into_inner(),
+        _ => panic!("Failed to create new user."),
+    };
+
+    let user_id = match response.object {
+        Some(obj) => obj.id,
+        _ => panic!("Failed to get new user id."),
+    };
+
+    let expected_weight = 10;
+    let expected_status = parcel::ParcelStatus::Notdroppedoff;
+
+    //
+    // 2) Create several parcels
+    //
+    let mut parcel_ids = vec![];
+    let client = &clients.parcel;
+    for _ in 0..2 {
+        let data = parcel::Data {
+            user_id: user_id.clone(),
+            weight_grams: 10,
+            status: expected_status.into(),
+        };
+
+        let response = match client.insert(data).await {
+            Ok(response) => response.into_inner(),
+            _ => panic!("Failed to create a parcel."),
+        };
+
+        let parcel_id = match response.object {
+            Some(obj) => obj.id,
+            _ => panic!("Failed to get new parcel id."),
+        };
+
+        parcel_ids.push(parcel_id);
+    }
+
+    //
+    // 3) Create a flight plan
+    //
+    let client = &clients.flight_plan;
+    let data = flight_plan::Data {
+        ..Default::default()
+    };
+
+    let response = match client.insert(data).await {
+        Ok(response) => response.into_inner(),
+        _ => panic!("Failed to create a flight plan."),
+    };
+
+    let flight_plan_id = match response.object {
+        Some(obj) => obj.id,
+        _ => panic!("Failed to get flight_plan_id."),
+    };
+
+    //
+    // 4) Link parcels to a flight plan
+    //
+    let client = &clients.flight_plan_parcel;
+    for parcel_id in &parcel_ids {
+        let data = flight_plan_parcel::RowData {
+            flight_plan_id: flight_plan_id.clone(),
+            parcel_id: parcel_id.clone(),
+            acquire: false,
+            deliver: true,
+        };
+
+        match client.insert(data).await {
+            Ok(response) => response.into_inner(),
+            _ => panic!("Failed to link parcels."),
+        };
+    }
+
+    //
+    // Confirm linkage occurred
+    //
+    let data = Id { id: flight_plan_id };
+    let response = match client.get_linked_ids(data.clone()).await {
+        Ok(response) => response.into_inner(),
+        _ => panic!("Could not get linked ids for the flight plan."),
+    };
+
+    assert_eq!(response.ids.len(), parcel_ids.len());
+
+    let response = match client.get_linked(data).await {
+        Ok(response) => response.into_inner(),
+        _ => panic!("Could not get linked ids for the flight plan."),
+    };
+
+    assert_eq!(response.list.len(), parcel_ids.len());
+    response.list.iter().for_each(|p| {
+        let data = p.data.as_ref().unwrap();
+        assert_eq!(data.weight_grams, expected_weight);
+        assert_eq!(data.user_id, user_id);
+        assert_eq!(data.status, expected_status as i32);
+    });
+
+    //
+    // Get acquire and deliver fields - TODO
+    //
+
+    Ok(())
+}
+
 /// Example ItineraryRpcClient
 /// Assuming the server is running, this method calls `client.itineraries` and
 /// should receive a valid response from the server
 async fn itinerary_scenario() -> Result<(), Status> {
-    let clients = get_clients()
-        .await
-        .expect("Error getting connected itinerary client");
+    let clients = get_clients().await;
     let itinerary_client = &clients.itinerary;
     println!("Itinerary Client created");
 
@@ -235,7 +344,7 @@ async fn itinerary_scenario() -> Result<(), Status> {
 /// Assuming the server is running, this method inserts multiple telemetry
 ///  packets into the database and searches with advanced filters.
 async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
-    let clients = get_clients().await?;
+    let clients = get_clients().await;
     let client = &clients.adsb;
     println!("ADS-B Client created");
 
@@ -390,7 +499,7 @@ async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
 /// Assuming the server is running, this method calls `client.pilots` and
 /// should receive a valid response from the server
 async fn get_pilots() -> Result<pilot::List, Status> {
-    let clients = get_clients().await?;
+    let clients = get_clients().await;
     let pilot_client = &clients.pilot;
     println!("Pilot Client created");
 
@@ -418,7 +527,7 @@ RRULE:FREQ=WEEKLY;BYDAY=SA,SU";
 /// Assuming the server is running, this method calls `client.vertipads` and
 /// should receive a valid response from the server
 async fn vertipad_scenario(vertiports: vertiport::List) -> Result<vertipad::List, Status> {
-    let clients = get_clients().await?;
+    let clients = get_clients().await;
     let vertipad_client = &clients.vertipad;
     println!("Vertipad Client created");
 
@@ -485,7 +594,7 @@ async fn vertipad_scenario(vertiports: vertiport::List) -> Result<vertipad::List
 }
 
 async fn generate_sample_vertiports() -> Result<vertiport::List, Status> {
-    let clients = get_clients().await?;
+    let clients = get_clients().await;
     let vertiport_client = &clients.vertiport;
     println!("Vertiport Client created");
 
@@ -560,7 +669,7 @@ async fn flight_plan_scenario(
     mut vehicles: vehicle::List,
     mut vertipads: vertipad::List,
 ) -> Result<flight_plan::List, Status> {
-    let clients = get_clients().await?;
+    let clients = get_clients().await;
     let flight_plan_client = &clients.flight_plan;
     println!("FlightPlan Client created");
 
@@ -703,7 +812,7 @@ async fn flight_plan_scenario(
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let clients = get_clients().await?;
+    let clients = get_clients().await;
 
     test_telemetry().await?;
 
@@ -735,6 +844,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Itineraries
     itinerary_scenario().await?;
+
+    flight_plan_parcel_scenario().await?;
 
     Ok(())
 }

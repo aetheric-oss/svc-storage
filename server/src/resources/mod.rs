@@ -14,3 +14,5 @@ pub mod user;
 pub mod vehicle;
 pub mod vertipad;
 pub mod vertiport;
+
+pub use flight_plan::parcel as flight_plan_parcel;

@@ -67,7 +67,6 @@ service RpcService {
     //         flight_status: FlightStatus::Draft as i32,
     //         vehicle_id,
     //         pilot_id,
-    //         cargo_weight_grams: vec![20],
     //         path: GeoLineString { points: vec![] },
     //         weather_conditions: Some("Cloudy, low wind".to_owned()),
     //         departure_vertipad_id,
@@ -139,7 +138,7 @@ service RpcService {
     //             ..flight_plan
     //         }),
     //         mask: Some(FieldMask {
-    //             paths: vec!["data.flight_status".to_owned()],
+    //             paths: vec!["flight_status".to_owned()],
     //         }),
     //     })).await
     //     {

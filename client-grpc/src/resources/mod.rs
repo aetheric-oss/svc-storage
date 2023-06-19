@@ -40,6 +40,14 @@ cfg_if::cfg_if! {
         }
 
         cfg_if::cfg_if! {
+            if #[cfg(feature = "flight_plan_parcel")] {
+                grpc_client_linked_mod!(flight_plan_parcel);
+                simple_linked_grpc_client!(flight_plan_parcel, flight_plan, parcel);
+                pub use flight_plan_parcel::RpcServiceLinkedClient as FlightPlanParcelClient;
+            }
+        }
+
+        cfg_if::cfg_if! {
             if #[cfg(feature = "group")] {
                 grpc_client_mod!(group);
                 simple_grpc_client!(group);
@@ -180,6 +188,9 @@ cfg_if::cfg_if! {
             #[cfg(feature = "flight_plan")]
             /// GrpcClient representation of the FlightPlanClient
             pub flight_plan: GrpcClient<FlightPlanClient<Channel>>,
+            #[cfg(feature = "flight_plan_parcel")]
+            /// GrpcClient representation of the FlightPlanParcelClient
+            pub flight_plan_parcel: GrpcClient<FlightPlanParcelClient<Channel>>,
             #[cfg(feature = "group")]
             /// GrpcClient representation of the GroupClient
             pub group: GrpcClient<GroupClient<Channel>>,
@@ -232,6 +243,13 @@ cfg_if::cfg_if! {
                     &host,
                     port,
                     "flight_plan",
+                );
+
+                #[cfg(feature = "flight_plan_parcel")]
+                let flight_plan_parcel = GrpcClient::<flight_plan_parcel::RpcServiceLinkedClient<Channel>>::new_client(
+                    &host,
+                    port,
+                    "flight_plan_parcel",
                 );
 
                 #[cfg(feature = "group")]
@@ -289,6 +307,8 @@ cfg_if::cfg_if! {
                     adsb,
                     #[cfg(feature = "flight_plan")]
                     flight_plan,
+                    #[cfg(feature = "flight_plan_parcel")]
+                    flight_plan_parcel,
                     #[cfg(feature = "group")]
                     group,
                     #[cfg(feature = "group")]
