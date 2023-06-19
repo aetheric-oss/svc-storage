@@ -1,6 +1,7 @@
 //! Flight Plans
 
 pub use crate::grpc::server::flight_plan::*;
+pub mod parcel;
 
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
@@ -16,7 +17,6 @@ use super::base::{FieldDefinition, ResourceDefinition};
 use crate::common::ArrErr;
 use crate::grpc::get_runtime_handle;
 use crate::grpc::{GrpcDataObjectType, GrpcField, GrpcFieldOption};
-use crate::postgres::PsqlJsonValue;
 use crate::resources::vertipad;
 
 // Generate `From` trait implementations for GenericResource into and from Grpc defined Resource
@@ -38,10 +38,6 @@ impl Resource for ResourceObject<Data> {
                 (
                     "vehicle_id".to_string(),
                     FieldDefinition::new(PsqlFieldType::UUID, true),
-                ),
-                (
-                    "cargo_weight_grams".to_string(),
-                    FieldDefinition::new(PsqlFieldType::JSON, true),
                 ),
                 (
                     "path".to_string(),
@@ -81,6 +77,10 @@ impl Resource for ResourceObject<Data> {
                 ),
                 (
                     "flight_plan_submitted".to_string(),
+                    FieldDefinition::new(PsqlFieldType::TIMESTAMPTZ, false),
+                ),
+                (
+                    "carrier_ack".to_string(),
                     FieldDefinition::new(PsqlFieldType::TIMESTAMPTZ, false),
                 ),
                 (
@@ -143,8 +143,7 @@ impl GrpcDataObjectType for Data {
         match key {
             "pilot_id" => Ok(GrpcField::String(self.pilot_id.clone())), //::prost::alloc::string::String,
             "vehicle_id" => Ok(GrpcField::String(self.vehicle_id.clone())), //::prost::alloc::string::String,
-            "cargo_weight_grams" => Ok(GrpcField::U32List(self.cargo_weight_grams.clone())), //::prost::alloc::vec::Vec<u32>,
-            "path" => Ok(GrpcField::Option(self.path.clone().into())),                       //u32,
+            "path" => Ok(GrpcField::Option(self.path.clone().into())),      //u32,
             "weather_conditions" => Ok(GrpcField::Option(GrpcFieldOption::String(
                 self.weather_conditions.clone(),
             ))), //::core::option::Option<::prost::alloc::string::String>,
@@ -175,6 +174,9 @@ impl GrpcDataObjectType for Data {
             ))), //::core::option::Option<::prost_types::Timestamp>,
             "flight_plan_submitted" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
                 self.flight_plan_submitted.clone(),
+            ))), //::core::option::Option<::prost_types::Timestamp>,
+            "carrier_ack" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
+                self.carrier_ack.clone(),
             ))), //::core::option::Option<::prost_types::Timestamp>,
             "approved_by" => Ok(GrpcField::Option(GrpcFieldOption::String(
                 self.approved_by.clone(),
@@ -225,13 +227,12 @@ impl TryFrom<Row> for Data {
         })?;
         let destination_vertiport_id = data.get::<&str, Uuid>("vertiport_id").to_string();
 
-        let cargo_weight_grams = PsqlJsonValue {
-            value: row.get("cargo_weight_grams"),
-        };
-        let cargo_weight_grams: Vec<u32> = cargo_weight_grams.try_into()?;
-
         let flight_plan_submitted: Option<prost_wkt_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("flight_plan_submitted")
+            .map(|val| val.into());
+
+        let carrier_ack: Option<prost_wkt_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("carrier_ack")
             .map(|val| val.into());
 
         let scheduled_departure: Option<prost_wkt_types::Timestamp> = row
@@ -276,7 +277,7 @@ impl TryFrom<Row> for Data {
             actual_arrival,
             flight_release_approval,
             flight_plan_submitted,
-            cargo_weight_grams,
+            carrier_ack,
             approved_by,
             flight_status,
             flight_priority,
@@ -293,7 +294,7 @@ mod tests {
     #[test]
     fn test_flight_plan_schema() {
         init_logger(&Config::try_from_env().unwrap_or_default());
-        unit_test_info!("test_flight_plan_schema validation");
+        unit_test_info!("(test_flight_plan_schema) start");
 
         let id = Uuid::new_v4().to_string();
         let data = mock::get_data_obj();
@@ -304,25 +305,25 @@ mod tests {
         .into();
         test_schema::<ResourceObject<Data>, Data>(object);
 
-        let result = <ResourceObject<Data> as PsqlType>::validate(&data);
+        let result = validate::<ResourceObject<Data>>(&data);
         assert!(result.is_ok());
         if let Ok((sql_fields, validation_result)) = result {
             unit_test_info!("{:?}", sql_fields);
             unit_test_info!("{:?}", validation_result);
             assert_eq!(validation_result.success, true);
         }
+        unit_test_debug!("(test_flight_plan_schema) success");
     }
 
     #[test]
     fn test_flight_plan_invalid_data() {
         init_logger(&Config::try_from_env().unwrap_or_default());
-        unit_test_info!("test_flight_plan_invalid_data validation");
+        unit_test_info!("(test_flight_plan_invalid_data) start");
 
         let data = Data {
             pilot_id: String::from("INVALID"),
             vehicle_id: String::from("INVALID"),
             path: Some(GeoLineString { points: vec![] }),
-            cargo_weight_grams: vec![1, 23, 123],
             weather_conditions: Some(String::from("")),
             departure_vertiport_id: None,
             departure_vertipad_id: String::from("INVALID"),
@@ -353,11 +354,12 @@ mod tests {
                 nanos: -1,
             }),
             approved_by: Some(String::from("INVALID")),
+            carrier_ack: None,
             flight_status: 1234,
             flight_priority: 1234,
         };
 
-        let result = <ResourceObject<Data> as PsqlType>::validate(&data);
+        let result = validate::<ResourceObject<Data>>(&data);
         assert!(result.is_ok());
         if let Ok((_, validation_result)) = result {
             unit_test_info!("{:?}", validation_result);
@@ -381,6 +383,7 @@ mod tests {
             assert!(contains_field_errors(&validation_result, &expected_errors));
             assert_eq!(expected_errors.len(), validation_result.errors.len());
         }
+        unit_test_info!("(test_flight_plan_invalid_data) success");
     }
 
     #[test]

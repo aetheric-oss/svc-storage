@@ -26,6 +26,9 @@ grpc_server_simple_service_mod!(vehicle);
 grpc_server_simple_service_mod!(vertipad);
 grpc_server_simple_service_mod!(vertiport);
 
+// include gRPC services for all 'simple linked' resources
+grpc_server_simple_service_linked_mod!(flight_plan_parcel, flight_plan, parcel);
+
 /// Module to expose linked resource implementations for itinerary_flight_plan
 pub mod itinerary_flight_plan {
     pub use super::itinerary::rpc_flight_plan_link_server::*;
@@ -161,6 +164,9 @@ pub async fn grpc_server(config: Config, shutdown_rx: Option<tokio::sync::onesho
         .set_serving::<flight_plan::RpcServiceServer<flight_plan::GrpcServer>>()
         .await;
     health_reporter
+        .set_serving::<flight_plan_parcel::RpcServiceLinkedServer<flight_plan_parcel::GrpcServer>>()
+        .await;
+    health_reporter
         .set_serving::<group::RpcServiceServer<group::GrpcServer>>()
         .await;
     health_reporter
@@ -210,6 +216,9 @@ pub async fn grpc_server(config: Config, shutdown_rx: Option<tokio::sync::onesho
         .add_service(adsb::RpcServiceServer::new(adsb::GrpcServer::default()))
         .add_service(flight_plan::RpcServiceServer::new(
             flight_plan::GrpcServer::default(),
+        ))
+        .add_service(flight_plan_parcel::RpcServiceLinkedServer::new(
+            flight_plan_parcel::GrpcServer::default(),
         ))
         .add_service(group::RpcServiceServer::new(group::GrpcServer::default()))
         .add_service(group_user::RpcUserLinkServer::new(

@@ -47,9 +47,10 @@ mod tests {
     #[test]
     fn test_itinerary_flight_plan_schema() {
         init_logger(&Config::try_from_env().unwrap_or_default());
-        unit_test_info!("test_itinerary_flight_plan_schema validation");
+        unit_test_info!("(test_itinerary_flight_plan_schema) start");
 
         let definition = <ResourceObject<Data>>::get_definition();
         assert_eq!(definition.get_psql_table(), "itinerary_flight_plan");
+        unit_test_info!("(test_itinerary_flight_plan_schema) success");
     }
 }

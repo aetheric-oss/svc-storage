@@ -5,12 +5,13 @@ import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 import "svc-storage-grpc.proto";
 
-
-// Response struct returning an [Object] on success and [ValidationResult] if invalid fields were provided
+// Response struct returning an [Object] on success and [ValidationResult] if
+// invalid fields were provided
 message Response {
     // struct with field -> error pairs to provide feedback about invalid fields
     grpc.ValidationResult validation_result = 1;
-    // Object struct with id [String] in [Uuid](uuid::Uuid) format and [Data] struct with parcel data
+    // Object struct with id [String] in [Uuid](uuid::Uuid) format and [Data]
+    // struct with parcel data
     optional Object object = 2;
 }
 
@@ -18,9 +19,9 @@ message Response {
 // * `id` [String] in [Uuid](uuid::Uuid) format
 // * `data` [Data] struct with parcel data
 message Object {
-    //id UUID v4
+    // id UUID v4
     string id = 1;
-    //data
+    // data
     Data data = 2;
 }
 
@@ -56,8 +57,11 @@ enum ParcelStatus {
 
 // Data struct with parcel data
 message Data {
-    // the itinerary UUID associated with the parcel
-    string itinerary_id = 1;
+    // the user UUID associated with this parcel
+    string user_id = 1;
+
+    // the weight (in grams)
+    uint32 weight_grams = 2;
 
     // the status of the parcel
     ParcelStatus status = 3;

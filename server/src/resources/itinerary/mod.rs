@@ -50,8 +50,7 @@ impl Resource for ResourceObject<Data> {
 
     fn get_table_indices() -> Vec<String> {
         [
-            // uncomment after User table is added
-            // r#"ALTER TABLE itinerary ADD CONSTRAINT fk_user_id FOREIGN KEY(user_id) REFERENCES user(user_id)"#.to_string()
+            r#"ALTER TABLE itinerary ADD CONSTRAINT fk_user_id FOREIGN KEY(user_id) REFERENCES user(user_id)"#.to_string()
         ]
         .to_vec()
     }
@@ -95,7 +94,7 @@ mod tests {
     #[test]
     fn test_itinerary_schema() {
         init_logger(&Config::try_from_env().unwrap_or_default());
-        unit_test_info!("test_itinerary_schema validation");
+        unit_test_info!("(test_itinerary_schema) start");
 
         let id = Uuid::new_v4().to_string();
         let data = mock::get_data_obj();
@@ -106,26 +105,27 @@ mod tests {
         .into();
         test_schema::<ResourceObject<Data>, Data>(object);
 
-        let result = <ResourceObject<Data> as PsqlType>::validate(&data);
+        let result = validate::<ResourceObject<Data>>(&data);
         assert!(result.is_ok());
         if let Ok((sql_fields, validation_result)) = result {
             unit_test_info!("{:?}", sql_fields);
             unit_test_info!("{:?}", validation_result);
             assert_eq!(validation_result.success, true);
         }
+        unit_test_info!("(test_itinerary_schema) success");
     }
 
     #[test]
     fn test_itinerary_invalid_data() {
         init_logger(&Config::try_from_env().unwrap_or_default());
-        unit_test_info!("test_itinerary_invalid_data validation");
+        unit_test_info!("(test_itinerary_invalid_data) start");
 
         let data = Data {
             user_id: String::from("INVALID"),
             status: -1,
         };
 
-        let result = <ResourceObject<Data> as PsqlType>::validate(&data);
+        let result = validate::<ResourceObject<Data>>(&data);
         assert!(result.is_ok());
         if let Ok((_, validation_result)) = result {
             unit_test_info!("{:?}", validation_result);
@@ -135,6 +135,7 @@ mod tests {
             assert_eq!(expected_errors.len(), validation_result.errors.len());
             assert!(contains_field_errors(&validation_result, &expected_errors));
         }
+        unit_test_info!("(test_itinerary_invalid_data) success");
     }
 
     #[test]
