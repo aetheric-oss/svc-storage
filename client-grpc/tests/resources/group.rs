@@ -17,7 +17,7 @@ pub async fn scenario(
     let name = "group";
     assert_eq!(client.get_name(), name);
 
-    let not_deleted_filter = AdvancedSearchFilter::search_is_not_null("deleted_at".to_owned())
+    let not_deleted_filter = AdvancedSearchFilter::search_is_null("deleted_at".to_owned())
         .page_number(1)
         .results_per_page(50);
 
@@ -32,6 +32,7 @@ pub async fn scenario(
         println!("expected message: {}", expected);
         assert!(logger.any(|log| check_log_string_matches(log, &expected)));
 
+        println!("{:?}", result);
         assert!(result.is_ok());
         let group: Response = (result.unwrap()).into_inner();
         assert!(group.object.is_some());
@@ -58,6 +59,7 @@ pub async fn scenario(
         println!("expected message: {}", expected);
         assert!(logger.any(|log| check_log_string_matches(log, &expected)));
 
+        println!("{:?}", result);
         assert!(result.is_ok());
         let child: Response = (result.unwrap()).into_inner();
         assert!(child.object.is_some());
@@ -83,6 +85,7 @@ pub async fn scenario(
     println!("expected message: {}", expected);
     assert!(logger.any(|log| check_log_string_matches(log, &expected)));
 
+    println!("{:?}", result);
     assert!(result.is_ok());
     let groups_from_db: List = result.unwrap().into_inner();
     assert_eq!(groups_from_db.list.len(), groups.list.len());
@@ -100,6 +103,7 @@ pub async fn scenario(
     println!("expected message: {}", expected);
     assert!(logger.any(|log| check_log_string_matches(log, &expected)));
 
+    println!("{:?}", result);
     assert!(result.is_ok());
     let group_from_db: Object = result.unwrap().into_inner();
     assert_eq!(group_from_db.id, group_id);
@@ -115,6 +119,7 @@ pub async fn scenario(
     println!("expected message: {}", expected);
     assert!(logger.any(|log| check_log_string_matches(log, &expected)));
 
+    println!("{:?}", result);
     assert!(result.is_ok());
 
     // Get all groups still left in the db
@@ -123,6 +128,7 @@ pub async fn scenario(
     println!("expected message: {}", expected);
     assert!(logger.any(|log| check_log_string_matches(log, &expected)));
 
+    println!("{:?}", result);
     assert!(result.is_ok());
     let groups_from_db: List = result.unwrap().into_inner();
     assert_eq!(groups_from_db.list.len(), groups.list.len() - 1);

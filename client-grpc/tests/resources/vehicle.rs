@@ -17,7 +17,7 @@ pub async fn scenario(
     let name = "vehicle";
     assert_eq!(client.get_name(), name);
 
-    let not_deleted_filter = AdvancedSearchFilter::search_is_not_null("deleted_at".to_owned())
+    let not_deleted_filter = AdvancedSearchFilter::search_is_null("deleted_at".to_owned())
         .page_number(1)
         .results_per_page(50);
 
@@ -34,6 +34,7 @@ pub async fn scenario(
         println!("expected message: {}", expected);
         assert!(logger.any(|log| check_log_string_matches(log, &expected)));
 
+        println!("{:?}", result);
         assert!(result.is_ok());
         let vehicle: Response = (result.unwrap()).into_inner();
         assert!(vehicle.object.is_some());
@@ -62,6 +63,7 @@ pub async fn scenario(
     println!("expected message: {}", expected);
     assert!(logger.any(|log| check_log_string_matches(log, &expected)));
 
+    println!("{:?}", result);
     assert!(result.is_ok());
     let vehicles_from_db: List = result.unwrap().into_inner();
     assert_eq!(vehicles_from_db.list.len(), vehicles.list.len());
@@ -79,6 +81,7 @@ pub async fn scenario(
     println!("expected message: {}", expected);
     assert!(logger.any(|log| check_log_string_matches(log, &expected)));
 
+    println!("{:?}", result);
     assert!(result.is_ok());
     let vehicle_from_db: Object = result.unwrap().into_inner();
     assert_eq!(vehicle_from_db.id, vehicle_id);
@@ -94,6 +97,7 @@ pub async fn scenario(
     println!("expected message: {}", expected);
     assert!(logger.any(|log| check_log_string_matches(log, &expected)));
 
+    println!("{:?}", result);
     assert!(result.is_ok());
 
     vehicles
