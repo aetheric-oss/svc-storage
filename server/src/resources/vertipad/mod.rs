@@ -167,8 +167,16 @@ mod tests {
             enabled: true,
             occupied: false,
             schedule: Some(String::from("")),
-            created_at: None,
-            updated_at: None,
+            // The fields below are read_only, should not be returned as invalid
+            // by validation even though they are invalid
+            created_at: Some(prost_wkt_types::Timestamp {
+                seconds: -1,
+                nanos: -1,
+            }),
+            updated_at: Some(prost_wkt_types::Timestamp {
+                seconds: -1,
+                nanos: -1,
+            }),
         };
 
         let result = <ResourceObject<Data> as PsqlType>::validate(&data);
