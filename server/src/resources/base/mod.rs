@@ -312,6 +312,7 @@ impl TryFrom<PsqlJsonValue> for Vec<u32> {
         }
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -120,6 +120,8 @@ macro_rules! build_grpc_server_link_service_impl {
                 &self,
                 request: Request<$link_other_resource>,
             ) -> Result<tonic::Response<()>, Status> {
+                grpc_warn!("(replace_linked) {} server.", self.get_name());
+                grpc_debug!("(replace_linked) request: {:?}", request);
                 let data: $link_other_resource = request.into_inner();
                 self.generic_link::<ResourceObject<$other_resource::Data>>(data.id.clone(), data.get_other_ids().try_into()?, true)
                     .await
@@ -176,6 +178,8 @@ macro_rules! build_grpc_server_link_service_impl {
             /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
             #[cfg(not(feature = "stub_server"))]
             async fn unlink(&self, request: Request<Id>) -> Result<tonic::Response<()>, Status> {
+                grpc_warn!("(unlink) {} server.", self.get_name());
+                grpc_debug!("(unlink) request: {:?}", request);
                 self.generic_unlink(request).await
             }
             // MOCK implementation
@@ -224,6 +228,8 @@ macro_rules! build_grpc_server_link_service_impl {
                 &self,
                 request: Request<Id>,
             ) -> Result<tonic::Response<IdList>, Status> {
+                grpc_warn!("(get_linked_ids) {} server.", self.get_name());
+                grpc_debug!("(get_linked_ids) request: {:?}", request);
                 self.generic_get_linked_ids::<ResourceObject<$other_resource::Data>, $other_resource::Data>(request)
                     .await
             }
@@ -252,6 +258,8 @@ macro_rules! build_grpc_server_link_service_impl {
                 &self,
                 request: Request<Id>,
             ) -> Result<tonic::Response<$other_resource::List>, Status> {
+                grpc_warn!("(get_linked) {} server.", self.get_name());
+                grpc_debug!("(get_linked) request: {:?}", request);
                 self.generic_get_linked::<ResourceObject<$other_resource::Data>, $other_resource::Data, $other_resource::List>(
                     request,
                 )
@@ -341,6 +349,13 @@ macro_rules! grpc_server {
             /// Implementation of gRPC endpoints
             #[derive(Clone, Default, Debug, Copy)]
             pub struct GrpcServer {}
+            impl GrpcServer {
+                /// Get name string for service
+                pub fn get_name(&self) -> String {
+                    String::from(format!("{}", $rpc_string))
+                }
+            }
+
 
             impl GrpcSimpleService<ResourceObject<Data>, Data> for GrpcServer {}
 
@@ -379,7 +394,7 @@ macro_rules! grpc_server {
                     &self,
                     request: Request<Id>,
                 ) -> Result<tonic::Response<Object>, Status> {
-                    grpc_info!("(get_by_id) {}.", $rpc_string);
+                    grpc_info!("(get_by_id) {} server.", self.get_name());
                     grpc_debug!("(get_by_id) request: {:?}", request);
                     self.generic_get_by_id(request).await
                 }
@@ -389,7 +404,7 @@ macro_rules! grpc_server {
                     &self,
                     request: Request<Id>,
                 ) -> Result<tonic::Response<Object>, Status> {
-                    grpc_warn!("(get_by_id MOCK) {} server.", $rpc_string);
+                    grpc_warn!("(get_by_id MOCK) {} server.", self.get_name());
                     grpc_debug!("(get_by_id MOCK) request: {:?}", request);
                     let id = request.into_inner().id;
                     match crate::resources::$resource::MEM_DATA.lock().await.get(&id) {
@@ -436,7 +451,7 @@ macro_rules! grpc_server {
                     &self,
                     request: Request<AdvancedSearchFilter>,
                 ) -> Result<tonic::Response<List>, Status> {
-                    grpc_info!("(search) {}.", $rpc_string);
+                    grpc_info!("(search) {} server.", self.get_name());
                     grpc_debug!("(search) request: {:?}", request);
                     self.generic_search::<List>(request).await
                 }
@@ -446,7 +461,7 @@ macro_rules! grpc_server {
                     &self,
                     request: Request<AdvancedSearchFilter>,
                 ) -> Result<tonic::Response<List>, Status> {
-                    grpc_warn!("(search MOCK) {} server.", $rpc_string);
+                    grpc_warn!("(search MOCK) {} server.", self.get_name());
                     grpc_debug!("(search MOCK) request: {:?}", request);
                     let response = List {
                         list: crate::resources::$resource::MEM_DATA.lock().await.values().cloned().collect::<_>(),
@@ -490,7 +505,7 @@ macro_rules! grpc_server {
                     &self,
                     request: Request<Data>,
                 ) -> Result<tonic::Response<Response>, Status> {
-                    grpc_info!("(insert) {}.", $rpc_string);
+                    grpc_info!("(insert) {} server.", self.get_name());
                     grpc_debug!("(insert) request: {:?}", request);
                     self.generic_insert::<Response>(request).await
                 }
@@ -500,7 +515,7 @@ macro_rules! grpc_server {
                     &self,
                     request: tonic::Request<Data>,
                 ) -> Result<tonic::Response<Response>, tonic::Status> {
-                    grpc_warn!("(insert MOCK) {} server.", $rpc_string);
+                    grpc_warn!("(insert MOCK) {} server.", self.get_name());
                     grpc_debug!("(insert MOCK) request: {:?}", request);
                     let mut mem_data = crate::resources::$resource::MEM_DATA.lock().await;
                     let data = request.into_inner();
@@ -554,7 +569,7 @@ macro_rules! grpc_server {
                     &self,
                     request: Request<UpdateObject>,
                 ) -> Result<tonic::Response<Response>, Status> {
-                    grpc_info!("(update) {}.", $rpc_string);
+                    grpc_info!("(update) {} server.", self.get_name());
                     grpc_debug!("(update) request: {:?}", request);
                     self.generic_update::<Response, UpdateObject>(request).await
                 }
@@ -564,7 +579,7 @@ macro_rules! grpc_server {
                     &self,
                     request: tonic::Request<UpdateObject>,
                 ) -> Result<tonic::Response<Response>, tonic::Status> {
-                    grpc_warn!("(update MOCK) {} server.", $rpc_string);
+                    grpc_warn!("(update MOCK) {} server.", self.get_name());
                     grpc_debug!("(update MOCK) request: {:?}", request);
                     let update = request.into_inner();
                     let id = update.id;
@@ -615,7 +630,7 @@ macro_rules! grpc_server {
                 /// ```
                 #[cfg(not(feature = "stub_server"))]
                 async fn delete(&self, request: Request<Id>) -> Result<tonic::Response<()>, Status> {
-                    grpc_info!("(delete) {}.", $rpc_string);
+                    grpc_info!("(delete) {} server.", self.get_name());
                     grpc_debug!("(delete) request: {:?}", request);
                     self.generic_delete(request).await
                 }
@@ -624,7 +639,7 @@ macro_rules! grpc_server {
                     &self,
                     request: tonic::Request<Id>,
                 ) -> Result<tonic::Response<()>, tonic::Status> {
-                    grpc_warn!("(delete MOCK) {} server.", $rpc_string);
+                    grpc_warn!("(delete MOCK) {} server.", self.get_name());
                     grpc_debug!("(delete MOCK) request: {:?}", request);
                     let mut mem_data = crate::resources::$resource::MEM_DATA.lock().await;
                     mem_data.remove(&request.into_inner().id);

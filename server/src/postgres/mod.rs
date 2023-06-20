@@ -119,39 +119,63 @@ impl PostgresPool {
         );
 
         let pool = if settings.use_tls {
-            let root_cert_file = fs::read(settings.db_ca_cert.clone()).unwrap_or_else(|e| {
-                panic!(
-                    "Unable to read db_ca_cert file [{}]: {}",
-                    settings.db_ca_cert, e
-                )
-            });
-            let root_cert = Certificate::from_pem(&root_cert_file).unwrap_or_else(|e| {
-                panic!(
-                    "Unable to load Certificate from pem file [{}]: {}",
-                    settings.db_ca_cert, e
-                )
-            });
+            psql_info!("Initializing connection with TLS settings");
+            psql_debug!("{:?}", settings);
+            psql_info!("Try read root cert file: {}", settings.db_ca_cert);
+            let root_cert_file = match fs::read(settings.db_ca_cert.clone()) {
+                Ok(root_cert_file) => root_cert_file,
+                Err(e) => {
+                    let error = format!(
+                        "Unable to read db_ca_cert file [{}]: {}",
+                        settings.db_ca_cert, e
+                    );
+                    psql_error!("{}", error);
+                    return Err(ArrErr::Error(error));
+                }
+            };
+            psql_info!("Try load root cert file.");
+            let root_cert = match Certificate::from_pem(&root_cert_file) {
+                Ok(root_cert) => root_cert,
+                Err(e) => {
+                    let error = format!(
+                        "Unable to load Certificate from pem file [{}]: {}",
+                        settings.db_ca_cert, e
+                    );
+                    psql_error!("{}", error);
+                    return Err(ArrErr::Error(error));
+                }
+            };
+            psql_debug!("Root cert load success.");
+
             // If client cert and key are specified, try using it. Otherwise default to user/pass.
             // Since the TlsConnector builder sucks
             let builder = if settings.db_client_cert.is_some() && settings.db_client_key.is_some() {
                 let cert: String = settings
                     .db_client_cert
-                    .unwrap_or_else(|| panic!("No DB_CLIENT_CERT env var found"));
+                    .ok_or("No DB_CLIENT_CERT env var found")
+                    .map_err(|e| ArrErr::Error(e.to_owned()))?;
                 let key: String = settings
                     .db_client_key
-                    .unwrap_or_else(|| panic!("No DB_CLIENT_KEY env var found"));
-                let client_cert_file = fs::read(cert.clone()).unwrap_or_else(|e| {
-                    panic!(
+                    .ok_or("No DB_CLIENT_KEY env var found")
+                    .map_err(|e| ArrErr::Error(e.to_owned()))?;
+                psql_info!("Try read client cert file.");
+                let client_cert_file = fs::read(cert.clone()).map_err(|e| {
+                    let error = format!(
                         "Unable to read client certificate db_client_cert file [{}]: {}",
                         cert, e
-                    )
-                });
-                let client_key_file = fs::read(key.clone()).unwrap_or_else(|e| {
-                    panic!(
+                    );
+                    psql_error!("{}", error);
+                    ArrErr::Error(error)
+                })?;
+                psql_info!("Try read client key file.");
+                let client_key_file = fs::read(key.clone()).map_err(|e| {
+                    let error = format!(
                         "Unable to read client key db_client_key file [{}]: {}",
                         key, e
-                    )
-                });
+                    );
+                    psql_error!("{}", error);
+                    ArrErr::Error(error)
+                })?;
 
                 psql_info!("Setting up TLS connection with client cert and key.");
                 TlsConnector::builder()
