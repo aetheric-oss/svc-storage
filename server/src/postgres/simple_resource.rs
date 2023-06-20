@@ -87,7 +87,7 @@ where
         let (inserts, fields, params) = Self::get_insert_vars(data, &psql_data)?;
 
         let insert_sql = &format!(
-            "INSERT INTO {} ({}) VALUES ({}) RETURNING {}",
+            r#"INSERT INTO "{}" ({}) VALUES ({}) RETURNING "{}""#,
             definition.psql_table,
             fields.join(", "),
             inserts.join(", "),
@@ -280,7 +280,7 @@ where
 
             match psql_data.get(&*key.to_string()) {
                 Some(value) => {
-                    fields.push(key.to_string());
+                    fields.push(format!(r#""{}""#, key));
 
                     match field_definition.field_type {
                         // Since we're using CockroachDB, we can't directly pass
@@ -407,7 +407,7 @@ where
         let (mut updates, mut params) = Self::get_update_vars(data, &psql_data)?;
 
         if definition.has_field("updated_at") {
-            updates.push("updated_at = NOW()".to_string());
+            updates.push(r#""updated_at" = NOW()"#.to_string());
         }
 
         let update_sql = &format!(
@@ -497,7 +497,7 @@ where
         let client = get_psql_pool().get().await?;
 
         let query = format!(
-            r#"UPDATE "{}" SET deleted_at = NOW() WHERE "{}" = $1"#,
+            r#"UPDATE "{}" SET "deleted_at" = NOW() WHERE "{}" = $1"#,
             definition.psql_table, id_col
         );
         let stmt = client.prepare_cached(&query).await?;
@@ -595,7 +595,7 @@ where
                         PsqlFieldType::POINT => {
                             if let Ok(point_option) = data.get_field_value(key) {
                                 match get_point_sql_val(point_option) {
-                                    Some(val) => updates.push(format!("{} = {}", key, val)),
+                                    Some(val) => updates.push(format!(r#""{}" = {}"#, key, val)),
                                     None => continue,
                                 };
                             } else {
@@ -613,7 +613,7 @@ where
                         PsqlFieldType::POLYGON => {
                             if let Ok(polygon_option) = data.get_field_value(key) {
                                 match get_polygon_sql_val(polygon_option) {
-                                    Some(val) => updates.push(format!("{} = {}", key, val)),
+                                    Some(val) => updates.push(format!(r#""{}" = {}"#, key, val)),
                                     None => continue,
                                 };
                             } else {
@@ -631,7 +631,7 @@ where
                         PsqlFieldType::PATH => {
                             if let Ok(path_option) = data.get_field_value(key) {
                                 match get_path_sql_val(path_option) {
-                                    Some(val) => updates.push(format!("{} = {}", key, val)),
+                                    Some(val) => updates.push(format!(r#""{}" = {}"#, key, val)),
                                     None => continue,
                                 };
                             } else {
@@ -648,7 +648,7 @@ where
                         // to handle the conversion
                         _ => {
                             let val: &PsqlField = <&Box<PsqlFieldSend>>::clone(&value).as_ref();
-                            updates.push(format!("{} = ${}", key, index));
+                            updates.push(format!(r#""{}" = ${}"#, key, index));
                             params.push(val);
                             index += 1;
                         }
@@ -822,19 +822,19 @@ mod tests {
                     println!("Insert Field: {}", field);
                     println!("Insert Param: {}", value);
                     match field.as_str() {
-                        "timestamp" => {
+                        r#""timestamp""# => {
                             assert_eq!(value, timestamp.as_ref().unwrap().to_string());
                         }
-                        "uuid" => {
+                        r#""uuid""# => {
                             assert_eq!(value, uuid.to_string());
                         }
-                        "optional_timestamp" => {
+                        r#""optional_timestamp""# => {
                             assert_eq!(value, optional_timestamp.as_ref().unwrap().to_string());
                         }
-                        "optional_uuid" => {
+                        r#""optional_uuid""# => {
                             assert_eq!(value, optional_uuid.to_string());
                         }
-                        "read_only" => {
+                        r#""read_only""# => {
                             panic!("This field is read_only and should not have been returned!");
                         }
                         _ => validate_test_data_sql_val(field, &value),
@@ -897,19 +897,19 @@ mod tests {
                     println!("Update Field: {}", field);
                     println!("Update Param: {}", value);
                     match field {
-                        "timestamp" => {
+                        r#""timestamp""# => {
                             assert_eq!(value, timestamp.as_ref().unwrap().to_string());
                         }
-                        "uuid" => {
+                        r#""uuid""# => {
                             assert_eq!(value, uuid.to_string());
                         }
-                        "optional_timestamp" => {
+                        r#""optional_timestamp""# => {
                             assert_eq!(value, optional_timestamp.as_ref().unwrap().to_string());
                         }
-                        "optional_uuid" => {
+                        r#""optional_uuid""# => {
                             assert_eq!(value, optional_uuid.to_string());
                         }
-                        "read_only" => {
+                        r#""read_only""# => {
                             panic!("This field is read_only and should not have been returned!");
                         }
                         _ => validate_test_data_sql_val(field, &value),
