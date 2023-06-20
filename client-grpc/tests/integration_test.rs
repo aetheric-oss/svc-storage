@@ -22,6 +22,8 @@ async fn test_client_requests_and_logs() {
     #[cfg(not(any(feature = "stub_backends", feature = "stub_client")))]
     let result = adsb::test_telemetry(&clients.adsb).await;
     #[cfg(not(any(feature = "stub_backends", feature = "stub_client")))]
+    println!("{:?}", result);
+    #[cfg(not(any(feature = "stub_backends", feature = "stub_client")))]
     assert!(result.is_ok());
 
     // generate 5 random messages

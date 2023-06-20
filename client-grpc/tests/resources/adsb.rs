@@ -17,7 +17,7 @@ pub async fn scenario(
     let name = "adsb";
     assert_eq!(client.get_name(), name);
 
-    let not_deleted_filter = AdvancedSearchFilter::search_is_not_null("deleted_at".to_owned())
+    let message_filter = AdvancedSearchFilter::search_is_not_null("message_type".to_owned())
         .page_number(1)
         .results_per_page(50);
 
@@ -32,6 +32,7 @@ pub async fn scenario(
         println!("expected message: {}", expected);
         assert!(logger.any(|log| check_log_string_matches(log, &expected)));
 
+        println!("{:?}", result);
         assert!(result.is_ok());
         let adsb: Response = (result.unwrap()).into_inner();
         assert!(adsb.object.is_some());
@@ -48,14 +49,19 @@ pub async fn scenario(
     let messages = List { list: adsb_objects };
 
     // Check if all messages can be retrieved from the backend
-    let result = client.search(tonic::Request::new(not_deleted_filter)).await;
+    let result = client.search(tonic::Request::new(message_filter)).await;
     let expected = get_log_string("search", name);
     println!("expected message: {}", expected);
     assert!(logger.any(|log| check_log_string_matches(log, &expected)));
 
+    println!("{:?}", result);
     assert!(result.is_ok());
     let messages_from_db: List = result.unwrap().into_inner();
+
+    #[cfg(any(feature = "stub_backends", feature = "stub_client"))]
     assert_eq!(messages_from_db.list.len(), messages.list.len());
+    #[cfg(not(any(feature = "stub_backends", feature = "stub_client")))]
+    assert_eq!(messages_from_db.list.len(), messages.list.len() + 2);
 
     let adsb_id = messages.list[0].id.clone();
 
@@ -70,6 +76,7 @@ pub async fn scenario(
     println!("expected message: {}", expected);
     assert!(logger.any(|log| check_log_string_matches(log, &expected)));
 
+    println!("{:?}", result);
     assert!(result.is_ok());
     let adsb_from_db: Object = result.unwrap().into_inner();
     assert_eq!(adsb_from_db.id, adsb_id);
@@ -85,6 +92,7 @@ pub async fn scenario(
     println!("expected message: {}", expected);
     assert!(logger.any(|log| check_log_string_matches(log, &expected)));
 
+    println!("{:?}", result);
     assert!(result.is_ok());
 
     messages
@@ -139,9 +147,7 @@ pub async fn test_telemetry(
     };
 
     // Insert data and get the UUID of the adsb entry
-    let Ok(response) = client.insert(tonic::Request::new(request_data)).await else {
-        panic!("Failed to insert data.");
-    };
+    let response = client.insert(tonic::Request::new(request_data)).await?;
     let Some(object) = response.into_inner().object else {
         panic!("Failed to return object.");
     };
@@ -157,9 +163,7 @@ pub async fn test_telemetry(
         payload: payload_2.clone().to_vec(),
     };
     // Insert data and get the UUID of the adsb entry
-    let Ok(response) = client.insert(tonic::Request::new(request_data)).await else {
-        panic!("Failed to insert data.");
-    };
+    let response = client.insert(tonic::Request::new(request_data)).await?;
     let Some(object) = response.into_inner().object else {
         panic!("Failed to return object.");
     };

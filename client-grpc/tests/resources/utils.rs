@@ -35,7 +35,7 @@ pub fn get_log_string(function: &str, name: &str) -> String {
         if #[cfg(feature = "stub_backends")] {
             return format!("({} MOCK) {} server.", function, name);
         } else {
-            return format!("({}) {} server.", function, name);
+            return format!("({}) {} client.", function, name);
         }
     }
 }

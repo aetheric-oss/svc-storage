@@ -4,6 +4,9 @@
 /// macros module exposing gRPC include macro
 mod macros;
 
+#[cfg(test)]
+mod enum_tests;
+
 use lib_common::log_macros;
 
 pub use geo_types::{Coord, LineString, Point, Polygon};

@@ -51,6 +51,7 @@ pub async fn scenario(
     println!("expected message: {}", expected);
     assert!(logger.any(|log| check_log_string_matches(log, &expected)));
 
+    println!("{:?}", result);
     assert!(result.is_ok());
 
     // Get the linked list
@@ -59,6 +60,7 @@ pub async fn scenario(
             id: groups.list[0].id.clone(),
         }))
         .await;
+    println!("{:?}", result);
     assert!(result.is_ok());
     let linked_users: IdList = result.unwrap().into_inner();
     assert_eq!(linked_users.ids.len(), 3);
@@ -90,6 +92,7 @@ pub async fn scenario(
     println!("expected message: {}", expected);
     assert!(logger.any(|log| check_log_string_matches(log, &expected)));
 
+    println!("{:?}", result);
     assert!(result.is_ok());
 
     // Get the new linked list
@@ -98,6 +101,7 @@ pub async fn scenario(
             id: groups.list[0].id.clone(),
         }))
         .await;
+    println!("{:?}", result);
     assert!(result.is_ok());
     let linked_users: IdList = result.unwrap().into_inner();
     assert_eq!(linked_users.ids.len(), 1);
