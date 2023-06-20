@@ -279,34 +279,34 @@ pub(crate) fn get_valid_test_data(
 
 pub(crate) fn validate_test_data_sql_val(field: &str, value: &str) {
     match field {
-        "string" => {
+        r#""string""# => {
             assert_eq!(value, "\"test_value\"");
         }
-        "bool" => {
+        r#""bool""# => {
             assert_eq!(value, "true");
         }
-        "i32" => {
+        r#""i32""# => {
             assert_eq!(value, "32");
         }
-        "i64" => {
+        r#""i64""# => {
             assert_eq!(value, "64");
         }
-        "u8_vec" => {
+        r#""u8_vec""# => {
             assert_eq!(value, "[1, 2]");
         }
-        "i64_vec" => {
+        r#""i64_vec""# => {
             assert_eq!(value, "Array [Number(-20), Number(2), Number(-3000)]");
         }
-        "u32_vec" => {
+        r#""u32_vec""# => {
             assert_eq!(value, "Array [Number(20), Number(2), Number(3000)]");
         }
-        "geo_point" => {
+        r#""geo_point""# => {
             assert_eq!(
                 value,
                 format!("ST_GeomFromText('POINT({:.15} {:.15})')", 180.0, 90.0)
             );
         }
-        "geo_polygon" => {
+        r#""geo_polygon""# => {
             assert_eq!(
                 value,
                 format!("ST_GeomFromText('POLYGON(({:.15} {:.15},{:.15} {:.15},{:.15} {:.15},{:.15} {:.15}),({:.15} {:.15},{:.15} {:.15},{:.15} {:.15}),({:.15} {:.15},{:.15} {:.15},{:.15} {:.15},{:.15} {:.15}))')",
@@ -316,7 +316,7 @@ pub(crate) fn validate_test_data_sql_val(field: &str, value: &str) {
                 )
             );
         }
-        "geo_line_string" => {
+        r#""geo_line_string""# => {
             assert_eq!(
                 value,
                 format!(
@@ -326,25 +326,25 @@ pub(crate) fn validate_test_data_sql_val(field: &str, value: &str) {
             );
         }
 
-        "optional_string" => {
+        r#""optional_string""# => {
             assert_eq!(value, "\"optional test_value\"");
         }
-        "optional_bool" => {
+        r#""optional_bool""# => {
             assert_eq!(value, "true");
         }
-        "optional_i32" => {
+        r#""optional_i32""# => {
             assert_eq!(value, "-32");
         }
-        "optional_i64" => {
+        r#""optional_i64""# => {
             assert_eq!(value, "-64");
         }
-        "optional_geo_point" => {
+        r#""optional_geo_point""# => {
             assert_eq!(
                 value,
                 format!("ST_GeomFromText('POINT({:.15} {:.15})')", -180.0, -90.0)
             );
         }
-        "optional_geo_polygon" => {
+        r#""optional_geo_polygon""# => {
             assert_eq!(
                 value,
                 format!("ST_GeomFromText('POLYGON(({:.15} {:.15},{:.15} {:.15},{:.15} {:.15},{:.15} {:.15}),({:.15} {:.15},{:.15} {:.15},{:.15} {:.15}),({:.15} {:.15},{:.15} {:.15},{:.15} {:.15},{:.15} {:.15}))')",
@@ -354,7 +354,7 @@ pub(crate) fn validate_test_data_sql_val(field: &str, value: &str) {
                 )
             );
         }
-        "optional_geo_line_string" => {
+        r#""optional_geo_line_string""# => {
             assert_eq!(
                 value,
                 format!(
