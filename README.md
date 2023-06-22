@@ -97,7 +97,7 @@ The following documents are relevant to this service:
 - [Concept of Operations](./docs/conops.md)
 - [Software Design Document (SDD)](./docs/sdd.md)
 - [Interface Control Document (ICD)](./docs/icd.md)
-- [Requirements & User Stories](./docs/requirements.md)
+- [Requirements](https://nocodb.arrowair.com/dashboard/#/nc/p_uyeuw6scqlnpri/table/L4/svc-storage)
 
 ## :busts_in_silhouette: Arrow DAO
 Learn more about us:

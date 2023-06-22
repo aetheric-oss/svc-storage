@@ -42,7 +42,7 @@ message Data {
     string vertiport_id = 1;
     // human readable name of the vertipad
     string name = 2;
-    // geographical location of the vertiport
+    // geographical location of the vertipad
     grpc.GeoPoint geo_location = 3;
     // indicates if the vertipad is in business
     bool enabled = 4;

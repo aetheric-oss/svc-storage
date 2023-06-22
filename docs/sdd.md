@@ -1,8 +1,18 @@
 ![Arrow Banner](https://github.com/Arrow-air/tf-github/raw/main/src/templates/doc-banner-services.png)
 
-# `svc-storage` - Software Design Document (SDD)
+# Software Design Document (SDD) - `svc-storage`
 
-## Overview
+## :telescope: Overview
+
+This document details the software implementation of `svc-storage`.
+
+This process is responsible for handling interactions with clients for data storage and retrieval.
+
+*Note: This module is intended to be used by other Arrow micro-services via gRPC.*
+
+*This document is under development as Arrow operates on a pre-revenue and
+pre-commercial stage. Storage requirements may evolve as per business needs,
+which may result in architectural/implementation changes to the storage module.*
 
 ### Metadata
 
@@ -12,44 +22,28 @@
 | Stuckee       | Lotte ([@owlot](https://github.com/owlot))                        |
 | Status        | Development                                                       |
 
-This document details the software implementation of `svc-storage`.
-
-This process is responsible for handling interactions with clients for data storage and retrieval.
-
-*Note: This module is intended to be used by other Arrow micro-services via gRPC.*
-
-*This document is under development as Arrow operates on a pre-revenue and pre-commercial stage. Storage requirements may evolve as per business needs, which may result in architectural/implementation changes to the storage module.*
-
-## Related Documents
+## :books: Related Documents
 
 | Document                                                                                                          | Description
 | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-[High-Level Concept of Operations (CONOPS)](https://github.com/Arrow-air/se-services/blob/develop/docs/conops.md) | Overview of Arrow microservices.
-[High-Level Interface Control Document (ICD)](https://github.com/Arrow-air/se-services/blob/develop/docs/icd.md)  | Interfaces and frameworks common to all Arrow microservices.
-[Requirements - `svc-storage`](https://nocodb.arrowair.com/dashboard/#/nc/p_uyeuw6scqlnpri/table/L4/svc-storage) | Requirements and user stories for this microservice.
-[Concept of Operations - `svc-storage`](./conops.md) | Defines the motivation and duties of this microservice.
-[Interface Control Document (ICD) - `svc-storage`](./icd.md) | Defines the inputs and outputs of this microservice.
+| [High-Level Concept of Operations (CONOPS)](https://github.com/Arrow-air/se-services/blob/develop/docs/conops.md) | Overview of Arrow microservices. |
+| [High-Level Interface Control Document (ICD)](https://github.com/Arrow-air/se-services/blob/develop/docs/icd.md)  | Interfaces and frameworks common to all Arrow microservices. |
+| [Requirements - `svc-storage`](https://nocodb.arrowair.com/dashboard/#/nc/p_uyeuw6scqlnpri/table/L4/svc-storage)  | Requirements and user stories for this microservice. |
+| [Concept of Operations - `svc-storage`](./conops.md)                                                              | Defines the motivation and duties of this microservice. |
+| [Interface Control Document (ICD) - `svc-storage`](./icd.md)                                                      | Defines the inputs and outputs of this microservice. |
 
-## Frameworks
-
-See the [High-Level Services ICD](https://github.com/Arrow-air/se-services/blob/develop/docs/icd.md).
-
-## Location
-
-Server-side service.
-
-## Module Attributes
+## :dna: Module Attributes
 
 | Attribute       | Applies | Explanation                                                             |
 | --------------- | ------- | ----------------------------------------------------------------------- |
 | Safety Critical | No      | As of now, the storage service does not handle any safety critical data |
 | Realtime        | No      | As of now, the storage service does not handle any realtime data        |
 
-## Global Variables
+## :globe_with_meridians: Global Variables
 
 None
 
-## Logic 
+## :gear: Logic
 
 ### Initialization
 
@@ -77,13 +71,13 @@ This information allows `svc-storage` to connect to the CockroachDB database bac
 
 :exclamation: These environment variables will *not* default to anything if not found. In this case, requests involving the handler will result in a server panic.
 
-For detailed sequence diagrams regarding request handlers, see [GRPC Handlers](#grpc-handlers).
+For detailed sequence diagrams regarding request handlers, see [gRPC Handlers](#speech_balloon-grpc-handlers).
 
 ### Cleanup
 
 None
 
-## GRPC Handlers
+## :speech_balloon: gRPC Handlers
 
 See [the ICD](./icd.md) for this microservice.
 
