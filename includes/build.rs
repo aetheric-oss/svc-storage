@@ -1,12 +1,8 @@
-/// Returns a list of proto files that should be compiled
-fn get_files(proto_dir: &str) -> Vec<String> {
-    let types = get_types();
-    types
-        .into_iter()
-        .map(|x| format!("{}/svc-storage-grpc-{}.proto", proto_dir, x))
-        .collect()
+/// Returns file path string based on given proto_dir and resource_type input.
+fn get_file(proto_dir: &str, resource_type: String) -> String {
+    format!("{}/svc-storage-grpc-{}.proto", proto_dir, resource_type)
 }
-/// Returns a list of proto files that should be compiled
+/// Returns a list of proto files that should be compiled.
 fn get_service_files(proto_dir: &str) -> Vec<String> {
     let types = get_types();
     types
@@ -43,29 +39,27 @@ fn build_proto(
     // Make sure output dirs exists
     fs::create_dir_all(out_path)?;
 
-    let files = get_files(proto_dir);
-    let mut builder = get_grpc_builder_config(&format!("{}/{}", cur_dir, "../out/grpc/"));
-    if client {
-        builder = get_grpc_builder_config(&format!("{}/{}", cur_dir, "../out/grpc/client/"));
-        builder = add_utoipa_attributes(builder);
+    // Compile each file separately so we can add type specific attributes
+    for resource_type in get_types() {
+        let mut builder = get_grpc_builder_config(&format!("{}/{}", cur_dir, "../out/grpc/"));
+        if client {
+            builder = get_grpc_builder_config(&format!("{}/{}", cur_dir, "../out/grpc/client/"));
+            builder = add_utoipa_attributes(builder, resource_type.clone());
+        }
+        builder
+            .build_server(false)
+            .build_client(false)
+            .compile(&[get_file(proto_dir, resource_type)], &[proto_dir])?;
     }
-    builder
-        .build_server(false)
-        .build_client(false)
-        .compile(&files, &[proto_dir])?;
 
-    let types = get_types();
     let service_files = get_service_files(proto_dir);
     let mut builder = get_grpc_builder_config(&format!("{}/{}", cur_dir, out_path))
         .extern_path(".grpc", "crate::resources");
-    for service_type in types {
+    for service_type in get_types() {
         let service = format!("grpc.{}.service", service_type);
         builder = builder
             .client_mod_attribute(&service, "#[cfg(not(tarpaulin_include))]")
             .server_mod_attribute(&service, "#[cfg(not(tarpaulin_include))]");
-    }
-    if client {
-        builder = add_utoipa_attributes(builder);
     }
     builder
         .build_server(server)
@@ -102,9 +96,58 @@ fn get_grpc_builder_config(out_path: &str) -> tonic_build::Builder {
         .type_attribute("GeoLine", "#[derive(Copy)]")
 }
 
-fn add_utoipa_attributes(builder: tonic_build::Builder) -> tonic_build::Builder {
+fn add_utoipa_attributes(
+    builder: tonic_build::Builder,
+    resource_type: String,
+) -> tonic_build::Builder {
     // Add utoipa derive macro's for client exposed structs
     builder
+        // Add schema type for timestamp fields
+        .field_attribute(
+            "created_at",
+            "#[schema(schema_with = crate::timestamp_schema)]",
+        )
+        .field_attribute(
+            "updated_at",
+            "#[schema(schema_with = crate::timestamp_schema)]",
+        )
+        .field_attribute(
+            "network_timestamp",
+            "#[schema(schema_with = crate::timestamp_schema)]",
+        )
+        .field_attribute(
+            "scheduled_departure",
+            "#[schema(schema_with = crate::timestamp_schema)]",
+        )
+        .field_attribute(
+            "scheduled_arrival",
+            "#[schema(schema_with = crate::timestamp_schema)]",
+        )
+        .field_attribute(
+            "actual_departure",
+            "#[schema(schema_with = crate::timestamp_schema)]",
+        )
+        .field_attribute(
+            "actual_arrival",
+            "#[schema(schema_with = crate::timestamp_schema)]",
+        )
+        .field_attribute(
+            "flight_release_approval",
+            "#[schema(schema_with = crate::timestamp_schema)]",
+        )
+        .field_attribute(
+            "flight_plan_submitted",
+            "#[schema(schema_with = crate::timestamp_schema)]",
+        )
+        .field_attribute(
+            "last_maintenance",
+            "#[schema(schema_with = crate::timestamp_schema)]",
+        )
+        .field_attribute(
+            "next_maintenance",
+            "#[schema(schema_with = crate::timestamp_schema)]",
+        )
+        // Add utoipa derive attributes for structs
         .type_attribute(
             "Id",
             "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
@@ -113,6 +156,7 @@ fn add_utoipa_attributes(builder: tonic_build::Builder) -> tonic_build::Builder 
             "List",
             "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
         )
+        .type_attribute("List", format!("#[schema(as = {}::List)]", resource_type))
         .type_attribute(
             "IdList",
             "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
@@ -130,27 +174,40 @@ fn add_utoipa_attributes(builder: tonic_build::Builder) -> tonic_build::Builder 
             "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
         )
         .type_attribute(
+            "Object",
+            format!("#[schema(as = {}::Object)]", resource_type),
+        )
+        .type_attribute(
             "Data",
             "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
         )
+        .type_attribute("Data", format!("#[schema(as = {}::Data)]", resource_type))
         .type_attribute(
             "Response",
             "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
         )
         .type_attribute(
+            "Response",
+            format!("#[schema(as = {}::Response)]", resource_type),
+        )
+        .type_attribute(
             "GeoPoint",
             "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
         )
+        .type_attribute("GeoPoint", "#[schema(as = super::GeoPoint)]")
         .type_attribute(
             "GeoLine",
             "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
         )
+        .type_attribute("GeoLine", "#[schema(as = super::GeoLine)]")
         .type_attribute(
             "GeoLineString",
             "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
         )
+        .type_attribute("GeoLineString", "#[schema(as = super::GeoLineString)]")
         .type_attribute(
             "GeoPolygon",
             "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
         )
+        .type_attribute("GeoPolygon", "#[schema(as = super::GeoPolygon)]")
 }

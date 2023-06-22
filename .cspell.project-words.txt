@@ -91,3 +91,4 @@ postgis
 ptype
 srid
 utoipa
+openapi

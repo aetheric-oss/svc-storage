@@ -92,7 +92,7 @@ features = ["macros", "rt-multi-thread"]
 version  = "1.28"
 
 [dependencies.utoipa]
-version = "3.0"
+version = "3.3"
 
 [dev-dependencies]
 chrono      = "0.4"

@@ -28,6 +28,16 @@ pub mod search {
 // Provide geo type conversions
 include!("../includes/geo_types.rs");
 
+fn timestamp_schema() -> utoipa::openapi::Object {
+    utoipa::openapi::ObjectBuilder::new()
+        .schema_type(utoipa::openapi::SchemaType::String)
+        .format(Some(utoipa::openapi::SchemaFormat::Custom(
+            "date-time".to_string(),
+        )))
+        .description(Some("Timestamp in RFC3339 format"))
+        .build()
+}
+
 cfg_if::cfg_if! {
     if #[cfg(any(feature = "all_resources", feature = "any_resource"))] {
         use tonic::transport::Channel;
