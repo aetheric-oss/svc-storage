@@ -33,13 +33,14 @@ macro_rules! grpc_client_mod {
             /// }
             /// ```
             pub mod $rpc_service {
-                include!(concat!("../out/grpc/client/grpc.", stringify!($rpc_service), ".rs"));
+                include!(concat!("../../out/grpc/client/grpc.", stringify!($rpc_service), ".rs"));
                 include!(concat!(
-                    "../out/grpc/client/grpc.",
+                    "../../out/grpc/client/grpc.",
                     stringify!($rpc_service),
                     ".service.rs"
                 ));
-                pub use $crate::resources::{IntoParams, ToSchema, Serialize, Deserialize};
+                pub use $crate::{IntoParams, ToSchema, Serialize, Deserialize};
+                pub use $crate::grpc_geo_types::*;
                 pub use rpc_service_client::RpcServiceClient;
                 use tonic::transport::Channel;
                 cfg_if::cfg_if! {
@@ -71,7 +72,7 @@ macro_rules! grpc_client_mod {
                 /// Will only be included if the `mock` feature is enabled
                 #[cfg(any(feature = "mock", test))]
                 pub mod mock {
-                    include!(concat!("../includes/", stringify!($rpc_service), "/mock.rs"));
+                    include!(concat!("../../includes/", stringify!($rpc_service), "/mock.rs"));
                 }
             }
         )+
@@ -91,7 +92,7 @@ macro_rules! link_grpc_client {
 
                 async fn link(
                     &self,
-                    request: tonic::Request<Self::LinkObject>,
+                    request: Self::LinkObject,
                 ) -> Result<tonic::Response<()>, tonic::Status> {
                     grpc_warn!("(link) {} client.", self.get_name());
                     grpc_debug!("(link) request: {:?}", request);
@@ -100,7 +101,7 @@ macro_rules! link_grpc_client {
 
                 async fn replace_linked(
                     &self,
-                    request: tonic::Request<Self::LinkObject>,
+                    request: Self::LinkObject,
                 ) -> Result<tonic::Response<()>, tonic::Status> {
                     grpc_warn!("(replace_linked) {} client.", self.get_name());
                     grpc_debug!("(replace_linked) request: {:?}", request);
@@ -109,7 +110,7 @@ macro_rules! link_grpc_client {
 
                 async fn unlink(
                     &self,
-                    request: tonic::Request<$crate::Id>,
+                    request: $crate::Id,
                 ) -> Result<tonic::Response<()>, tonic::Status> {
                     grpc_warn!("(unlink) {} client.", self.get_name());
                     grpc_debug!("(unlink) request: {:?}", request);
@@ -118,7 +119,7 @@ macro_rules! link_grpc_client {
 
                 async fn get_linked_ids(
                     &self,
-                    request: tonic::Request<$crate::Id>,
+                    request: $crate::Id,
                 ) -> Result<tonic::Response<$crate::IdList>, tonic::Status> {
                     grpc_warn!("(get_linked_ids) {} client.", self.get_name());
                     grpc_debug!("(get_linked_ids) request: {:?}", request);
@@ -127,7 +128,7 @@ macro_rules! link_grpc_client {
 
                 async fn get_linked(
                     &self,
-                    request: tonic::Request<$crate::Id>,
+                    request: $crate::Id,
                 ) -> Result<tonic::Response<Self::List>, tonic::Status> {
                     grpc_warn!("(get_linked) {} client.", self.get_name());
                     grpc_debug!("(get_linked) request: {:?}", request);
@@ -151,11 +152,10 @@ macro_rules! link_grpc_client {
 
                 async fn link(
                     &self,
-                    request: tonic::Request<Self::LinkObject>,
+                    request: Self::LinkObject,
                 ) -> Result<tonic::Response<()>, tonic::Status> {
                     grpc_warn!("(link MOCK) {} client.", self.get_name());
                     grpc_debug!("(link MOCK) request: {:?}", request);
-                    let request = request.into_inner();
                     let id = request.id;
                     let other_ids = request.other_id_list.unwrap();
                     let mut mem_data_links = $rpc_service::MEM_DATA_LINKS.lock().await;
@@ -198,11 +198,10 @@ macro_rules! link_grpc_client {
 
                 async fn replace_linked(
                     &self,
-                    request: tonic::Request<Self::LinkObject>,
+                    request: Self::LinkObject
                 ) -> Result<tonic::Response<()>, tonic::Status> {
                     grpc_warn!("(replace_linked MOCK) {} client.", self.get_name());
                     grpc_debug!("(replace_linked MOCK) request: {:?}", request);
-                    let request = request.into_inner();
                     let id = request.id;
                     let other_ids = request.other_id_list.unwrap();
                     let mut mem_data_links = $rpc_service::MEM_DATA_LINKS.lock().await;
@@ -241,11 +240,10 @@ macro_rules! link_grpc_client {
 
                 async fn unlink(
                     &self,
-                    request: tonic::Request<$crate::Id>,
+                    request: $crate::Id,
                 ) -> Result<tonic::Response<()>, tonic::Status> {
                     grpc_warn!("(unlink MOCK) {} client.", self.get_name());
                     grpc_debug!("(unlink MOCK) request: {:?}", request);
-                    let request = request.into_inner();
                     let id = request.id;
                     let mut mem_data_links = $rpc_service::MEM_DATA_LINKS.lock().await;
 
@@ -278,11 +276,11 @@ macro_rules! link_grpc_client {
 
                 async fn get_linked_ids(
                     &self,
-                    request: tonic::Request<$crate::Id>,
+                    request: $crate::Id,
                 ) -> Result<tonic::Response<$crate::IdList>, tonic::Status> {
                     grpc_warn!("(get_linked_ids MOCK) {} client.", self.get_name());
                     grpc_debug!("(get_linked_ids MOCK) request: {:?}", request);
-                    let id = request.into_inner().id;
+                    let id = request.id;
                     match $rpc_service::MEM_DATA_LINKS.lock().await.get(&id) {
                         Some(object) => Ok(tonic::Response::new(IdList { ids: object.clone() })),
                         _ => Err(tonic::Status::not_found("Not found")),
@@ -291,11 +289,11 @@ macro_rules! link_grpc_client {
 
                 async fn get_linked(
                     &self,
-                    request: tonic::Request<$crate::Id>,
+                    request: $crate::Id,
                 ) -> Result<tonic::Response<Self::List>, tonic::Status> {
                     grpc_warn!("(get_linked MOCK) {} client.", self.get_name());
                     grpc_debug!("(get_linked MOCK) request: {:?}", request);
-                    let id = request.into_inner().id;
+                    let id = request.id;
                     match $rpc_service::MEM_DATA_LINKS.lock().await.get(&id) {
                         Some(ids) => {
                             let mut objects: Vec<$link_service::Object> = vec![];
@@ -341,7 +339,7 @@ macro_rules! simple_grpc_client {
 
                 async fn get_by_id(
                     &self,
-                    request: tonic::Request<$crate::Id>,
+                    request: $crate::Id,
                 ) -> Result<tonic::Response<Self::Object>, tonic::Status> {
                     grpc_info!("(get_by_id) {} client.", self.get_name());
                     grpc_debug!("(get_by_id) request: {:?}", request);
@@ -350,7 +348,7 @@ macro_rules! simple_grpc_client {
 
                 async fn search(
                     &self,
-                    request: tonic::Request<$crate::AdvancedSearchFilter>,
+                    request: $crate::AdvancedSearchFilter,
                 ) -> Result<tonic::Response<Self::List>, tonic::Status> {
                     grpc_info!("(search) {} client.", self.get_name());
                     grpc_debug!("(search) request: {:?}", request);
@@ -360,7 +358,7 @@ macro_rules! simple_grpc_client {
 
                 async fn insert(
                     &self,
-                    request: tonic::Request<Self::Data>,
+                    request: Self::Data,
                 ) -> Result<tonic::Response<Self::Response>, tonic::Status> {
                     grpc_info!("(insert) {} client.", self.get_name());
                     grpc_debug!("(insert) request: {:?}", request);
@@ -369,7 +367,7 @@ macro_rules! simple_grpc_client {
 
                 async fn update(
                     &self,
-                    request: tonic::Request<Self::UpdateObject>,
+                    request: Self::UpdateObject,
                 ) -> Result<tonic::Response<Self::Response>, tonic::Status> {
                     grpc_info!("(update) {} client.", self.get_name());
                     grpc_debug!("(update) request: {:?}", request);
@@ -378,7 +376,7 @@ macro_rules! simple_grpc_client {
 
                 async fn delete(
                     &self,
-                    request: tonic::Request<$crate::Id>,
+                    request: $crate::Id,
                 ) -> Result<tonic::Response<()>, tonic::Status> {
                     grpc_info!("(delete) {} client.", self.get_name());
                     grpc_debug!("(delete) request: {:?}", request);
@@ -405,11 +403,11 @@ macro_rules! simple_grpc_client {
 
                 async fn get_by_id(
                     &self,
-                    request: tonic::Request<$crate::Id>,
+                    request: $crate::Id,
                 ) -> Result<tonic::Response<Self::Object>, tonic::Status> {
                     grpc_warn!("(get_by_id MOCK) {} client.", self.get_name());
                     grpc_debug!("(get_by_id MOCK) request: {:?}", request);
-                    let id = request.into_inner().id;
+                    let id = request.id;
                     match $rpc_service::MEM_DATA.lock().await.get(&id) {
                         Some(object) => Ok(tonic::Response::new(object.clone())),
                         _ => Err(tonic::Status::not_found("Not found")),
@@ -418,7 +416,7 @@ macro_rules! simple_grpc_client {
 
                 async fn search(
                     &self,
-                    request: tonic::Request<$crate::AdvancedSearchFilter>,
+                    request: $crate::AdvancedSearchFilter,
                 ) -> Result<tonic::Response<Self::List>, tonic::Status> {
                     grpc_warn!("(search MOCK) {} client.", self.get_name());
                     grpc_debug!("(search MOCK) request: {:?}", request);
@@ -430,15 +428,14 @@ macro_rules! simple_grpc_client {
 
                 async fn insert(
                     &self,
-                    request: tonic::Request<Self::Data>,
+                    request: Self::Data,
                 ) -> Result<tonic::Response<Self::Response>, tonic::Status> {
                     grpc_warn!("(insert MOCK) {} client.", self.get_name());
                     grpc_debug!("(insert MOCK) request: {:?}", request);
                     let mut mem_data = $rpc_service::MEM_DATA.lock().await;
-                    let data = request.into_inner();
                     let object = Self::Object {
                         id: uuid::Uuid::new_v4().to_string(),
-                        data: Some(data),
+                        data: Some(request),
                     };
                     let response = Self::Response {
                         object: Some(object.clone()),
@@ -453,17 +450,16 @@ macro_rules! simple_grpc_client {
 
                 async fn update(
                     &self,
-                    request: tonic::Request<Self::UpdateObject>,
+                    request: Self::UpdateObject,
                 ) -> Result<tonic::Response<Self::Response>, tonic::Status> {
                     grpc_warn!("(update MOCK) {} client.", self.get_name());
                     grpc_debug!("(update MOCK) request: {:?}", request);
-                    let update = request.into_inner();
-                    let id = update.id;
+                    let id = request.id;
                     match $rpc_service::MEM_DATA.lock().await.get_mut(&id) {
                         Some(object) => {
                             object.data = Some(
                                 Self::Data {
-                                    ..update.data.clone().unwrap()
+                                    ..request.data.clone().unwrap()
                                 }
                             );
 
@@ -483,12 +479,12 @@ macro_rules! simple_grpc_client {
 
                 async fn delete(
                     &self,
-                    request: tonic::Request<$crate::Id>,
+                    request: $crate::Id,
                 ) -> Result<tonic::Response<()>, tonic::Status> {
                     grpc_warn!("(delete MOCK) {} client.", self.get_name());
                     grpc_debug!("(delete MOCK) request: {:?}", request);
                     let mut mem_data = $rpc_service::MEM_DATA.lock().await;
-                    mem_data.remove(&request.into_inner().id);
+                    mem_data.remove(&request.id);
                     Ok(tonic::Response::new(()))
                 }
             }

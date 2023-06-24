@@ -26,9 +26,7 @@ pub async fn scenario(
     // Insert vertiports for each mock object
     for vertiport_data in data {
         println!("Starting insert vertiport");
-        let result = client
-            .insert(tonic::Request::new(vertiport_data.clone()))
-            .await;
+        let result = client.insert(vertiport_data.clone()).await;
 
         let expected = get_log_string("insert", name);
         println!("expected message: {}", expected);
@@ -53,7 +51,7 @@ pub async fn scenario(
     };
 
     // Check if all vertiports can be retrieved from the backend
-    let result = client.search(tonic::Request::new(not_deleted_filter)).await;
+    let result = client.search(not_deleted_filter).await;
     let expected = get_log_string("search", name);
     println!("expected message: {}", expected);
     assert!(logger.any(|log| check_log_string_matches(log, &expected)));
@@ -67,9 +65,9 @@ pub async fn scenario(
 
     // Check if we can get a single vertiport based on their id
     let result = client
-        .get_by_id(tonic::Request::new(Id {
+        .get_by_id(Id {
             id: vertiport_id.clone(),
-        }))
+        })
         .await;
 
     let expected = get_log_string("get_by_id", name);
@@ -83,9 +81,9 @@ pub async fn scenario(
 
     // Check if we can delete the vertiport
     let result = client
-        .delete(tonic::Request::new(Id {
+        .delete(Id {
             id: vertiport_id.clone(),
-        }))
+        })
         .await;
 
     let expected = get_log_string("delete", name);

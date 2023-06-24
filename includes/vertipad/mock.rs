@@ -1,5 +1,5 @@
-use super::super::GeoPoint;
 use super::Data;
+use crate::resources::grpc_geo_types::GeoPoint;
 use chrono::{Datelike, Duration, Local, NaiveDate, Timelike, Utc};
 use geo::algorithm::bounding_rect::BoundingRect;
 use geo::{Contains, Point, Polygon};

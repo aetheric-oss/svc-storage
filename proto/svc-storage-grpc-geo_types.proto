@@ -1,0 +1,35 @@
+syntax = "proto3";
+package grpc.geo_types;
+
+// Geo Location Point representation
+// https://mapscaping.com/latitude-x-or-y/
+message GeoPoint {
+    // longitude (x / horizontal / east-west)
+    // range: -180 - 180
+    double longitude = 1;
+    // latitude (y / vertical / north-south)
+    // range: -90 - 90
+    double latitude = 2;
+}
+
+// Geo Location Line representation
+message GeoLine {
+    // line start point as long/lat
+    GeoPoint start = 1;
+    // line end point as long/lat
+    GeoPoint end = 2;
+}
+
+// Geo Location Shape representation
+message GeoLineString {
+    // list of points
+    repeated GeoPoint points = 1;
+}
+
+// Geo Location Polygon representation
+message GeoPolygon {
+    // exterior
+    GeoLineString exterior = 1;
+    // interiors
+    repeated GeoLineString interiors = 2;
+}

@@ -26,10 +26,10 @@ pub async fn scenario(
     ids.push(users.list.pop().unwrap().id);
     ids.push(users.list.pop().unwrap().id);
     let result = link_client
-        .link(tonic::Request::new(super::group::GroupUsers {
+        .link(super::group::GroupUsers {
             id: groups.list[0].id.clone(),
             other_id_list: Some(IdList { ids }),
-        }))
+        })
         .await;
     let expected = get_log_string("link", name);
     println!("expected message: {}", expected);
@@ -42,10 +42,10 @@ pub async fn scenario(
     let mut ids = vec![];
     ids.push(users.list.pop().unwrap().id);
     let result = link_client
-        .link(tonic::Request::new(super::group::GroupUsers {
+        .link(super::group::GroupUsers {
             id: groups.list[0].id.clone(),
             other_id_list: Some(IdList { ids }),
-        }))
+        })
         .await;
     let expected = get_log_string("link", name);
     println!("expected message: {}", expected);
@@ -56,9 +56,9 @@ pub async fn scenario(
 
     // Get the linked list
     let result = link_client
-        .get_linked_ids(tonic::Request::new(Id {
+        .get_linked_ids(Id {
             id: groups.list[0].id.clone(),
-        }))
+        })
         .await;
     println!("{:?}", result);
     assert!(result.is_ok());
@@ -83,10 +83,10 @@ pub async fn scenario(
     let mut ids = vec![];
     ids.push(users.list.pop().unwrap().id);
     let result = link_client
-        .replace_linked(tonic::Request::new(super::group::GroupUsers {
+        .replace_linked(super::group::GroupUsers {
             id: groups.list[0].id.clone(),
             other_id_list: Some(IdList { ids }),
-        }))
+        })
         .await;
     let expected = get_log_string("replace_linked", name);
     println!("expected message: {}", expected);
@@ -97,9 +97,9 @@ pub async fn scenario(
 
     // Get the new linked list
     let result = link_client
-        .get_linked_ids(tonic::Request::new(Id {
+        .get_linked_ids(Id {
             id: groups.list[0].id.clone(),
-        }))
+        })
         .await;
     println!("{:?}", result);
     assert!(result.is_ok());

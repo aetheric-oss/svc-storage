@@ -12,7 +12,7 @@ use super::base::simple_resource::*;
 use super::base::{FieldDefinition, ResourceDefinition};
 use crate::common::ArrErr;
 use crate::grpc::{GrpcDataObjectType, GrpcField};
-use crate::resources::GeoPoint;
+use crate::resources::grpc_geo_types::GeoPoint;
 
 crate::build_generic_resource_impl_from!();
 

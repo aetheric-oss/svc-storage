@@ -26,7 +26,7 @@ pub async fn scenario(
     // Insert users for each mock object
     for user_data in data {
         println!("Starting insert user");
-        let result = client.insert(tonic::Request::new(user_data.clone())).await;
+        let result = client.insert(user_data.clone()).await;
 
         let expected = get_log_string("insert", name);
         println!("expected message: {}", expected);
@@ -47,9 +47,7 @@ pub async fn scenario(
     let users = List { list: user_objects };
 
     // Check if all users can be retrieved from the backend
-    let result = client
-        .search(tonic::Request::new(not_deleted_filter.clone()))
-        .await;
+    let result = client.search(not_deleted_filter.clone()).await;
     let expected = get_log_string("search", name);
     println!("expected message: {}", expected);
     assert!(logger.any(|log| check_log_string_matches(log, &expected)));
@@ -63,9 +61,9 @@ pub async fn scenario(
 
     // Check if we can get a single user based on their id
     let result = client
-        .get_by_id(tonic::Request::new(Id {
+        .get_by_id(Id {
             id: user_id.clone(),
-        }))
+        })
         .await;
 
     let expected = get_log_string("get_by_id", name);
@@ -79,9 +77,9 @@ pub async fn scenario(
 
     // Check if we can delete the user
     let result = client
-        .delete(tonic::Request::new(Id {
+        .delete(Id {
             id: user_id.clone(),
-        }))
+        })
         .await;
 
     let expected = get_log_string("delete", name);
@@ -92,7 +90,7 @@ pub async fn scenario(
     assert!(result.is_ok());
 
     // Get all users still left in the db
-    let result = client.search(tonic::Request::new(not_deleted_filter)).await;
+    let result = client.search(not_deleted_filter).await;
     let expected = get_log_string("search", name);
     println!("expected message: {}", expected);
     assert!(logger.any(|log| check_log_string_matches(log, &expected)));

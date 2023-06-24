@@ -288,7 +288,7 @@ impl TryFrom<Row> for Data {
 mod tests {
     use super::super::base::test_util::*;
     use super::*;
-    use crate::resources::GeoLineString;
+    use crate::resources::grpc_geo_types::GeoLineString;
 
     #[test]
     fn test_flight_plan_schema() {

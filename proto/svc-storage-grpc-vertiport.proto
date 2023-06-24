@@ -3,6 +3,7 @@ package grpc.vertiport;
 
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
+import "svc-storage-grpc-geo_types.proto";
 import "svc-storage-grpc.proto";
 
 // Response struct returning an [Object] on success and [ValidationResult] if invalid fields were provided
@@ -43,7 +44,7 @@ message Data {
     // additional description of the vertiport
     string description = 2;
     // geographical area location of the vertiport
-    grpc.GeoPolygon geo_location = 3;
+    grpc.geo_types.GeoPolygon geo_location = 3;
     // RRULE data string to indicate the vertipad's opening days and hours
     optional string schedule = 4;
     // timestamp of the date and time the vertiport has been created

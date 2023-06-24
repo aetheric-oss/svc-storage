@@ -21,30 +21,27 @@ where
     /// Wrapper for get_by_id function.
     async fn get_by_id(
         &self,
-        request: tonic::Request<crate::Id>,
+        request: crate::Id,
     ) -> Result<tonic::Response<Self::Object>, tonic::Status>;
 
     /// Wrapper for insert function.
     async fn insert(
         &self,
-        request: tonic::Request<Self::Data>,
+        request: Self::Data,
     ) -> Result<tonic::Response<Self::Response>, tonic::Status>;
 
     /// Wrapper for update function.
     async fn update(
         &self,
-        request: tonic::Request<Self::UpdateObject>,
+        request: Self::UpdateObject,
     ) -> Result<tonic::Response<Self::Response>, tonic::Status>;
 
     /// Wrapper for delete function.
-    async fn delete(
-        &self,
-        request: tonic::Request<crate::Id>,
-    ) -> Result<tonic::Response<()>, tonic::Status>;
+    async fn delete(&self, request: crate::Id) -> Result<tonic::Response<()>, tonic::Status>;
 
     /// Wrapper for search function.
     async fn search(
         &self,
-        request: tonic::Request<crate::AdvancedSearchFilter>,
+        request: crate::AdvancedSearchFilter,
     ) -> Result<tonic::Response<Self::List>, tonic::Status>;
 }

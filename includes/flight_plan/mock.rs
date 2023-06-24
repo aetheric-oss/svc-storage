@@ -1,5 +1,5 @@
 use super::{Data, FlightPriority, FlightStatus};
-use crate::resources::{GeoPoint, GeoLineString};
+use crate::resources::grpc_geo_types::{GeoLineString, GeoPoint};
 use chrono::naive::NaiveDate;
 use chrono::{Datelike, Duration, Local, Timelike, Utc};
 use rand::seq::SliceRandom;
@@ -78,7 +78,9 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
         latitude: start_point.latitude + flight_distance_meters as f64 / 111111.0,
     };
 
-    let path = GeoLineString { points: vec![start_point, end_point] };
+    let path = GeoLineString {
+        points: vec![start_point, end_point],
+    };
 
     // use a somewhat realistic duration based on the flight distance (+/- 100km per hour avg.)
     let avg_speed = rng.gen_range(95..105);

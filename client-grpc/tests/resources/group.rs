@@ -26,7 +26,7 @@ pub async fn scenario(
     // Insert groups for each mock object
     for group_data in data {
         println!("Starting insert group");
-        let result = client.insert(tonic::Request::new(group_data.clone())).await;
+        let result = client.insert(group_data.clone()).await;
 
         let expected = get_log_string("insert", name);
         println!("expected message: {}", expected);
@@ -52,7 +52,7 @@ pub async fn scenario(
         child_data.parent_group_id = Some(group.id.clone());
 
         println!("Inserting child group: {:?}", child_data);
-        let result = client.insert(tonic::Request::new(child_data.clone())).await;
+        let result = client.insert(child_data.clone()).await;
         println!("Child insert result: {:?}", result);
 
         let expected = get_log_string("insert", name);
@@ -78,9 +78,7 @@ pub async fn scenario(
     };
 
     // Check if all groups can be retrieved from the backend
-    let result = client
-        .search(tonic::Request::new(not_deleted_filter.clone()))
-        .await;
+    let result = client.search(not_deleted_filter.clone()).await;
     let expected = get_log_string("search", name);
     println!("expected message: {}", expected);
     assert!(logger.any(|log| check_log_string_matches(log, &expected)));
@@ -94,9 +92,9 @@ pub async fn scenario(
 
     // Check if we can get a single group based on their id
     let result = client
-        .get_by_id(tonic::Request::new(Id {
+        .get_by_id(Id {
             id: group_id.clone(),
-        }))
+        })
         .await;
 
     let expected = get_log_string("get_by_id", name);
@@ -110,9 +108,9 @@ pub async fn scenario(
 
     // Check if we can delete the group
     let result = client
-        .delete(tonic::Request::new(Id {
+        .delete(Id {
             id: group_id.clone(),
-        }))
+        })
         .await;
 
     let expected = get_log_string("delete", name);
@@ -123,7 +121,7 @@ pub async fn scenario(
     assert!(result.is_ok());
 
     // Get all groups still left in the db
-    let result = client.search(tonic::Request::new(not_deleted_filter)).await;
+    let result = client.search(not_deleted_filter).await;
     let expected = get_log_string("search", name);
     println!("expected message: {}", expected);
     assert!(logger.any(|log| check_log_string_matches(log, &expected)));

@@ -12,33 +12,195 @@ where
     /// The type expected for Linked Object structs.
     type LinkObject;
 
-    /// Wrapper for link function.
-    async fn link(
-        &self,
-        request: tonic::Request<Self::LinkObject>,
-    ) -> Result<tonic::Response<()>, tonic::Status>;
+    /// Links one or multiple objects with the main object.
+    ///
+    /// Takes a [`LinkObject`](Self::LinkObject) and uses the provided `id` field to determine
+    /// the unique id of the main object that needs to be linked.
+    /// Uses the provided `other_id_list` field to determine the unique ids of the
+    /// objects that needs to be linked to the main object.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
+    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided ids can not be converted to a [`uuid::Uuid`].
+    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if any error is returned from the db insert result.
+    /// Returns [`tonic::Status`] with [`tonic::Code::Unknown`] if the server is not ready.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lib_common::grpc::get_endpoint_from_env;
+    /// use svc_storage_client_grpc::{Clients, GrpcClient, IdList, LinkClient};
+    /// use svc_storage_client_grpc::user::*;
+    ///
+    /// async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    ///     let (host, port) = get_endpoint_from_env("SERVER_HOSTNAME", "SERVER_PORT_GRPC");
+    ///     let clients = svc_storage_client_grpc::Clients::new(host, port);
+    ///     let link_client = clients.user_group_link;
+    ///     let user_id = String::from("40ef6e51-c7db-4ce7-a806-a754d6baa641");
+    ///     let group_id = String::from("5dc9364e-0e5b-4156-b258-008037da242a");
+    ///     let result = link_client
+    ///         .link(UserGroups {
+    ///             id: user_id,
+    ///             other_id_list: Some(IdList { ids: vec![group_id] }),
+    ///         })
+    ///         .await;
+    ///     Ok(())
+    /// }
+    /// ```
+    async fn link(&self, request: Self::LinkObject) -> Result<tonic::Response<()>, tonic::Status>;
 
-    /// Wrapper for replace_linked function.
+    /// Replaces all linked objects with the newly provided data.
+    ///
+    /// Takes a [`LinkObject`](Self::LinkObject) and uses the provided `id` field to determine
+    /// the unique id of the main object that needs to be re-linked.
+    /// Uses the provided `other_id_list` field to determine the unique ids of the
+    /// objects that needs to be linked to the main object. All existing links
+    /// will be removed first.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
+    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided ids can not be converted to a [`uuid::Uuid`].
+    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if any error is
+    /// returned from any of the db results.
+    /// Returns [`tonic::Status`] with [`tonic::Code::Unknown`] if the server is not ready.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lib_common::grpc::get_endpoint_from_env;
+    /// use svc_storage_client_grpc::{Clients, GrpcClient, IdList, LinkClient};
+    /// use svc_storage_client_grpc::user::*;
+    ///
+    /// async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    ///     let (host, port) = get_endpoint_from_env("SERVER_HOSTNAME", "SERVER_PORT_GRPC");
+    ///     let clients = svc_storage_client_grpc::Clients::new(host, port);
+    ///     let link_client = clients.user_group_link;
+    ///     let user_id = String::from("40ef6e51-c7db-4ce7-a806-a754d6baa641");
+    ///     let group_id = String::from("5dc9364e-0e5b-4156-b258-008037da242a");
+    ///     let result = link_client
+    ///         .replace_linked(UserGroups {
+    ///             id: user_id,
+    ///             other_id_list: Some(IdList { ids: vec![group_id] }),
+    ///         })
+    ///         .await;
+    ///     Ok(())
+    /// }
+    /// ```
     async fn replace_linked(
         &self,
-        request: tonic::Request<Self::LinkObject>,
+        request: Self::LinkObject,
     ) -> Result<tonic::Response<()>, tonic::Status>;
 
-    /// Wrapper for unlink function.
-    async fn unlink(
-        &self,
-        request: tonic::Request<crate::Id>,
-    ) -> Result<tonic::Response<()>, tonic::Status>;
+    /// Removes all linked objects for the provided main object.
+    ///
+    /// Takes a [`Id`](crate::Id) and uses the provided `id` field to determine
+    /// the unique id of the main object that needs all its links to be removed.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
+    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided ids can not be converted to a [`uuid::Uuid`].
+    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if any error is returned from the db delete result.
+    /// Returns [`tonic::Status`] with [`tonic::Code::Unknown`] if the server is not ready.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lib_common::grpc::get_endpoint_from_env;
+    /// use svc_storage_client_grpc::{Clients, GrpcClient, Id, LinkClient};
+    /// use svc_storage_client_grpc::user::*;
+    ///
+    /// async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    ///     let (host, port) = get_endpoint_from_env("SERVER_HOSTNAME", "SERVER_PORT_GRPC");
+    ///     let clients = svc_storage_client_grpc::Clients::new(host, port);
+    ///     let link_client = clients.user_group_link;
+    ///     let user_id = String::from("40ef6e51-c7db-4ce7-a806-a754d6baa641");
+    ///     let group_id = String::from("5dc9364e-0e5b-4156-b258-008037da242a");
+    ///     let result = link_client
+    ///         .unlink(Id {
+    ///             id: user_id,
+    ///         })
+    ///         .await;
+    ///     Ok(())
+    /// }
+    /// ```
+    async fn unlink(&self, request: crate::Id) -> Result<tonic::Response<()>, tonic::Status>;
 
-    /// Wrapper for get_linked_ids function.
+    /// Returns all linked ids for the provided main object.
+    ///
+    /// Takes a [`Id`](crate::Id) and uses the provided `id` field to determine
+    /// the unique id of the main object that needs all its linked ids returned.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
+    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].
+    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if any error is returned from the db search result.
+    /// Returns [`tonic::Status`] with [`tonic::Code::Unknown`] if the server is not ready.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lib_common::grpc::get_endpoint_from_env;
+    /// use svc_storage_client_grpc::{Clients, GrpcClient, Id, LinkClient};
+    /// use svc_storage_client_grpc::user::*;
+    ///
+    /// async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    ///     let (host, port) = get_endpoint_from_env("SERVER_HOSTNAME", "SERVER_PORT_GRPC");
+    ///     let clients = svc_storage_client_grpc::Clients::new(host, port);
+    ///     let link_client = clients.user_group_link;
+    ///     let user_id = String::from("40ef6e51-c7db-4ce7-a806-a754d6baa641");
+    ///     let group_id = String::from("5dc9364e-0e5b-4156-b258-008037da242a");
+    ///     let result = link_client
+    ///         .get_linked_ids(Id {
+    ///             id: user_id,
+    ///         })
+    ///         .await;
+    ///     Ok(())
+    /// }
+    /// ```
     async fn get_linked_ids(
         &self,
-        request: tonic::Request<crate::Id>,
+        request: crate::Id,
     ) -> Result<tonic::Response<crate::IdList>, tonic::Status>;
 
-    /// Wrapper for get_linked function.
+    /// Returns all linked objects of the provided main object.
+    ///
+    /// Takes a [`Id`](crate::Id) and uses the provided `id` field to determine
+    /// the unique id of the main object that needs all its linked objects returned.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
+    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].
+    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if any error is returned from the db search result.
+    /// Returns [`tonic::Status`] with [`tonic::Code::Unknown`] if the server is not ready.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use lib_common::grpc::get_endpoint_from_env;
+    /// use svc_storage_client_grpc::{Clients, GrpcClient, Id, LinkClient};
+    /// use svc_storage_client_grpc::user::*;
+    ///
+    /// async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    ///     let (host, port) = get_endpoint_from_env("SERVER_HOSTNAME", "SERVER_PORT_GRPC");
+    ///     let clients = svc_storage_client_grpc::Clients::new(host, port);
+    ///     let link_client = clients.user_group_link;
+    ///     let user_id = String::from("40ef6e51-c7db-4ce7-a806-a754d6baa641");
+    ///     let group_id = String::from("5dc9364e-0e5b-4156-b258-008037da242a");
+    ///     let result = link_client
+    ///         .get_linked(Id {
+    ///             id: user_id,
+    ///         })
+    ///         .await;
+    ///     Ok(())
+    /// }
+    /// ```
     async fn get_linked(
         &self,
-        request: tonic::Request<crate::Id>,
+        request: crate::Id,
     ) -> Result<tonic::Response<Self::List>, tonic::Status>;
 }

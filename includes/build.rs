@@ -39,7 +39,7 @@ fn build_proto(
     // Make sure output dirs exists
     fs::create_dir_all(out_path)?;
 
-    // Compile each file separately so we can add type specific attributes
+    // Compile each resource file separately so we can add type specific attributes
     for resource_type in get_types() {
         let mut builder = get_grpc_builder_config(&format!("{}/{}", cur_dir, "../out/grpc/"));
         if client {
@@ -52,8 +52,10 @@ fn build_proto(
             .compile(&[get_file(proto_dir, resource_type)], &[proto_dir])?;
     }
 
+    // Compile resource service files
     let service_files = get_service_files(proto_dir);
     let mut builder = get_grpc_builder_config(&format!("{}/{}", cur_dir, out_path))
+        .extern_path(".grpc.geo_types", "crate::resources::grpc_geo_types")
         .extern_path(".grpc", "crate::resources");
     for service_type in get_types() {
         let service = format!("grpc.{}.service", service_type);
@@ -76,6 +78,10 @@ fn get_grpc_builder_config(out_path: &str) -> tonic_build::Builder {
         .emit_rerun_if_changed(true)
         .out_dir(out_path)
         .extern_path(".google.protobuf.Timestamp", "::prost_wkt_types::Timestamp")
+        .extern_path(".grpc.geo_types.GeoPoint", "GeoPoint")
+        .extern_path(".grpc.geo_types.GeoPolygon", "GeoPolygon")
+        .extern_path(".grpc.geo_types.GeoLineString", "GeoLineString")
+        .extern_path(".grpc.geo_types.GeoLine", "GeoLine")
         .type_attribute("Id", "#[derive(Eq)]")
         .type_attribute("SearchFilter", "#[derive(Eq)]")
         .type_attribute("AdvancedSearchFilter", "#[derive(Eq)]")
@@ -92,8 +98,6 @@ fn get_grpc_builder_config(out_path: &str) -> tonic_build::Builder {
         .type_attribute("AuthMethod", "#[derive(num_derive::FromPrimitive)]")
         .type_attribute("ReadyRequest", "#[derive(Eq, Copy)]")
         .type_attribute("ReadyResponse", "#[derive(Eq, Copy)]")
-        .type_attribute("GeoPoint", "#[derive(Copy)]")
-        .type_attribute("GeoLine", "#[derive(Copy)]")
 }
 
 fn add_utoipa_attributes(
@@ -190,24 +194,4 @@ fn add_utoipa_attributes(
             "Response",
             format!("#[schema(as = {}::Response)]", resource_type),
         )
-        .type_attribute(
-            "GeoPoint",
-            "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
-        )
-        .type_attribute("GeoPoint", "#[schema(as = super::GeoPoint)]")
-        .type_attribute(
-            "GeoLine",
-            "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
-        )
-        .type_attribute("GeoLine", "#[schema(as = super::GeoLine)]")
-        .type_attribute(
-            "GeoLineString",
-            "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
-        )
-        .type_attribute("GeoLineString", "#[schema(as = super::GeoLineString)]")
-        .type_attribute(
-            "GeoPolygon",
-            "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
-        )
-        .type_attribute("GeoPolygon", "#[schema(as = super::GeoPolygon)]")
 }

@@ -45,7 +45,7 @@ async fn get_vehicles() -> Result<vehicle::List, Status> {
             .results_per_page(50);
 
     println!("Retrieving list of vehicles");
-    match vehicle_client.search(tonic::Request::new(filter)).await {
+    match vehicle_client.search(filter).await {
         Ok(res) => Ok(res.into_inner()),
         Err(e) => Err(e),
     }
@@ -67,7 +67,7 @@ async fn generate_sample_vehicles(amount: i16, vertiports: &vertiport::List) -> 
             vehicle.last_vertiport_id = Some(vertiport_id.clone());
         }
 
-        match vehicle_client.insert(tonic::Request::new(vehicle)).await {
+        match vehicle_client.insert(vehicle).await {
             Ok(fp) => fp.into_inner(),
             Err(e) => panic!("Something went wrong inserting the vertiport: {}", e),
         };
@@ -96,7 +96,7 @@ async fn itinerary_scenario() -> Result<(), Status> {
     };
 
     itinerary_client
-        .insert(tonic::Request::new(data))
+        .insert(data)
         .await
         .expect("Itinerary client insert failed.");
 
@@ -110,7 +110,7 @@ async fn itinerary_scenario() -> Result<(), Status> {
 
     println!("Retrieving list of itineraries");
     let Ok(response) = itinerary_client
-        .search(tonic::Request::new(filter))
+        .search(filter)
         .await
     else {
         panic!("Unable to get itineraries!");
@@ -136,10 +136,7 @@ async fn itinerary_scenario() -> Result<(), Status> {
     )
     .page_number(1)
     .results_per_page(50);
-    let flight_plans = match flight_plan_client
-        .search(tonic::Request::new(fp_filter))
-        .await
-    {
+    let flight_plans = match flight_plan_client.search(fp_filter).await {
         Ok(res) => {
             let fps = res.into_inner();
             fps
@@ -170,10 +167,10 @@ async fn itinerary_scenario() -> Result<(), Status> {
     println!("Itinerary FlightPlan Link Client created");
 
     match link_client
-        .link(tonic::Request::new(ItineraryFlightPlans {
+        .link(ItineraryFlightPlans {
             id: itinerary_id.clone(),
             other_id_list: Some(IdList { ids: fp_ids }),
-        }))
+        })
         .await
     {
         Ok(_) => println!("Success linking itineraries."),
@@ -185,10 +182,10 @@ async fn itinerary_scenario() -> Result<(), Status> {
         let mut fp_ids = vec![];
         fp_ids.push(list.pop().unwrap().id);
         match link_client
-            .link(tonic::Request::new(ItineraryFlightPlans {
+            .link(ItineraryFlightPlans {
                 id: itinerary_id.clone(),
                 other_id_list: Some(IdList { ids: fp_ids }),
-            }))
+            })
             .await
         {
             Ok(_) => println!("Success linking additional flightplan to itinerary."),
@@ -198,9 +195,9 @@ async fn itinerary_scenario() -> Result<(), Status> {
 
     // Get the linked list
     match link_client
-        .get_linked_ids(tonic::Request::new(Id {
+        .get_linked_ids(Id {
             id: itinerary_id.clone(),
-        }))
+        })
         .await
     {
         Ok(result) => println!("Got linked flight_plan ids: {:?}", result),
@@ -214,10 +211,10 @@ async fn itinerary_scenario() -> Result<(), Status> {
             fp_ids.push(list.pop().unwrap().id);
         }
         match link_client
-            .replace_linked(tonic::Request::new(ItineraryFlightPlans {
+            .replace_linked(ItineraryFlightPlans {
                 id: itinerary_id.clone(),
                 other_id_list: Some(IdList { ids: fp_ids }),
-            }))
+            })
             .await
         {
             Ok(_) => println!("Success replacing linked flight_plans for itinerary."),
@@ -225,10 +222,7 @@ async fn itinerary_scenario() -> Result<(), Status> {
         }
 
         // Get the new linked list
-        match link_client
-            .get_linked_ids(tonic::Request::new(Id { id: itinerary_id }))
-            .await
-        {
+        match link_client.get_linked_ids(Id { id: itinerary_id }).await {
             Ok(result) => println!("Got linked flight_plan ids: {:?}", result),
             Err(e) => panic!("Could not get linked flight_plans for itinerary: {}", e),
         }
@@ -287,7 +281,7 @@ async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Insert data and get the UUID of the adsb entry
-    let Ok(response) = client.insert(tonic::Request::new(request_data)).await else {
+    let Ok(response) = client.insert(request_data).await else {
         panic!("Failed to insert data.");
     };
     let Some(object) = response.into_inner().object else {
@@ -305,7 +299,7 @@ async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
         payload: payload_2.clone().to_vec(),
     };
     // Insert data and get the UUID of the adsb entry
-    let Ok(response) = client.insert(tonic::Request::new(request_data)).await else {
+    let Ok(response) = client.insert(request_data).await else {
         panic!("Failed to insert data.");
     };
     let Some(object) = response.into_inner().object else {
@@ -330,10 +324,7 @@ async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
 
         println!("Retrieving list of adsb telemetry");
 
-        let response = client
-            .search(tonic::Request::new(filter.clone()))
-            .await
-            .unwrap();
+        let response = client.search(filter.clone()).await.unwrap();
         let mut l: adsb::List = response.into_inner();
 
         println!("{:?}", l.list);
@@ -358,10 +349,7 @@ async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
 
         println!("Retrieving list of adsb telemetry");
 
-        let response = client
-            .search(tonic::Request::new(filter.clone()))
-            .await
-            .unwrap();
+        let response = client.search(filter.clone()).await.unwrap();
         let mut l: adsb::List = response.into_inner();
 
         //assert_eq!(l.list.len(), 2);
@@ -385,10 +373,7 @@ async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
 
         println!("Retrieving list of adsb telemetry");
 
-        let response = client
-            .search(tonic::Request::new(filter.clone()))
-            .await
-            .unwrap();
+        let response = client.search(filter.clone()).await.unwrap();
         let l: adsb::List = response.into_inner();
         println!("{:?}", l.list);
 
@@ -414,10 +399,7 @@ async fn get_pilots() -> Result<pilot::List, Status> {
         .results_per_page(50);
 
     println!("Retrieving list of pilots");
-    let pilots = match pilot_client
-        .search(tonic::Request::new(filter.clone()))
-        .await
-    {
+    let pilots = match pilot_client.search(filter.clone()).await {
         Ok(res) => Ok(res.into_inner()),
         Err(e) => Err(e),
     };
@@ -445,10 +427,7 @@ async fn vertipad_scenario(vertiports: vertiport::List) -> Result<vertipad::List
         .results_per_page(50);
 
     println!("Retrieving list of vertipads");
-    let vertipads = match vertipad_client
-        .search(tonic::Request::new(filter.clone()))
-        .await
-    {
+    let vertipads = match vertipad_client.search(filter.clone()).await {
         Ok(res) => Ok(res.into_inner()),
         Err(e) => Err(e),
     };
@@ -459,7 +438,7 @@ async fn vertipad_scenario(vertiports: vertiport::List) -> Result<vertipad::List
         let mut vertipad = vertipad::mock::get_data_obj_for_vertiport(vertiport);
         vertipad.name = format!("First vertipad for {}", vertipad.vertiport_id.clone());
 
-        let new_vertipad = match vertipad_client.insert(tonic::Request::new(vertipad)).await {
+        let new_vertipad = match vertipad_client.insert(vertipad).await {
             Ok(fp) => fp.into_inner(),
             Err(e) => panic!("Something went wrong inserting the vertipad: {}", e),
         };
@@ -467,10 +446,7 @@ async fn vertipad_scenario(vertiports: vertiport::List) -> Result<vertipad::List
     }
 
     println!("Retrieving list of vertipads");
-    let vertipads: vertipad::List = vertipad_client
-        .search(tonic::Request::new(filter.clone()))
-        .await?
-        .into_inner();
+    let vertipads: vertipad::List = vertipad_client.search(filter.clone()).await?.into_inner();
 
     println!("Found vertipads: {:?}", vertipads);
 
@@ -478,7 +454,7 @@ async fn vertipad_scenario(vertiports: vertiport::List) -> Result<vertipad::List
         let vertipad = vertipads.list[0].clone();
         println!("Starting update vertipad");
         let update_vertipad_res = match vertipad_client
-            .update(tonic::Request::new(vertipad::UpdateObject {
+            .update(vertipad::UpdateObject {
                 id: vertipad.id.clone(),
                 data: Some(vertipad::Data {
                     occupied: true,
@@ -487,7 +463,7 @@ async fn vertipad_scenario(vertiports: vertiport::List) -> Result<vertipad::List
                 mask: Some(FieldMask {
                     paths: vec!["occupied".to_string()],
                 }),
-            }))
+            })
             .await
         {
             Ok(fp) => fp.into_inner(),
@@ -498,7 +474,7 @@ async fn vertipad_scenario(vertiports: vertiport::List) -> Result<vertipad::List
     }
 
     println!("Retrieving list of vertipads");
-    match vertipad_client.search(tonic::Request::new(filter)).await {
+    match vertipad_client.search(filter).await {
         Ok(res) => {
             let vertipads = res.into_inner();
             println!("Vertipads found: {:#?}", vertipads);
@@ -514,7 +490,7 @@ async fn generate_sample_vertiports() -> Result<vertiport::List, Status> {
     println!("Vertiport Client created");
 
     match vertiport_client
-        .insert(tonic::Request::new(vertiport::Data {
+        .insert(vertiport::Data {
             name: "My favorite port".to_string(),
             description: "Open during workdays and work hours only".to_string(),
             geo_location: Some(
@@ -531,7 +507,7 @@ async fn generate_sample_vertiports() -> Result<vertiport::List, Status> {
             schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
             created_at: None,
             updated_at: None,
-        }))
+        })
         .await
     {
         Ok(fp) => fp.into_inner(),
@@ -544,10 +520,7 @@ async fn generate_sample_vertiports() -> Result<vertiport::List, Status> {
         vertiport.name = format!("Mock vertiport {}", index);
 
         println!("Starting insert vertiport");
-        match vertiport_client
-            .insert(tonic::Request::new(vertiport))
-            .await
-        {
+        match vertiport_client.insert(vertiport).await {
             Ok(fp) => fp.into_inner(),
             Err(e) => panic!("Something went wrong inserting the vertiport: {}", e),
         };
@@ -566,10 +539,7 @@ async fn generate_sample_vertiports() -> Result<vertiport::List, Status> {
     .results_per_page(50);
 
     println!("Retrieving list of vertiports");
-    match vertiport_client
-        .search(tonic::Request::new(filter.clone()))
-        .await
-    {
+    match vertiport_client.search(filter.clone()).await {
         Ok(res) => {
             let vertiports = res.into_inner();
             println!("Vertiports found: {:#?}", vertiports);
@@ -601,10 +571,7 @@ async fn flight_plan_scenario(
     )
     .page_number(1)
     .results_per_page(50);
-    let fps = match flight_plan_client
-        .search(tonic::Request::new(fp_filter))
-        .await
-    {
+    let fps = match flight_plan_client.search(fp_filter).await {
         Ok(res) => Ok(res.into_inner().list),
         Err(e) => Err(e),
     };
@@ -632,10 +599,7 @@ async fn flight_plan_scenario(
         flight_plan.destination_vertipad_id = destination_vertipad_id.clone();
 
         println!("Starting insert flight plan");
-        match flight_plan_client
-            .insert(tonic::Request::new(flight_plan))
-            .await
-        {
+        match flight_plan_client.insert(flight_plan).await {
             Ok(fp) => fp.into_inner(),
             Err(e) => panic!("Something went wrong inserting the flight plan: {}", e),
         };
@@ -649,10 +613,7 @@ async fn flight_plan_scenario(
         flight_plan.destination_vertipad_id = destination_vertipad_id.clone();
 
         println!("Starting insert flight plan in the future");
-        match flight_plan_client
-            .insert(tonic::Request::new(flight_plan))
-            .await
-        {
+        match flight_plan_client.insert(flight_plan).await {
             Ok(fp) => fp.into_inner(),
             Err(e) => panic!("Something went wrong inserting the flight plan: {}", e),
         };
@@ -666,10 +627,7 @@ async fn flight_plan_scenario(
         flight_plan.destination_vertipad_id = destination_vertipad_id.clone();
 
         println!("Starting insert flight plan in the past");
-        match flight_plan_client
-            .insert(tonic::Request::new(flight_plan))
-            .await
-        {
+        match flight_plan_client.insert(flight_plan).await {
             Ok(fp) => fp.into_inner(),
             Err(e) => panic!("Something went wrong inserting the flight plan: {}", e),
         };
@@ -686,9 +644,7 @@ async fn flight_plan_scenario(
             scheduled_departure_max.to_string(),
         )
         .and_is_not_null("deleted_at".to_owned());
-    let flight_plans = flight_plan_client
-        .search(tonic::Request::new(time_filter))
-        .await?;
+    let flight_plans = flight_plan_client.search(time_filter).await?;
     println!(
         "RESPONSE Flight Plan Search with time restriction result: {:#?}",
         flight_plans
@@ -703,10 +659,7 @@ async fn flight_plan_scenario(
     flight_plan.flight_status = FlightStatus::Boarding as i32;
 
     println!("Starting insert flight plan");
-    let fp_result = match flight_plan_client
-        .insert(tonic::Request::new(flight_plan))
-        .await
-    {
+    let fp_result = match flight_plan_client.insert(flight_plan).await {
         Ok(fp) => fp.into_inner(),
         Err(e) => panic!("Something went wrong inserting the flight plan: {}", e),
     };
@@ -716,7 +669,7 @@ async fn flight_plan_scenario(
         let new_fp = fp_result.object.unwrap();
         println!("Created new flight plan: {:?}", new_fp);
         let update_fp_res = match flight_plan_client
-            .update(tonic::Request::new(flight_plan::UpdateObject {
+            .update(flight_plan::UpdateObject {
                 id: new_fp.id.clone(),
                 data: Some(flight_plan::Data {
                     flight_status: FlightStatus::InFlight as i32,
@@ -725,7 +678,7 @@ async fn flight_plan_scenario(
                 mask: Some(FieldMask {
                     paths: vec!["flight_status".to_string()],
                 }),
-            }))
+            })
             .await
         {
             Ok(fp) => fp.into_inner(),
@@ -738,10 +691,7 @@ async fn flight_plan_scenario(
         "flight_status".to_owned(),
         (FlightStatus::InFlight as i32).to_string(),
     );
-    match flight_plan_client
-        .search(tonic::Request::new(fp_filter))
-        .await
-    {
+    match flight_plan_client.search(fp_filter).await {
         Ok(res) => {
             let fps = res.into_inner();
             println!("Flight Plans with status [InFlight] found: {:#?}", fps);
@@ -777,9 +727,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let vertiport_filter = AdvancedSearchFilter::search_is_not_null("deleted_at".to_owned())
         .page_number(1)
         .results_per_page(50);
-    let vertiports = vertiport_client
-        .search(tonic::Request::new(vertiport_filter))
-        .await?;
+    let vertiports = vertiport_client.search(vertiport_filter).await?;
     println!("RESPONSE Vertiports={:#?}", vertiports.into_inner());
 
     // Play flight plan scenario

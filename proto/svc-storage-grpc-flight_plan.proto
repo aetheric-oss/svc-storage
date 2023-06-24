@@ -3,6 +3,7 @@ package grpc.flight_plan;
 
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
+import "svc-storage-grpc-geo_types.proto";
 import "svc-storage-grpc.proto";
 
 // Flight Status Enum
@@ -71,7 +72,7 @@ message Data {
     // cargo weight in grams per package
     repeated uint32 cargo_weight_grams = 3;
     // the path of the flight
-    grpc.GeoLineString path = 4;
+    grpc.geo_types.GeoLineString path = 4;
     // weather_conditions
     optional string weather_conditions = 5;
     // departure_vertiport_id UUID v4, only listed for get results, not needed for creation (known through pad_id)

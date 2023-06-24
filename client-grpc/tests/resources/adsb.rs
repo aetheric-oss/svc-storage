@@ -26,7 +26,7 @@ pub async fn scenario(
     // Insert messages for each mock object
     for adsb_data in data {
         println!("Starting insert adsb");
-        let result = client.insert(tonic::Request::new(adsb_data.clone())).await;
+        let result = client.insert(adsb_data.clone()).await;
 
         let expected = get_log_string("insert", name);
         println!("expected message: {}", expected);
@@ -49,7 +49,7 @@ pub async fn scenario(
     let messages = List { list: adsb_objects };
 
     // Check if all messages can be retrieved from the backend
-    let result = client.search(tonic::Request::new(message_filter)).await;
+    let result = client.search(message_filter).await;
     let expected = get_log_string("search", name);
     println!("expected message: {}", expected);
     assert!(logger.any(|log| check_log_string_matches(log, &expected)));
@@ -67,9 +67,9 @@ pub async fn scenario(
 
     // Check if we can get a single adsb based on their id
     let result = client
-        .get_by_id(tonic::Request::new(Id {
+        .get_by_id(Id {
             id: adsb_id.clone(),
-        }))
+        })
         .await;
 
     let expected = get_log_string("get_by_id", name);
@@ -83,9 +83,9 @@ pub async fn scenario(
 
     // Check if we can delete the adsb
     let result = client
-        .delete(tonic::Request::new(Id {
+        .delete(Id {
             id: adsb_id.clone(),
-        }))
+        })
         .await;
 
     let expected = get_log_string("delete", name);
@@ -147,7 +147,7 @@ pub async fn test_telemetry(
     };
 
     // Insert data and get the UUID of the adsb entry
-    let response = client.insert(tonic::Request::new(request_data)).await?;
+    let response = client.insert(request_data).await?;
     let Some(object) = response.into_inner().object else {
         panic!("Failed to return object.");
     };
@@ -163,7 +163,7 @@ pub async fn test_telemetry(
         payload: payload_2.clone().to_vec(),
     };
     // Insert data and get the UUID of the adsb entry
-    let response = client.insert(tonic::Request::new(request_data)).await?;
+    let response = client.insert(request_data).await?;
     let Some(object) = response.into_inner().object else {
         panic!("Failed to return object.");
     };
@@ -186,10 +186,7 @@ pub async fn test_telemetry(
 
         println!("Retrieving list of adsb telemetry");
 
-        let response = client
-            .search(tonic::Request::new(filter.clone()))
-            .await
-            .unwrap();
+        let response = client.search(filter.clone()).await.unwrap();
         let mut l: List = response.into_inner();
 
         println!("{:?}", l.list);
@@ -214,10 +211,7 @@ pub async fn test_telemetry(
 
         println!("Retrieving list of adsb telemetry");
 
-        let response = client
-            .search(tonic::Request::new(filter.clone()))
-            .await
-            .unwrap();
+        let response = client.search(filter.clone()).await.unwrap();
         let mut l: List = response.into_inner();
 
         //assert_eq!(l.list.len(), 2);
@@ -241,10 +235,7 @@ pub async fn test_telemetry(
 
         println!("Retrieving list of adsb telemetry");
 
-        let response = client
-            .search(tonic::Request::new(filter.clone()))
-            .await
-            .unwrap();
+        let response = client.search(filter.clone()).await.unwrap();
         let l: List = response.into_inner();
         println!("{:?}", l.list);
 
