@@ -1,5 +1,5 @@
-use super::super::GeoPoint;
 use super::Data;
+use crate::resources::grpc_geo_types::GeoPoint;
 use uuid::Uuid;
 
 /// Creates a new [Data] object with fields set with random data

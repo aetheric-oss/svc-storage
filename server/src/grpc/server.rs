@@ -3,7 +3,6 @@ use super::GrpcSimpleService;
 use crate::config::Config;
 use crate::resources::base::ResourceObject;
 use crate::shutdown_signal;
-use geo_types::{Coord, LineString, Point, Polygon};
 use std::net::SocketAddr;
 use tonic::transport::Server;
 use tonic::{Request, Status};
@@ -96,8 +95,57 @@ pub mod search {
 }
 pub use search::*;
 
-// Provide geo type conversions
-include!("../../../includes/geo_types.rs");
+/// Provide geo types and conversions
+pub mod grpc_geo_types {
+    pub use geo_types::{Coord, LineString, Point, Polygon};
+
+    /// Geo Location Point representation
+    /// <https://mapscaping.com/latitude-x-or-y/>
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, Copy, PartialEq, ::prost::Message)]
+    pub struct GeoPoint {
+        /// longitude (x / horizontal / east-west)
+        /// range: -180 - 180
+        #[prost(double, tag = "1")]
+        pub longitude: f64,
+        /// latitude (y / vertical / north-south)
+        /// range: -90 - 90
+        #[prost(double, tag = "2")]
+        pub latitude: f64,
+    }
+    /// Geo Location Line representation
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, Copy, PartialEq, ::prost::Message)]
+    pub struct GeoLine {
+        /// line start point as long/lat
+        #[prost(message, optional, tag = "1")]
+        pub start: ::core::option::Option<GeoPoint>,
+        /// line end point as long/lat
+        #[prost(message, optional, tag = "2")]
+        pub end: ::core::option::Option<GeoPoint>,
+    }
+    /// Geo Location Shape representation
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct GeoLineString {
+        /// list of points
+        #[prost(message, repeated, tag = "1")]
+        pub points: ::prost::alloc::vec::Vec<GeoPoint>,
+    }
+    /// Geo Location Polygon representation
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct GeoPolygon {
+        /// exterior
+        #[prost(message, optional, tag = "1")]
+        pub exterior: ::core::option::Option<GeoLineString>,
+        /// interiors
+        #[prost(message, repeated, tag = "2")]
+        pub interiors: ::prost::alloc::vec::Vec<GeoLineString>,
+    }
+
+    include!("../../../includes/geo_types.rs");
+}
 
 /// Starts the grpc servers for this microservice using the provided configuration
 ///

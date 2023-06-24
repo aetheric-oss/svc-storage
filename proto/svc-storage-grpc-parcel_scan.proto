@@ -2,6 +2,7 @@ syntax = "proto3";
 package grpc.parcel_scan;
 
 import "google/protobuf/field_mask.proto";
+import "svc-storage-grpc-geo_types.proto";
 import "svc-storage-grpc.proto";
 
 
@@ -46,7 +47,7 @@ message Data {
     string scanner_id = 2;
 
     // geographical location of the vertiport
-    grpc.GeoPoint geo_location = 3;
+    grpc.geo_types.GeoPoint geo_location = 3;
 }
 
 // Struct containing a `list` of parcel scan [Vec\<Object\>]

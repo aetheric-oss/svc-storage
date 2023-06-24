@@ -3,6 +3,7 @@ package grpc.vertipad;
 
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
+import "svc-storage-grpc-geo_types.proto";
 import "svc-storage-grpc.proto";
 
 // Response struct returning an [Object] on success and [ValidationResult] if invalid fields were provided
@@ -43,7 +44,7 @@ message Data {
     // human readable name of the vertipad
     string name = 2;
     // geographical location of the vertipad
-    grpc.GeoPoint geo_location = 3;
+    grpc.geo_types.GeoPoint geo_location = 3;
     // indicates if the vertipad is in business
     bool enabled = 4;
     // indicates if the vertipad is currently occupied

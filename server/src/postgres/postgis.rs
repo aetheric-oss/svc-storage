@@ -1,6 +1,6 @@
 //! Implement Postgis Traits for our own Structs
 
-use crate::resources::{GeoLineString, GeoPoint, GeoPolygon};
+use crate::grpc::server::grpc_geo_types::{GeoLineString, GeoPoint, GeoPolygon};
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 use bytes::{BufMut, BytesMut};
 use postgis::ewkb::*;
@@ -26,6 +26,7 @@ fn read_f64<R: Read>(raw: &mut R, is_be: bool) -> Result<f64, postgis::error::Er
         raw.read_f64::<LittleEndian>()?
     })
 }
+
 impl postgis::Point for GeoPoint {
     fn x(&self) -> f64 {
         self.longitude

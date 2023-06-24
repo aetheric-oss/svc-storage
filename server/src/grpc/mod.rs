@@ -9,8 +9,6 @@ mod link_service;
 mod simple_service;
 
 pub use crate::common::ArrErr;
-use crate::resources::{GeoLineString, GeoPoint, GeoPolygon};
-use geo_types::{LineString, Point, Polygon};
 pub use link_service::GrpcLinkService;
 pub use simple_service::GrpcSimpleService;
 
@@ -20,6 +18,8 @@ use std::time::SystemTime;
 use std::{fmt::Debug, vec};
 use tokio::runtime::{Handle, Runtime};
 use tonic::Status;
+
+use server::grpc_geo_types::*;
 
 /// gRPC field types
 #[derive(Debug, Clone, PartialEq)]

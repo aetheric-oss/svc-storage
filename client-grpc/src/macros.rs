@@ -33,13 +33,14 @@ macro_rules! grpc_client_mod {
             /// }
             /// ```
             pub mod $rpc_service {
-                include!(concat!("../out/grpc/client/grpc.", stringify!($rpc_service), ".rs"));
+                include!(concat!("../../out/grpc/client/grpc.", stringify!($rpc_service), ".rs"));
                 include!(concat!(
-                    "../out/grpc/client/grpc.",
+                    "../../out/grpc/client/grpc.",
                     stringify!($rpc_service),
                     ".service.rs"
                 ));
-                pub use $crate::resources::{IntoParams, ToSchema, Serialize, Deserialize};
+                pub use $crate::{IntoParams, ToSchema, Serialize, Deserialize};
+                pub use $crate::grpc_geo_types::*;
                 pub use rpc_service_client::RpcServiceClient;
                 use tonic::transport::Channel;
                 cfg_if::cfg_if! {
@@ -71,7 +72,7 @@ macro_rules! grpc_client_mod {
                 /// Will only be included if the `mock` feature is enabled
                 #[cfg(any(feature = "mock", test))]
                 pub mod mock {
-                    include!(concat!("../includes/", stringify!($rpc_service), "/mock.rs"));
+                    include!(concat!("../../includes/", stringify!($rpc_service), "/mock.rs"));
                 }
             }
         )+

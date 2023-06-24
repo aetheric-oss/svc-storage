@@ -343,6 +343,7 @@ macro_rules! grpc_server {
                 ".service.rs"
             ));
             pub use rpc_service_server::*;
+            pub use $crate::grpc::server::grpc_geo_types::*;
 
             #[doc = concat!(stringify!($resource), "module including mock file")]
 
