@@ -3,6 +3,7 @@ use super::GrpcSimpleService;
 use crate::config::Config;
 use crate::resources::base::ResourceObject;
 use crate::shutdown_signal;
+use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use tonic::transport::Server;
 use tonic::{Request, Status};
@@ -93,16 +94,16 @@ pub mod group_user {
 pub mod search {
     include!("../../../includes/search.rs");
 }
-pub use search::*;
 
 /// Provide geo types and conversions
 pub mod grpc_geo_types {
     pub use geo_types::{Coord, LineString, Point, Polygon};
+    use serde::{Deserialize, Serialize};
 
     /// Geo Location Point representation
     /// <https://mapscaping.com/latitude-x-or-y/>
     #[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, Copy, PartialEq, ::prost::Message)]
+    #[derive(Clone, Copy, PartialEq, ::prost::Message, Serialize, Deserialize)]
     pub struct GeoPoint {
         /// longitude (x / horizontal / east-west)
         /// range: -180 - 180
@@ -115,7 +116,7 @@ pub mod grpc_geo_types {
     }
     /// Geo Location Line representation
     #[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, Copy, PartialEq, ::prost::Message)]
+    #[derive(Clone, Copy, PartialEq, ::prost::Message, Serialize, Deserialize)]
     pub struct GeoLine {
         /// line start point as long/lat
         #[prost(message, optional, tag = "1")]
@@ -126,7 +127,7 @@ pub mod grpc_geo_types {
     }
     /// Geo Location Shape representation
     #[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    #[derive(Clone, PartialEq, ::prost::Message, Serialize, Deserialize)]
     pub struct GeoLineString {
         /// list of points
         #[prost(message, repeated, tag = "1")]
@@ -134,7 +135,7 @@ pub mod grpc_geo_types {
     }
     /// Geo Location Polygon representation
     #[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    #[derive(Clone, PartialEq, ::prost::Message, Serialize, Deserialize)]
     pub struct GeoPolygon {
         /// exterior
         #[prost(message, optional, tag = "1")]
@@ -152,16 +153,17 @@ pub mod grpc_geo_types {
 /// # Examples
 /// ```
 /// use svc_storage::common::ArrErr;
-/// use svc_storage::config::Config;
 /// use svc_storage::grpc::server::grpc_server;
+/// use svc_storage::Config;
 /// async fn example() -> Result<(), tokio::task::JoinError> {
 ///     let config = Config::default();
-///     tokio::spawn(grpc_server(config)).await
+///     tokio::spawn(grpc_server(config, None)).await
 /// }
 /// ```
 #[cfg(not(tarpaulin_include))]
-// no_coverage: Can not be tested in unittest, should be part of integration tests
-pub async fn grpc_server(config: Config) {
+// no_coverage: Can not be tested in unittest, should be part of integration
+// tests
+pub async fn grpc_server(config: Config, shutdown_rx: Option<tokio::sync::oneshot::Receiver<()>>) {
     grpc_debug!("(grpc_server) entry.");
 
     // GRPC Server
@@ -221,7 +223,11 @@ pub async fn grpc_server(config: Config) {
         .set_serving::<vertiport::RpcServiceServer<vertiport::GrpcServer>>()
         .await;
 
-    grpc_info!("Starting gRPC services on {}.", full_grpc_addr);
+    //start server
+    grpc_info!(
+        "(grpc_server) Starting gRPC services on: {}.",
+        full_grpc_addr
+    );
     match Server::builder()
         .add_service(health_service)
         .add_service(adsb::RpcServiceServer::new(adsb::GrpcServer::default()))
@@ -259,12 +265,12 @@ pub async fn grpc_server(config: Config) {
         .add_service(vertiport::RpcServiceServer::new(
             vertiport::GrpcServer::default(),
         ))
-        .serve_with_shutdown(full_grpc_addr, shutdown_signal("grpc"))
+        .serve_with_shutdown(full_grpc_addr, shutdown_signal("grpc", shutdown_rx))
         .await
     {
-        Ok(_) => grpc_info!("gRPC server running at: {}", full_grpc_addr),
+        Ok(_) => grpc_info!("(grpc_server) gRPC server running at: {}.", full_grpc_addr),
         Err(e) => {
-            grpc_error!("could not start gRPC server: {}", e);
+            grpc_error!("(grpc_server) Could not start gRPC server: {}", e);
         }
     };
 }

@@ -353,7 +353,6 @@ macro_rules! simple_grpc_client {
                     grpc_info!("(search) {} client.", self.get_name());
                     grpc_debug!("(search) request: {:?}", request);
                     self.get_client().await?.search(request).await
-
                 }
 
                 async fn insert(
@@ -420,8 +419,64 @@ macro_rules! simple_grpc_client {
                 ) -> Result<tonic::Response<Self::List>, tonic::Status> {
                     grpc_warn!("(search MOCK) {} client.", self.get_name());
                     grpc_debug!("(search MOCK) request: {:?}", request);
+                    let filters = request.filters;
+                    let list: Vec<Self::Object> = $rpc_service::MEM_DATA.lock().await.values().cloned().collect::<_>();
+
+                    if filters.len() == 0 {
+                        grpc_debug!("(search MOCK) no filters provided, returning all.");
+                        return Ok(tonic::Response::new(Self::List {
+                            list
+                        }));
+                    }
+
+                    let unfiltered = list.iter().map(|val| {
+                        serde_json::to_value(val).unwrap()
+                    }).collect::<Vec<serde_json::Value>>();
+                    grpc_debug!("(search MOCK) unfiltered serialized objects: {:?}", unfiltered);
+
+                    let mut collected: Vec<serde_json::Value> = vec![];
+                    for filter in filters {
+                        let operator: PredicateOperator =
+                            match PredicateOperator::from_i32(filter.predicate_operator) {
+                                Some(val) => val,
+                                None => {
+                                    return Err(tonic::Status::internal(format!(
+                                        "Can't convert i32 [{}] into PredicateOperator Enum value",
+                                        filter.predicate_operator
+                                    )));
+                                }
+                            };
+
+
+                        match filter.comparison_operator {
+                            Some(comparison_operator) => match ComparisonOperator::from_i32(comparison_operator) {
+                                Some(comparison_operator) => match comparison_operator {
+                                    ComparisonOperator::And => {
+                                        let unfiltered = collected.clone();
+                                        collected = vec![];
+                                        $crate::search::filter_for_operator(&filter.search_field, &filter.search_value, &unfiltered, &mut collected, operator).map_err(|e| tonic::Status::internal(format!("Could not get filtered values for provided filter: {}", e)))?
+                                    }
+                                    ComparisonOperator::Or => {
+                                        $crate::search::filter_for_operator(&filter.search_field, &filter.search_value, &unfiltered, &mut collected, operator).map_err(|e| tonic::Status::internal(format!("Could not get filtered values for provided filter: {}", e)))?
+                                    }
+                                }
+                                None => {
+                                    return Err(tonic::Status::internal(format!(
+                                        "Can't convert i32 [{}] into ComparisonOperator Enum value",
+                                        comparison_operator
+                                    )));
+                                }
+                            },
+                            None => $crate::search::filter_for_operator(&filter.search_field, &filter.search_value, &unfiltered, &mut collected, operator).map_err(|e| tonic::Status::internal(format!("Could not get filtered values for provided filter: {}", e)))?
+                        };
+                    }
+
+                    let filtered = collected.iter().map(|val| {
+                        let val: Self::Object = serde_json::from_value(val.clone()).unwrap();
+                        val
+                    }).collect::<Vec<Self::Object>>();
                     let response = Self::List {
-                        list: $rpc_service::MEM_DATA.lock().await.values().cloned().collect::<_>(),
+                        list: filtered
                     };
                     Ok(tonic::Response::new(response))
                 }

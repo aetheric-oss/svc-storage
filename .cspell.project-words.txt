@@ -92,3 +92,4 @@ ptype
 srid
 utoipa
 openapi
+oneshot
