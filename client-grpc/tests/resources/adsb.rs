@@ -49,6 +49,7 @@ pub async fn scenario(
     let messages = List { list: adsb_objects };
 
     // Check if all messages can be retrieved from the backend
+    println!("Starting search adsb");
     let result = client.search(message_filter).await;
     let expected = get_log_string("search", name);
     println!("expected message: {}", expected);
@@ -103,9 +104,9 @@ pub async fn test_telemetry(
     client: &GrpcClient<AdsbClient<Channel>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     use chrono::naive::NaiveDate;
-    use chrono::{Datelike, Duration, Local, Timelike, Utc};
+    use chrono::{Datelike, Duration, Timelike, Utc};
 
-    let now = Local::now();
+    let now = Utc::now();
     let now = match NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
         .unwrap_or_else(|| {
             panic!(

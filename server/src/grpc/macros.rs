@@ -314,7 +314,7 @@ macro_rules! grpc_server {
         pub mod $resource {
             #![allow(unused_qualifications)]
             use super::{
-                AdvancedSearchFilter, GrpcSimpleService, Id, Request, ResourceObject, Status
+                AdvancedSearchFilter, GrpcSimpleService, Id, Request, ResourceObject, Status, Serialize, Deserialize
             };
 
             cfg_if::cfg_if! {
@@ -464,8 +464,64 @@ macro_rules! grpc_server {
                 ) -> Result<tonic::Response<List>, Status> {
                     grpc_warn!("(search MOCK) {} server.", self.get_name());
                     grpc_debug!("(search MOCK) request: {:?}", request);
+                    let filters = request.into_inner().filters;
+                    let list: Vec<Object> = $crate::resources::$resource::MEM_DATA.lock().await.values().cloned().collect::<_>();
+
+                    if filters.len() == 0 {
+                        grpc_debug!("(search MOCK) no filters provided, returning all.");
+                        return Ok(tonic::Response::new(List {
+                            list
+                        }));
+                    }
+
+                    let unfiltered = list.iter().map(|val| {
+                        serde_json::to_value(val).unwrap()
+                    }).collect::<Vec<serde_json::Value>>();
+                    grpc_debug!("(search MOCK) unfiltered serialized objects: {:?}", unfiltered);
+
+                    let mut collected: Vec<serde_json::Value> = vec![];
+                    for filter in filters {
+                        let operator: super::PredicateOperator =
+                            match super::PredicateOperator::from_i32(filter.predicate_operator) {
+                                Some(val) => val,
+                                None => {
+                                    return Err(tonic::Status::internal(format!(
+                                        "Can't convert i32 [{}] into PredicateOperator Enum value",
+                                        filter.predicate_operator
+                                    )));
+                                }
+                            };
+
+
+                        match filter.comparison_operator {
+                            Some(comparison_operator) => match super::ComparisonOperator::from_i32(comparison_operator) {
+                                Some(comparison_operator) => match comparison_operator {
+                                    super::ComparisonOperator::And => {
+                                        let unfiltered = collected.clone();
+                                        collected = vec![];
+                                        $crate::grpc::server::search::filter_for_operator(&filter.search_field, &filter.search_value, &unfiltered, &mut collected, operator).map_err(|e| tonic::Status::internal(format!("Could not get filtered values for provided filter: {}", e)))?
+                                    }
+                                    super::ComparisonOperator::Or => {
+                                        $crate::grpc::server::search::filter_for_operator(&filter.search_field, &filter.search_value, &unfiltered, &mut collected, operator).map_err(|e| tonic::Status::internal(format!("Could not get filtered values for provided filter: {}", e)))?
+                                    }
+                                }
+                                None => {
+                                    return Err(tonic::Status::internal(format!(
+                                        "Can't convert i32 [{}] into ComparisonOperator Enum value",
+                                        comparison_operator
+                                    )));
+                                }
+                            },
+                            None => $crate::grpc::server::search::filter_for_operator(&filter.search_field, &filter.search_value, &unfiltered, &mut collected, operator).map_err(|e| tonic::Status::internal(format!("Could not get filtered values for provided filter: {}", e)))?
+                        };
+                    }
+
+                    let filtered = collected.iter().map(|val| {
+                        let val: Object = serde_json::from_value(val.clone()).unwrap();
+                        val
+                    }).collect::<Vec<Object>>();
                     let response = List {
-                        list: crate::resources::$resource::MEM_DATA.lock().await.values().cloned().collect::<_>(),
+                        list: filtered
                     };
                     Ok(tonic::Response::new(response))
                 }

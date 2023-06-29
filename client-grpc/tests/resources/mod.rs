@@ -3,6 +3,7 @@
 pub mod utils;
 
 pub mod adsb;
+pub mod flight_plan;
 pub mod group;
 pub mod group_user;
 pub mod user;
