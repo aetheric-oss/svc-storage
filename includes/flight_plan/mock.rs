@@ -1,7 +1,7 @@
 use super::{Data, FlightPriority, FlightStatus};
 use crate::resources::grpc_geo_types::{GeoLineString, GeoPoint};
 use chrono::naive::NaiveDate;
-use chrono::{Datelike, Duration, Local, Timelike, Utc};
+use chrono::{Datelike, Duration, Timelike, Utc};
 use rand::seq::SliceRandom;
 use rand::Rng;
 use uuid::Uuid;
@@ -43,7 +43,7 @@ pub fn get_past_data_obj() -> Data {
 }
 
 fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
-    let now = Local::now();
+    let now = Utc::now();
     let now = match NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
         .unwrap_or_else(|| {
             panic!(

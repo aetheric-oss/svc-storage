@@ -1,12 +1,9 @@
 //! Main function starting the gRPC server and initializing dependencies.
 
-use clap::Parser;
 use log::info;
-use svc_storage::config::Config;
-use svc_storage::grpc;
 use svc_storage::postgres::init::{create_db, recreate_db};
 use svc_storage::postgres::init_psql_pool;
-use svc_storage::Cli;
+use svc_storage::*;
 
 /// Main entry point: starts gRPC Server on specified address and port
 #[tokio::main]
@@ -49,7 +46,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Start GRPC Server
-    tokio::spawn(grpc::server::grpc_server(config)).await?;
+    tokio::spawn(grpc::server::grpc_server(config, None)).await?;
     info!("Server shutdown.");
 
     // Make sure all log message are written/ displayed before shutdown

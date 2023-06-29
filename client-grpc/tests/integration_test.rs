@@ -9,9 +9,7 @@ use resources::*;
 async fn test_client_requests_and_logs() {
     std::env::set_var("RUST_LOG", "debug");
 
-    let clients_result = utils::get_clients().await;
-    assert!(clients_result.is_ok());
-    let clients = clients_result.unwrap();
+    let clients = utils::get_clients().await;
 
     // Start the logger.
     let mut logger = Logger::start();
@@ -28,7 +26,7 @@ async fn test_client_requests_and_logs() {
 
     // generate 5 random messages
     let mut messages_data: Vec<adsb::Data> = vec![];
-    for _ in 1..5 {
+    for _ in 0..5 {
         let adsb = adsb::mock::get_data_obj();
         messages_data.push(adsb);
     }
@@ -41,9 +39,9 @@ async fn test_client_requests_and_logs() {
     //----------------------------------------------------
     // generate 5 random vertiports
     let mut vertiports_data: Vec<vertiport::Data> = vec![];
-    for index in 1..5 {
+    for index in 0..5 {
         let mut vertiport = vertiport::mock::get_data_obj();
-        vertiport.name = format!("Mock vertiport {}", index);
+        vertiport.name = format!("Mock vertiport {}", index + 1);
         vertiports_data.push(vertiport);
     }
 
@@ -63,7 +61,7 @@ async fn test_client_requests_and_logs() {
     }
 
     // play scenario
-    let _vertipads: vertipad::List =
+    let vertipads: vertipad::List =
         vertipad::scenario(&clients.vertipad, vertipads_data, &mut logger).await;
 
     //----------------------------------------------------
@@ -71,9 +69,9 @@ async fn test_client_requests_and_logs() {
     //----------------------------------------------------
     // generate 5 random vehicles
     let mut vehicles_data: Vec<vehicle::Data> = vec![];
-    for index in 1..5 {
+    for index in 0..5 {
         let mut vehicle = vehicle::mock::get_data_obj();
-        vehicle.description = Some(format!("Mock vehicle {}", index));
+        vehicle.description = Some(format!("Mock vehicle {}", index + 1));
         vehicles_data.push(vehicle);
     }
     for vertiport in vertiports.list {
@@ -84,17 +82,41 @@ async fn test_client_requests_and_logs() {
     }
 
     // play scenario
-    let _vehicles: vehicle::List =
+    let vehicles: vehicle::List =
         vehicle::scenario(&clients.vehicle, vehicles_data, &mut logger).await;
+
+    //----------------------------------------------------
+    // Flight Plans
+    //----------------------------------------------------
+    // generate 5 random future flight_plans
+    let mut flight_plans_data: Vec<flight_plan::Data> = vec![];
+    for _ in 0..5 {
+        let mut flight_plan = flight_plan::mock::get_future_data_obj();
+        flight_plan.departure_vertipad_id = vertipads.list[0].id.clone();
+        flight_plan.destination_vertipad_id = vertipads.list[1].id.clone();
+        flight_plan.vehicle_id = vehicles.list[0].id.clone();
+        flight_plans_data.push(flight_plan);
+    }
+    for _ in 0..5 {
+        let mut flight_plan = flight_plan::mock::get_past_data_obj();
+        flight_plan.departure_vertipad_id = vertipads.list[1].id.clone();
+        flight_plan.destination_vertipad_id = vertipads.list[0].id.clone();
+        flight_plan.vehicle_id = vehicles.list[1].id.clone();
+        flight_plans_data.push(flight_plan);
+    }
+
+    // play scenario
+    let _flight_plans: flight_plan::List =
+        flight_plan::scenario(&clients.flight_plan, flight_plans_data, &mut logger).await;
 
     //----------------------------------------------------
     // Users
     //----------------------------------------------------
     // generate mock users
     let mut users_data: Vec<user::Data> = vec![];
-    for index in 1..10 {
+    for index in 0..10 {
         let mut user = user::mock::get_data_obj();
-        user.display_name = format!("User {}", index);
+        user.display_name = format!("User {}", index + 1);
         users_data.push(user);
     }
 
@@ -106,9 +128,9 @@ async fn test_client_requests_and_logs() {
     //----------------------------------------------------
     // generate mock groups
     let mut groups_data: Vec<group::Data> = vec![];
-    for index in 1..10 {
+    for index in 0..10 {
         let mut group = group::mock::get_data_obj();
-        group.name = format!("group {}", index);
+        group.name = format!("group {}", index + 1);
         groups_data.push(group);
     }
 

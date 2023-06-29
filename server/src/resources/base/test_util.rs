@@ -5,6 +5,18 @@ use crate::grpc::{GrpcDataObjectType, GrpcField, GrpcFieldOption};
 use crate::postgres::simple_resource;
 use crate::resources::ValidationResult;
 use std::collections::HashMap;
+use std::sync::Once;
+
+static INIT_LOGGER: Once = Once::new();
+pub fn init_logger() {
+    INIT_LOGGER.call_once(|| {
+        let log_cfg: &str = "../log4rs.yaml";
+        if let Err(e) = log4rs::init_file(log_cfg, Default::default()) {
+            println!("(logger) could not parse {}. {}", log_cfg, e);
+            panic!();
+        }
+    });
+}
 
 /// Test struct providing all data types we need to convert between gRPC
 /// and Postgres

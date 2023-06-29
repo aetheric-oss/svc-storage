@@ -668,6 +668,294 @@ impl AdvancedSearchFilter {
     }
 }
 
+/// Helper function for search library to get a single value from the provided
+/// values field.
+// allow dead_code is added for the client library since it only needs this
+// function while using the stub_client feature. The server needs it at all
+// times though.
+#[allow(dead_code)]
+pub(crate) fn get_single_search_value(search_value: &Vec<String>) -> Result<String, String> {
+    log::debug!(
+        "(get_single_search_value) get value from: {:?}",
+        search_value
+    );
+    if search_value.len() == 1 {
+        Ok(search_value[0].clone())
+    } else {
+        Err(format!(
+            "Error in advanced search parameters. Expecting a single value, but got [{}] values",
+            search_value.len()
+        ))
+    }
+}
+
+#[cfg(any(feature = "stub_client", feature = "stub_server"))]
+pub(crate) fn filter_for_operator(
+    search_field: &str,
+    search_values: &Vec<String>,
+    unfiltered: &Vec<serde_json::Value>,
+    filtered: &mut Vec<serde_json::Value>,
+    operator: PredicateOperator,
+) -> Result<(), String> {
+    for object in unfiltered {
+        let val = match search_field {
+            "id" => &object[search_field],
+            _ => {
+                let data = &object["data"];
+                &data[search_field]
+            }
+        };
+
+        match operator {
+            PredicateOperator::Equals => {
+                let search_val: String = get_single_search_value(search_values)?;
+                let val = val.as_str().ok_or(format!(
+                    "Could not get string value for search_field [{}].",
+                    search_field
+                ))?;
+
+                if val == search_val {
+                    filtered.push(object.clone())
+                }
+            }
+            PredicateOperator::NotEquals => {
+                let search_val: String = get_single_search_value(search_values)?;
+                let val = val.as_str().ok_or(format!(
+                    "Could not get string value for search_field [{}].",
+                    search_field
+                ))?;
+
+                println!(
+                    "NotEquals filter with value [{}] for val [{}]",
+                    search_val, val
+                );
+                if val != search_val {
+                    println!("found!");
+                    filtered.push(object.clone())
+                }
+            }
+            PredicateOperator::In => {
+                println!(
+                    "In filter with values [{:?}] for val [{}]",
+                    search_values, val
+                );
+
+                let val = val.as_str().ok_or(format!(
+                    "Could not get string value for search_field [{}].",
+                    search_field
+                ))?;
+                for search_val in search_values {
+                    if val == search_val {
+                        println!("found!");
+                        filtered.push(object.clone())
+                    }
+                }
+            }
+            PredicateOperator::Between => {
+                println!(
+                    "Between filter with values [{:?}] for val [{}]",
+                    search_values, val
+                );
+                let mut values: std::collections::VecDeque<String> = search_values.clone().into();
+
+                let min = match values.pop_front() {
+                    Some(val) => val,
+                    None => {
+                        return Err("Error in advanced search parameters. Between operator is expecting 2 values but got zero.".to_string());
+                    }
+                };
+                let max = match values.pop_front() {
+                    Some(val) => val,
+                    None => {
+                        return Err("Error in advanced search parameters. Between operator is expecting 2 values but got only one.".to_string());
+                    }
+                };
+                println!(
+                    "Found min [{}] and max [{}] values to compare with.",
+                    min, max
+                );
+
+                if let Some(num_val) = val.as_f64() {
+                    println!("Can convert val to number, got [{}]", num_val);
+                    let num_min = min.parse::<f64>().map_err(|e| {
+                        format!("Could not convert search_value min [{}] to f64: {}", min, e)
+                    })?;
+                    let num_max = max.parse::<f64>().map_err(|e| {
+                        format!("Could not convert search_value max [{}] to f64: {}", max, e)
+                    })?;
+                    if num_val >= num_min && num_val <= num_max {
+                        println!("found!");
+                        filtered.push(object.clone())
+                    }
+                } else if let Ok(date_val) =
+                    lib_common::time::DateTime::parse_from_rfc3339(val.as_str().unwrap())
+                {
+                    println!("Can convert val to date, got [{}]", date_val);
+                    let date_min =
+                        lib_common::time::DateTime::parse_from_rfc3339(&min).map_err(|e| {
+                            format!(
+                                "Could not convert search_value min [{}] to date: {}",
+                                min, e
+                            )
+                        })?;
+
+                    let date_max =
+                        lib_common::time::DateTime::parse_from_rfc3339(&max).map_err(|e| {
+                            format!(
+                                "Could not convert search_value max [{}] to date: {}",
+                                min, e
+                            )
+                        })?;
+                    if date_val >= date_min && date_val <= date_max {
+                        println!("found!");
+                        filtered.push(object.clone())
+                    }
+                } else {
+                    println!(
+                        "Can't convert val [{}] to number or date, don't know what to do",
+                        &val.to_string()
+                    );
+                }
+            }
+            PredicateOperator::IsNull => {
+                println!("IsNull filter for value [{}]", val);
+                if val.is_null() {
+                    println!("found!");
+                    filtered.push(object.clone())
+                }
+            }
+            PredicateOperator::IsNotNull => {
+                println!("IsNotNull filter for value [{}]", val);
+                if !val.is_null() {
+                    println!("found!");
+                    filtered.push(object.clone())
+                }
+            }
+            PredicateOperator::Ilike => {
+                /*
+                filter_str = format!(
+                    r#" "{}"::text ILIKE ${}"#,
+                    search_col.col_name, next_param_index
+                );
+                search_col.set_value(get_single_search_value(values)?);
+                params.push(search_col.clone());
+                next_param_index += 1;
+                */
+            }
+            PredicateOperator::Like => {
+                /*
+                    filter_str = format!(
+                        r#" "{}"::text LIKE ${}"#,
+                        search_col.col_name, next_param_index
+                    );
+                    search_col.set_value(get_single_search_value(values)?);
+                    params.push(search_col.clone());
+                    next_param_index += 1;
+                */
+            }
+            PredicateOperator::Greater => {
+                let search_val: String = get_single_search_value(search_values)?;
+                let num_val = val
+                    .as_f64()
+                    .ok_or(format!("Could not convert value [{}] to f64.", val))?;
+
+                let num_search_val = search_val.parse::<f64>().map_err(|e| {
+                    format!(
+                        "Could not convert search_value [{}] to f64: {}",
+                        search_val, e
+                    )
+                })?;
+                if num_val > num_search_val {
+                    filtered.push(object.clone())
+                }
+            }
+            PredicateOperator::GreaterOrEqual => {
+                let search_val: String = get_single_search_value(search_values)?;
+                let num_val = val
+                    .as_f64()
+                    .ok_or(format!("Could not convert value [{}] to f64.", val))?;
+
+                let num_search_val = search_val.parse::<f64>().map_err(|e| {
+                    format!(
+                        "Could not convert search_value [{}] to f64: {}",
+                        search_val, e
+                    )
+                })?;
+                if num_val >= num_search_val {
+                    filtered.push(object.clone())
+                }
+            }
+            PredicateOperator::Less => {
+                let search_val: String = get_single_search_value(search_values)?;
+                let num_val = val
+                    .as_f64()
+                    .ok_or(format!("Could not convert value [{}] to f64.", val))?;
+
+                let num_search_val = search_val.parse::<f64>().map_err(|e| {
+                    format!(
+                        "Could not convert search_value [{}] to f64: {}",
+                        search_val, e
+                    )
+                })?;
+                if num_val < num_search_val {
+                    filtered.push(object.clone())
+                }
+            }
+            PredicateOperator::LessOrEqual => {
+                let search_val: String = get_single_search_value(search_values)?;
+                let num_val = val
+                    .as_f64()
+                    .ok_or(format!("Could not convert value [{}] to f64.", val))?;
+
+                let num_search_val = search_val.parse::<f64>().map_err(|e| {
+                    format!(
+                        "Could not convert search_value [{}] to f64: {}",
+                        search_val, e
+                    )
+                })?;
+                if num_val <= num_search_val {
+                    filtered.push(object.clone())
+                }
+            }
+            PredicateOperator::GeoIntersect => {
+                /*
+                    filter_str = format!(
+                        r#" st_intersect(st_geomfromtext(${}), "{}")"#,
+                        next_param_index, search_col.col_name,
+                    );
+                    search_col.set_value(get_single_search_value(values)?);
+                    params.push(search_col.clone());
+                    next_param_index += 1;
+                */
+            }
+            PredicateOperator::GeoWithin => {
+                /*
+                    filter_str = format!(
+                        r#" st_within(st_geomfromtext(${}), "{}")"#,
+                        next_param_index, search_col.col_name,
+                    );
+                    search_col.set_value(get_single_search_value(values)?);
+                    params.push(search_col.clone());
+                    next_param_index += 1;
+                */
+            }
+            PredicateOperator::GeoDisjoint => {
+                /*
+                    filter_str = format!(
+                        r#" st_disjoint(st_geomfromtext(${}), "{}")"#,
+                        next_param_index, search_col.col_name,
+                    );
+                    search_col.set_value(get_single_search_value(values)?);
+                    params.push(search_col.clone());
+                    next_param_index += 1;
+                */
+            }
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::super::SortOrder;

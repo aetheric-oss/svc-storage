@@ -1,6 +1,7 @@
 use super::{get_psql_pool, ArrErr, PsqlField, PsqlFieldType};
 use crate::grpc::server::{
-    AdvancedSearchFilter, ComparisonOperator, PredicateOperator, SortOption, SortOrder,
+    search::get_single_search_value, AdvancedSearchFilter, ComparisonOperator, PredicateOperator,
+    SortOption, SortOrder,
 };
 use crate::postgres::PsqlFieldSend;
 use crate::resources::base::Resource;
@@ -191,14 +192,14 @@ pub(crate) fn get_filter_str(
     match operator {
         PredicateOperator::Equals => {
             filter_str = format!(r#" "{}" = ${}"#, search_col.col_name, next_param_index);
-            let val: String = get_single_search_value(values)?;
+            let val: String = get_single_search_value(&values).map_err(ArrErr::Error)?;
             search_col.set_value(val);
             params.push(search_col.clone());
             next_param_index += 1;
         }
         PredicateOperator::NotEquals => {
             filter_str = format!(r#" "{}" <> ${}"#, search_col.col_name, next_param_index);
-            let val: String = get_single_search_value(values)?;
+            let val: String = get_single_search_value(&values).map_err(ArrErr::Error)?;
             search_col.set_value(val);
             params.push(search_col.clone());
             next_param_index += 1;
@@ -264,7 +265,7 @@ pub(crate) fn get_filter_str(
                 r#" "{}"::text ILIKE ${}"#,
                 search_col.col_name, next_param_index
             );
-            search_col.set_value(get_single_search_value(values)?);
+            search_col.set_value(get_single_search_value(&values).map_err(ArrErr::Error)?);
             params.push(search_col.clone());
             next_param_index += 1;
         }
@@ -273,34 +274,34 @@ pub(crate) fn get_filter_str(
                 r#" "{}"::text LIKE ${}"#,
                 search_col.col_name, next_param_index
             );
-            search_col.set_value(get_single_search_value(values)?);
+            search_col.set_value(get_single_search_value(&values).map_err(ArrErr::Error)?);
             params.push(search_col.clone());
             next_param_index += 1;
         }
         PredicateOperator::Greater => {
             filter_str = format!(r#" "{}" > ${}"#, search_col.col_name, next_param_index);
-            let val: String = get_single_search_value(values)?;
+            let val: String = get_single_search_value(&values).map_err(ArrErr::Error)?;
             search_col.set_value(val);
             params.push(search_col.clone());
             next_param_index += 1;
         }
         PredicateOperator::GreaterOrEqual => {
             filter_str = format!(r#" "{}" >= ${}"#, search_col.col_name, next_param_index);
-            let val: String = get_single_search_value(values)?;
+            let val: String = get_single_search_value(&values).map_err(ArrErr::Error)?;
             search_col.set_value(val);
             params.push(search_col.clone());
             next_param_index += 1;
         }
         PredicateOperator::Less => {
             filter_str = format!(r#" "{}" < ${}"#, search_col.col_name, next_param_index);
-            let val: String = get_single_search_value(values)?;
+            let val: String = get_single_search_value(&values).map_err(ArrErr::Error)?;
             search_col.set_value(val);
             params.push(search_col.clone());
             next_param_index += 1;
         }
         PredicateOperator::LessOrEqual => {
             filter_str = format!(r#" "{}" <= ${}"#, search_col.col_name, next_param_index);
-            let val: String = get_single_search_value(values)?;
+            let val: String = get_single_search_value(&values).map_err(ArrErr::Error)?;
             search_col.set_value(val);
             params.push(search_col.clone());
             next_param_index += 1;
@@ -310,7 +311,7 @@ pub(crate) fn get_filter_str(
                 r#" st_intersect(st_geomfromtext(${}), "{}")"#,
                 next_param_index, search_col.col_name,
             );
-            search_col.set_value(get_single_search_value(values)?);
+            search_col.set_value(get_single_search_value(&values).map_err(ArrErr::Error)?);
             params.push(search_col.clone());
             next_param_index += 1;
         }
@@ -319,7 +320,7 @@ pub(crate) fn get_filter_str(
                 r#" st_within(st_geomfromtext(${}), "{}")"#,
                 next_param_index, search_col.col_name,
             );
-            search_col.set_value(get_single_search_value(values)?);
+            search_col.set_value(get_single_search_value(&values).map_err(ArrErr::Error)?);
             params.push(search_col.clone());
             next_param_index += 1;
         }
@@ -328,7 +329,7 @@ pub(crate) fn get_filter_str(
                 r#" st_disjoint(st_geomfromtext(${}), "{}")"#,
                 next_param_index, search_col.col_name,
             );
-            search_col.set_value(get_single_search_value(values)?);
+            search_col.set_value(get_single_search_value(&values).map_err(ArrErr::Error)?);
             params.push(search_col.clone());
             next_param_index += 1;
         }
@@ -353,21 +354,6 @@ pub(crate) fn try_get_sort_str(sort_option: &SortOption) -> Result<String, ArrEr
         sort_option.sort_field,
         sort_order.as_str_name()
     ))
-}
-
-fn get_single_search_value(search_value: Vec<String>) -> Result<String, ArrErr> {
-    psql_debug!(
-        "(get_single_search_value) get value from: {:?}",
-        search_value
-    );
-    if search_value.len() == 1 {
-        Ok(search_value[0].clone())
-    } else {
-        Err(ArrErr::Error(format!(
-            "Error in advanced search parameters. Expecting a single value, but got [{}] values",
-            search_value.len()
-        )))
-    }
 }
 
 /// Converts the passed string value for a field into the right Sql type.

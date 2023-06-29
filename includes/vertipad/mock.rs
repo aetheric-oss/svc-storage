@@ -1,6 +1,6 @@
 use super::Data;
 use crate::resources::grpc_geo_types::GeoPoint;
-use chrono::{Datelike, Duration, Local, NaiveDate, Timelike, Utc};
+use chrono::{Datelike, Duration, NaiveDate, Timelike, Utc};
 use geo::algorithm::bounding_rect::BoundingRect;
 use geo::{Contains, Point, Polygon};
 use rand::seq::SliceRandom;
@@ -32,7 +32,7 @@ fn generate_random_point_in_polygon(polygon: &Polygon<f64>) -> Option<GeoPoint> 
 pub fn get_data_obj() -> Data {
     let vertiport_id = Uuid::new_v4().to_string();
     let mut rng = rand::thread_rng();
-    let now = Local::now();
+    let now = Utc::now();
     let now = match NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
         .unwrap_or_else(|| {
             panic!(
@@ -82,7 +82,7 @@ pub fn get_data_obj() -> Data {
 pub fn get_data_obj_for_vertiport(vertiport: super::super::vertiport::Object) -> Data {
     let mut rng = rand::thread_rng();
 
-    let now = Local::now();
+    let now = Utc::now();
     let now = match NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
         .unwrap_or_else(|| {
             panic!(

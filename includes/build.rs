@@ -98,6 +98,15 @@ fn get_grpc_builder_config(out_path: &str) -> tonic_build::Builder {
         .type_attribute("AuthMethod", "#[derive(num_derive::FromPrimitive)]")
         .type_attribute("ReadyRequest", "#[derive(Eq, Copy)]")
         .type_attribute("ReadyResponse", "#[derive(Eq, Copy)]")
+        // Add serde derive attributes for structs
+        .type_attribute("Id", "#[derive(Serialize, Deserialize)]")
+        .type_attribute("List", "#[derive(Serialize, Deserialize)]")
+        .type_attribute("IdList", "#[derive(Serialize, Deserialize)]")
+        .type_attribute("ValidationError", "#[derive(Serialize, Deserialize)]")
+        .type_attribute("ValidationResult", "#[derive(Serialize, Deserialize)]")
+        .type_attribute("Object", "#[derive(Serialize, Deserialize)]")
+        .type_attribute("Data", "#[derive(Serialize, Deserialize)]")
+        .type_attribute("Response", "#[derive(Serialize, Deserialize)]")
 }
 
 fn add_utoipa_attributes(
@@ -152,44 +161,20 @@ fn add_utoipa_attributes(
             "#[schema(schema_with = crate::timestamp_schema)]",
         )
         // Add utoipa derive attributes for structs
-        .type_attribute(
-            "Id",
-            "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
-        )
-        .type_attribute(
-            "List",
-            "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
-        )
+        .type_attribute("Id", "#[derive(ToSchema, IntoParams)]")
+        .type_attribute("List", "#[derive(ToSchema, IntoParams)]")
         .type_attribute("List", format!("#[schema(as = {}::List)]", resource_type))
-        .type_attribute(
-            "IdList",
-            "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
-        )
-        .type_attribute(
-            "ValidationError",
-            "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
-        )
-        .type_attribute(
-            "ValidationResult",
-            "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
-        )
-        .type_attribute(
-            "Object",
-            "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
-        )
+        .type_attribute("IdList", "#[derive(ToSchema, IntoParams)]")
+        .type_attribute("ValidationError", "#[derive(ToSchema, IntoParams)]")
+        .type_attribute("ValidationResult", "#[derive(ToSchema, IntoParams)]")
+        .type_attribute("Object", "#[derive(ToSchema, IntoParams)]")
         .type_attribute(
             "Object",
             format!("#[schema(as = {}::Object)]", resource_type),
         )
-        .type_attribute(
-            "Data",
-            "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
-        )
+        .type_attribute("Data", "#[derive(ToSchema, IntoParams)]")
         .type_attribute("Data", format!("#[schema(as = {}::Data)]", resource_type))
-        .type_attribute(
-            "Response",
-            "#[derive(Serialize, Deserialize, ToSchema, IntoParams)]",
-        )
+        .type_attribute("Response", "#[derive(ToSchema, IntoParams)]")
         .type_attribute(
             "Response",
             format!("#[schema(as = {}::Response)]", resource_type),

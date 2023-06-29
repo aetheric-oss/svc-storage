@@ -1,5 +1,5 @@
 use super::Data;
-use chrono::{Datelike, Duration, Local, NaiveDate, Timelike, Utc};
+use chrono::{Datelike, Duration, NaiveDate, Timelike, Utc};
 use rand::seq::SliceRandom;
 use rand::Rng;
 
@@ -12,7 +12,7 @@ RRULE:FREQ=WEEKLY;BYDAY=SA,SU";
 /// Creates a new [Data] object with fields set with random data
 pub fn get_data_obj() -> Data {
     let mut rng = rand::thread_rng();
-    let now = Local::now();
+    let now = Utc::now();
     let now = match NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
         .unwrap_or_else(|| {
             panic!(
