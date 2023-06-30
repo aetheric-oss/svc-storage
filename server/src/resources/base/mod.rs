@@ -11,9 +11,6 @@ use std::collections::HashMap;
 use tokio_postgres::types::Type as PsqlFieldType;
 use uuid::Uuid;
 
-#[cfg(test)]
-pub mod test_util;
-
 /// Generic trait providing useful functions for our resources
 pub trait Resource
 where

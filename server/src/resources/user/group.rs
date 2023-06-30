@@ -42,9 +42,13 @@ impl TryFrom<Row> for Data {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{config::Config, init_logger};
 
     #[test]
-    fn test_group_schema() {
+    fn test_user_group_schema() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+        unit_test_info!("test_user_group_schema validation");
+
         let definition = <ResourceObject<Data>>::get_definition();
         assert_eq!(definition.get_psql_table(), "user_group");
     }

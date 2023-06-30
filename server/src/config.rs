@@ -65,7 +65,7 @@ impl Config {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::{config::Config, init_logger};
 
     #[test]
     fn test_config_from_default() {
@@ -78,6 +78,9 @@ mod tests {
 
     #[test]
     fn test_config_from_env() {
+        // Make sure logger is initialized for tests before we mess with our env vars
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         std::env::set_var("DOCKER_PORT_GRPC", "6789");
         std::env::set_var("LOG_CONFIG", "config_file.yaml");
 

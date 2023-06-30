@@ -117,11 +117,14 @@ impl TryFrom<Row> for Data {
 
 #[cfg(test)]
 mod tests {
-    use super::super::base::test_util::*;
     use super::*;
+    use crate::{config::Config, init_logger, test_util::*};
 
     #[test]
     fn test_scanner_schema() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+        unit_test_info!("test_scanner_schema validation");
+
         let id = Uuid::new_v4().to_string();
         let data = mock::get_data_obj();
         let object: ResourceObject<Data> = Object {
@@ -134,14 +137,17 @@ mod tests {
         let result = <ResourceObject<Data> as PsqlType>::validate(&data);
         assert!(result.is_ok());
         if let Ok((sql_fields, validation_result)) = result {
-            println!("{:?}", sql_fields);
-            println!("{:?}", validation_result);
+            unit_test_info!("{:?}", sql_fields);
+            unit_test_info!("{:?}", validation_result);
             assert_eq!(validation_result.success, true);
         }
     }
 
     #[test]
     fn test_scanner_invalid_data() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+        unit_test_info!("test_scanner_invalid_data validation");
+
         let data = Data {
             organization_id: String::from("INVALID"),
             scanner_status: -1,
@@ -151,7 +157,7 @@ mod tests {
         let result = <ResourceObject<Data> as PsqlType>::validate(&data);
         assert!(result.is_ok());
         if let Ok((_, validation_result)) = result {
-            println!("{:?}", validation_result);
+            unit_test_info!("{:?}", validation_result);
             assert_eq!(validation_result.success, false);
 
             let expected_errors = vec!["organization_id", "scanner_status", "scanner_type"];

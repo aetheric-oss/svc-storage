@@ -376,14 +376,18 @@ pub(crate) fn try_get_sort_str(sort_option: &SortOption) -> Result<String, ArrEr
 pub(super) fn param_from_search_col(
     col: &SearchCol,
 ) -> Result<Box<dyn ToSql + Sync + Send>, ArrErr> {
-    let col_val = col.value.as_ref().ok_or({
-        let err = format!(
-            "(param_from_search_col) called while search col [{}] has no value",
-            col.col_name,
-        );
-        psql_error!("{}", err);
-        ArrErr::Error(err)
-    })?;
+    psql_debug!("(param_from_search_col) called for col: {:?}", col);
+    let col_val = match &col.value {
+        Some(val) => val,
+        None => {
+            let err = format!(
+                "(param_from_search_col) called while search col [{}] has no value",
+                col.col_name,
+            );
+            psql_error!("{}", err);
+            return Err(ArrErr::Error(err));
+        }
+    };
     match col.col_type {
         PsqlFieldType::BOOL => match col_val.parse::<bool>() {
             Ok(val) => Ok(Box::new(val)),
@@ -473,11 +477,13 @@ pub(super) fn param_from_search_col(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::resources::base::test_util::TestData;
     use crate::resources::base::ResourceObject;
+    use crate::{config::Config, init_logger, test_util::*};
 
     #[test]
     fn test_get_param_from_search_col() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         // Our TestData object should have fields for each possible field_type.
         // We'll use it to loop over all the fields and test the expected return
         // value for that type.
