@@ -15,14 +15,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = Config::try_from_env().unwrap_or_default();
 
     println!("{:?}", config);
-    // Start Logger
-    let log_cfg: &str = config.log_config.as_str();
-    if let Err(e) = log4rs::init_file(log_cfg, Default::default()) {
-        panic!(
-            "(logger) could not parse log config {} found in config {:?}: {}.",
-            log_cfg, config, e
-        );
-    }
+    init_logger(&config);
 
     info!("Running database initialization");
     init_psql_pool().await?;

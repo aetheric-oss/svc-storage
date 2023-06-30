@@ -469,9 +469,12 @@ fn validate_coord(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{config::Config, init_logger};
 
     #[test]
     fn test_validate_uuid_valid() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let mut errors: Vec<ValidationError> = vec![];
         let result = validate_uuid(
             String::from("some_id"),
@@ -484,6 +487,8 @@ mod tests {
 
     #[test]
     fn test_validate_uuid_invalid() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let mut errors: Vec<ValidationError> = vec![];
         let result = validate_uuid(String::from("some_id"), &String::from(""), &mut errors);
         assert!(result.is_none());
@@ -493,6 +498,8 @@ mod tests {
 
     #[test]
     fn test_validate_dt_valid() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let mut errors: Vec<ValidationError> = vec![];
         let timestamp = Timestamp {
             seconds: 0,
@@ -505,6 +512,8 @@ mod tests {
 
     #[test]
     fn test_validate_dt_invalid() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let mut errors: Vec<ValidationError> = vec![];
         let timestamp = Timestamp {
             seconds: -1,
@@ -518,6 +527,8 @@ mod tests {
 
     #[test]
     fn test_validate_point_valid() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let mut errors: Vec<ValidationError> = vec![];
         let point = Point::new(1.234, -1.234);
         let result = validate_point("point".to_string(), &point, &mut errors);
@@ -527,6 +538,8 @@ mod tests {
 
     #[test]
     fn test_validate_point_invalid() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let mut errors: Vec<ValidationError> = vec![];
         let point = Point::new(200.234, -190.234);
         let result = validate_point("point".to_string(), &point, &mut errors);
@@ -539,6 +552,8 @@ mod tests {
 
     #[test]
     fn test_validate_polygon_valid() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let mut errors: Vec<ValidationError> = vec![];
         let polygon = Polygon::new(
             LineString::from(vec![(40.123, -40.123), (41.123, -41.123)]),
@@ -551,6 +566,8 @@ mod tests {
 
     #[test]
     fn test_validate_polygon_invalid() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         // Not enough lines
         let mut errors: Vec<ValidationError> = vec![];
         let polygon = Polygon::new(LineString::from(vec![(400.123, -400.123)]), vec![]);
@@ -578,6 +595,8 @@ mod tests {
 
     #[test]
     fn test_validate_line_string_valid() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let mut errors: Vec<ValidationError> = vec![];
         let line = LineString::from(vec![(40.123, -40.123), (41.123, -41.123)]);
         let result = validate_line_string("line".to_string(), &line, &mut errors);
@@ -587,6 +606,8 @@ mod tests {
 
     #[test]
     fn test_validate_line_string_invalid() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let mut errors: Vec<ValidationError> = vec![];
         let line = LineString::from(vec![(400.123, -400.123)]);
         let result = validate_line_string("line".to_string(), &line, &mut errors);
