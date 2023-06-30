@@ -274,3 +274,27 @@ pub async fn grpc_server(config: Config, shutdown_rx: Option<tokio::sync::onesho
         }
     };
 }
+
+#[cfg(test)]
+mod tests {
+    #[cfg(not(any(feature = "stub_backends")))]
+    use super::*;
+    #[cfg(not(any(feature = "stub_backends")))]
+    use crate::{config::Config, init_logger};
+
+    #[cfg(not(any(feature = "stub_backends")))]
+    #[tokio::test]
+    async fn test_grpc_server_is_ready() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+        unit_test_info!("Testing adsb GrpcServer generic_insert function.");
+
+        let imp = adsb::GrpcServer::default();
+        let data = adsb::mock::get_data_obj();
+        let result = imp.generic_insert(Request::new(data)).await;
+        unit_test_info!("{:?}", result);
+        assert!(result.is_ok());
+        let adsb: adsb::Response = (result.unwrap()).into_inner();
+        assert!(adsb.object.is_some());
+        unit_test_info!("Test success.")
+    }
+}

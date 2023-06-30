@@ -349,11 +349,14 @@ pub fn get_runtime_handle() -> Result<Handle, ArrErr> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{config::Config, init_logger};
     use prost_wkt_types::Timestamp;
     use tonic::Status;
 
     #[test]
     fn test_from_arrerr_to_status() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         // Create an ArrErr instance with an error message
         let arr_err = ArrErr::Error("test error message".to_string());
         // Call the From<ArrErr> for Status implementation to convert the error
@@ -365,6 +368,8 @@ mod tests {
 
     #[test]
     fn test_from_grpc_field_to_bytes() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let bytes = vec![0x68, 0x65, 0x6c, 0x6c, 0x6f];
 
         // GrpcField into bytes
@@ -380,6 +385,8 @@ mod tests {
 
     #[test]
     fn test_from_grpc_field_to_string_list() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         // input vec, should return vec
         let field = GrpcField::StringList(vec!["hello".to_string(), "world".to_string()]);
         let result = Vec::<String>::from(field);
@@ -398,6 +405,8 @@ mod tests {
 
     #[test]
     fn test_from_grpc_field_to_string() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let string = String::from("hello");
 
         // GrpcField into String
@@ -422,6 +431,8 @@ mod tests {
 
     #[test]
     fn grpc_field_to_i64_vec() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let i64_vec = vec![1, -2, 3, -4];
 
         // GrpcField into Vec<i64>
@@ -451,6 +462,8 @@ mod tests {
 
     #[test]
     fn test_from_grpc_field_to_i64() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let i64 = -42;
 
         // GrpcField into i64
@@ -475,6 +488,8 @@ mod tests {
 
     #[test]
     fn test_from_grpc_field_to_f64() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let f64 = 42.42;
 
         // GrpcField into f64
@@ -499,6 +514,8 @@ mod tests {
 
     #[test]
     fn test_from_grpc_field_to_i32() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let i32 = -42;
 
         // GrpcField into i32
@@ -523,6 +540,8 @@ mod tests {
 
     #[test]
     fn test_from_grpc_field_to_u32() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let u32 = 42;
 
         // GrpcField into u32
@@ -547,6 +566,8 @@ mod tests {
 
     #[test]
     fn grpc_field_to_u32_vec() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let u32_vec = vec![1, 2, 3];
 
         // GrpcField into Vec<u32>
@@ -576,6 +597,8 @@ mod tests {
 
     #[test]
     fn test_from_grpc_field_to_f32() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let f32 = 42.42;
 
         // GrpcField into f32
@@ -600,6 +623,8 @@ mod tests {
 
     #[test]
     fn test_from_grpc_field_to_i16() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let i16 = -42;
 
         // GrpcField into i16
@@ -624,6 +649,8 @@ mod tests {
 
     #[test]
     fn test_from_grpc_field_to_bool() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let bool = true;
 
         // GrpcField into bool
@@ -648,6 +675,8 @@ mod tests {
 
     #[test]
     fn test_from_grpc_field_to_timestamp() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let timestamp = Timestamp::from(SystemTime::now());
         let field = GrpcField::Timestamp(timestamp.clone());
         assert_eq!(timestamp, Timestamp::from(field));
@@ -667,6 +696,8 @@ mod tests {
 
     #[test]
     fn test_from_grpc_field_to_point() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let point = Point::new(120.8, 45.12);
 
         // GrpcField into GeoPoint
@@ -686,6 +717,8 @@ mod tests {
 
     #[test]
     fn test_from_grpc_field_to_linestring() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let line_string = LineString::from(vec![(0.12, 1.23)]);
 
         // GrpcField into GeoLineString
@@ -705,6 +738,8 @@ mod tests {
 
     #[test]
     fn test_from_grpc_field_to_polygon() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let exterior = LineString::from(vec![(0.12, 1.23)]);
         let interiors = vec![
             LineString::from(vec![(0.11, 1.22)]),

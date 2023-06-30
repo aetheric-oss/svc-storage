@@ -754,12 +754,12 @@ fn get_path_sql_val(path_option: GrpcField) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::resources::base::test_util::{
-        get_invalid_test_data, get_valid_test_data, validate_test_data_sql_val, TestData,
-    };
+    use crate::{config::Config, init_logger, test_util::*};
 
     #[test]
     fn test_validate_invalid_object() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let invalid_data = get_invalid_test_data();
 
         let (_, validation_result) = match <ResourceObject<TestData>>::validate(&invalid_data) {
@@ -774,6 +774,8 @@ mod tests {
 
     #[test]
     fn test_get_insert_vars() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let uuid = Uuid::new_v4();
         let optional_uuid = Uuid::new_v4();
         let timestamp = Some(chrono::Utc::now().into());
@@ -850,6 +852,8 @@ mod tests {
 
     #[test]
     fn test_get_update_vars() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
         let uuid = Uuid::new_v4();
         let optional_uuid = Uuid::new_v4();
         let timestamp = Some(chrono::Utc::now().into());
