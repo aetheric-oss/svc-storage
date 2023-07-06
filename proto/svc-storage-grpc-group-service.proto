@@ -213,8 +213,9 @@ service RpcService {
     //     println!("Starting insert group");
     //     match group_client
     //     .insert(tonic::Request::new(Data {
-    //         first_name: "John".to_owned(),
-    //         last_name: "Doe".to_owned(),
+    //         name: "Europe group".to_owned(),
+    //         description: "All assets we control in Europe".to_owned(),
+    //         parent_group: None
     //     }))
     //     .await
     //     {
