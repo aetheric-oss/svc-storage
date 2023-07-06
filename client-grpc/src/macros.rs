@@ -61,7 +61,7 @@ macro_rules! grpc_client_mod {
 
                         lazy_static! {
                             /// In memory data used for mock client implementation
-                            pub static ref MEM_DATA: Mutex<HashMap<String, Object>> = Mutex::new(HashMap::new());
+                            pub static ref MEM_DATA: Mutex<Vec<Object>> = Mutex::new(Vec::new());
                             /// In memory data used for mock link client implementation
                             pub static ref MEM_DATA_LINKS: Mutex<HashMap<String, Vec<String>>> = Mutex::new(HashMap::new());
                         }
@@ -160,11 +160,13 @@ macro_rules! link_grpc_client {
                     let other_ids = request.other_id_list.unwrap();
                     let mut mem_data_links = $rpc_service::MEM_DATA_LINKS.lock().await;
 
-                    if !$rpc_service::MEM_DATA.lock().await.get(&id).is_some() {
+                    let mut resource_list = $rpc_service::MEM_DATA.lock().await.clone();
+                    resource_list.retain(|object| id == object.id);
+                    if resource_list.len() == 0 {
                         let error = format!(
-                            "No [{}] found for specified uuid: {}, got: {:?}",
+                            "No [{}] found for specified uuid: {}",
                             stringify!($rpc_service),
-                            id, $rpc_service::MEM_DATA.lock().await
+                            id
                         );
                         grpc_error!("(link MOCK) {}", error);
                         return Err(tonic::Status::not_found(error));
@@ -206,7 +208,9 @@ macro_rules! link_grpc_client {
                     let other_ids = request.other_id_list.unwrap();
                     let mut mem_data_links = $rpc_service::MEM_DATA_LINKS.lock().await;
 
-                    if !$rpc_service::MEM_DATA.lock().await.get(&id).is_some() {
+                    let mut resource_list = $rpc_service::MEM_DATA.lock().await.clone();
+                    resource_list.retain(|object| id == object.id);
+                    if resource_list.len() == 0 {
                         let error = format!(
                             "No [{}] found for specified uuid: {}",
                             stringify!($rpc_service),
@@ -247,7 +251,9 @@ macro_rules! link_grpc_client {
                     let id = request.id;
                     let mut mem_data_links = $rpc_service::MEM_DATA_LINKS.lock().await;
 
-                    if !$rpc_service::MEM_DATA.lock().await.get(&id).is_some() {
+                    let mut resource_list = $rpc_service::MEM_DATA.lock().await.clone();
+                    resource_list.retain(|object| object.id == id);
+                    if resource_list.len() == 0 {
                         let error = format!(
                             "No [{}] found for specified uuid: {}",
                             stringify!($rpc_service),
@@ -294,26 +300,33 @@ macro_rules! link_grpc_client {
                     grpc_warn!("(get_linked MOCK) {} client.", self.get_name());
                     grpc_debug!("(get_linked MOCK) request: {:?}", request);
                     let id = request.id;
+
+                    let mut resource_list = $rpc_service::MEM_DATA.lock().await.clone();
+                    resource_list.retain(|object| object.id == id);
+                    if resource_list.len() == 0 {
+                        let error = format!(
+                            "No [{}] found for specified uuid: {}",
+                            stringify!($rpc_service),
+                            id
+                        );
+                        grpc_error!("(get_linked MOCK) {}", error);
+                        return Err(tonic::Status::not_found(error));
+                    }
+
                     match $rpc_service::MEM_DATA_LINKS.lock().await.get(&id) {
                         Some(ids) => {
-                            let mut objects: Vec<$link_service::Object> = vec![];
-                            for id in ids {
-                                match $link_service::MEM_DATA.lock().await.get(id) {
-                                    Some(object) => {
-                                        objects.push(object.clone());
-                                    },
-                                    None => {
-                                        let error = format!(
-                                            "No [{}] found for specified uuid: {}",
-                                            stringify!($link_service),
-                                            id
-                                        );
-                                        grpc_error!("(get_linked MOCK) {}", error);
-                                        return Err(tonic::Status::not_found(error));
-                                    }
-                                }
+                            let mut other_resource_list = $link_service::MEM_DATA.lock().await.clone();
+                            other_resource_list.retain(|object| ids.contains(&object.id));
+                            if other_resource_list.len() == 0 {
+                                let error = format!(
+                                    "No [{}] found for specified uuid: {}",
+                                    stringify!($link_service),
+                                    id
+                                );
+                                grpc_error!("(get_linked MOCK) {}", error);
+                                return Err(tonic::Status::not_found(error));
                             }
-                            Ok(tonic::Response::new(Self::List { list: objects }))
+                            Ok(tonic::Response::new(Self::List { list: other_resource_list }))
                         },
                         _ => Err(tonic::Status::not_found("Not found")),
                     }
@@ -407,10 +420,19 @@ macro_rules! simple_grpc_client {
                     grpc_warn!("(get_by_id MOCK) {} client.", self.get_name());
                     grpc_debug!("(get_by_id MOCK) request: {:?}", request);
                     let id = request.id;
-                    match $rpc_service::MEM_DATA.lock().await.get(&id) {
-                        Some(object) => Ok(tonic::Response::new(object.clone())),
-                        _ => Err(tonic::Status::not_found("Not found")),
+                    let mut resource_list: Vec<Self::Object> = $rpc_service::MEM_DATA.lock().await.clone();
+                    resource_list.retain(|object| object.id == id);
+                    if resource_list.len() == 0 {
+                        let error = format!(
+                            "No [{}] found for specified uuid: {}",
+                            stringify!($resource),
+                            id
+                        );
+                        grpc_error!("(get_by_id MOCK) {}", error);
+                        return Err(tonic::Status::not_found(error));
                     }
+
+                    Ok(tonic::Response::new(resource_list[0].clone()))
                 }
 
                 async fn search(
@@ -420,7 +442,7 @@ macro_rules! simple_grpc_client {
                     grpc_warn!("(search MOCK) {} client.", self.get_name());
                     grpc_debug!("(search MOCK) request: {:?}", request);
                     let filters = request.filters;
-                    let list: Vec<Self::Object> = $rpc_service::MEM_DATA.lock().await.values().cloned().collect::<_>();
+                    let list: Vec<Self::Object> = $rpc_service::MEM_DATA.lock().await.clone();
 
                     if filters.len() == 0 {
                         grpc_debug!("(search MOCK) no filters provided, returning all.");
@@ -499,7 +521,7 @@ macro_rules! simple_grpc_client {
                             errors: Vec::new()
                         })
                     };
-                    mem_data.insert(object.id.clone(), object.clone());
+                    mem_data.push(object.clone());
                     Ok(tonic::Response::new(response))
                 }
 
@@ -510,8 +532,9 @@ macro_rules! simple_grpc_client {
                     grpc_warn!("(update MOCK) {} client.", self.get_name());
                     grpc_debug!("(update MOCK) request: {:?}", request);
                     let id = request.id;
-                    match $rpc_service::MEM_DATA.lock().await.get_mut(&id) {
-                        Some(object) => {
+                    let mut list = $rpc_service::MEM_DATA.lock().await;
+                    for object in &mut *list {
+                        if object.id == id {
                             object.data = Some(
                                 Self::Data {
                                     ..request.data.clone().unwrap()
@@ -526,10 +549,10 @@ macro_rules! simple_grpc_client {
                                 }),
                             };
 
-                            Ok(tonic::Response::new(response))
-                        },
-                        _ => Err(tonic::Status::not_found("Not found")),
+                            return Ok(tonic::Response::new(response));
+                        }
                     }
+                    Err(tonic::Status::not_found("Not found"))
                 }
 
                 async fn delete(
@@ -538,8 +561,9 @@ macro_rules! simple_grpc_client {
                 ) -> Result<tonic::Response<()>, tonic::Status> {
                     grpc_warn!("(delete MOCK) {} client.", self.get_name());
                     grpc_debug!("(delete MOCK) request: {:?}", request);
-                    let mut mem_data = $rpc_service::MEM_DATA.lock().await;
-                    mem_data.remove(&request.id);
+                    let id = request.id;
+                    let mut list = $rpc_service::MEM_DATA.lock().await;
+                    list.retain(|object| object.id != id);
                     Ok(tonic::Response::new(()))
                 }
             }
