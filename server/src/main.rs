@@ -14,7 +14,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Will use default config settings if no environment vars are found.
     let config = Config::try_from_env().unwrap_or_default();
 
-    println!("{:?}", config);
     init_logger(&config);
 
     info!("Running database initialization");
