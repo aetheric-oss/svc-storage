@@ -69,8 +69,20 @@ service RpcService {
     //     .insert(tonic::Request::new(Data {
     //         name: "My favorite port".to_owned(),
     //         description: "Open during workdays and work hours only".to_owned(),
-    //         geo_location: Some(geo_types::Point::new(37.7746, -122.4194).into()),
     //         schedule: Some(CAL_WORKDAYS_8AM_6PM.to_owned()),
+    //         geo_location: Some(
+    //             geo_types::Polygon::new(
+    //                 geo_types::LineString::from(vec![
+    //                     (4.78565097, 53.01922827),
+    //                     (4.78650928, 53.01922827),
+    //                     (4.78607476, 53.01896366),
+    //                 ]),
+    //                 vec![],
+    //             )
+    //            .into(),
+    //         ),
+    //         created_at: None,
+    //         updated_at: None
     //     }))
     //     .await
     //     {

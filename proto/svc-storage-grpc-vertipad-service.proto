@@ -72,6 +72,8 @@ service RpcService {
     //         enabled: true,
     //         occupied: false,
     //         schedule: Some(CAL_WORKDAYS_8AM_6PM.to_owned()),
+    //         created_at: None,
+    //         updated_at: None
     //     }))
     //     .await
     //     {

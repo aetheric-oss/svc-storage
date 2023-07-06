@@ -51,7 +51,7 @@ service RpcService {
     // # Examples
     // ```
     // use std::time::SystemTime;
-    // use svc_storage_client_grpc::{AdsbClient, simple_service::Client, Id};
+    // use svc_storage_client_grpc::{AdsbClient, simple_service::Client, Id, Timestamp};
     // use svc_storage_client_grpc::adsb::{UpdateObject, Data};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
@@ -65,7 +65,7 @@ service RpcService {
     //     .insert(tonic::Request::new(Data {
     //         icao_address,
     //         message_type,
-    //         network_timestamp: Some(prost_types::Timestamp::from(SystemTime::now())),
+    //         network_timestamp: Some(Timestamp::from(SystemTime::now())),
     //         payload
     //     }))
     //     .await
