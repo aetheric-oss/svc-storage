@@ -9,22 +9,24 @@ message Id {
     string id = 1;
 }
 
+// repeated FieldValue representing id fields and their corresponding value
+message Ids {
+    // List of id field / value pairs
+    repeated FieldValue ids = 1;
+}
+
 // IdList type for passing a list of id strings
 message IdList {
     // ids
     repeated string ids = 1;
 }
 
-// SearchFilter
-message SearchFilter {
-    // search_field
-    string search_field = 1;
-    // search_value
-    string search_value = 2;
-    // page_number
-    int32 page_number = 3;  // Which page number do we want?
-    // results_per_page
-    int32 results_per_page = 4;  // Number of results to return per page.
+// Generic field/ value pair definition
+message FieldValue {
+    // field name as string
+    string field = 1;
+    // field value as string
+    string value = 2;
 }
 
 // Predicate operators which can be used for the [`FilterOption`]
