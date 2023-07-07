@@ -1,7 +1,6 @@
 //! Grpc Simple resource Traits
 
 pub use crate::common::ArrErr;
-use crate::resources::base::simple_resource::SimpleResource;
 
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -11,10 +10,12 @@ use uuid::Uuid;
 
 use super::server::*;
 use super::GrpcDataObjectType;
-use crate::postgres::linked_resource::PsqlType as PsqlLinkedType;
+use crate::postgres::linked_resource::PsqlType;
 use crate::postgres::simple_resource::PsqlType as PsqlSimpleType;
 use crate::postgres::PsqlSearch;
 use crate::resources::base::linked_resource::{LinkedResource, ObjectType};
+use crate::resources::base::simple_resource::SimpleResource;
+use crate::resources::base::Resource;
 
 /// Generic gRPC object traits to provide wrappers for common `Resource` functions
 ///
@@ -23,36 +24,80 @@ use crate::resources::base::linked_resource::{LinkedResource, ObjectType};
 /// V: `ResourceObject<Data>` combined resource Resource type
 /// W: `Data` combined resource Data type
 #[tonic::async_trait]
-pub trait GrpcLinkService<T, U, V, W>
+pub trait GrpcLinkService
 where
-    T: ObjectType<U>
-        + PsqlSimpleType
+    <Self as GrpcLinkService>::LinkedResourceObject: ObjectType<Self::LinkedData>
+        + PsqlType
         + PsqlSearch
-        + SimpleResource<U>
-        + From<Id>
+        + LinkedResource<Self::LinkedData>
+        + From<Ids>
+        + From<Self::LinkedData>
+        + Clone
         + Sync
         + Send
-        + Clone
         + 'static,
-    U: GrpcDataObjectType + TryFrom<Row> + 'static,
-    V: ObjectType<W>
-        + PsqlLinkedType
-        + LinkedResource<W>
+    <Self as GrpcLinkService>::LinkedData: GrpcDataObjectType + TryFrom<Row> + 'static,
+    <Self as GrpcLinkService>::ResourceObject: ObjectType<Self::Data>
+        + PsqlType
+        + PsqlSearch
+        + SimpleResource<Self::Data>
         + From<Id>
+        + From<Self::Data>
+        + Clone
         + Sync
         + Send
-        + Clone
         + 'static,
-    W: GrpcDataObjectType + TryFrom<Row> + 'static,
-    Status: From<<U as TryFrom<Row>>::Error>,
+    <Self as GrpcLinkService>::Data: GrpcDataObjectType + TryFrom<Row> + 'static,
+    <Self as GrpcLinkService>::OtherResourceObject: ObjectType<Self::OtherData>
+        + PsqlType
+        + PsqlSearch
+        + SimpleResource<Self::OtherData>
+        + From<Id>
+        + From<Self::OtherData>
+        + Clone
+        + Sync
+        + Send
+        + 'static,
+    <Self as GrpcLinkService>::OtherData: GrpcDataObjectType + TryFrom<Row> + 'static,
+    <Self as GrpcLinkService>::OtherList: TryFrom<Vec<Row>>,
+    Status: From<<Self::LinkedData as TryFrom<Row>>::Error>
+        + From<<Self::OtherList as TryFrom<Vec<Row>>>::Error>,
 {
+    /// The type expected for the ResourceObject<Data> type of the linked resource.
+    /// Must implement; ObjectType<Self::Data>, PsqlType, PsqlSearch,
+    /// LinkedResource<Self::Data>, From<Id>, From<Self::Data>,
+    /// From<Self::UpdateObject>, Clone, sync, send
+    type LinkedResourceObject;
+    /// The type expected for the Data struct of the linked resource.
+    /// Must implement; GrpcDataObjectType, TryFrom<Row>
+    type LinkedData;
+
+    /// The type expected for the ResourceObject<Data> type of the 'main' resource.
+    /// Must implement; ObjectType<Self::Data>, PsqlType, PsqlSearch,
+    /// SimpleResource<Self::Data>, From<Id>, From<Self::Data>,
+    /// From<Self::UpdateObject>, Clone, sync, send
+    type ResourceObject;
+    /// The type expected for the Data struct of the 'main' resource.
+    /// Must implement; GrpcDataObjectType, TryFrom<Row>
+    type Data;
+
+    /// The type expected for the ResourceObject<Data> type of the 'other' resource.
+    /// Must implement; ObjectType<Self::Data>, PsqlType, PsqlSearch,
+    /// SimpleResource<Self::Data>, From<Id>, From<Self::Data>,
+    /// From<Self::UpdateObject>, Clone, sync, send
+    type OtherResourceObject;
+    /// The type expected for the List struct of the 'other' resource.
+    /// Must implement; TryFrom<Vec<Row>>
+    type OtherList;
+    /// The type expected for the Data struct of the 'other' resource.
+    /// Must implement; GrpcDataObjectType, TryFrom<Row>
+    type OtherData;
+
     /// Returns an empty [`tonic`] gRCP [`Response`] on success
     ///
     /// Inserts new entries into the database for each `id`, `other_id` combination if they don't exist yet.
     /// When `replace` is set to `true`, all existing entries will be removed first.
     /// The existence of the provided resource `id` will be validated before insert.  
-    ///
-    /// X: `ResourceObject<other::Data>` resource type of 'other' resource being linked
     ///
     /// # Errors
     ///
@@ -60,17 +105,14 @@ where
     /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].  
     /// Returns [`Status`] with [`Code::Internal`] if any error is returned from the db search result.  
     ///
-    async fn generic_link<X>(
+    async fn generic_link(
         &self,
         id: String,
         other_ids: Vec<Uuid>,
         replace: bool,
-    ) -> Result<Response<()>, Status>
-    where
-        X: PsqlSimpleType + Send + 'static,
-    {
-        let id_field = <T as PsqlSimpleType>::try_get_id_field()?;
-        let other_id_field = <X as PsqlSimpleType>::try_get_id_field()?;
+    ) -> Result<Response<()>, Status> {
+        let id_field = Self::ResourceObject::try_get_id_field()?;
+        let other_id_field = Self::OtherResourceObject::try_get_id_field()?;
 
         let id: Uuid = match Uuid::from_str(&id) {
             Ok(uuid) => uuid,
@@ -83,10 +125,10 @@ where
                 return Err(Status::new(Code::NotFound, error));
             }
         };
-        if T::get_by_id(&id).await.is_err() {
+        if Self::ResourceObject::get_by_id(&id).await.is_err() {
             let error = format!(
                 "No [{}] found for specified uuid: {}",
-                T::get_psql_table(),
+                Self::ResourceObject::get_psql_table(),
                 id
             );
             grpc_error!("{}", error);
@@ -104,7 +146,7 @@ where
         if replace {
             replace_id_fields.insert(id_field.clone(), id);
         }
-        <V as PsqlLinkedType>::link_ids(ids, replace_id_fields).await?;
+        Self::LinkedResourceObject::link_ids(ids, replace_id_fields).await?;
 
         Ok(tonic::Response::new(()))
     }
@@ -112,26 +154,32 @@ where
     /// Returns an empty [`tonic`] gRCP [`Response`] on success
     ///
     /// Removes all entries from the link table for the given `id`.
-    /// The existence of the provided resource `id` will be validated before unlink.  
+    /// The existence of the provided resource `id` will be validated before unlink.
     ///
     /// # Errors
     ///
     /// Returns [`Status`] with [`Code::NotFound`] if no record exists for the given `id`.
-    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].  
+    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to valid [`uuid::Uuid`].  
     /// Returns [`Status`] with [`Code::Internal`] if any error is returned from the db search result.  
     ///
     async fn generic_unlink(&self, request: Request<Id>) -> Result<Response<()>, Status> {
         let id: Id = request.into_inner();
-        let resource: T = id.clone().into();
+        let resource: Self::ResourceObject = id.clone().into();
 
-        if T::get_by_id(&resource.try_get_uuid()?).await.is_err() {
-            let error = format!("No resource found for specified uuid: {}", id.id);
+        if Self::ResourceObject::get_by_id(&resource.try_get_uuid()?)
+            .await
+            .is_err()
+        {
+            let error = format!("No resource found for specified uuids: {:?}", id);
             grpc_error!("{}", error);
             return Err(Status::new(Code::NotFound, error));
         }
 
-        match V::delete_for_ids(
-            HashMap::from([(T::try_get_id_field()?, resource.try_get_uuid()?)]),
+        match Self::LinkedResourceObject::delete_for_ids(
+            HashMap::from([(
+                Self::ResourceObject::try_get_id_field()?,
+                resource.try_get_uuid()?,
+            )]),
             None,
         )
         .await
@@ -140,72 +188,46 @@ where
             Err(e) => Err(Status::new(Code::Internal, e.to_string())),
         }
     }
-
     /// Returns a [`tonic`] gRCP [`Response`] with [`IdList`] of found ids on success
     ///
     /// The existence of the provided resource `id` will be validated first.
     ///
-    /// X: `ResourceObject<other::Data>` Resource type of 'other' resource being linked
-    /// Y: `other::Data` Data type of 'other' resource being linked
-    ///
     /// # Errors
     ///
     /// Returns [`Status`] with [`Code::NotFound`] if no record exists for the given `id`.
     /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].  
     /// Returns [`Status`] with [`Code::Internal`] if any error is returned from the db search result.  
-    async fn generic_get_linked_ids<X, Y>(
-        &self,
-        request: Request<Id>,
-    ) -> Result<Response<IdList>, Status>
+    async fn generic_get_linked_ids(&self, request: Request<Id>) -> Result<Response<IdList>, Status>
     where
-        X: ObjectType<Y>
-            + PsqlSimpleType
-            + PsqlSearch
-            + SimpleResource<Y>
-            + Sync
-            + Send
-            + Clone
-            + 'static,
-        Y: GrpcDataObjectType + TryFrom<Row> + 'static,
+        Self: Send + 'async_trait,
     {
         let id: Id = request.into_inner();
-        let ids = Self::_get_linked::<X, Y>(id).await?;
+        let ids = Self::_get_linked(id).await?;
         Ok(tonic::Response::new(IdList { ids }))
     }
 
-    /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type `Z`.
+    /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type `[Self::OtherList]`.
     ///
     /// The existence of the provided resource `id` will be validated first.
-    ///
-    /// X: `ResourceObject<other::Data>` Resource type of 'other' resource being linked
-    /// Y: `other::Data` Data type of 'other' resource being linked
-    /// Z: `other::List` List type of 'other' resource being linked
     ///
     /// # Errors
     ///
     /// Returns [`Status`] with [`Code::NotFound`] if no record exists for the given `id`.
     /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].  
     /// Returns [`Status`] with [`Code::Internal`] if any error is returned from the db search result.  
-    async fn generic_get_linked<X, Y, Z>(&self, request: Request<Id>) -> Result<Response<Z>, Status>
+    async fn generic_get_linked(
+        &self,
+        request: Request<Id>,
+    ) -> Result<Response<Self::OtherList>, Status>
     where
-        X: ObjectType<Y>
-            + PsqlSimpleType
-            + PsqlSearch
-            + SimpleResource<Y>
-            + Sync
-            + Send
-            + Clone
-            + 'static,
-        Y: GrpcDataObjectType + TryFrom<Row> + 'static,
-        Z: TryFrom<Vec<Row>> + 'static,
-        Status: From<<Z as TryFrom<Vec<Row>>>::Error>,
+        Self: Send + 'async_trait,
     {
         let id: Id = request.into_inner();
-        let ids = Self::_get_linked::<X, Y>(id).await?;
-        let other_id_field = <X as PsqlSimpleType>::try_get_id_field()?;
+        let ids = Self::_get_linked(id).await?;
+        let other_id_field = Self::OtherResourceObject::try_get_id_field()?;
         let filter = AdvancedSearchFilter::search_in(other_id_field, ids);
 
-        match <X as PsqlSearch>::advanced_search(filter).await {
+        match Self::OtherResourceObject::advanced_search(filter).await {
             Ok(rows) => Ok(tonic::Response::new(rows.try_into()?)),
             Err(e) => Err(Status::new(Code::Internal, e.to_string())),
         }
@@ -213,22 +235,9 @@ where
 
     /// Internal function used for `generic_get_linked_ids` and `generic_get_linked`
     ///
-    /// X: `ResourceObject<other::Data>` Resource type of 'other' resource being linked
-    /// Y: `other::Data` Data type of 'other' resource being linked
-    async fn _get_linked<X, Y>(id: Id) -> Result<Vec<String>, ArrErr>
-    where
-        X: ObjectType<Y>
-            + PsqlSimpleType
-            + PsqlSearch
-            + SimpleResource<Y>
-            + Sync
-            + Send
-            + Clone
-            + 'static,
-        Y: GrpcDataObjectType + TryFrom<Row> + 'static,
-    {
-        let resource: T = id.clone().into();
-        if <T as PsqlSimpleType>::get_by_id(&resource.try_get_uuid()?)
+    async fn _get_linked(id: Id) -> Result<Vec<String>, ArrErr> {
+        let resource: Self::ResourceObject = id.clone().into();
+        if Self::ResourceObject::get_by_id(&resource.try_get_uuid()?)
             .await
             .is_err()
         {
@@ -237,14 +246,11 @@ where
             return Err(ArrErr::Error(error));
         }
 
-        match <V as PsqlLinkedType>::get_for_ids(HashMap::from([(
-            <T as PsqlSimpleType>::try_get_id_field()?,
-            id.try_into()?,
-        )]))
-        .await
-        {
+        let id_field = Self::ResourceObject::try_get_id_field()?;
+        let filter = AdvancedSearchFilter::search_equals(id_field, id.id);
+        match Self::LinkedResourceObject::advanced_search(filter).await {
             Ok(rows) => {
-                let other_id_field = <X as PsqlSimpleType>::try_get_id_field()?;
+                let other_id_field = Self::OtherResourceObject::try_get_id_field()?;
                 let mut ids = vec![];
                 for row in rows {
                     ids.push(row.get::<&str, Uuid>(other_id_field.as_str()).to_string());
