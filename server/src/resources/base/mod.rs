@@ -2,7 +2,9 @@
 
 pub mod linked_resource;
 pub mod simple_resource;
-use crate::grpc::server::{Id, IdList};
+pub mod simple_resource_linked;
+
+use crate::grpc::server::{Id, IdList, Ids};
 use crate::postgres::PsqlJsonValue;
 use crate::{common::ArrErr, grpc::GrpcDataObjectType};
 use core::fmt::Debug;
@@ -282,7 +284,19 @@ impl TryFrom<IdList> for Vec<Uuid> {
         Ok(uuid_list)
     }
 }
-
+impl TryFrom<Ids> for HashMap<String, Uuid> {
+    type Error = ArrErr;
+    fn try_from(ids: Ids) -> Result<Self, ArrErr> {
+        let mut uuid_hash = HashMap::new();
+        for id in ids.ids.iter() {
+            uuid_hash.insert(
+                id.field.clone(),
+                Uuid::try_parse(&id.value).map_err(ArrErr::UuidError)?,
+            );
+        }
+        Ok(uuid_hash)
+    }
+}
 impl TryFrom<PsqlJsonValue> for Vec<u32> {
     type Error = ArrErr;
     fn try_from(json_value: PsqlJsonValue) -> Result<Self, ArrErr> {

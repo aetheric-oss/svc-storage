@@ -25,6 +25,7 @@ fn get_types() -> Vec<String> {
         "vehicle".to_owned(),
         "vertipad".to_owned(),
         "vertiport".to_owned(),
+        "flight_plan_parcel".to_owned(),
     ]
 }
 
@@ -46,6 +47,10 @@ fn build_proto(
             builder = get_grpc_builder_config(&format!("{}/{}", cur_dir, "../out/grpc/client/"));
             builder = add_utoipa_attributes(builder, resource_type.clone());
         }
+        if resource_type == "flight_plan_parcel" {
+            builder = builder.type_attribute("Data", "#[derive(Copy)]")
+        }
+
         builder
             .build_server(false)
             .build_client(false)
@@ -100,13 +105,17 @@ fn get_grpc_builder_config(out_path: &str) -> tonic_build::Builder {
         .type_attribute("ReadyResponse", "#[derive(Eq, Copy)]")
         // Add serde derive attributes for structs
         .type_attribute("Id", "#[derive(Serialize, Deserialize)]")
-        .type_attribute("List", "#[derive(Serialize, Deserialize)]")
+        .type_attribute("Ids", "#[derive(Serialize, Deserialize)]")
         .type_attribute("IdList", "#[derive(Serialize, Deserialize)]")
+        .type_attribute("List", "#[derive(Serialize, Deserialize)]")
+        .type_attribute("RowDataList", "#[derive(Serialize, Deserialize)]")
         .type_attribute("ValidationError", "#[derive(Serialize, Deserialize)]")
         .type_attribute("ValidationResult", "#[derive(Serialize, Deserialize)]")
         .type_attribute("Object", "#[derive(Serialize, Deserialize)]")
         .type_attribute("Data", "#[derive(Serialize, Deserialize)]")
+        .type_attribute("RowData", "#[derive(Serialize, Deserialize)]")
         .type_attribute("Response", "#[derive(Serialize, Deserialize)]")
+        .type_attribute("FieldValue", "#[derive(Serialize, Deserialize)]")
 }
 
 fn add_utoipa_attributes(
@@ -161,9 +170,15 @@ fn add_utoipa_attributes(
             "#[schema(schema_with = crate::timestamp_schema)]",
         )
         // Add utoipa derive attributes for structs
+        .type_attribute("FieldValue", "#[derive(ToSchema, IntoParams)]")
         .type_attribute("Id", "#[derive(ToSchema, IntoParams)]")
         .type_attribute("List", "#[derive(ToSchema, IntoParams)]")
         .type_attribute("List", format!("#[schema(as = {}::List)]", resource_type))
+        .type_attribute("RowDataList", "#[derive(ToSchema, IntoParams)]")
+        .type_attribute(
+            "RowDataList",
+            format!("#[schema(as = {}::RowDataList)]", resource_type),
+        )
         .type_attribute("IdList", "#[derive(ToSchema, IntoParams)]")
         .type_attribute("ValidationError", "#[derive(ToSchema, IntoParams)]")
         .type_attribute("ValidationResult", "#[derive(ToSchema, IntoParams)]")
@@ -174,6 +189,11 @@ fn add_utoipa_attributes(
         )
         .type_attribute("Data", "#[derive(ToSchema, IntoParams)]")
         .type_attribute("Data", format!("#[schema(as = {}::Data)]", resource_type))
+        .type_attribute("RowData", "#[derive(ToSchema, IntoParams)]")
+        .type_attribute(
+            "RowData",
+            format!("#[schema(as = {}::RowData)]", resource_type),
+        )
         .type_attribute("Response", "#[derive(ToSchema, IntoParams)]")
         .type_attribute(
             "Response",

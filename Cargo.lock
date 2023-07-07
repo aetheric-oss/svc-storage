@@ -2267,6 +2267,7 @@ dependencies = [
  "num-derive",
  "num-traits",
  "ordered-float 3.7.0",
+ "paste",
  "prost",
  "prost-types",
  "prost-wkt-types",
