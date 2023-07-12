@@ -9,9 +9,7 @@ use resources::*;
 async fn test_client_requests_and_logs() {
     std::env::set_var("RUST_LOG", "debug");
 
-    let clients_result = utils::get_clients().await;
-    assert!(clients_result.is_ok());
-    let clients = clients_result.unwrap();
+    let clients = utils::get_clients().await;
 
     // Start the logger.
     let mut logger = Logger::start();

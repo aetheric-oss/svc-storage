@@ -47,9 +47,10 @@ mod tests {
     #[test]
     fn test_user_group_schema() {
         init_logger(&Config::try_from_env().unwrap_or_default());
-        unit_test_info!("test_user_group_schema validation");
+        unit_test_info!("(test_user_group_schema) start");
 
         let definition = <ResourceObject<Data>>::get_definition();
         assert_eq!(definition.get_psql_table(), "user_group");
+        unit_test_info!("(test_user_group_schema) success");
     }
 }

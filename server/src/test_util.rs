@@ -10,6 +10,8 @@ use std::collections::HashMap;
 use tokio_postgres::types::Type as PsqlFieldType;
 use uuid::Uuid;
 
+pub use crate::postgres::util::validate;
+
 log_macros!("unit_test", "test::unit");
 
 /// Test struct providing all data types we need to convert between gRPC
@@ -563,7 +565,9 @@ fn test_field_type_matches_grpc_field(field_type: PsqlFieldType, grpc_field: Grp
         ),
         PsqlFieldType::FLOAT8 => assert!(matches!(grpc_field, GrpcField::F64(_))),
         PsqlFieldType::ANYENUM => assert!(matches!(grpc_field, GrpcField::I32(_))),
-        PsqlFieldType::INT4 => assert!(matches!(grpc_field, GrpcField::I32(_))),
+        PsqlFieldType::INT4 => assert!(
+            matches!(grpc_field, GrpcField::I32(_)) || matches!(grpc_field, GrpcField::U32(_))
+        ),
         PsqlFieldType::INT2 => assert!(matches!(grpc_field, GrpcField::I16(_))),
         PsqlFieldType::FLOAT4 => assert!(matches!(grpc_field, GrpcField::F32(_))),
         PsqlFieldType::BOOL => assert!(matches!(grpc_field, GrpcField::Bool(_))),

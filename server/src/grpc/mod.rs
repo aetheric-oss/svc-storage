@@ -7,10 +7,12 @@ pub mod server;
 
 mod link_service;
 mod simple_service;
+mod simple_service_linked;
 
 pub use crate::common::ArrErr;
 pub use link_service::GrpcLinkService;
 pub use simple_service::GrpcSimpleService;
+pub use simple_service_linked::GrpcSimpleServiceLinked;
 
 use anyhow::Error;
 use prost_wkt_types::Timestamp;

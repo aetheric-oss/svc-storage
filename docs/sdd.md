@@ -643,7 +643,6 @@ erDiagram
         uuid flight_plan_id PK
         uuid pilot_id FK
         uuid vehicle_id FK
-        json cargo_weight_grams
         geometry path "LINESTRING"
         text weather_conditions "Optional"
         uuid departure_vertipad_id FK
@@ -660,6 +659,13 @@ erDiagram
         timestamp created_at "Default NOW"
         timestamp updated_at "Default NOW"
         timestamp deleted_at "Optional Default NULL"
+    }
+    flight_plan_parcel {
+        combined flight_plan_id_parcel_id PK
+        uuid flight_plan_id FK
+        uuid parcel_id FK
+        bool acquire
+        bool deliver
     }
     itinerary {
         uuid itinerary_id PK
@@ -727,7 +733,8 @@ erDiagram
     }
     parcel {
         uuid parcel_id PK
-        uuid itinerary_id FK
+        uuid user_id FK
+        uint weight_grams
         text status "ENUM(NOTDROPPEDOFF,DROPPEDOFF,ENROUTE,ARRIVED,PICKEDUP,COMPLETE)"
         timestamp created_at "Default NOW"
         timestamp updated_at "Default NOW"
@@ -793,6 +800,8 @@ erDiagram
     vertipad }o--|| vertiport : vertiport_id
 
     parcel }o--o{ parcel_scan : parcel_id
-    parcel }o--o{ itinerary : itinerary_id
     scanner }o--o{ parcel_scan : scanner_id
+
+    flight_plan_parcel |o--|{ parcel : parcel_id
+    flight_plan_parcel |o--|| flight_plan : flight_plan_id
 ```

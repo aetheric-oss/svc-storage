@@ -788,22 +788,24 @@ pub(crate) fn filter_for_operator(
                         filtered.push(object.clone())
                     }
                 } else if let Ok(date_val) =
-                    chrono::DateTime::parse_from_rfc3339(val.as_str().unwrap())
+                    lib_common::time::DateTime::parse_from_rfc3339(val.as_str().unwrap())
                 {
                     println!("Can convert val to date, got [{}]", date_val);
-                    let date_min = chrono::DateTime::parse_from_rfc3339(&min).map_err(|e| {
-                        format!(
-                            "Could not convert search_value min [{}] to date: {}",
-                            min, e
-                        )
-                    })?;
+                    let date_min =
+                        lib_common::time::DateTime::parse_from_rfc3339(&min).map_err(|e| {
+                            format!(
+                                "Could not convert search_value min [{}] to date: {}",
+                                min, e
+                            )
+                        })?;
 
-                    let date_max = chrono::DateTime::parse_from_rfc3339(&max).map_err(|e| {
-                        format!(
-                            "Could not convert search_value max [{}] to date: {}",
-                            min, e
-                        )
-                    })?;
+                    let date_max =
+                        lib_common::time::DateTime::parse_from_rfc3339(&max).map_err(|e| {
+                            format!(
+                                "Could not convert search_value max [{}] to date: {}",
+                                min, e
+                            )
+                        })?;
                     if date_val >= date_min && date_val <= date_max {
                         println!("found!");
                         filtered.push(object.clone())

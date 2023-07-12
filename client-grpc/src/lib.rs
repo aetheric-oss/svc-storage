@@ -19,6 +19,8 @@ pub mod link_service;
 pub use link_service::Client as LinkClient;
 pub mod simple_service;
 pub use simple_service::Client as SimpleClient;
+pub mod simple_service_linked;
+pub use simple_service_linked::Client as SimpleLinkedClient;
 
 pub use lib_common::grpc::{Client, ClientConnect, GrpcClient};
 pub use resources::grpc_geo_types::*;

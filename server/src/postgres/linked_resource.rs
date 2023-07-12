@@ -16,51 +16,14 @@ use uuid::Uuid;
 #[tonic::async_trait]
 pub trait PsqlType
 where
-    Self: Resource + Clone + Sized,
+    Self: Resource + super::simple_resource::PsqlType + Clone + Sized,
 {
     /// Generic get for id function to get rows for the provided key fields
     /// Since this is a linked resource, the id is expected to be given as a [Vec\<FieldValuePair\>]
     /// to specify the id_column / value pairs to match
-    async fn get_for_ids(ids: HashMap<String, Uuid>) -> Result<Vec<Row>, ArrErr> {
+    async fn get_for_ids(ids: HashMap<String, Uuid>) -> Result<Row, ArrErr> {
         psql_debug!("(get_for_ids) start: [{:?}]", ids);
-        let definition = Self::get_definition();
-
-        let mut params: Vec<Box<PsqlFieldSend>> = vec![];
-        let mut query = format!(r#"SELECT * FROM "{}""#, definition.psql_table);
-        let mut search_operator = "WHERE";
-        let mut next_param_index: i32 = 1;
-
-        for (field, value) in ids.clone() {
-            if Self::has_id_col(&field) {
-                query.push_str(&format!(
-                    r#" {} "{}" = ${}"#,
-                    search_operator, field, next_param_index
-                ));
-                params.push(Box::new(value));
-                search_operator = "AND";
-                next_param_index += 1;
-            }
-        }
-
-        let client = get_psql_pool().get().await?;
-        let stmt = client.prepare_cached(&query).await?;
-
-        psql_debug!("{}", &query);
-        psql_debug!("{:?}", &params);
-        psql_info!(
-            "Fetching row data for table [{}]. uuids: {:?}",
-            definition.psql_table,
-            ids
-        );
-
-        let mut ref_params: Vec<&PsqlField> = vec![];
-        for field in params.iter() {
-            ref_params.push(field.as_ref());
-        }
-        match client.query(&stmt, &ref_params[..]).await {
-            Ok(row) => Ok(row),
-            Err(e) => Err(e.into()),
-        }
+        super::queries::get_for_ids::<Self>(&ids).await
     }
 
     /// Generic delete for ids function to delete rows for the provided key fields

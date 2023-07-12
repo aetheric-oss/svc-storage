@@ -26,13 +26,17 @@ impl Resource for ResourceObject<Data> {
             psql_id_cols: vec![String::from("parcel_id")],
             fields: HashMap::from([
                 (
+                    "user_id".to_string(),
+                    FieldDefinition::new(PsqlFieldType::UUID, true),
+                ),
+                (
                     "status".to_string(),
                     FieldDefinition::new(PsqlFieldType::ANYENUM, true)
                         .set_default(String::from("'NOTDROPPEDOFF'")),
                 ),
                 (
-                    "itinerary_id".to_string(),
-                    FieldDefinition::new(PsqlFieldType::UUID, true),
+                    "weight_grams".to_string(),
+                    FieldDefinition::new(PsqlFieldType::INT4, true),
                 ),
                 (
                     "created_at".to_string(),
@@ -61,16 +65,15 @@ impl Resource for ResourceObject<Data> {
     }
 
     fn get_table_indices() -> Vec<String> {
-        [
-            r#"ALTER TABLE parcel ADD CONSTRAINT fk_itinerary_id FOREIGN KEY(itinerary_id) REFERENCES itinerary(itinerary_id)"#.to_owned(),
-        ].to_vec()
+        [].to_vec()
     }
 }
 
 impl GrpcDataObjectType for Data {
     fn get_field_value(&self, key: &str) -> Result<GrpcField, ArrErr> {
         match key {
-            "itinerary_id" => Ok(GrpcField::String(self.itinerary_id.clone())),
+            "user_id" => Ok(GrpcField::String(self.user_id.clone())), //::prost::alloc::string::String,
+            "weight_grams" => Ok(GrpcField::U32(self.weight_grams)),
             "status" => Ok(GrpcField::I32(self.status)),
             _ => Err(ArrErr::Error(format!(
                 "Invalid key specified [{}], no such field found",
@@ -87,13 +90,15 @@ impl TryFrom<Row> for Data {
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
         debug!("Converting Row to parcel::Data: {:?}", row);
-        let itinerary_id: Uuid = row.get("itinerary_id");
+        let user_id: String = row.get::<&str, Uuid>("user_id").to_string();
+        let weight_grams: u32 = row.get("weight_grams");
         let status = ParcelStatus::from_str_name(row.get("status"))
             .context("(try_from) Could not convert database value to ParcelStatus Enum type.")?
             as i32;
 
         Ok(Data {
-            itinerary_id: itinerary_id.to_string(),
+            user_id,
+            weight_grams,
             status,
         })
     }
@@ -107,7 +112,7 @@ mod tests {
     #[test]
     fn test_parcel_schema() {
         init_logger(&Config::try_from_env().unwrap_or_default());
-        unit_test_info!("test_parcel_schema validation");
+        unit_test_info!("(test_parcel_schema) start");
 
         let id = Uuid::new_v4().to_string();
         let data = mock::get_data_obj();
@@ -118,35 +123,38 @@ mod tests {
         .into();
         test_schema::<ResourceObject<Data>, Data>(object);
 
-        let result = <ResourceObject<Data> as PsqlType>::validate(&data);
+        let result = validate::<ResourceObject<Data>>(&data);
         assert!(result.is_ok());
         if let Ok((sql_fields, validation_result)) = result {
             unit_test_info!("{:?}", sql_fields);
             unit_test_info!("{:?}", validation_result);
             assert_eq!(validation_result.success, true);
         }
+        unit_test_info!("(test_parcel_schema) success");
     }
 
     #[test]
     fn test_parcel_invalid_data() {
         init_logger(&Config::try_from_env().unwrap_or_default());
-        unit_test_info!("test_parcel_invalid_data validation");
+        unit_test_info!("(test_parcel_invalid_data) start");
 
         let data = Data {
-            itinerary_id: String::from("INVALID"),
+            user_id: String::from("INVALID"),
+            weight_grams: 1,
             status: -1,
         };
 
-        let result = <ResourceObject<Data> as PsqlType>::validate(&data);
+        let result = validate::<ResourceObject<Data>>(&data);
         assert!(result.is_ok());
         if let Ok((_, validation_result)) = result {
             unit_test_info!("{:?}", validation_result);
             assert_eq!(validation_result.success, false);
 
-            let expected_errors = vec!["itinerary_id", "status"];
+            let expected_errors = vec!["user_id", "status"];
             assert_eq!(expected_errors.len(), validation_result.errors.len());
             assert!(contains_field_errors(&validation_result, &expected_errors));
         }
+        unit_test_info!("(test_parcel_invalid_data) success");
     }
 
     #[test]

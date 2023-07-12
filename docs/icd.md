@@ -88,6 +88,7 @@ Implemented for:
  * itinerary_flight_plan
  * user_group
  * group_user
+ * flight_plan_parcel
 
 | Service          | Description |
 | ---------------- | ----------- |

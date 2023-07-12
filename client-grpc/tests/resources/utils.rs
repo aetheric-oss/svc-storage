@@ -1,29 +1,23 @@
 //! Test utility functions
 
-use futures::future::{BoxFuture, FutureExt};
 use lib_common::grpc::get_endpoint_from_env;
 use logtest::Record;
 use svc_storage_client_grpc::*;
 use tokio::sync::OnceCell;
-use tonic::Status;
 
 pub(crate) static CLIENTS: OnceCell<Clients> = OnceCell::const_new();
 
-pub fn get_clients() -> BoxFuture<'static, Result<&'static Clients, Status>> {
-    async move {
-        let (host, port) = get_endpoint_from_env("SERVER_HOSTNAME", "SERVER_PORT_GRPC");
-        match CLIENTS.get() {
-            Some(clients) => Ok(clients),
-            None => {
-                let clients = svc_storage_client_grpc::Clients::new(host, port);
-                CLIENTS
-                    .set(clients)
-                    .map_err(|e| Status::internal(format!("Could not set CLIENTS: {}", e)))?;
-                get_clients().await
-            }
-        }
-    }
-    .boxed()
+/// Returns CLIENTS, a GrpcClients object with default values.
+/// Uses host and port configurations using a Config object generated from
+/// environment variables.
+/// Initializes CLIENTS if it hasn't been initialized yet.
+pub async fn get_clients() -> &'static Clients {
+    CLIENTS
+        .get_or_init(|| async move {
+            let (host, port) = get_endpoint_from_env("SERVER_HOSTNAME", "SERVER_PORT_GRPC");
+            svc_storage_client_grpc::Clients::new(host, port)
+        })
+        .await
 }
 
 pub fn get_log_string(function: &str, name: &str) -> String {

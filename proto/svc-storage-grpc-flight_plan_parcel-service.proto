@@ -1,0 +1,328 @@
+syntax = "proto3";
+package grpc.flight_plan_parcel.service;
+
+import "google/protobuf/empty.proto";
+import "svc-storage-grpc-flight_plan_parcel.proto";
+import "svc-storage-grpc-parcel.proto";
+import "svc-storage-grpc.proto";
+
+service RpcServiceLinked {
+    // Remove all linked entries for the provided flight_plan `id`.
+    //
+    // # Errors
+    //
+    // Returns [`Status`](tonic::Status) with [`Code::NotFound`](tonic::Code::NotFound) if the flight_plan id does not match a record in the db.
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if any error is returned from a db call.
+    //
+    // # Examples
+    // ```
+    // use svc_storage_client_grpc::Ids;
+    // use svc_storage_client_grpc::FlightPlanParcelLinkClient;
+    // async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    //     let mut link_client = FlightPlanParcelLinkClient::connect("http://localhost:50051").await?;
+    //
+    //     let id = Id { id: "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned() };
+    //     match link_client
+    //         .unlink(tonic::Request::new(id))
+    //         .await
+    //     {
+    //         Ok(res) => {
+    //           println!("RESPONSE Flight_plan Unlink={:?}", res);
+    //           Ok(())
+    //         },
+    //         Err(e) => Err(Box::new(e))
+    //     }
+    // }
+    // ```
+    rpc unlink(grpc.Id) returns (google.protobuf.Empty);
+
+    // Get all the parcel ids that are linked to the provided flight plan `id`.
+    //
+    // # Errors
+    //
+    // Returns [`Status`](tonic::Status) with [`Code::NotFound`](tonic::Code::NotFound) if the flight plan id does not match a record in the db.
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if any error is returned from a db call.
+    //
+    // # Examples
+    // ```
+    // use svc_storage_client_grpc::Id;
+    // use svc_storage_client_grpc::FlightPlanParcelLinkClient;
+    // async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    //     let mut link_client = FlightPlanParcelLinkClient::connect("http://localhost:50051").await?;
+    //
+    //     let id = Id { id: "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned() };
+    //     match link_client
+    //         .get_linked_ids(tonic::Request::new(id))
+    //         .await
+    //     {
+    //         Ok(res) => {
+    //           println!("RESPONSE Flight plan Get Linked Ids={:?}", res);
+    //           Ok(())
+    //         },
+    //         Err(e) => Err(Box::new(e))
+    //     }
+    // }
+    // ```
+    rpc get_linked_ids(grpc.Id) returns (IdList);
+
+    // Get all the parcels that are linked to the provided flight plan `id`.
+    //
+    // # Errors
+    //
+    // Returns [`Status`](tonic::Status) with [`Code::NotFound`](tonic::Code::NotFound) if the flight plan id does not match a record in the db.
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if any error is returned from a db call.
+    //
+    // # Examples
+    // ```
+    // use svc_storage_client_grpc::Id;
+    // use svc_storage_client_grpc::FlightPlanParcelLinkClient;
+    // async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    //     let mut link_client = FlightPlanParcelLinkClient::connect("http://localhost:50051").await?;
+    //
+    //     let id = Id { id: "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned() };
+    //     match link_client
+    //         .get_linked(tonic::Request::new(id))
+    //         .await
+    //     {
+    //         Ok(res) => {
+    //           println!("RESPONSE Flight plan Get Linked={:?}", res);
+    //           Ok(())
+    //         },
+    //         Err(e) => Err(Box::new(e))
+    //     }
+    // }
+    // ```
+    rpc get_linked(grpc.Id) returns (grpc.parcel.List);
+
+    // Returns a [`tonic::Response`] containing an flight_plan [`Object`](super::Object)
+    // Takes an [`Ids`](super::super::Ids) to find the right record to return.
+    //
+    // # Errors
+    //
+    // Returns [`tonic::Status`] with [`Code::NotFound`](tonic::Code::NotFound) if no record is returned from the database
+    //
+    // # Examples
+    // ```
+    // use svc_storage_client_grpc::{Ids, FlightPlanParcelClient, simple_service_linked::Client};
+    //
+    // async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    //     let mut client = FlightPlanParcelClient::connect("http://localhost:50051").await?;
+    //
+    //     let flight_plan_id = "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693";
+    //     let parcel_id = "73acfe06-dd9b-41e8-4cb4-12a2fb2fa693";
+    //     match client
+    //         .get_by_id(tonic::Request::new(Ids { ids: vec![
+    //              FieldValue {
+    //                  field: String::from("flight_plan_id"),
+    //                  value: String::from(flight_plan_id)
+    //              },
+    //              FieldValue: {
+    //                  field: String::from("parcel_id"),
+    //                  value: String::from(parcel_id)
+    //              }
+    //         ]}))
+    //         .await
+    //     {
+    //         Ok(res) => {
+    //           println!("RESPONSE Flight Plan By ID={:?}", res);
+    //           Ok(())
+    //         },
+    //         Err(e) => Err(Box::new(e))
+    //     }
+    // }
+    // ```
+    rpc get_by_id(grpc.Ids) returns (Object);
+
+    // Returns a [`tonic::Response`] containing a flight_plan [`Response`](super::Response) object
+    // of the inserted record after saving the provided flight_plan [`Data`](super::Data)
+    //
+    // The given data will be validated before insert.
+    // A new UUID will be generated by the database and returned as `id` as part of the returned flight_plan [`Response`](super::Response).
+    // Any errors found during validation will be added to the [`ValidationResult`](super::super::ValidationResult).
+    //
+    // # Errors
+    //
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if the [`tonic::Request`] doesn't contain any data.
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if any error is returned from a db call.
+    //
+    // # Examples
+    // ```
+    // use svc_storage_client_grpc::{Id, FlightPlanParcelClient, simple_service_linked::Client, GeoLineString, Timestamp};
+    // use svc_storage_client_grpc::flight_plan::{RowData, FlightStatus, FlightPriority};
+    // use std::time::SystemTime;
+    //
+    // async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    //     let mut client = FlightPlanParcelClient::connect("http://localhost:50051").await?;
+    //
+    //     match client.insert(tonic::Request::new(RowData {
+    //         flight_plan_id: String::From("53acfe06-dd9b-42e8-8cb4-12a2fb2fa693"),
+    //         parcel_id: String::From("73acfe06-dd9b-41e8-4cb4-12a2fb2fa693"),
+    //         acquire: true,
+    //         deliver: true,
+    //     }))
+    //     .await
+    //     {
+    //         Ok(res) => {
+    //           println!("RESPONSE Flight Plan Parcel Insert={:?}", res);
+    //           Ok(())
+    //         },
+    //         Err(e) => Err(Box::new(e))
+    //     }
+    // }
+    // ```
+    rpc insert(RowData) returns (Response);
+
+    // Returns a [`tonic::Response`] containing a flight_plan [`Response`](super::Response) object
+    // of the updated record after saving the provided flight_plan [`Data`](super::Data)
+    //
+    // The given data will be validated before insert.
+    // Any errors found during validation will be added to the [`ValidationResult`](super::super::ValidationResult).
+    // A field [`prost_types::FieldMask`] can be provided to restrict updates to specific fields.
+    //
+    // # Errors
+    //
+    // Returns [`Status`](tonic::Status) with [`Code::Cancelled`](tonic::Code::Cancelled) if the [`Request`](tonic::Request) doesn't contain any data.
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if any error is returned from a db call.
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if the provided Id can not be converted to a [`uuid::Uuid`].
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if the resulting Vec<tokio_postgres::Row> data could not be converted into [`List`](super::List).
+    //
+    // # Examples
+    // ```
+    // use svc_storage_client_grpc::{FieldMask, FlightPlanParcelClient, simple_service_linked::Client, FieldValue};
+    // use svc_storage_client_grpc::flight_plan::{Data, FlightStatus, UpdateObject, Ids};
+    //
+    // async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    //     let mut client = FlightPlanParcelClient::connect("http://localhost:50051").await?;
+    //
+    //     let flight_plan_id = "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693";
+    //     let parcel_id = "73acfe06-dd9b-41e8-4cb4-12a2fb2fa693";
+    //     let response = match client
+    //         .get_by_id(tonic::Request::new(Ids {
+    //              ids: vec![
+    //                  FieldValue {
+    //                      field: String::from("flight_plan_id"),
+    //                      value: String::from(flight_plan_id)
+    //                  },
+    //                  FieldValue: {
+    //                      field: String::from("parcel_id"),
+    //                      value: String::from(parcel_id)
+    //                  }
+    //              ],
+    //          }))
+    //         .await
+    //     {
+    //         Ok(res) => {
+    //           println!("RESPONSE Flight Plan Parcel By ID={:?}", res);
+    //           res
+    //         },
+    //         Err(e) => {
+    //             return Err(Box::new(e));
+    //         }
+    //     };
+    //
+    //     let flight_plan_parcel = response.into_inner().data.unwrap();
+    //     match client.update(tonic::Request::new(UpdateObject {
+    //          ids: vec![
+    //                  FieldValue {
+    //                      field: String::from("flight_plan_id"),
+    //                      value: String::from(flight_plan_id)
+    //                  },
+    //                  FieldValue: {
+    //                      field: String::from("parcel_id"),
+    //                      value: String::from(parcel_id)
+    //                  }
+    //              ],
+    //         data: Some(Data {
+    //             acquire: false,
+    //             ..flight_plan_parcel
+    //         }),
+    //         mask: Some(FieldMask {
+    //             paths: vec!["acquire".to_owned()],
+    //         }),
+    //     })).await
+    //     {
+    //         Ok(res) => {
+    //           println!("RESPONSE Flight Plan Parcel Update={:?}", res);
+    //           Ok(())
+    //         },
+    //         Err(e) => Err(Box::new(e))
+    //     }
+    // }
+    // ```
+    rpc update(UpdateObject) returns (Response);
+
+    // Takes an [`Id`](super::super::Id) to set the matching flight_plan record as deleted in the database"
+    //
+    // # Errors
+    //
+    // Returns [`Status`](tonic::Status) with [`Code::NotFound`](tonic::Code::NotFound) if no record is returned from the database.
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if any error is returned from a db call.
+    //
+    // # Examples
+    // ```
+    // use svc_storage_client_grpc::{Ids, FlightPlanParcelClient, simple_service_linked::Client};
+    //
+    // async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    //     let mut client = FlightPlanParcelClient::connect("http://localhost:50051").await?;
+    //
+    //     let flight_plan_id = "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693";
+    //     let parcel_id = "73acfe06-dd9b-41e8-4cb4-12a2fb2fa693";
+    //     let response = match client
+    //         .delete(tonic::Request::new(Ids {
+    //              ids: vec![
+    //                  FieldValue {
+    //                      field: String::from("flight_plan_id"),
+    //                      value: String::from(flight_plan_id)
+    //                  },
+    //                  FieldValue: {
+    //                      field: String::from("parcel_id"),
+    //                      value: String::from(parcel_id)
+    //                  }
+    //              ],
+    //          }))
+    //         .await
+    //     {
+    //         Ok(res) => {
+    //           println!("RESPONSE Flight Plan Delete={:?}", res);
+    //           Ok(())
+    //         },
+    //         Err(e) => Err(Box::new(e))
+    //     }
+    // }
+    // ```
+    rpc delete(grpc.Ids) returns (google.protobuf.Empty);
+
+    // Search flight_plans using an advanced filter
+    //
+    // This method supports paged results.
+    //
+    // # Errors
+    //
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if any error is returned from the db search result.
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if the resulting Vec<tokio_postgres::Row> data could not be converted into [`List`](super::List).
+    //
+    // # Examples
+    // ```
+    // use svc_storage_client_grpc::{AdvancedSearchFilter, FlightPlanParcelClient, simple_service::Client};
+    //
+    // async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    //     let mut client = FlightPlanParcelClient::connect("http://localhost:50051").await?;
+    //
+    //     let parcel_id = "a2093c5e-9bbe-4f0f-97ee-276b43fa3759".to_owned();
+    //     let filter = AdvancedSearchFilter::search_equals("deliver".to_owned(), true)
+    //         .and_equals("parcel_id".to_owned(), parcel_id);
+    //
+    //     match client
+    //         .search(tonic::Request::new(filter))
+    //         .await
+    //     {
+    //         Ok(res) => {
+    //           println!("RESPONSE Flight Plan Search={:?}", res);
+    //           Ok(())
+    //         },
+    //         Err(e) => Err(Box::new(e))
+    //     }
+    // }
+    // ```
+    rpc search(grpc.AdvancedSearchFilter) returns (RowDataList);
+}

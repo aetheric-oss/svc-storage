@@ -1,5 +1,6 @@
 //! gRPC server implementation
 use super::GrpcSimpleService;
+use super::GrpcSimpleServiceLinked;
 use crate::config::Config;
 use crate::resources::base::ResourceObject;
 use crate::shutdown_signal;
@@ -11,40 +12,34 @@ use tonic::{Request, Status};
 // include gRPC generic structs
 include!("../../../out/grpc/grpc.rs");
 
-// include gRPC services for all resources
-grpc_server!(adsb, "adsb");
-grpc_server!(flight_plan, "flight_plan");
-grpc_server!(group, "group");
-grpc_server!(itinerary, "itinerary");
-grpc_server!(parcel, "parcel");
-grpc_server!(pilot, "pilot");
-grpc_server!(parcel_scan, "parcel_scan");
-grpc_server!(scanner, "scanner");
-grpc_server!(user, "user");
-grpc_server!(vehicle, "vehicle");
-grpc_server!(vertipad, "vertipad");
-grpc_server!(vertiport, "vertiport");
+// include gRPC services for all 'simple' resources
+grpc_server_simple_service_mod!(adsb);
+grpc_server_simple_service_mod!(flight_plan);
+grpc_server_simple_service_mod!(group);
+grpc_server_simple_service_mod!(itinerary);
+grpc_server_simple_service_mod!(parcel);
+grpc_server_simple_service_mod!(pilot);
+grpc_server_simple_service_mod!(parcel_scan);
+grpc_server_simple_service_mod!(scanner);
+grpc_server_simple_service_mod!(user);
+grpc_server_simple_service_mod!(vehicle);
+grpc_server_simple_service_mod!(vertipad);
+grpc_server_simple_service_mod!(vertiport);
+
+// include gRPC services for all 'simple linked' resources
+grpc_server_simple_service_linked_mod!(flight_plan_parcel, flight_plan, parcel);
 
 /// Module to expose linked resource implementations for itinerary_flight_plan
 pub mod itinerary_flight_plan {
-    use super::flight_plan;
-    use super::itinerary;
     pub use super::itinerary::rpc_flight_plan_link_server::*;
     use super::itinerary::ItineraryFlightPlans;
-    pub use super::user::rpc_group_link_server::*;
-    use super::{Id, IdList};
-    use crate::grpc::GrpcLinkService;
-    use crate::resources::base::linked_resource::LinkOtherResource;
-    use crate::resources::base::ResourceObject;
-    use prost::Message;
-    use tonic::{Request, Status};
 
     /// Dummy struct for ItineraryFlightPlan Data
     /// Allows us to implement the required traits
-    #[derive(Clone, Message, Copy)]
+    #[derive(Clone, prost::Message, Copy)]
     pub struct Data {}
 
-    build_grpc_server_link_service_impl!(
+    grpc_server_link_service_mod!(
         itinerary,
         flight_plan,
         RpcFlightPlanLink,
@@ -54,40 +49,25 @@ pub mod itinerary_flight_plan {
 
 /// Module to expose linked resource implementations for user_group
 pub mod user_group {
-    use super::group;
-    use super::user;
     pub use super::user::rpc_group_link_server::*;
     use super::user::UserGroups;
-    use super::{Id, IdList};
-    use crate::grpc::GrpcLinkService;
-    use crate::resources::base::linked_resource::LinkOtherResource;
-    use crate::resources::base::ResourceObject;
-    use prost::Message;
-    use tonic::{Request, Status};
 
     /// Dummy struct for UserGroup Data
     /// Allows us to implement the required traits
-    #[derive(Clone, Message, Copy)]
+    #[derive(Clone, prost::Message, Copy)]
     pub struct Data {}
 
-    build_grpc_server_link_service_impl!(user, group, RpcGroupLink, UserGroups);
+    grpc_server_link_service_mod!(user, group, RpcGroupLink, UserGroups);
 }
 
 /// Module to expose linked resource implementations for user_group
 /// Uses the user_group Data object implementation for database schema definitions
 pub mod group_user {
-    use super::group;
     pub use super::group::rpc_user_link_server::*;
     use super::group::GroupUsers;
-    use super::user;
     pub use super::user_group::Data;
-    use super::{Id, IdList};
-    use crate::grpc::GrpcLinkService;
-    use crate::resources::base::linked_resource::LinkOtherResource;
-    use crate::resources::base::ResourceObject;
-    use tonic::{Request, Status};
 
-    build_grpc_server_link_service_impl!(group, user, RpcUserLink, GroupUsers);
+    grpc_server_link_service_mod!(group, user, RpcUserLink, GroupUsers);
 }
 
 /// Provide search helpers
@@ -184,6 +164,9 @@ pub async fn grpc_server(config: Config, shutdown_rx: Option<tokio::sync::onesho
         .set_serving::<flight_plan::RpcServiceServer<flight_plan::GrpcServer>>()
         .await;
     health_reporter
+        .set_serving::<flight_plan_parcel::RpcServiceLinkedServer<flight_plan_parcel::GrpcServer>>()
+        .await;
+    health_reporter
         .set_serving::<group::RpcServiceServer<group::GrpcServer>>()
         .await;
     health_reporter
@@ -233,6 +216,9 @@ pub async fn grpc_server(config: Config, shutdown_rx: Option<tokio::sync::onesho
         .add_service(adsb::RpcServiceServer::new(adsb::GrpcServer::default()))
         .add_service(flight_plan::RpcServiceServer::new(
             flight_plan::GrpcServer::default(),
+        ))
+        .add_service(flight_plan_parcel::RpcServiceLinkedServer::new(
+            flight_plan_parcel::GrpcServer::default(),
         ))
         .add_service(group::RpcServiceServer::new(group::GrpcServer::default()))
         .add_service(group_user::RpcUserLinkServer::new(
