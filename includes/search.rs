@@ -61,6 +61,16 @@ impl AdvancedSearchFilter {
     ///
     /// Adds a [FilterOption] to `filters` using:
     /// * search_field: the provided `column` [String]
+    /// * search_value: the provided `values` [Vec\<String\>]
+    /// * predicate operator: [PredicateOperator::NotIn]
+    /// * comparison operator: [None]
+    pub fn search_not_in(column: String, values: Vec<String>) -> Self {
+        Self::search(column, values, PredicateOperator::NotIn)
+    }
+    /// wrapper function for internal `search` function returning a new [AdvancedSearchFilter] object
+    ///
+    /// Adds a [FilterOption] to `filters` using:
+    /// * search_field: the provided `column` [String]
     /// * search_value: the provided `min` and `max` values as entries in a [Vec\<String\>]
     /// * predicate operator: [PredicateOperator::Between]
     /// * comparison operator: [None]
@@ -239,6 +249,21 @@ impl AdvancedSearchFilter {
             column,
             values,
             PredicateOperator::In,
+            ComparisonOperator::And,
+        )
+    }
+    /// wrapper function for internal `add_filter` function, adding a new [FilterOption] to itself while returning [Self]
+    ///
+    /// Adds a [FilterOption] to `filters` using:
+    /// * search_field: the provided `column` [String]
+    /// * search_value: the provided `values` [Vec\<String\>]
+    /// * predicate operator: [PredicateOperator::NotIn]
+    /// * comparison operator: [ComparisonOperator::And]
+    pub fn and_not_in(self, column: String, values: Vec<String>) -> Self {
+        self.add_filter(
+            column,
+            values,
+            PredicateOperator::NotIn,
             ComparisonOperator::And,
         )
     }
@@ -468,6 +493,21 @@ impl AdvancedSearchFilter {
             column,
             values,
             PredicateOperator::In,
+            ComparisonOperator::Or,
+        )
+    }
+    /// wrapper function for internal `add_filter` function, adding a new [FilterOption] to itself while returning [Self]
+    ///
+    /// Adds a [FilterOption] to `filters` using:
+    /// * search_field: the provided `column` [String]
+    /// * search_value: the provided `values` [Vec\<String\>]
+    /// * predicate operator: [PredicateOperator::NotIn]
+    /// * comparison operator: [ComparisonOperator::Or]
+    pub fn or_not_in(self, column: String, values: Vec<String>) -> Self {
+        self.add_filter(
+            column,
+            values,
+            PredicateOperator::NotIn,
             ComparisonOperator::Or,
         )
     }
@@ -744,6 +784,23 @@ pub(crate) fn filter_for_operator(
                     }
                 }
             }
+            PredicateOperator::NotIn => {
+                let val = val.to_string();
+                println!(
+                    "NotIn filter with values [{:?}] for val [{}]",
+                    search_values, val
+                );
+                let mut found = false;
+                for search_val in search_values {
+                    if val == *search_val {
+                        found = true
+                    }
+                }
+                if !found {
+                    println!("found!");
+                    filtered.push(object.clone())
+                }
+            }
             PredicateOperator::Between => {
                 println!(
                     "Between filter with values [{:?}] for val [{}]",
@@ -848,6 +905,10 @@ pub(crate) fn filter_for_operator(
             }
             PredicateOperator::Greater => {
                 let search_val: String = get_single_search_value(search_values)?;
+                println!(
+                    "Greater filter with value [{:?}] for val [{}]",
+                    search_val, val
+                );
                 if let Some(num_val) = val.as_f64() {
                     println!("Can convert val to number, got [{}]", num_val);
                     let num_search_val = search_val.parse::<f64>().map_err(|e| {
@@ -884,6 +945,10 @@ pub(crate) fn filter_for_operator(
             }
             PredicateOperator::GreaterOrEqual => {
                 let search_val: String = get_single_search_value(search_values)?;
+                println!(
+                    "GreaterOrEqual filter with value [{:?}] for val [{}]",
+                    search_val, val
+                );
                 if let Some(num_val) = val.as_f64() {
                     println!("Can convert val to number, got [{}]", num_val);
                     let num_search_val = search_val.parse::<f64>().map_err(|e| {
@@ -920,6 +985,10 @@ pub(crate) fn filter_for_operator(
             }
             PredicateOperator::Less => {
                 let search_val: String = get_single_search_value(search_values)?;
+                println!(
+                    "Less filter with value [{:?}] for val [{}]",
+                    search_val, val
+                );
                 if let Some(num_val) = val.as_f64() {
                     println!("Can convert val to number, got [{}]", num_val);
                     let num_search_val = search_val.parse::<f64>().map_err(|e| {
@@ -956,6 +1025,10 @@ pub(crate) fn filter_for_operator(
             }
             PredicateOperator::LessOrEqual => {
                 let search_val: String = get_single_search_value(search_values)?;
+                println!(
+                    "LessOrEqual filter with value [{:?}] for val [{}]",
+                    search_val, val
+                );
                 if let Some(num_val) = val.as_f64() {
                     println!("Can convert val to number, got [{}]", num_val);
                     let num_search_val = search_val.parse::<f64>().map_err(|e| {
@@ -1389,6 +1462,7 @@ mod tests {
         assert_eq!(PredicateOperator::Equals.as_str_name(), "EQUALS");
         assert_eq!(PredicateOperator::NotEquals.as_str_name(), "NOT_EQUALS");
         assert_eq!(PredicateOperator::In.as_str_name(), "IN");
+        assert_eq!(PredicateOperator::NotIn.as_str_name(), "NOT_IN");
         assert_eq!(PredicateOperator::Between.as_str_name(), "BETWEEN");
         assert_eq!(PredicateOperator::IsNull.as_str_name(), "IS_NULL");
         assert_eq!(PredicateOperator::IsNotNull.as_str_name(), "IS_NOT_NULL");
@@ -1425,6 +1499,10 @@ mod tests {
         assert_eq!(
             PredicateOperator::from_str_name("IN"),
             Some(PredicateOperator::In)
+        );
+        assert_eq!(
+            PredicateOperator::from_str_name("NOT_IN"),
+            Some(PredicateOperator::NotIn)
         );
         assert_eq!(
             PredicateOperator::from_str_name("BETWEEN"),

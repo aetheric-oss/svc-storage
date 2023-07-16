@@ -35,32 +35,34 @@ enum PredicateOperator {
     EQUALS = 0;
     // indicates a search query with \<col\> <> \<value\> filter
     NOT_EQUALS = 1;
-    // indicates a search query with IN (..) filter
+    // indicates a search query with NOT IN (..) filter
     IN = 2;
+    // indicates a search query with IN (..) filter
+    NOT_IN = 3;
     // indicates a search query with BETWEEN \<min\> AND \<max\> filter
-    BETWEEN = 3;
+    BETWEEN = 4;
     // indicates a search query with \<col\> IS NULL filter
-    IS_NULL = 4;
+    IS_NULL = 5;
     // indicates a search query with \<col\> IS NOT NULL filter
-    IS_NOT_NULL = 5;
+    IS_NOT_NULL = 6;
     // indicates a search query with \<col\> ILIKE \<value\> filter
-    ILIKE =  6;
+    ILIKE =  7;
     // indicates a search query with \<col\> LIKE \<value\> filter
-    LIKE = 7;
+    LIKE = 8;
     // indicates a search query with \<col\> > \<value\> filter
-    GREATER = 8;
+    GREATER = 9;
     // indicates a search query with \<col\> >= \<value\> filter
-    GREATER_OR_EQUAL = 9;
+    GREATER_OR_EQUAL = 10;
     // indicates a search query with \<col\> < \<value\> filter
-    LESS = 10;
+    LESS = 11;
     // indicates a search query with \<col\> <= \<value\> filter
-    LESS_OR_EQUAL = 11;
+    LESS_OR_EQUAL = 12;
     // indicates a geographic search query with \<col\> ST_Intersect filter
-    GEO_INTERSECT = 12;
+    GEO_INTERSECT = 13;
     // indicates a geographic search query with \<col\> ST_Within filter
-    GEO_WITHIN = 13;
+    GEO_WITHIN = 14;
     // indicates a geographic search query with \<col\> IS NOT ST_Disjoint filter
-    GEO_DISJOINT = 14;
+    GEO_DISJOINT = 15;
 }
 
 // Comparison operators which can be used for the [`FilterOption`]

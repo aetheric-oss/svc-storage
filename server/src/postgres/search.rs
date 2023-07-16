@@ -219,6 +219,21 @@ pub(crate) fn get_filter_str(
                 search_values.join(",")
             );
         }
+        PredicateOperator::NotIn => {
+            let mut search_values = vec![];
+            for value in values {
+                let mut col = search_col.clone();
+                search_values.push(format!("${}", next_param_index));
+                col.set_value(value.to_string());
+                params.push(col);
+                next_param_index += 1;
+            }
+            filter_str = format!(
+                r#" "{}" NOT IN ({})"#,
+                search_col.col_name,
+                search_values.join(",")
+            );
+        }
         PredicateOperator::Between => {
             let mut values: VecDeque<String> = (values).into();
 
