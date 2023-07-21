@@ -11,8 +11,9 @@ use uuid::Uuid;
 use super::base::simple_resource::*;
 use super::base::{FieldDefinition, ResourceDefinition};
 use crate::common::ArrErr;
-use crate::grpc::{GrpcDataObjectType, GrpcField};
+use crate::grpc::{GrpcDataObjectType, GrpcField, GrpcFieldOption};
 use crate::resources::grpc_geo_types::GeoPoint;
+use chrono::{DateTime, Utc};
 
 crate::build_generic_resource_impl_from!();
 
@@ -71,6 +72,9 @@ impl GrpcDataObjectType for Data {
             "parcel_id" => Ok(GrpcField::String(self.parcel_id.clone())),
             "scanner_id" => Ok(GrpcField::String(self.scanner_id.clone())),
             "geo_location" => Ok(GrpcField::Option(self.geo_location.into())),
+            "created_at" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
+                self.created_at.clone(),
+            ))), //::core::option::Option<::prost_types::Timestamp>
             _ => Err(ArrErr::Error(format!(
                 "Invalid key specified [{}], no such field found",
                 key
@@ -89,11 +93,15 @@ impl TryFrom<Row> for Data {
         let scanner_id = row.get::<&str, Uuid>("scanner_id").to_string();
         let parcel_id = row.get::<&str, Uuid>("parcel_id").to_string();
         let geo_location: GeoPoint = row.get::<&str, GeoPoint>("geo_location");
+        let created_at: Option<prost_wkt_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("created_at")
+            .map(|val| val.into());
 
         Ok(Data {
             parcel_id,
             scanner_id,
             geo_location: Some(geo_location),
+            created_at
         })
     }
 }
@@ -136,6 +144,10 @@ mod tests {
             parcel_id: String::from("INVALID"),
             scanner_id: String::from("INVALID"),
             geo_location: Some(geo_types::Point::new(200.0, -200.0).into()),
+            created_at: Some(prost_wkt_types::Timestamp {
+                seconds: -1,
+                nanos: -1,
+            })
         };
 
         let result = validate::<ResourceObject<Data>>(&data);

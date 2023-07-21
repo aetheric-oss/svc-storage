@@ -1,6 +1,7 @@
 use super::Data;
 use crate::resources::grpc_geo_types::GeoPoint;
 use uuid::Uuid;
+use chrono::Utc;
 
 /// Creates a new [Data] object with fields set with random data
 pub fn get_data_obj() -> Data {
@@ -14,6 +15,7 @@ pub fn get_data_obj() -> Data {
             longitude: -122.4194,
             latitude: 37.7746,
         }),
+        created_at: Some(Utc::now().into()) 
     }
 }
 

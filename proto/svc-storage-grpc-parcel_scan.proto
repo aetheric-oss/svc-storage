@@ -2,9 +2,9 @@ syntax = "proto3";
 package grpc.parcel_scan;
 
 import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
 import "svc-storage-grpc-geo_types.proto";
 import "svc-storage-grpc.proto";
-
 
 // Response struct returning an [Object] on success and [ValidationResult] if invalid fields were provided
 message Response {
@@ -48,6 +48,9 @@ message Data {
 
     // geographical location of the vertiport
     grpc.geo_types.GeoPoint geo_location = 3;
+
+    // the time the parcel was scanned
+    google.protobuf.Timestamp created_at = 4;
 }
 
 // Struct containing a `list` of parcel scan [Vec\<Object\>]
