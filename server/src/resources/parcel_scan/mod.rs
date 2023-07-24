@@ -40,7 +40,7 @@ impl Resource for ResourceObject<Data> {
                 ),
                 (
                     "created_at".to_string(),
-                    FieldDefinition::new_internal(PsqlFieldType::TIMESTAMPTZ, true)
+                    FieldDefinition::new(PsqlFieldType::TIMESTAMPTZ, true)
                         .set_default(String::from("CURRENT_TIMESTAMP")),
                 ),
                 (
@@ -157,7 +157,7 @@ mod tests {
             assert_eq!(validation_result.success, false);
 
             // expecting 2x geo_location error due to both points being out of range
-            let expected_errors = vec!["parcel_id", "scanner_id", "geo_location", "geo_location"];
+            let expected_errors = vec!["parcel_id", "scanner_id", "geo_location", "geo_location", "created_at"];
             assert_eq!(expected_errors.len(), validation_result.errors.len());
             assert!(contains_field_errors(&validation_result, &expected_errors));
         }
