@@ -157,6 +157,9 @@ service RpcGroupLink {
     // }
     // ```
     rpc get_linked(grpc.Id) returns (grpc.group.List);
+
+    // Simple ready check to allow callers to validate the client connection status.
+    rpc is_ready (ReadyRequest) returns (ReadyResponse);
 }
 
 // User gRPC service
@@ -344,4 +347,7 @@ service RpcService {
     // }
     // ```
     rpc search(grpc.AdvancedSearchFilter) returns (grpc.user.List);
+
+    // Simple ready check to allow callers to validate the client connection status.
+    rpc is_ready (ReadyRequest) returns (ReadyResponse);
 }

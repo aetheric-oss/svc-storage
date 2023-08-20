@@ -16,10 +16,10 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{AdsbClient, simple_service::Client, Id};
+    // use svc_storage_client_grpc::{simple_service::Client, Id};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
-    //     let mut client = AdsbClient::connect("http://localhost:50051").await?;
+    //     let mut client = RpcServiceClient::connect("http://localhost:50051").await?;
     //
     //     let id = "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned();
     //     match client
@@ -51,11 +51,11 @@ service RpcService {
     // # Examples
     // ```
     // use std::time::SystemTime;
-    // use svc_storage_client_grpc::{AdsbClient, simple_service::Client, Id, Timestamp};
+    // use svc_storage_client_grpc::{simple_service::Client, Id, Timestamp};
     // use svc_storage_client_grpc::adsb::{UpdateObject, Data};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
-    //     let mut client = AdsbClient::connect("http://localhost:50051").await?;
+    //     let mut client = RpcServiceClient::connect("http://localhost:50051").await?;
     //
     //     let icao_address = 0x4840D6;
     //     let message_type = 4;
@@ -96,11 +96,11 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{AdsbClient, simple_service::Client, FieldMask, Id};
+    // use svc_storage_client_grpc::{simple_service::Client, FieldMask, Id};
     // use svc_storage_client_grpc::adsb::{UpdateObject, Data};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
-    //     let mut client = AdsbClient::connect("http://localhost:50051").await?;
+    //     let mut client = RpcServiceClient::connect("http://localhost:50051").await?;
     //
     //     let id = "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned();
     //     let response = match client
@@ -147,10 +147,10 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{AdsbClient, simple_service::Client, Id};
+    // use svc_storage_client_grpc::{simple_service::Client, Id};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
-    //     let mut client = AdsbClient::connect("http://localhost:50051").await?;
+    //     let mut client = RpcServiceClient::connect("http://localhost:50051").await?;
     //
     //     let id = "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned();
     //     match client.delete(tonic::Request::new(Id{id})).await
@@ -176,10 +176,10 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{AdsbClient, simple_service::Client, AdvancedSearchFilter};
+    // use svc_storage_client_grpc::{simple_service::Client, AdvancedSearchFilter};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
-    //     let mut client = AdsbClient::connect("http://localhost:50051").await?;
+    //     let mut client = RpcServiceClient::connect("http://localhost:50051").await?;
     //
     //     let icao_address = 0x4840D6.to_string();
     //     let filter = AdvancedSearchFilter::search_equals("icao_address".to_owned(), icao_address)
@@ -198,4 +198,7 @@ service RpcService {
     // }
     // ```
     rpc search(AdvancedSearchFilter) returns (adsb.List);
+
+    // Simple ready check to allow callers to validate the client connection status.
+    rpc is_ready (ReadyRequest) returns (ReadyResponse);
 }

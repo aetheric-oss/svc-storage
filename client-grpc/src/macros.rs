@@ -10,28 +10,6 @@ macro_rules! grpc_client_mod {
             #[doc = concat!("Will only be included if the `", stringify!($resource), "` feature is enabled")]
             ///
             /// Provides basic insert/ update/ get / delete functionality and a more advanced search function.
-            ///
-            /// # Examples
-            ///
-            /// Create a new client
-            /// ```
-            /// use svc_storage_client_grpc::*;
-            /// use lib_common::grpc::*;
-            /// use tonic::transport::Channel;
-            /// async fn example() {
-            #[doc = concat!("    let client = GrpcClient::<", stringify!($resource), "::RpcServiceClient<Channel>>::new_client(")]
-            #[doc = concat!("         \"localhost\", 50051, \"", stringify!($resource), "\",")]
-            ///     );
-            ///     let connection = match client.get_client().await {
-            ///         Ok(res) => res,
-            ///         Err(e) => panic!(
-            ///             "Error creating RpcServiceClient for {}: {}",
-            ///             client.get_name(),
-            ///             e,
-            ///         ),
-            ///     };
-            /// }
-            /// ```
             pub mod $resource {
                 include!(concat!("../../out/grpc/client/grpc.", stringify!($resource), ".rs"));
                 include!(concat!(
@@ -39,9 +17,8 @@ macro_rules! grpc_client_mod {
                     stringify!($resource),
                     ".service.rs"
                 ));
-                pub use $crate::{IntoParams, ToSchema, Serialize, Deserialize};
                 pub use $crate::grpc_geo_types::*;
-                pub use rpc_service_client::RpcServiceClient;
+                pub (crate) use rpc_service_client::RpcServiceClient;
                 use tonic::transport::Channel;
                 cfg_if::cfg_if! {
                     if #[cfg(feature = "stub_backends")] {
@@ -89,28 +66,6 @@ macro_rules! grpc_client_linked_mod {
             #[doc = concat!("Will only be included if the `", stringify!($resource), "` feature is enabled")]
             ///
             /// Provides basic insert/ update/ get / delete functionality and a more advanced search function.
-            ///
-            /// # Examples
-            ///
-            /// Create a new client
-            /// ```
-            /// use svc_storage_client_grpc::*;
-            /// use lib_common::grpc::*;
-            /// use tonic::transport::Channel;
-            /// async fn example() {
-            #[doc = concat!("    let client = GrpcClient::<", stringify!($resource), "::RpcServiceLinkedClient<Channel>>::new_client(")]
-            #[doc = concat!("         \"localhost\", 50051, \"", stringify!($resource), "\",")]
-            ///     );
-            ///     let connection = match client.get_client().await {
-            ///         Ok(res) => res,
-            ///         Err(e) => panic!(
-            ///             "Error creating RpcServiceLinkedClient for {}: {}",
-            ///             client.get_name(),
-            ///             e,
-            ///         ),
-            ///     };
-            /// }
-            /// ```
             pub mod $resource {
                 include!(concat!("../../out/grpc/client/grpc.", stringify!($resource), ".rs"));
                 include!(concat!(
@@ -118,9 +73,8 @@ macro_rules! grpc_client_linked_mod {
                     stringify!($resource),
                     ".service.rs"
                 ));
-                pub use $crate::{IntoParams, ToSchema, Serialize, Deserialize};
                 pub use $crate::grpc_geo_types::*;
-                pub use rpc_service_linked_client::RpcServiceLinkedClient;
+                pub (crate) use rpc_service_linked_client::RpcServiceLinkedClient;
                 use tonic::transport::Channel;
                 cfg_if::cfg_if! {
                     if #[cfg(feature = "stub_backends")] {
@@ -209,6 +163,15 @@ macro_rules! link_grpc_client {
                     grpc_warn!("(get_linked) {} client.", self.get_name());
                     grpc_debug!("(get_linked) request: {:?}", request);
                     self.get_client().await?.get_linked(request).await
+                }
+
+                async fn is_ready(
+                    &self,
+                    request: $crate::ReadyRequest,
+                ) -> Result<tonic::Response<$crate::ReadyResponse>, tonic::Status> {
+                    grpc_warn!("(is_ready) {} client.", self.get_name());
+                    grpc_debug!("(is_ready) request: {:?}", request);
+                    self.get_client().await?.is_ready(request).await
                 }
             }
         )+
@@ -407,6 +370,15 @@ macro_rules! link_grpc_client {
                         _ => Err(tonic::Status::not_found("Not found")),
                     }
                 }
+
+                async fn is_ready(
+                    &self,
+                    request: $crate::ReadyRequest,
+                ) -> Result<tonic::Response<$crate::ReadyResponse>, tonic::Status> {
+                    grpc_warn!("(is_ready MOCK) {} client.", self.get_name());
+                    grpc_debug!("(is_ready MOCK) request: {:?}", request);
+                    Ok(tonic::Response::new($crate::ReadyResponse { ready: true }))
+                }
             }
         )+
     };
@@ -469,6 +441,15 @@ macro_rules! simple_grpc_client {
                     grpc_info!("(delete) {} client.", self.get_name());
                     grpc_debug!("(delete) request: {:?}", request);
                     self.get_client().await?.delete(request).await
+                }
+
+                async fn is_ready(
+                    &self,
+                    request: $crate::ReadyRequest,
+                ) -> Result<tonic::Response<$crate::ReadyResponse>, tonic::Status> {
+                    grpc_warn!("(is_ready) {} client.", self.get_name());
+                    grpc_debug!("(is_ready) request: {:?}", request);
+                    self.get_client().await?.is_ready(request).await
                 }
             }
         )+
@@ -642,6 +623,15 @@ macro_rules! simple_grpc_client {
                     list.retain(|object| object.id != id);
                     Ok(tonic::Response::new(()))
                 }
+
+                async fn is_ready(
+                    &self,
+                    request: $crate::ReadyRequest,
+                ) -> Result<tonic::Response<$crate::ReadyResponse>, tonic::Status> {
+                    grpc_warn!("(is_ready MOCK) {} client.", self.get_name());
+                    grpc_debug!("(is_ready MOCK) request: {:?}", request);
+                    Ok(tonic::Response::new($crate::ReadyResponse { ready: true }))
+                }
             }
         )+
     };
@@ -733,6 +723,15 @@ macro_rules! simple_linked_grpc_client {
                     grpc_info!("(delete) {} client.", self.get_name());
                     grpc_debug!("(delete) request: {:?}", request);
                     self.get_client().await?.delete(request).await
+                }
+
+                async fn is_ready(
+                    &self,
+                    request: $crate::ReadyRequest,
+                ) -> Result<tonic::Response<$crate::ReadyResponse>, tonic::Status> {
+                    grpc_warn!("(is_ready) {} client.", self.get_name());
+                    grpc_debug!("(is_ready) request: {:?}", request);
+                    self.get_client().await?.is_ready(request).await
                 }
             }
         )+
@@ -1088,6 +1087,15 @@ macro_rules! simple_linked_grpc_client {
                         linked_resource_list.retain(|object| object.[<$resource _id>] != resource_id && object.[<$other_resource _id>] != other_resource_id);
                     }
                     Ok(tonic::Response::new(()))
+                }
+
+                async fn is_ready(
+                    &self,
+                    request: $crate::ReadyRequest,
+                ) -> Result<tonic::Response<$crate::ReadyResponse>, tonic::Status> {
+                    grpc_warn!("(is_ready MOCK) {} client.", self.get_name());
+                    grpc_debug!("(is_ready MOCK) request: {:?}", request);
+                    Ok(tonic::Response::new($crate::ReadyResponse { ready: true }))
                 }
             }
         )+

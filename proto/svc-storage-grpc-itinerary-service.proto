@@ -157,6 +157,9 @@ service RpcFlightPlanLink {
     // }
     // ```
     rpc get_linked(grpc.Id) returns (grpc.flight_plan.List);
+
+    // Simple ready check to allow callers to validate the client connection status.
+    rpc is_ready (ReadyRequest) returns (ReadyResponse);
 }
 
 // Itinerary gRPC service
@@ -346,4 +349,7 @@ service RpcService {
     // }
     // ```
     rpc search(grpc.AdvancedSearchFilter) returns (List);
+
+    // Simple ready check to allow callers to validate the client connection status.
+    rpc is_ready (ReadyRequest) returns (ReadyResponse);
 }

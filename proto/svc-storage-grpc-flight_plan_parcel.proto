@@ -11,14 +11,14 @@ import "svc-storage-grpc.proto";
 message Response {
     // struct with field -> error pairs to provide feedback about invalid fields
     grpc.ValidationResult validation_result = 1;
-    // Object struct with ids [Vec<FieldValue>] in [Uuid](uuid::Uuid) format and [Data]
+    // Object struct with ids [`Vec\<FieldValue\>`] in [`Uuid`](uuid::Uuid) format and [`Data`]
     // struct with flight_plan_parcel data
     optional Object object = 2;
 }
 
 // Object struct with `id` and `data` field
-// * `ids` [Vec<FieldValue>] where the field_value's should be in [Uuid](uuid::Uuid) format
-// * `data` [Data] struct with flight_plan_parcel_parcel data
+// * `ids` [`Vec\<FieldValue\>`] where the field_value's should be in [`Uuid`](uuid::Uuid) format
+// * `data` [`Data`] struct with flight_plan_parcel_parcel data
 message Object {
     // list of field_name / id UUID v4 combinations
     repeated grpc.FieldValue ids = 1;
@@ -27,9 +27,9 @@ message Object {
 }
 
 // UpdateObject struct with `ids`, `data` and `mask` fields
-// * `ids` [Vec<FieldValue>] where the field_value's should be in [Uuid](uuid::Uuid) format
-// * `data` [Data] struct with flight_plan_parcel data which should be used for update
-// * `mask` [FieldMask] struct with flight_plan_parcel fields that should be updated
+// * `ids` [`Vec\<FieldValue\>`] where the field_value's should be in [`Uuid`](uuid::Uuid) format
+// * `data` [`Data`] struct with flight_plan_parcel data which should be used for update
+// * `mask` [`FieldMask`] struct with flight_plan_parcel fields that should be updated
 message UpdateObject {
     // list of field_name / id UUID v4 combinations
     repeated grpc.FieldValue ids = 1;
@@ -59,13 +59,13 @@ message RowData {
     bool deliver = 4;
 }
 
-// Struct containing a `list` of flight_plan_parcel [Vec\<Object\>]
+// Struct containing a `list` of flight_plan_parcel [`Vec\<Object\>`]
 message List {
     // array/vector of flight plan parcel items
     repeated Object list = 1;
 }
 
-// Struct containing a `list` of flight_plan_parcel [Vec\<RowData\>]
+// Struct containing a `list` of flight_plan_parcel [`Vec\<RowData\>`]
 message RowDataList {
     // array/vector of flight plan parcel items including id fields
     repeated RowData list = 1;

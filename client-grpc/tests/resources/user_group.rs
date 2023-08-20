@@ -2,11 +2,10 @@
 
 use super::utils::{check_log_string_matches, get_log_string};
 use logtest::Logger;
-use svc_storage_client_grpc::{Client, GrpcClient, Id, IdList, LinkClient, UserGroupLinkClient};
-use tonic::transport::Channel;
+use svc_storage_client_grpc::prelude::*;
 
 pub async fn scenario(
-    link_client: &GrpcClient<UserGroupLinkClient<Channel>>,
+    link_client: &UserGroupLinkClient,
     users: &super::user::List,
     groups: &super::group::List,
     logger: &mut Logger,

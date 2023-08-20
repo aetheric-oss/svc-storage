@@ -2,18 +2,11 @@
 
 use super::utils::{check_log_string_matches, get_log_string};
 use logtest::Logger;
-use svc_storage_client_grpc::{
-    AdvancedSearchFilter, Client, GrpcClient, Id, SimpleClient, VehicleClient,
-};
-use tonic::transport::Channel;
+use svc_storage_client_grpc::prelude::*;
 
-pub use svc_storage_client_grpc::vehicle::*;
+pub use vehicle::*;
 
-pub async fn scenario(
-    client: &GrpcClient<VehicleClient<Channel>>,
-    data: Vec<Data>,
-    logger: &mut Logger,
-) -> List {
+pub async fn scenario(client: &VehicleClient, data: Vec<Data>, logger: &mut Logger) -> List {
     let name = "vehicle";
     assert_eq!(client.get_name(), name);
 

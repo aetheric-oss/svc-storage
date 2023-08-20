@@ -4,6 +4,11 @@
 /// macros module exposing gRPC include macro
 mod macros;
 
+pub mod link_service;
+pub mod resources;
+pub mod simple_service;
+pub mod simple_service_linked;
+
 #[cfg(test)]
 mod enum_tests;
 
@@ -11,20 +16,10 @@ mod enum_tests;
 pub mod search {
     include!("../includes/search.rs");
 }
-pub mod resources;
+pub mod prelude;
 
-pub use prost_types::FieldMask;
-pub use prost_wkt_types::Timestamp;
-pub mod link_service;
-pub use link_service::Client as LinkClient;
-pub mod simple_service;
-pub use simple_service::Client as SimpleClient;
-pub mod simple_service_linked;
-pub use simple_service_linked::Client as SimpleLinkedClient;
-
-pub use lib_common::grpc::{Client, ClientConnect, GrpcClient};
-pub use resources::grpc_geo_types::*;
-pub use resources::*;
+use prelude::*;
+pub use resources::Clients;
 
 fn timestamp_schema() -> utoipa::openapi::Object {
     utoipa::openapi::ObjectBuilder::new()

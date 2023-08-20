@@ -87,6 +87,8 @@ fn get_grpc_builder_config(out_path: &str) -> tonic_build::Builder {
         .extern_path(".grpc.geo_types.GeoPolygon", "GeoPolygon")
         .extern_path(".grpc.geo_types.GeoLineString", "GeoLineString")
         .extern_path(".grpc.geo_types.GeoLine", "GeoLine")
+        .type_attribute("ReadyRequest", "#[derive(Eq, Copy)]")
+        .type_attribute("ReadyResponse", "#[derive(Eq, Copy)]")
         .type_attribute("Id", "#[derive(Eq)]")
         .type_attribute("SearchFilter", "#[derive(Eq)]")
         .type_attribute("AdvancedSearchFilter", "#[derive(Eq)]")
@@ -101,8 +103,6 @@ fn get_grpc_builder_config(out_path: &str) -> tonic_build::Builder {
         .type_attribute("FlightPriority", "#[derive(num_derive::FromPrimitive)]")
         .type_attribute("ParcelStatus", "#[derive(num_derive::FromPrimitive)]")
         .type_attribute("AuthMethod", "#[derive(num_derive::FromPrimitive)]")
-        .type_attribute("ReadyRequest", "#[derive(Eq, Copy)]")
-        .type_attribute("ReadyResponse", "#[derive(Eq, Copy)]")
         // Add serde derive attributes for structs
         .type_attribute("Id", "#[derive(Serialize, Deserialize)]")
         .type_attribute("Ids", "#[derive(Serialize, Deserialize)]")

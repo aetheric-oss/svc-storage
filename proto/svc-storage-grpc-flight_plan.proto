@@ -37,14 +37,14 @@ enum FlightPriority {
 message Response {
     // struct with field -> error pairs to provide feedback about invalid fields
     grpc.ValidationResult validation_result = 1;
-    // Object struct with id [String] in [Uuid](uuid::Uuid) format and [Data]
+    // Object struct with id [`String`] in [`Uuid`](uuid::Uuid) format and [`Data`]
     // struct with flight_plan data
     optional Object object = 2;
 }
 
 // Object struct with `id` and `data` field
-// * `id` [String] in [Uuid](uuid::Uuid) format
-// * `data` [Data] struct with flight_plan data
+// * `id` [`String`] in [`Uuid`](uuid::Uuid) format
+// * `data` [`Data`] struct with flight_plan data
 message Object {
     // id UUID v4
     string id = 1;
@@ -53,11 +53,11 @@ message Object {
 }
 
 // UpdateObject struct with `id`, `data` and `mask` fields
-// * `id` [String] in [Uuid](uuid::Uuid) format
-// * `data` [Data] struct with flight_plan data which should be used for update
-// * `mask` [FieldMask] struct with flight_plan fields that should be updated
+// * `id` [`String`] in [`Uuid`](uuid::Uuid) format
+// * `data` [`Data`] struct with flight_plan data which should be used for update
+// * `mask` [`FieldMask`] struct with flight_plan fields that should be updated
 message UpdateObject {
-    // `id` [String] in [Uuid](uuid::Uuid) format
+    // `id` [`String`] in [`Uuid`](uuid::Uuid) format
     string id = 1;
     // struct with flight_plan data which should be used for update
     Data data = 2;
@@ -115,9 +115,9 @@ message List {
 
 // Struct used to link parcels to flight plans
 message FlightPlanParcels {
-    // `id` [String] in [Uuid](uuid::Uuid) format
+    // `id` [`String`] in [`Uuid`](uuid::Uuid) format
     string id = 1;
-    // parcel ids as [Vec\<String\>] in [Uuid](uuid::Uuid) format
+    // parcel ids as [`Vec\<String\>`] in [`Uuid`](uuid::Uuid) format
     IdList other_id_list = 2;
     // If the parcels are picked up at the departure vertiport
     bool acquire = 3;

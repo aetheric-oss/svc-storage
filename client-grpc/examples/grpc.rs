@@ -1,12 +1,9 @@
 //! gRPC client implementation
+use svc_storage_client_grpc::prelude::*;
+
 use chrono::naive::NaiveDate;
 use chrono::{Datelike, Duration, Local, Timelike, Utc};
-use geo_types::LineString;
 use lib_common::grpc::get_endpoint_from_env;
-use prost_types::FieldMask;
-use svc_storage_client_grpc::flight_plan::{self, FlightStatus};
-use svc_storage_client_grpc::itinerary::{self, ItineraryFlightPlans, ItineraryStatus};
-use svc_storage_client_grpc::*;
 use tokio::sync::OnceCell;
 use tonic::Status;
 use uuid::Uuid;
@@ -21,7 +18,7 @@ pub async fn get_clients() -> &'static Clients {
     CLIENTS
         .get_or_init(|| async move {
             let (host, port) = get_endpoint_from_env("SERVER_HOSTNAME", "SERVER_PORT_GRPC");
-            svc_storage_client_grpc::Clients::new(host, port)
+            Clients::new(host, port)
         })
         .await
 }
@@ -201,7 +198,7 @@ async fn itinerary_scenario() -> Result<(), Status> {
     let expected_uuid = Uuid::new_v4().to_string();
     let data = itinerary::Data {
         user_id: expected_uuid.clone(),
-        status: ItineraryStatus::Active as i32,
+        status: itinerary::ItineraryStatus::Active as i32,
     };
 
     itinerary_client
@@ -214,7 +211,7 @@ async fn itinerary_scenario() -> Result<(), Status> {
     //
     let filter = AdvancedSearchFilter::search_equals(
         "status".to_owned(),
-        (ItineraryStatus::Active as i32).to_string(),
+        (itinerary::ItineraryStatus::Active as i32).to_string(),
     );
 
     println!("Retrieving list of itineraries");
@@ -230,7 +227,7 @@ async fn itinerary_scenario() -> Result<(), Status> {
     let itinerary_id = itinerary.id;
     let itinerary = itinerary.data.unwrap();
     assert_eq!(itinerary.user_id, expected_uuid);
-    assert_eq!(itinerary.status, ItineraryStatus::Active as i32);
+    assert_eq!(itinerary.status, itinerary::ItineraryStatus::Active as i32);
 
     //
     // Link with flight_plan
@@ -241,7 +238,7 @@ async fn itinerary_scenario() -> Result<(), Status> {
 
     let fp_filter = AdvancedSearchFilter::search_equals(
         "flight_status".to_owned(),
-        (FlightStatus::Draft as i32).to_string(),
+        (flight_plan::FlightStatus::Draft as i32).to_string(),
     )
     .page_number(1)
     .results_per_page(50);
@@ -276,7 +273,7 @@ async fn itinerary_scenario() -> Result<(), Status> {
     println!("Itinerary FlightPlan Link Client created");
 
     match link_client
-        .link(ItineraryFlightPlans {
+        .link(itinerary::ItineraryFlightPlans {
             id: itinerary_id.clone(),
             other_id_list: Some(IdList { ids: fp_ids }),
         })
@@ -291,7 +288,7 @@ async fn itinerary_scenario() -> Result<(), Status> {
         let mut fp_ids = vec![];
         fp_ids.push(list.pop().unwrap().id);
         match link_client
-            .link(ItineraryFlightPlans {
+            .link(itinerary::ItineraryFlightPlans {
                 id: itinerary_id.clone(),
                 other_id_list: Some(IdList { ids: fp_ids }),
             })
@@ -320,7 +317,7 @@ async fn itinerary_scenario() -> Result<(), Status> {
             fp_ids.push(list.pop().unwrap().id);
         }
         match link_client
-            .replace_linked(ItineraryFlightPlans {
+            .replace_linked(itinerary::ItineraryFlightPlans {
                 id: itinerary_id.clone(),
                 other_id_list: Some(IdList { ids: fp_ids }),
             })
@@ -676,7 +673,7 @@ async fn flight_plan_scenario(
     println!("Retrieving list of flight plans");
     let fp_filter = AdvancedSearchFilter::search_equals(
         "flight_status".to_owned(),
-        (FlightStatus::Draft as i32).to_string(),
+        (flight_plan::FlightStatus::Draft as i32).to_string(),
     )
     .page_number(1)
     .results_per_page(50);
@@ -765,7 +762,7 @@ async fn flight_plan_scenario(
     flight_plan.vehicle_id = vehicle_id;
     flight_plan.departure_vertipad_id = departure_vertipad_id;
     flight_plan.destination_vertipad_id = destination_vertipad_id;
-    flight_plan.flight_status = FlightStatus::Boarding as i32;
+    flight_plan.flight_status = flight_plan::FlightStatus::Boarding as i32;
 
     println!("Starting insert flight plan");
     let fp_result = match flight_plan_client.insert(flight_plan).await {
@@ -781,7 +778,7 @@ async fn flight_plan_scenario(
             .update(flight_plan::UpdateObject {
                 id: new_fp.id.clone(),
                 data: Some(flight_plan::Data {
-                    flight_status: FlightStatus::InFlight as i32,
+                    flight_status: flight_plan::FlightStatus::InFlight as i32,
                     ..new_fp.clone().data.unwrap()
                 }),
                 mask: Some(FieldMask {
@@ -798,7 +795,7 @@ async fn flight_plan_scenario(
 
     let fp_filter = AdvancedSearchFilter::search_equals(
         "flight_status".to_owned(),
-        (FlightStatus::InFlight as i32).to_string(),
+        (flight_plan::FlightStatus::InFlight as i32).to_string(),
     );
     match flight_plan_client.search(fp_filter).await {
         Ok(res) => {

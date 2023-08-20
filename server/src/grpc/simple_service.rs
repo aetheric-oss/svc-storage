@@ -36,20 +36,20 @@ where
     Status:
         From<<Self::Data as TryFrom<Row>>::Error> + From<<Self::List as TryFrom<Vec<Row>>>::Error>,
 {
-    /// The type expected for the ResourceObject<Data> type. Must implement;
-    /// ObjectType<Self::Data>, PsqlType, PsqlSearch,
-    /// SimpleResource<Self::Data>, PsqlObjectType<Self::Data>, From<Id>, From<Self::Data>,
-    /// From<Self::UpdateObject>, Clone, sync, send
+    /// The type expected for the [`Self::ResourceObject<Self::Data>`] type. Must implement;
+    /// [`ObjectType<Self::Data>`], [`PsqlType`], [`PsqlSearch`],
+    /// [`SimpleResource<Self::Data>`], [`PsqlObjectType<Self::Data>`], `From<[Id]>`, `From<[Self::Data]>`,
+    /// `From<[Self::UpdateObject]>`, [`Clone`], [`Sync`], [`Send`]
     type ResourceObject;
-    /// The type expected for Data structs. Must implement; GrpcDataObjectType, TryFrom<Row>
+    /// The type expected for `Data` structs. Must implement; [`GrpcDataObjectType`], `TryFrom<[Row]>`
     type Data;
-    /// The type expected for Object structs. Must implement; From<Self::ResourceObject>
+    /// The type expected for `Object` structs. Must implement; `From<[Self::ResourceObject]>`
     type Object;
-    /// The type expected for UpdateObject structs. Must implement; Send
+    /// The type expected for `UpdateObject` structs. Must implement; [`Send`]
     type UpdateObject;
-    /// The type expected for List structs. Must implement TryFrom<Vec<Row>>
+    /// The type expected for `List` structs. Must implement `TryFrom<[Vec<Row>]>`
     type List;
-    /// The type expected for Response structs. Must implement; From<GenericResourceResult<Self::ResourceObject, Self::Data>>
+    /// The type expected for `Response` structs. Must implement; `From<[GenericResourceResult<Self::ResourceObject, Self::Data>]>`
     type Response;
 
     /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type [`Self::Object`].
@@ -212,5 +212,14 @@ where
             Ok(_) => Ok(Response::new(())),
             Err(e) => Err(Status::new(Code::Internal, e.to_string())),
         }
+    }
+
+    /// Returns ready:true when service is available
+    async fn generic_is_ready(
+        &self,
+        _request: Request<ReadyRequest>,
+    ) -> Result<Response<ReadyResponse>, Status> {
+        let response = ReadyResponse { ready: true };
+        Ok(Response::new(response))
     }
 }

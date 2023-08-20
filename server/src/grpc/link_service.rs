@@ -63,34 +63,34 @@ where
     Status: From<<Self::LinkedData as TryFrom<Row>>::Error>
         + From<<Self::OtherList as TryFrom<Vec<Row>>>::Error>,
 {
-    /// The type expected for the ResourceObject<Data> type of the linked resource.
-    /// Must implement; ObjectType<Self::Data>, PsqlType, PsqlSearch,
-    /// LinkedResource<Self::Data>, From<Id>, From<Self::Data>,
-    /// From<Self::UpdateObject>, Clone, sync, send
+    /// The type expected for the `ResourceObject<Data>` type of the linked resource.
+    /// Must implement; `ObjectType<Self::Data>`, PsqlType, PsqlSearch,
+    /// `LinkedResource<Self::Data>`, `From<Id>`, `From<Self::Data>`,
+    /// `From<Self::UpdateObject>`, Clone, sync, send
     type LinkedResourceObject;
     /// The type expected for the Data struct of the linked resource.
-    /// Must implement; GrpcDataObjectType, TryFrom<Row>
+    /// Must implement; GrpcDataObjectType, `TryFrom<Row>`
     type LinkedData;
 
-    /// The type expected for the ResourceObject<Data> type of the 'main' resource.
-    /// Must implement; ObjectType<Self::Data>, PsqlType, PsqlSearch,
-    /// SimpleResource<Self::Data>, From<Id>, From<Self::Data>,
-    /// From<Self::UpdateObject>, Clone, sync, send
+    /// The type expected for the `ResourceObject<Data>` type of the 'main' resource.
+    /// Must implement; `ObjectType<Self::Data>`, PsqlType, PsqlSearch,
+    /// `SimpleResource<Self::Data>`, `From<Id>`, `From<Self::Data>`,
+    /// `From<Self::UpdateObject>`, Clone, sync, send
     type ResourceObject;
     /// The type expected for the Data struct of the 'main' resource.
-    /// Must implement; GrpcDataObjectType, TryFrom<Row>
+    /// Must implement; GrpcDataObjectType, `TryFrom<Row>`
     type Data;
 
-    /// The type expected for the ResourceObject<Data> type of the 'other' resource.
-    /// Must implement; ObjectType<Self::Data>, PsqlType, PsqlSearch,
-    /// SimpleResource<Self::Data>, From<Id>, From<Self::Data>,
-    /// From<Self::UpdateObject>, Clone, sync, send
+    /// The type expected for the `ResourceObject<Data>` type of the 'other' resource.
+    /// Must implement; `ObjectType<Self::Data>`, PsqlType, PsqlSearch,
+    /// `SimpleResource<Self::Data>`, `From<Id>`, `From<Self::Data>`,
+    /// `From<Self::UpdateObject>`, Clone, sync, send
     type OtherResourceObject;
     /// The type expected for the List struct of the 'other' resource.
-    /// Must implement; TryFrom<Vec<Row>>
+    /// Must implement; `TryFrom<[Vec<Row>]>`
     type OtherList;
     /// The type expected for the Data struct of the 'other' resource.
-    /// Must implement; GrpcDataObjectType, TryFrom<Row>
+    /// Must implement; GrpcDataObjectType, `TryFrom<Row>`
     type OtherData;
 
     /// Returns an empty [`tonic`] gRCP [`Response`] on success
@@ -259,5 +259,14 @@ where
             }
             Err(e) => Err(e),
         }
+    }
+
+    /// Returns ready:true when service is available
+    async fn generic_is_ready(
+        &self,
+        _request: Request<ReadyRequest>,
+    ) -> Result<Response<ReadyResponse>, Status> {
+        let response = ReadyResponse { ready: true };
+        Ok(Response::new(response))
     }
 }

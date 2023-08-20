@@ -12,7 +12,7 @@ macro_rules! grpc_server_link_service_mod {
         use tonic::{Request, Status};
         use super::$resource;
         use super::$other_resource;
-        use super::{Id, IdList};
+        use super::{Id, IdList, ReadyRequest, ReadyResponse};
         use crate::grpc::GrpcLinkService;
         use crate::resources::base::linked_resource::LinkOtherResource;
         use crate::resources::base::ResourceObject;
@@ -321,6 +321,27 @@ macro_rules! grpc_server_link_service_mod {
                     _ => Err(tonic::Status::not_found("Not found")),
                 }
             }
+
+            /// Returns ready:true when service is available
+            #[cfg(not(feature = "stub_server"))]
+            async fn is_ready(
+                &self,
+                request: Request<ReadyRequest>,
+            ) -> Result<tonic::Response<ReadyResponse>, Status> {
+                grpc_info!("(is_ready) {} server.", self.get_name());
+                grpc_debug!("(is_ready) request: {:?}", request);
+                self.generic_is_ready(request).await
+            }
+            #[cfg(feature = "stub_server")]
+            async fn is_ready(
+                &self,
+                request: Request<ReadyRequest>,
+            ) -> Result<tonic::Response<ReadyResponse>, Status> {
+                grpc_info!("(is_ready MOCK) {} server.", self.get_name());
+                grpc_debug!("(is_ready MOCK) request: {:?}", request);
+                let response = ReadyResponse { ready: true };
+                Ok(tonic::Response::new(response))
+            }
         }
     }
 }
@@ -336,7 +357,7 @@ macro_rules! grpc_server_simple_service_mod {
         pub mod $resource {
             #![allow(unused_qualifications)]
             use super::{
-                AdvancedSearchFilter, GrpcSimpleService, Id, Request, ResourceObject, Status, Serialize, Deserialize
+                AdvancedSearchFilter, GrpcSimpleService, Id, Request, ResourceObject, Status, Serialize, Deserialize, ReadyRequest, ReadyResponse
             };
 
             cfg_if::cfg_if! {
@@ -741,6 +762,27 @@ macro_rules! grpc_server_simple_service_mod {
                     list.retain(|object| object.id != id);
                     Ok(tonic::Response::new(()))
                 }
+
+                /// Returns ready:true when service is available
+                #[cfg(not(feature = "stub_server"))]
+                async fn is_ready(
+                    &self,
+                    request: Request<ReadyRequest>,
+                ) -> Result<tonic::Response<ReadyResponse>, Status> {
+                    grpc_info!("(is_ready) {} server.", self.get_name());
+                    grpc_debug!("(is_ready) request: {:?}", request);
+                    self.generic_is_ready(request).await
+                }
+                #[cfg(feature = "stub_server")]
+                async fn is_ready(
+                    &self,
+                    request: Request<ReadyRequest>,
+                ) -> Result<tonic::Response<ReadyResponse>, Status> {
+                    grpc_info!("(is_ready MOCK) {} server.", self.get_name());
+                    grpc_debug!("(is_ready MOCK) request: {:?}", request);
+                    let response = ReadyResponse { ready: true };
+                    Ok(tonic::Response::new(response))
+                }
             }
         }
     };
@@ -758,7 +800,7 @@ macro_rules! grpc_server_simple_service_linked_mod {
         pub mod $linked_resource {
             #![allow(unused_qualifications)]
             use super::{
-                AdvancedSearchFilter, Ids, Id, IdList, GrpcSimpleServiceLinked, Request, ResourceObject,
+                AdvancedSearchFilter, Ids, Id, IdList, GrpcSimpleServiceLinked, ReadyRequest, ReadyResponse, Request, ResourceObject,
                 Status, Serialize, Deserialize, $other_resource, $resource
             };
 
@@ -1432,6 +1474,27 @@ macro_rules! grpc_server_simple_service_linked_mod {
                         linked_resource_list.retain(|object| object.[<$resource _id>] != resource_id && object.[<$other_resource _id>] != other_resource_id);
                     }
                     Ok(tonic::Response::new(()))
+                }
+
+                /// Returns ready:true when service is available
+                #[cfg(not(feature = "stub_server"))]
+                async fn is_ready(
+                    &self,
+                    request: Request<ReadyRequest>,
+                ) -> Result<tonic::Response<ReadyResponse>, Status> {
+                    grpc_info!("(is_ready) {} server.", self.get_name());
+                    grpc_debug!("(is_ready) request: {:?}", request);
+                    self.generic_is_ready(request).await
+                }
+                #[cfg(feature = "stub_server")]
+                async fn is_ready(
+                    &self,
+                    request: Request<ReadyRequest>,
+                ) -> Result<tonic::Response<ReadyResponse>, Status> {
+                    grpc_info!("(is_ready MOCK) {} server.", self.get_name());
+                    grpc_debug!("(is_ready MOCK) request: {:?}", request);
+                    let response = ReadyResponse { ready: true };
+                    Ok(tonic::Response::new(response))
                 }
             }
         }

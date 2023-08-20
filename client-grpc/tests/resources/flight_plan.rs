@@ -3,18 +3,11 @@
 use super::utils::{check_log_string_matches, get_log_string};
 use chrono::Duration;
 use logtest::Logger;
-use svc_storage_client_grpc::{
-    AdvancedSearchFilter, Client, FlightPlanClient, GrpcClient, Id, SimpleClient,
-};
-use tonic::transport::Channel;
+use svc_storage_client_grpc::prelude::*;
 
-pub use svc_storage_client_grpc::flight_plan::*;
+pub use flight_plan::*;
 
-pub async fn scenario(
-    client: &GrpcClient<FlightPlanClient<Channel>>,
-    data: Vec<Data>,
-    logger: &mut Logger,
-) -> List {
+pub async fn scenario(client: &FlightPlanClient, data: Vec<Data>, logger: &mut Logger) -> List {
     let name = "flight_plan";
     assert_eq!(client.get_name(), name);
 

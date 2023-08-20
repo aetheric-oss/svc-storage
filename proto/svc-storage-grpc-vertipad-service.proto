@@ -210,4 +210,7 @@ service RpcService {
     // }
     // ```
     rpc search(grpc.AdvancedSearchFilter) returns (grpc.vertipad.List);
+
+    // Simple ready check to allow callers to validate the client connection status.
+    rpc is_ready (ReadyRequest) returns (ReadyResponse);
 }

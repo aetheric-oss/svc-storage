@@ -2,18 +2,11 @@
 
 use super::utils::{check_log_string_matches, get_log_string};
 use logtest::Logger;
-use svc_storage_client_grpc::{
-    AdsbClient, AdvancedSearchFilter, Client, GrpcClient, Id, SimpleClient,
-};
-use tonic::transport::Channel;
+use svc_storage_client_grpc::prelude::*;
 
-pub use svc_storage_client_grpc::adsb::*;
+pub use adsb::*;
 
-pub async fn scenario(
-    client: &GrpcClient<AdsbClient<Channel>>,
-    data: Vec<Data>,
-    logger: &mut Logger,
-) -> List {
+pub async fn scenario(client: &AdsbClient, data: Vec<Data>, logger: &mut Logger) -> List {
     let name = "adsb";
     assert_eq!(client.get_name(), name);
 
@@ -100,9 +93,7 @@ pub async fn scenario(
 }
 
 #[cfg(not(any(feature = "stub_backends", feature = "stub_client")))]
-pub async fn test_telemetry(
-    client: &GrpcClient<AdsbClient<Channel>>,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn test_telemetry(client: &AdsbClient) -> Result<(), Box<dyn std::error::Error>> {
     use chrono::naive::NaiveDate;
     use chrono::{Datelike, Duration, Timelike, Utc};
 

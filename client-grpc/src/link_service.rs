@@ -30,17 +30,16 @@ where
     ///
     /// ```
     /// use lib_common::grpc::get_endpoint_from_env;
-    /// use svc_storage_client_grpc::{Clients, GrpcClient, IdList, LinkClient};
-    /// use svc_storage_client_grpc::user::*;
+    /// use svc_storage_client_grpc::prelude::*;
     ///
     /// async fn example () -> Result<(), Box<dyn std::error::Error>> {
     ///     let (host, port) = get_endpoint_from_env("SERVER_HOSTNAME", "SERVER_PORT_GRPC");
-    ///     let clients = svc_storage_client_grpc::Clients::new(host, port);
+    ///     let clients = Clients::new(host, port);
     ///     let link_client = clients.user_group_link;
     ///     let user_id = String::from("40ef6e51-c7db-4ce7-a806-a754d6baa641");
     ///     let group_id = String::from("5dc9364e-0e5b-4156-b258-008037da242a");
     ///     let result = link_client
-    ///         .link(UserGroups {
+    ///         .link(user::UserGroups {
     ///             id: user_id,
     ///             other_id_list: Some(IdList { ids: vec![group_id] }),
     ///         })
@@ -70,17 +69,16 @@ where
     ///
     /// ```
     /// use lib_common::grpc::get_endpoint_from_env;
-    /// use svc_storage_client_grpc::{Clients, GrpcClient, IdList, LinkClient};
-    /// use svc_storage_client_grpc::user::*;
+    /// use svc_storage_client_grpc::prelude::*;
     ///
     /// async fn example () -> Result<(), Box<dyn std::error::Error>> {
     ///     let (host, port) = get_endpoint_from_env("SERVER_HOSTNAME", "SERVER_PORT_GRPC");
-    ///     let clients = svc_storage_client_grpc::Clients::new(host, port);
+    ///     let clients = Clients::new(host, port);
     ///     let link_client = clients.user_group_link;
     ///     let user_id = String::from("40ef6e51-c7db-4ce7-a806-a754d6baa641");
     ///     let group_id = String::from("5dc9364e-0e5b-4156-b258-008037da242a");
     ///     let result = link_client
-    ///         .replace_linked(UserGroups {
+    ///         .replace_linked(user::UserGroups {
     ///             id: user_id,
     ///             other_id_list: Some(IdList { ids: vec![group_id] }),
     ///         })
@@ -109,12 +107,11 @@ where
     ///
     /// ```
     /// use lib_common::grpc::get_endpoint_from_env;
-    /// use svc_storage_client_grpc::{Clients, GrpcClient, Id, LinkClient};
-    /// use svc_storage_client_grpc::user::*;
+    /// use svc_storage_client_grpc::prelude::*;
     ///
     /// async fn example () -> Result<(), Box<dyn std::error::Error>> {
     ///     let (host, port) = get_endpoint_from_env("SERVER_HOSTNAME", "SERVER_PORT_GRPC");
-    ///     let clients = svc_storage_client_grpc::Clients::new(host, port);
+    ///     let clients = Clients::new(host, port);
     ///     let link_client = clients.user_group_link;
     ///     let user_id = String::from("40ef6e51-c7db-4ce7-a806-a754d6baa641");
     ///     let group_id = String::from("5dc9364e-0e5b-4156-b258-008037da242a");
@@ -144,12 +141,11 @@ where
     ///
     /// ```
     /// use lib_common::grpc::get_endpoint_from_env;
-    /// use svc_storage_client_grpc::{Clients, GrpcClient, Id, LinkClient};
-    /// use svc_storage_client_grpc::user::*;
+    /// use svc_storage_client_grpc::prelude::*;
     ///
     /// async fn example () -> Result<(), Box<dyn std::error::Error>> {
     ///     let (host, port) = get_endpoint_from_env("SERVER_HOSTNAME", "SERVER_PORT_GRPC");
-    ///     let clients = svc_storage_client_grpc::Clients::new(host, port);
+    ///     let clients = Clients::new(host, port);
     ///     let link_client = clients.user_group_link;
     ///     let user_id = String::from("40ef6e51-c7db-4ce7-a806-a754d6baa641");
     ///     let group_id = String::from("5dc9364e-0e5b-4156-b258-008037da242a");
@@ -182,12 +178,11 @@ where
     ///
     /// ```
     /// use lib_common::grpc::get_endpoint_from_env;
-    /// use svc_storage_client_grpc::{Clients, GrpcClient, Id, LinkClient};
-    /// use svc_storage_client_grpc::user::*;
+    /// use svc_storage_client_grpc::prelude::*;
     ///
     /// async fn example () -> Result<(), Box<dyn std::error::Error>> {
     ///     let (host, port) = get_endpoint_from_env("SERVER_HOSTNAME", "SERVER_PORT_GRPC");
-    ///     let clients = svc_storage_client_grpc::Clients::new(host, port);
+    ///     let clients = Clients::new(host, port);
     ///     let link_client = clients.user_group_link;
     ///     let user_id = String::from("40ef6e51-c7db-4ce7-a806-a754d6baa641");
     ///     let group_id = String::from("5dc9364e-0e5b-4156-b258-008037da242a");
@@ -203,4 +198,32 @@ where
         &self,
         request: crate::Id,
     ) -> Result<tonic::Response<Self::OtherList>, tonic::Status>;
+
+    /// Returns a [`tonic::Response`] containing a [`ReadyResponse`](crate::ReadyResponse)
+    /// Takes an [`ReadyRequest`](crate::ReadyRequest)
+    ///
+    /// # Errors
+    ///
+    /// Returns [`tonic::Status`] with [`Code::Unknown`](tonic::Code::Unknown) if
+    /// the server is not ready.
+    ///
+    /// # Examples
+    /// ```
+    /// use lib_common::grpc::get_endpoint_from_env;
+    /// use svc_storage_client_grpc::prelude::*;
+    ///
+    /// async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    ///     let (host, port) = get_endpoint_from_env("SERVER_HOSTNAME", "SERVER_PORT_GRPC");
+    ///     let clients = Clients::new(host, port);
+    ///     let response = clients.user_group_link
+    ///         .is_ready(ReadyRequest {})
+    ///         .await?;
+    ///     println!("RESPONSE={:?}", response.into_inner());
+    ///     Ok(())
+    /// }
+    /// ```
+    async fn is_ready(
+        &self,
+        request: crate::ReadyRequest,
+    ) -> Result<tonic::Response<crate::ReadyResponse>, tonic::Status>;
 }

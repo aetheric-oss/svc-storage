@@ -2,18 +2,11 @@
 
 use super::utils::{check_log_string_matches, get_log_string};
 use logtest::Logger;
-use svc_storage_client_grpc::{
-    AdvancedSearchFilter, Client, GrpcClient, Id, SimpleClient, VertiportClient,
-};
-use tonic::transport::Channel;
+use svc_storage_client_grpc::prelude::*;
 
-pub use svc_storage_client_grpc::vertiport::*;
+pub use vertiport::*;
 
-pub async fn scenario(
-    client: &GrpcClient<VertiportClient<Channel>>,
-    data: Vec<Data>,
-    logger: &mut Logger,
-) -> List {
+pub async fn scenario(client: &VertiportClient, data: Vec<Data>, logger: &mut Logger) -> List {
     let name = "vertiport";
     assert_eq!(client.get_name(), name);
 
@@ -76,7 +69,7 @@ pub async fn scenario(
 
     println!("{:?}", result);
     assert!(result.is_ok());
-    let vertiport_from_db: Object = result.unwrap().into_inner();
+    let vertiport_from_db = result.unwrap().into_inner();
     assert_eq!(vertiport_from_db.id, vertiport_id);
 
     // Check if we can delete the vertiport

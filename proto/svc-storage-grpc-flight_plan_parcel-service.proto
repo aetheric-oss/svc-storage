@@ -325,4 +325,7 @@ service RpcServiceLinked {
     // }
     // ```
     rpc search(grpc.AdvancedSearchFilter) returns (RowDataList);
+
+    // Simple ready check to allow callers to validate the client connection status.
+    rpc is_ready (ReadyRequest) returns (ReadyResponse);
 }

@@ -73,55 +73,55 @@ where
         + From<<Self::LinkedRowDataList as TryFrom<Vec<Row>>>::Error>
         + From<<Self::OtherList as TryFrom<Vec<Row>>>::Error>,
 {
-    /// The type expected for the ResourceObject<Data> type of the linked resource.
-    /// Must implement; ObjectType<Self::Data>, PsqlType, PsqlSearch,
-    /// SimpleResourceLinked<Self::Data>, PsqlObjectType<Self::Data>, From<Id>, From<Self::Data>,
-    /// From<Self::UpdateObject>, Clone, sync, send
+    /// The type expected for the [`Self::ResourceObject<Self::Data>`] type of the linked resource.
+    /// Must implement; [`ObjectType<Self::Data>`], [`PsqlType`], [`PsqlSearch`],
+    /// [`SimpleResourceLinked<Self::Data>`], [`PsqlObjectType<Self::Data>`], `From<[Id]>`, `From<[Self::Data]>`,
+    /// `From<[Self::UpdateObject]>`, [`Clone`], [`Sync`], [`Send`]
     type LinkedResourceObject;
     /// The type expected for the Data struct of the linked resource.
-    /// Must implement; GrpcDataObjectType, TryFrom<Row>
+    /// Must implement; [`GrpcDataObjectType`], `TryFrom<[Row]>`
     type LinkedData;
     /// The type expected for the RowData struct of the linked resource.
-    /// Must implement; TryFrom<Row>
+    /// Must implement; `TryFrom<[Row]>`
     type LinkedRowData;
     /// The type expected for the Object struct of the linked resource.
-    /// Must implement; From<Self::LinkedResourceObject>
+    /// Must implement; `From<[Self::LinkedResourceObject]>`
     type LinkedObject;
     /// The type expected for the UpdateObject struct of the linked resourceLinked.
-    /// Must implement; Send
+    /// Must implement; [`Send`]
     type LinkedUpdateObject;
     /// The type expected for the List struct of the linked resource.
-    /// Must implement; TryFrom<Vec<Row>>
+    /// Must implement; `TryFrom<[Vec<Row>]>`
     type LinkedList;
     /// The type expected for the RowDataList struct of the linked resource.
-    /// Must implement; TryFrom<Vec<Row>>
+    /// Must implement; `TryFrom<[Vec<Row>]>`
     type LinkedRowDataList;
     /// The type expected for the Response struct of the linked resource.
-    /// Must implement; TryFrom<Vec<Row>>
+    /// Must implement; `TryFrom<[Vec<Row>]>`
     type LinkedResponse;
 
-    /// The type expected for the ResourceObject<Data> type of the 'main' resource.
-    /// Must implement; ObjectType<Self::Data>, PsqlType, PsqlSearch,
-    /// SimpleResource<Self::Data>, PsqlObjectType<Self::Data>, From<Id>, From<Self::Data>,
-    /// From<Self::UpdateObject>, Clone, sync, send
+    /// The type expected for the [`Self::ResourceObject<Self::Data>`] type of the 'main' resource.
+    /// Must implement; [`ObjectType<Self::Data>`], [`PsqlType`], [`PsqlSearch`],
+    /// [`SimpleResource<Self::Data>`], `[PsqlObjectType<Self::Data>]`, `From<[Id]>`, `From<[Self::Data]>`,
+    /// `From<[Self::UpdateObject]>`, [`Clone`], [`Sync`], [`Send`]
     type ResourceObject;
     /// The type expected for the Data struct of the 'main' resource.
-    /// Must implement; GrpcDataObjectType, TryFrom<Row>
+    /// Must implement; [`GrpcDataObjectType`], `TryFrom<[Row]>`
     type Data;
 
-    /// The type expected for the ResourceObject<Data> type of the 'other' resource.
-    /// Must implement; ObjectType<Self::Data>, PsqlType, PsqlSearch,
-    /// SimpleResource<Self::Data>, PsqlObjectType<Self::Data>, From<Id>, From<Self::Data>,
-    /// From<Self::UpdateObject>, Clone, sync, send
+    /// The type expected for the [`Self::ResourceObject<Self::Data>`] type of the 'other' resource.
+    /// Must implement; [`ObjectType<Self::Data>`], [`PsqlType`], [`PsqlSearch`],
+    /// [`SimpleResource<Self::Data>`], `[PsqlObjectType<Self::Data>]`, `From<[Id]>`, `From<[Self::Data]>`,
+    /// `From<[Self::UpdateObject]>`, [`Clone`], [`Sync`], [`Send`]
     type OtherResourceObject;
     /// The type expected for the List struct of the 'other' resource.
-    /// Must implement; TryFrom<Vec<Row>>
+    /// Must implement; `TryFrom<Vec<Row>>`
     type OtherList;
     /// The type expected for the Data struct of the 'other' resource.
-    /// Must implement; GrpcDataObjectType, TryFrom<Row>
+    /// Must implement; [`GrpcDataObjectType`], `TryFrom<[Row]>`
     type OtherData;
 
-    /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type [`Self::Object`].
+    /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type [`Self::LinkedObject`].
     /// `Self::Object` will contain the record data found for the provided [`Ids`].
     ///
     /// # Errors
@@ -129,7 +129,7 @@ where
     /// Returns [`Status`] with [`Code::NotFound`] if no record is returned from the database.  
     /// Returns [`Status`] with [`Code::Internal`] if the provided Ids can not
     /// be converted to valid [`uuid::Uuid`]s.  
-    /// Returns [`Status`] with [`Code::Internal`] if the resulting [`Row`] data could not be converted into [`Self::Object`].
+    /// Returns [`Status`] with [`Code::Internal`] if the resulting [`Row`] data could not be converted into [`Self::LinkedObject`].
     async fn generic_get_by_id(
         &self,
         request: Request<Ids>,
@@ -147,7 +147,7 @@ where
         }
     }
 
-    /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type [`Self::Object`].
+    /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type [`Self::LinkedRowDataList`].
     /// `Self::Object`(TryFrom\<Vec\<Row\>\>) will contain all records found in the database using the the provided [`AdvancedSearchFilter`].
     ///
     /// This method supports paged results.
@@ -155,7 +155,7 @@ where
     /// # Errors
     ///
     /// Returns [`Status`] with [`Code::Internal`] if any error is returned from the db search result.  
-    /// Returns [`Status`] with [`Code::Internal`] if the resulting [`Vec<Row>`] data could not be converted into [`Self::Object`].  
+    /// Returns [`Status`] with [`Code::Internal`] if the resulting [`Vec<Row>`] data could not be converted into [`Self::LinkedObject`].  
     ///
     async fn generic_search(
         &self,
@@ -227,7 +227,7 @@ where
         Ok(tonic::Response::new(IdList { ids }))
     }
 
-    /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type `Z`.
+    /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type [`Self::OtherList`].
     ///
     /// The existence of the provided resource `id` will be validated first.
     ///
@@ -286,8 +286,8 @@ where
         }
     }
 
-    /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type [`Self::Object`].
-    /// `Self::Response`(From<GenericResourceResult<Self::LinkedResourceObject, Self::Data>>) will contain the inserted record after saving the provided data [`Self::Data`].
+    /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type [`Self::LinkedResponse`].
+    /// `Self::Response(From<GenericResourceResult<Self::LinkedResourceObject, Self::Data>>)` will contain the inserted record after saving the provided data [`Self::LinkedRowData`].
     ///
     /// The given data will be validated before insert.  
     /// Any errors found during validation will be added to the [`ValidationResult`](crate::resources::ValidationResult).  
@@ -328,8 +328,8 @@ where
         }
     }
 
-    /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type [`Self::Object`].
-    /// `Self::Response`(From<GenericResourceResult<Self::LinkedResourceObject, Self::Data>>) will contain the updated record after saving the provided data [`Self::Data`].
+    /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type [`Self::LinkedResourceObject`].
+    /// `Self::Response(From<GenericResourceResult<Self::LinkedResourceObject, Self::Data>>)` will contain the updated record after saving the provided data [`Self::LinkedUpdateObject`].
     ///
     /// The given data will be validated before insert.
     /// Any errors found during validation will be added to the [`ValidationResult`](crate::resources::ValidationResult).
@@ -396,5 +396,14 @@ where
             Ok(_) => Ok(Response::new(())),
             Err(e) => Err(Status::new(Code::Internal, e.to_string())),
         }
+    }
+
+    /// Returns ready:true when service is available
+    async fn generic_is_ready(
+        &self,
+        _request: Request<ReadyRequest>,
+    ) -> Result<Response<ReadyResponse>, Status> {
+        let response = ReadyResponse { ready: true };
+        Ok(Response::new(response))
     }
 }

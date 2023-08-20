@@ -3,6 +3,17 @@ package grpc;
 
 import "google/protobuf/timestamp.proto";
 
+// Checks if this service is ready
+message ReadyRequest {
+    // No arguments
+}
+
+// Indicates if this service is ready
+message ReadyResponse {
+    // True if ready
+    bool ready = 1;
+}
+
 // Id type for passing id only requests
 message Id {
     //id

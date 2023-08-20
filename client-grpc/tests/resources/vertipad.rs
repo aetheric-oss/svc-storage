@@ -2,18 +2,11 @@
 
 use super::utils::{check_log_string_matches, get_log_string};
 use logtest::Logger;
-use svc_storage_client_grpc::{
-    AdvancedSearchFilter, Client, GrpcClient, Id, SimpleClient, VertipadClient,
-};
-use tonic::transport::Channel;
+use svc_storage_client_grpc::prelude::*;
 
-pub use svc_storage_client_grpc::vertipad::*;
+pub use vertipad::*;
 
-pub async fn scenario(
-    client: &GrpcClient<VertipadClient<Channel>>,
-    data: Vec<Data>,
-    logger: &mut Logger,
-) -> List {
+pub async fn scenario(client: &VertipadClient, data: Vec<Data>, logger: &mut Logger) -> List {
     let name = "vertipad";
     assert_eq!(client.get_name(), name);
 
