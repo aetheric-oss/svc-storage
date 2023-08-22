@@ -65,9 +65,10 @@ where
     ///
     /// # Examples
     /// ```
-    /// use lib_common::grpc::get_endpoint_from_env;
-    /// use svc_storage_client_grpc::prelude::*;
     /// use flight_plan::*;
+    /// use lib_common::grpc::get_endpoint_from_env;
+    /// use std::time::SystemTime;
+    /// use svc_storage_client_grpc::prelude::*;
     ///
     /// async fn example () -> Result<(), Box<dyn std::error::Error>> {
     ///     let (host, port) = get_endpoint_from_env("SERVER_HOSTNAME", "SERVER_PORT_GRPC");
@@ -82,7 +83,7 @@ where
     ///         flight_status: FlightStatus::Draft as i32,
     ///         vehicle_id,
     ///         pilot_id,
-    ///         path: GeoLineString { points: vec![] },
+    ///         path: Some(GeoLineString { points: vec![] }),
     ///         weather_conditions: Some("Cloudy, low wind".to_owned()),
     ///         departure_vertipad_id,
     ///         departure_vertiport_id: None,
@@ -95,6 +96,7 @@ where
     ///         flight_release_approval: None,
     ///         flight_plan_submitted: Some(Timestamp::from(SystemTime::now())),
     ///         approved_by: None,
+    ///         carrier_ack: None,
     ///         flight_priority: FlightPriority::Low as i32,
     ///     };
     ///

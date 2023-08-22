@@ -67,7 +67,7 @@ service RpcService {
     //         flight_status: FlightStatus::Draft as i32,
     //         vehicle_id,
     //         pilot_id,
-    //         path: GeoLineString { points: vec![] },
+    //         path: Some(GeoLineString { points: vec![] }),
     //         weather_conditions: Some("Cloudy, low wind".to_owned()),
     //         departure_vertipad_id,
     //         departure_vertiport_id: None,
@@ -80,6 +80,7 @@ service RpcService {
     //         flight_release_approval: None,
     //         flight_plan_submitted: Some(Timestamp::from(SystemTime::now())),
     //         approved_by: None,
+    //         carrier_ack: None,
     //         flight_priority: FlightPriority::Low as i32,
     //     }))
     //     .await

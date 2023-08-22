@@ -58,7 +58,7 @@ where
         let definition = Self::get_definition();
         let id_col = Self::try_get_id_field()?;
 
-        let (inserts, fields, params) = get_insert_vars(data, &psql_data, &definition)?;
+        let (inserts, fields, params) = get_insert_vars(data, &psql_data, &definition, false)?;
 
         let insert_sql = &format!(
             r#"INSERT INTO "{}" ({}) VALUES ({}) RETURNING "{}""#,
@@ -68,6 +68,7 @@ where
             id_col
         );
         psql_debug!("(create) {}", insert_sql);
+        psql_debug!("{:?}", &params);
 
         psql_info!(
             "(create) Inserting new entry for table [{}].",

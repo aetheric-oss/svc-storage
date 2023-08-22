@@ -123,7 +123,7 @@ where
         }
 
         let definition = Self::get_definition();
-        let (inserts, fields, params) = get_insert_vars(row_data, &psql_data, &definition)?;
+        let (inserts, fields, params) = get_insert_vars(row_data, &psql_data, &definition, true)?;
 
         let insert_sql = &format!(
             r#"INSERT INTO "{}" ({}) VALUES ({})"#,

@@ -169,6 +169,7 @@ impl From<GrpcField> for i64 {
     fn from(field: GrpcField) -> Self {
         match field {
             GrpcField::I64(field) => field,
+            GrpcField::U32(field) => field as i64,
             _ => 0,
         }
     }
@@ -473,10 +474,18 @@ mod tests {
         let result: i64 = field.into();
         assert_eq!(result, i64);
 
+        let field = GrpcField::U32(32);
+        let result: u32 = field.into();
+        assert_eq!(result, 32);
+
         // GrpcFieldOption into i64
         let field = GrpcFieldOption::I64(Some(i64));
         let result: Option<GrpcField> = field.into();
         assert_eq!(result, Some(GrpcField::I64(i64)));
+
+        let field = GrpcFieldOption::U32(Some(32));
+        let result: Option<GrpcField> = field.into();
+        assert_eq!(result, Some(GrpcField::U32(32)));
 
         let field = GrpcFieldOption::I64(None);
         let result: Option<GrpcField> = field.into();

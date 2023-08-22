@@ -36,7 +36,7 @@ impl Resource for ResourceObject<Data> {
                 ),
                 (
                     "weight_grams".to_string(),
-                    FieldDefinition::new(PsqlFieldType::INT4, true),
+                    FieldDefinition::new(PsqlFieldType::INT8, true),
                 ),
                 (
                     "created_at".to_string(),
@@ -65,7 +65,10 @@ impl Resource for ResourceObject<Data> {
     }
 
     fn get_table_indices() -> Vec<String> {
-        [].to_vec()
+        [
+            r#"ALTER TABLE "parcel" ADD CONSTRAINT fk_user_id FOREIGN KEY("user_id") REFERENCES "user"("user_id")"#.to_string()
+        ]
+        .to_vec()
     }
 }
 
@@ -91,14 +94,14 @@ impl TryFrom<Row> for Data {
     fn try_from(row: Row) -> Result<Self, ArrErr> {
         debug!("Converting Row to parcel::Data: {:?}", row);
         let user_id: String = row.get::<&str, Uuid>("user_id").to_string();
-        let weight_grams: u32 = row.get("weight_grams");
+        let weight_grams: i64 = row.get("weight_grams");
         let status = ParcelStatus::from_str_name(row.get("status"))
             .context("(try_from) Could not convert database value to ParcelStatus Enum type.")?
             as i32;
 
         Ok(Data {
             user_id,
-            weight_grams,
+            weight_grams: weight_grams as u32,
             status,
         })
     }

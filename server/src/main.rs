@@ -22,18 +22,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Allow options for psql init or and/ or recreation
     // locally: cargo run -- --init-psql true
     let args = Cli::parse();
-    if let Some(init_psql) = args.init_psql {
-        if init_psql {
-            info!("Found argument [init_psql]. Creating database schema now...");
-            create_db().await?;
-            info!("PSQL Database creation completed.");
-        }
-    }
     if let Some(rebuild_psql) = args.rebuild_psql {
         if rebuild_psql {
             info!("Found argument [rebuild_psql]. Rebuilding now...");
             recreate_db().await?;
             info!("PSQL Rebuild completed.");
+        }
+    } else if let Some(init_psql) = args.init_psql {
+        if init_psql {
+            info!("Found argument [init_psql]. Creating database schema now...");
+            create_db().await?;
+            info!("PSQL Database creation completed.");
         }
     }
 

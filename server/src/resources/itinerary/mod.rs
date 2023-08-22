@@ -50,7 +50,7 @@ impl Resource for ResourceObject<Data> {
 
     fn get_table_indices() -> Vec<String> {
         [
-            r#"ALTER TABLE itinerary ADD CONSTRAINT fk_user_id FOREIGN KEY(user_id) REFERENCES user(user_id)"#.to_string()
+            r#"ALTER TABLE "itinerary" ADD CONSTRAINT fk_user_id FOREIGN KEY("user_id") REFERENCES "user"("user_id")"#.to_string()
         ]
         .to_vec()
     }

@@ -224,11 +224,35 @@ pub fn get_insert_vars<'a>(
     data: &'a impl GrpcDataObjectType,
     psql_data: &'a PsqlData,
     definition: &'a ResourceDefinition,
+    add_keys: bool,
 ) -> Result<InsertVars<'a>, ArrErr> {
     let mut params: Vec<&PsqlField> = vec![];
     let mut fields = vec![];
     let mut inserts = vec![];
     let mut index = 1;
+
+    if add_keys {
+        let id_fields = definition.get_psql_id_cols();
+        for field in id_fields {
+            match psql_data.get(&field) {
+                Some(value) => {
+                    fields.push(format!(r#""{}""#, field));
+                    let val: &PsqlField = <&Box<PsqlFieldSend>>::clone(&value).as_ref();
+                    inserts.push(format!("${}", index));
+                    params.push(val);
+                    index += 1;
+                }
+                None => {
+                    let error = format!(
+                        "Can't insert new entry for [{}]. Error in [{}], no value provided",
+                        definition.psql_table, field,
+                    );
+                    psql_error!("(get_insert_vars) {}", error);
+                    return Err(ArrErr::Error(error));
+                }
+            }
+        }
+    }
 
     for key in definition.fields.keys() {
         let field_definition = match definition.fields.get(key) {
@@ -530,6 +554,25 @@ where
     let mut success = true;
     let mut errors: Vec<ValidationError> = vec![];
 
+    // Check if we have any id_fields as part of ar data object.
+    // They will need to be inserted as well.
+    let id_fields = definition.get_psql_id_cols();
+    for field in id_fields {
+        match data.get_field_value(&field) {
+            Ok(field_value) => {
+                let val: String = field_value.into();
+                let uuid = validate_uuid(field.to_string(), &val, &mut errors);
+                if let Some(val) = uuid {
+                    converted.insert(field, Box::new(val));
+                }
+            }
+            Err(_) => psql_debug!(
+                "(validate) skipping key field [{}] as it is not part of the object fields.",
+                field
+            ),
+        }
+    }
+
     // Only validate fields that are defined in self.definition.
     // All other fields will be ignored (they will not be stored in the database either).
     for (key, field) in definition.fields {
@@ -563,6 +606,12 @@ where
                 field_value
             }
         };
+
+        psql_debug!(
+            "(validate) got value to validate [{:?}] with field type [{:?}]",
+            val_to_validate,
+            field.field_type
+        );
 
         // Validate fields based on their type.
         // Add any errors to our errors map, so they can all be returned at once.
@@ -849,13 +898,13 @@ mod tests {
         println!("Validation result: {:?}", validation_result);
         assert_eq!(validation_result.success, true);
         let definition = <ResourceObject<TestData>>::get_definition();
-        match get_insert_vars(&valid_data, &psql_data, &definition) {
+        match get_insert_vars(&valid_data, &psql_data, &definition, false) {
             Ok((inserts, fields, params)) => {
                 println!("Insert Statements: {:?}", inserts);
                 println!("Insert Fields: {:?}", fields);
                 println!("Insert Params: {:?}", params);
-                assert_eq!(inserts.len(), 21);
-                assert_eq!(params.len(), 15);
+                assert_eq!(inserts.len(), 23);
+                assert_eq!(params.len(), 17);
                 let field_params = fields.iter().zip(inserts.iter());
                 for (field, insert) in field_params {
                     let value = match insert.strip_prefix("$") {
@@ -931,8 +980,8 @@ mod tests {
             Ok((updates, params)) => {
                 println!("Update Statements: {:?}", updates);
                 println!("Update Params: {:?}", params);
-                assert_eq!(updates.len(), 21);
-                assert_eq!(params.len(), 15);
+                assert_eq!(updates.len(), 23);
+                assert_eq!(params.len(), 17);
                 for update in updates {
                     let update_split = update.split('=').collect::<Vec<&str>>();
                     let field: &str = update_split[0].trim();

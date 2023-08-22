@@ -130,10 +130,10 @@ impl Resource for ResourceObject<Data> {
 
     fn get_table_indices() -> Vec<String> {
         [
-            r#"ALTER TABLE flight_plan ADD CONSTRAINT fk_departure_vertipad_id FOREIGN KEY(departure_vertipad_id) REFERENCES vertipad(vertipad_id)"#.to_string(),
-            r#"ALTER TABLE flight_plan ADD CONSTRAINT fk_destination_vertipad_id FOREIGN KEY(destination_vertipad_id) REFERENCES vertipad(vertipad_id)"#.to_string(),
-            r#"CREATE INDEX IF NOT EXISTS flight_plan_flight_status_idx ON flight_plan (flight_status)"#.to_string(),
-            r#"CREATE INDEX IF NOT EXISTS flight_plan_flight_priority_idx ON flight_plan (flight_priority)"#.to_string(),
+            r#"ALTER TABLE "flight_plan" ADD CONSTRAINT fk_departure_vertipad_id FOREIGN KEY("departure_vertipad_id") REFERENCES "vertipad"("vertipad_id")"#.to_string(),
+            r#"ALTER TABLE "flight_plan" ADD CONSTRAINT fk_destination_vertipad_id FOREIGN KEY("destination_vertipad_id") REFERENCES "vertipad"("vertipad_id")"#.to_string(),
+            r#"CREATE INDEX IF NOT EXISTS flight_plan_flight_status_idx ON "flight_plan" ("flight_status")"#.to_string(),
+            r#"CREATE INDEX IF NOT EXISTS flight_plan_flight_priority_idx ON "flight_plan" ("flight_priority")"#.to_string(),
         ].to_vec()
     }
 }

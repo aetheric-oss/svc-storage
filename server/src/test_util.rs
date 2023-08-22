@@ -27,22 +27,24 @@ pub struct TestData {
     pub i32: i32,
     #[prost(int64, tag = "4")]
     pub i64: i64,
-    #[prost(message, optional, tag = "5")]
+    #[prost(uint32, tag = "5")]
+    pub u32: u32,
+    #[prost(message, optional, tag = "6")]
     pub timestamp: ::core::option::Option<::prost_wkt_types::Timestamp>, // Always passed as an option, but will check for mandatory state
-    #[prost(string, tag = "6")]
+    #[prost(string, tag = "7")]
     pub uuid: ::prost::alloc::string::String,
-    #[prost(bytes = "vec", tag = "7")]
+    #[prost(bytes = "vec", tag = "8")]
     pub u8_vec: ::prost::alloc::vec::Vec<u8>,
-    #[prost(int64, repeated, tag = "8")]
+    #[prost(int64, repeated, tag = "9")]
     pub i64_vec: ::prost::alloc::vec::Vec<i64>,
-    #[prost(uint32, repeated, tag = "9")]
+    #[prost(uint32, repeated, tag = "10")]
     pub u32_vec: ::prost::alloc::vec::Vec<u32>,
 
-    #[prost(message, optional, tag = "10")]
+    #[prost(message, optional, tag = "110")]
     pub geo_point: ::core::option::Option<crate::resources::grpc_geo_types::GeoPoint>, // Always passed as an option, but will check for mandatory state
-    #[prost(message, optional, tag = "11")]
+    #[prost(message, optional, tag = "111")]
     pub geo_polygon: ::core::option::Option<crate::resources::grpc_geo_types::GeoPolygon>, // Always passed as an option, but will check for mandatory state
-    #[prost(message, optional, tag = "12")]
+    #[prost(message, optional, tag = "112")]
     pub geo_line_string: ::core::option::Option<crate::resources::grpc_geo_types::GeoLineString>, // Always passed as an option, but will check for mandatory state
 
     #[prost(string, optional, tag = "21")]
@@ -53,20 +55,22 @@ pub struct TestData {
     pub optional_i32: ::core::option::Option<i32>,
     #[prost(int64, optional, tag = "24")]
     pub optional_i64: ::core::option::Option<i64>,
-    #[prost(message, optional, tag = "25")]
+    #[prost(uint32, optional, tag = "25")]
+    pub optional_u32: ::core::option::Option<u32>,
+    #[prost(message, optional, tag = "26")]
     pub optional_timestamp: ::core::option::Option<::prost_wkt_types::Timestamp>,
-    #[prost(string, optional, tag = "26")]
+    #[prost(string, optional, tag = "27")]
     pub optional_uuid: ::core::option::Option<::prost::alloc::string::String>,
 
-    #[prost(message, optional, tag = "30")]
+    #[prost(message, optional, tag = "210")]
     pub optional_geo_point: ::core::option::Option<crate::resources::grpc_geo_types::GeoPoint>,
-    #[prost(message, optional, tag = "31")]
+    #[prost(message, optional, tag = "211")]
     pub optional_geo_polygon: ::core::option::Option<crate::resources::grpc_geo_types::GeoPolygon>,
-    #[prost(message, optional, tag = "32")]
+    #[prost(message, optional, tag = "212")]
     pub optional_geo_line_string:
         ::core::option::Option<crate::resources::grpc_geo_types::GeoLineString>,
 
-    #[prost(string, optional, tag = "40")]
+    #[prost(string, optional, tag = "30")]
     pub read_only: ::core::option::Option<::prost::alloc::string::String>,
 }
 
@@ -90,6 +94,10 @@ impl Resource for ResourceObject<TestData> {
                 ),
                 (
                     "i64".to_string(),
+                    FieldDefinition::new(PsqlFieldType::INT8, true),
+                ),
+                (
+                    "u32".to_string(),
                     FieldDefinition::new(PsqlFieldType::INT8, true),
                 ),
                 (
@@ -142,6 +150,10 @@ impl Resource for ResourceObject<TestData> {
                     FieldDefinition::new(PsqlFieldType::INT8, false),
                 ),
                 (
+                    "optional_u32".to_string(),
+                    FieldDefinition::new(PsqlFieldType::INT8, false),
+                ),
+                (
                     "optional_timestamp".to_string(),
                     FieldDefinition::new(PsqlFieldType::TIMESTAMPTZ, false)
                         .set_default(String::from("CURRENT_TIMESTAMP")),
@@ -182,6 +194,7 @@ impl GrpcDataObjectType for TestData {
             "bool" => Ok(GrpcField::Bool(self.bool)),
             "i32" => Ok(GrpcField::I32(self.i32)),
             "i64" => Ok(GrpcField::I64(self.i64)),
+            "u32" => Ok(GrpcField::U32(self.u32)),
             "timestamp" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
                 self.timestamp.clone(),
             ))),
@@ -199,6 +212,7 @@ impl GrpcDataObjectType for TestData {
             "optional_bool" => Ok(GrpcField::Option(GrpcFieldOption::Bool(self.optional_bool))),
             "optional_i32" => Ok(GrpcField::Option(GrpcFieldOption::I32(self.optional_i32))),
             "optional_i64" => Ok(GrpcField::Option(GrpcFieldOption::I64(self.optional_i64))),
+            "optional_u32" => Ok(GrpcField::Option(GrpcFieldOption::U32(self.optional_u32))),
             "optional_timestamp" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
                 self.optional_timestamp.clone(),
             ))),
@@ -236,6 +250,7 @@ pub(crate) fn get_valid_test_data(
         bool: true,
         i32: 32,
         i64: 64,
+        u32: 132,
         timestamp: timestamp.clone(),
         uuid: uuid.to_string(),
         u8_vec: vec![1, 2],
@@ -261,6 +276,7 @@ pub(crate) fn get_valid_test_data(
         optional_bool: Some(true),
         optional_i32: Some(-32),
         optional_i64: Some(-64),
+        optional_u32: Some(232),
         optional_timestamp: optional_timestamp.clone(),
         optional_uuid: Some(optional_uuid.to_string()),
 
@@ -299,6 +315,9 @@ pub(crate) fn validate_test_data_sql_val(field: &str, value: &str) {
         }
         r#""i64""# => {
             assert_eq!(value, "64");
+        }
+        r#""u32""# => {
+            assert_eq!(value, "132");
         }
         r#""u8_vec""# => {
             assert_eq!(value, "[1, 2]");
@@ -347,6 +366,9 @@ pub(crate) fn validate_test_data_sql_val(field: &str, value: &str) {
         r#""optional_i64""# => {
             assert_eq!(value, "-64");
         }
+        r#""optional_u32""# => {
+            assert_eq!(value, "232");
+        }
         r#""optional_geo_point""# => {
             assert_eq!(
                 value,
@@ -384,6 +406,7 @@ pub(crate) fn get_invalid_test_data() -> TestData {
         bool: true,
         i32: 0,
         i64: 0,
+        u32: 0,
         timestamp: Some(Timestamp {
             seconds: -1,
             nanos: -1,
@@ -409,6 +432,7 @@ pub(crate) fn get_invalid_test_data() -> TestData {
         optional_bool: None,
         optional_i32: None,
         optional_i64: None,
+        optional_u32: None,
         optional_timestamp: Some(Timestamp {
             seconds: -1,
             nanos: -1,
@@ -630,10 +654,10 @@ fn test_field_type_matches_optional_grpc_field(field_type: PsqlFieldType, grpc_f
             )
         }
         PsqlFieldType::INT8 => {
-            assert!(matches!(
-                grpc_field,
-                GrpcField::Option(GrpcFieldOption::I64(_))
-            ))
+            assert!(
+                matches!(grpc_field, GrpcField::Option(GrpcFieldOption::I64(_)))
+                    || matches!(grpc_field, GrpcField::Option(GrpcFieldOption::U32(_)))
+            )
         }
         PsqlFieldType::FLOAT8 => {
             assert!(matches!(

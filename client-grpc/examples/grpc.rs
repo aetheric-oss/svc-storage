@@ -74,12 +74,8 @@ async fn flight_plan_parcel_scenario() -> Result<(), Status> {
     //
     // 1) Create a user
     //
-    let client = &clients.user;
-    let data = user::Data {
-        ..Default::default()
-    };
-
-    let response = match client.insert(data).await {
+    let data = user::mock::get_data_obj();
+    let response = match clients.user.insert(data).await {
         Ok(response) => response.into_inner(),
         _ => panic!("Failed to create new user."),
     };
@@ -118,20 +114,17 @@ async fn flight_plan_parcel_scenario() -> Result<(), Status> {
     }
 
     //
-    // 3) Create a flight plan
+    // 3) Get a flight plan
     //
     let client = &clients.flight_plan;
-    let data = flight_plan::Data {
-        ..Default::default()
-    };
-
-    let response = match client.insert(data).await {
+    let filter = AdvancedSearchFilter::search_is_null("deleted_at".to_owned());
+    let response = match client.search(filter).await {
         Ok(response) => response.into_inner(),
-        _ => panic!("Failed to create a flight plan."),
+        _ => panic!("Failed to get flight plans."),
     };
 
-    let flight_plan_id = match response.object {
-        Some(obj) => obj.id,
+    let flight_plan_id = match response.list.first() {
+        Some(obj) => &obj.id,
         _ => panic!("Failed to get flight_plan_id."),
     };
 
@@ -156,7 +149,9 @@ async fn flight_plan_parcel_scenario() -> Result<(), Status> {
     //
     // Confirm linkage occurred
     //
-    let data = Id { id: flight_plan_id };
+    let data = Id {
+        id: flight_plan_id.to_owned(),
+    };
     let response = match client.get_linked_ids(data.clone()).await {
         Ok(response) => response.into_inner(),
         _ => panic!("Could not get linked ids for the flight plan."),
@@ -193,9 +188,22 @@ async fn itinerary_scenario() -> Result<(), Status> {
     println!("Itinerary Client created");
 
     //
+    // 1) Create a user
+    //
+    let data = user::mock::get_data_obj();
+    let response = match clients.user.insert(data).await {
+        Ok(response) => response.into_inner(),
+        _ => panic!("Failed to create new user."),
+    };
+
+    let expected_uuid = match response.object {
+        Some(obj) => obj.id,
+        _ => panic!("Failed to get new user id."),
+    };
+
+    //
     // Insert Telemetry
     //
-    let expected_uuid = Uuid::new_v4().to_string();
     let data = itinerary::Data {
         user_id: expected_uuid.clone(),
         status: itinerary::ItineraryStatus::Active as i32,
@@ -223,6 +231,7 @@ async fn itinerary_scenario() -> Result<(), Status> {
     };
 
     let mut itineraries = response.into_inner();
+    println!("Found itineraries: {:?}", itineraries);
     let itinerary = itineraries.list.pop().unwrap();
     let itinerary_id = itinerary.id;
     let itinerary = itinerary.data.unwrap();
@@ -523,7 +532,7 @@ RRULE:FREQ=WEEKLY;BYDAY=SA,SU";
 /// Example VertipadRpcClient
 /// Assuming the server is running, this method calls `client.vertipads` and
 /// should receive a valid response from the server
-async fn vertipad_scenario(vertiports: vertiport::List) -> Result<vertipad::List, Status> {
+async fn vertipad_scenario(vertiports: &vertiport::List) -> Result<vertipad::List, Status> {
     let clients = get_clients().await;
     let vertipad_client = &clients.vertipad;
     println!("Vertipad Client created");
@@ -540,8 +549,8 @@ async fn vertipad_scenario(vertiports: vertiport::List) -> Result<vertipad::List
     println!("Vertipads found: {:#?}", vertipads);
 
     println!("Starting insert vertipad");
-    for vertiport in vertiports.list {
-        let mut vertipad = vertipad::mock::get_data_obj_for_vertiport(vertiport);
+    for vertiport in &vertiports.list {
+        let mut vertipad = vertipad::mock::get_data_obj_for_vertiport(vertiport.clone());
         vertipad.name = format!("First vertipad for {}", vertipad.vertiport_id.clone());
 
         let new_vertipad = match vertipad_client.insert(vertipad).await {
@@ -819,7 +828,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     generate_sample_vehicles(5, &vertiports).await?;
 
     // Get a list of vertipads
-    let vertipads = vertipad_scenario(vertiports).await?;
+    let vertipads = vertipad_scenario(&vertiports).await?;
 
     // Get a list of vehicles
     let vehicles = get_vehicles().await?;

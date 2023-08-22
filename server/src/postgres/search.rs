@@ -48,7 +48,14 @@ where
         // Go over all the filters and compose the search query string.
         for filter in filter.filters.iter() {
             let col = filter.search_field.clone();
-            let field_type = definition.try_get_field(&col)?.field_type.clone();
+
+            // Check if provided search col is part of the primary key
+            let field_type = if definition.get_psql_id_cols().contains(&col) {
+                PsqlFieldType::UUID
+            } else {
+                definition.try_get_field(&col)?.field_type.clone()
+            };
+
             let operator: PredicateOperator =
                 match PredicateOperator::from_i32(filter.predicate_operator) {
                     Some(val) => val,
@@ -141,14 +148,18 @@ where
     /// Converts the passed string value for the search field into the right Sql type.
     /// for internal use
     fn _param_from_search_col(col: &SearchCol) -> Result<Box<dyn ToSql + Sync + Send>, ArrErr> {
-        let col_val = col.value.as_ref().ok_or({
-            let err = format!(
-                "(_param_from_search_col) called while search col [{}] has no value",
-                col.col_name,
-            );
-            psql_error!("{}", err);
-            ArrErr::Error(err)
-        })?;
+        let col_val = match &col.value {
+            Some(val) => val,
+            None => {
+                let err = format!(
+                    "(_param_from_search_col) search col [{}] has no value: {:?}",
+                    col.col_name, col
+                );
+                psql_error!("{}", err);
+                return Err(ArrErr::Error(err));
+            }
+        };
+
         match col.col_type {
             PsqlFieldType::ANYENUM => {
                 let int_val: i32 = match col_val.parse() {
@@ -381,8 +392,8 @@ pub(super) fn param_from_search_col(
         Some(val) => val,
         None => {
             let err = format!(
-                "(param_from_search_col) called while search col [{}] has no value",
-                col.col_name,
+                "(_param_from_search_col) search col [{}] has no value: {:?}",
+                col.col_name, col
             );
             psql_error!("{}", err);
             return Err(ArrErr::Error(err));
@@ -483,11 +494,25 @@ mod tests {
     #[test]
     fn test_get_param_from_search_col() {
         init_logger(&Config::try_from_env().unwrap_or_default());
+        unit_test_info!("(test_get_param_from_search_col) start");
 
         // Our TestData object should have fields for each possible field_type.
         // We'll use it to loop over all the fields and test the expected return
         // value for that type.
         let definition = ResourceObject::<TestData>::get_definition();
+        for field in definition.get_psql_id_cols() {
+            let val = uuid::Uuid::new_v4();
+            let search_col = SearchCol {
+                col_name: field.clone(),
+                col_type: PsqlFieldType::UUID,
+                value: Some(val.to_string()),
+            };
+            let result = param_from_search_col(&search_col);
+            assert!(result.is_ok());
+            let value = result.unwrap();
+            assert_eq!(format!("{:?}", val), format!("{:?}", value))
+        }
+
         for (field, field_definition) in definition.fields {
             let (string_val, display_val) = match field_definition.field_type {
                 PsqlFieldType::UUID => {
@@ -566,5 +591,6 @@ mod tests {
             let value = result.unwrap();
             assert_eq!(display_val, format!("{:?}", value))
         }
+        unit_test_info!("(test_get_param_from_search_col) success");
     }
 }

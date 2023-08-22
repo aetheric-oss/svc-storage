@@ -24,7 +24,7 @@ impl Resource for ResourceObject<Data> {
     fn get_definition() -> ResourceDefinition {
         ResourceDefinition {
             psql_table: String::from("parcel_scan"),
-            psql_id_cols: vec![String::from("parcel_scan_id"), String::from("created_at")],
+            psql_id_cols: vec![String::from("parcel_scan_id")],
             fields: HashMap::from([
                 (
                     "parcel_id".to_string(),
@@ -101,7 +101,7 @@ impl TryFrom<Row> for Data {
             parcel_id,
             scanner_id,
             geo_location: Some(geo_location),
-            created_at
+            created_at,
         })
     }
 }
@@ -147,7 +147,7 @@ mod tests {
             created_at: Some(prost_wkt_types::Timestamp {
                 seconds: -1,
                 nanos: -1,
-            })
+            }),
         };
 
         let result = validate::<ResourceObject<Data>>(&data);
@@ -157,7 +157,13 @@ mod tests {
             assert_eq!(validation_result.success, false);
 
             // expecting 2x geo_location error due to both points being out of range
-            let expected_errors = vec!["parcel_id", "scanner_id", "geo_location", "geo_location", "created_at"];
+            let expected_errors = vec![
+                "parcel_id",
+                "scanner_id",
+                "geo_location",
+                "geo_location",
+                "created_at",
+            ];
             assert_eq!(expected_errors.len(), validation_result.errors.len());
             assert!(contains_field_errors(&validation_result, &expected_errors));
         }
