@@ -61,8 +61,7 @@ where
     ///
     /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
     /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided ids can not be converted to a [`uuid::Uuid`].
-    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if any error is
-    /// returned from any of the db results.
+    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if any error is returned from any of the db results.
     /// Returns [`tonic::Status`] with [`tonic::Code::Unknown`] if the server is not ready.
     ///
     /// # Examples
@@ -204,8 +203,7 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`tonic::Status`] with [`Code::Unknown`](tonic::Code::Unknown) if
-    /// the server is not ready.
+    /// Returns [`tonic::Status`] with [`tonic::Code::Unknown`] if the server is not ready.
     ///
     /// # Examples
     /// ```

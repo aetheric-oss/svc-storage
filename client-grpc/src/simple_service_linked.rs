@@ -174,6 +174,7 @@ where
     /// # Errors
     ///
     /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if any error is returned from the db insert result.
+    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the resulting `tokio_postgres::Row` data could not be converted into [`RowData`](Self::LinkedRowData).
     /// Returns [`tonic::Status`] with [`tonic::Code::Unknown`] if the server is not ready.
     ///
     /// # Examples
@@ -216,6 +217,7 @@ where
     /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if any error is returned from a db call.
     /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].
     /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the resulting `tokio_postgres::Row` data could not be converted into [`Data`](Self::LinkedData).
+    /// Returns [`tonic::Status`] with [`tonic::Code::Unknown`] if the server is not ready.
     ///
     /// # Examples
     /// ```
@@ -266,6 +268,7 @@ where
     /// found in the database for the provided id field and value combination.
     /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if any error is returned from a db call.
     /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided Ids can not be converted to a [`uuid::Uuid`].
+    /// Returns [`tonic::Status`] with [`tonic::Code::Unknown`] if the server is not ready.
     ///
     /// # Examples
     /// ```
@@ -306,6 +309,7 @@ where
     ///
     /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if any error is returned from the db search result.
     /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the resulting `Vec<tokio_postgres::Row>` data could not be converted into [`List`](Self::LinkedRowDataList).
+    /// Returns [`tonic::Status`] with [`tonic::Code::Unknown`] if the server is not ready.
     ///
     /// # Examples
     /// ```
@@ -337,8 +341,7 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`tonic::Status`] with [`Code::Unknown`](tonic::Code::Unknown) if
-    /// the server is not ready.
+    /// Returns [`tonic::Status`] with [`tonic::Code::Unknown`] if the server is not ready.
     ///
     /// # Examples
     /// ```
