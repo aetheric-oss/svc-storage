@@ -116,7 +116,7 @@ macro_rules! link_grpc_client {
     ($($resource:ident, $rpc_link_client:ident, $link_object:ident, $other_resource:ident),+) => {
         $(
             #[tonic::async_trait]
-            impl $crate::LinkClient<$rpc_link_client<Channel>> for $crate::GrpcClient<$rpc_link_client<Channel>> {
+            impl $crate::LinkClient<$rpc_link_client<Channel>> for GrpcClient<$rpc_link_client<Channel>> {
                 type LinkObject = $resource::$link_object;
                 type OtherList = $other_resource::List;
 
@@ -185,7 +185,7 @@ macro_rules! link_grpc_client {
     ($($resource:ident, $rpc_link_client:ident, $link_object:ident, $other_resource:ident),+) => {
         $(
             #[tonic::async_trait]
-            impl $crate::LinkClient<$rpc_link_client<Channel>> for $crate::GrpcClient<$rpc_link_client<Channel>> {
+            impl $crate::LinkClient<$rpc_link_client<Channel>> for GrpcClient<$rpc_link_client<Channel>> {
                 type LinkObject = $resource::$link_object;
                 type OtherList = $other_resource::List;
 
@@ -391,7 +391,7 @@ macro_rules! simple_grpc_client {
     ($($resource:tt),+) => {
         $(
             #[tonic::async_trait]
-            impl $crate::SimpleClient<$resource::RpcServiceClient<Channel>> for $crate::GrpcClient<$resource::RpcServiceClient<Channel>> {
+            impl $crate::SimpleClient<$resource::RpcServiceClient<Channel>> for GrpcClient<$resource::RpcServiceClient<Channel>> {
                 type Data = $resource::Data;
                 type Object = $resource::Object;
                 type UpdateObject = $resource::UpdateObject;
@@ -463,7 +463,7 @@ macro_rules! simple_grpc_client {
     ($($resource:tt),+) => {
         $(
             #[tonic::async_trait]
-            impl $crate::SimpleClient<$resource::RpcServiceClient<Channel>> for $crate::GrpcClient<$resource::RpcServiceClient<Channel>> {
+            impl $crate::SimpleClient<$resource::RpcServiceClient<Channel>> for GrpcClient<$resource::RpcServiceClient<Channel>> {
                 type Data = $resource::Data;
                 type Object = $resource::Object;
                 type UpdateObject = $resource::UpdateObject;
@@ -644,7 +644,7 @@ macro_rules! simple_linked_grpc_client {
     ($($linked_resource:tt, $resource:tt, $other_resource:tt),+) => {
         $(
             #[tonic::async_trait]
-            impl $crate::SimpleLinkedClient<$linked_resource::RpcServiceLinkedClient<Channel>> for $crate::GrpcClient<$linked_resource::RpcServiceLinkedClient<Channel>> {
+            impl $crate::SimpleLinkedClient<$linked_resource::RpcServiceLinkedClient<Channel>> for GrpcClient<$linked_resource::RpcServiceLinkedClient<Channel>> {
                 type LinkedData = $linked_resource::Data;
                 type LinkedRowData = $linked_resource::RowData;
                 type LinkedObject = $linked_resource::Object;
@@ -745,7 +745,7 @@ macro_rules! simple_linked_grpc_client {
     ($($linked_resource:tt, $resource:tt, $other_resource:tt),+) => {
         $(
             #[tonic::async_trait]
-            impl $crate::SimpleLinkedClient<$linked_resource::RpcServiceLinkedClient<Channel>> for $crate::GrpcClient<$linked_resource::RpcServiceLinkedClient<Channel>> {
+            impl $crate::SimpleLinkedClient<$linked_resource::RpcServiceLinkedClient<Channel>> for GrpcClient<$linked_resource::RpcServiceLinkedClient<Channel>> {
                 type LinkedData = $linked_resource::Data;
                 type LinkedRowData = $linked_resource::RowData;
                 type LinkedObject = $linked_resource::Object;

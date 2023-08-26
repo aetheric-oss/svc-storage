@@ -15,6 +15,9 @@ cfg_if::cfg_if! {
         use grpc_geo_types::*;
 
         use super::*;
+        #[cfg(not(feature = "stub_client"))]
+        use lib_common::grpc::ClientConnect;
+        use lib_common::grpc::{Client, GrpcClient};
 
         #[cfg(not(feature = "stub_backends"))]
         use tonic::async_trait;

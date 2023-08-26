@@ -11,7 +11,6 @@ pub use link_service::Client as LinkClient;
 pub use simple_service::Client as SimpleClient;
 pub use simple_service_linked::Client as SimpleLinkedClient;
 
-pub use lib_common::grpc::{Client, ClientConnect, GrpcClient};
+pub use lib_common::grpc::Client;
 pub use prost_types::FieldMask;
 pub use prost_wkt_types::Timestamp;
-pub use tonic::transport::Channel;

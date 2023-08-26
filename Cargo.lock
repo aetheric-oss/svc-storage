@@ -130,8 +130,8 @@ checksum = "3d62b7694a562cdf5a74227903507c56ab2cc8bdd1f781ed5cb4cf9c9f810bfc"
 
 [[package]]
 name = "arrow-macros-core"
-version = "0.1.1-develop.2"
-source = "git+https://github.com/Arrow-air/lib-common.git?tag=v0.1.1-develop.2#c7e0fc4918d3346a13ab84e2d4fc16d430a60c59"
+version = "0.2.0"
+source = "git+https://github.com/Arrow-air/lib-common.git?tag=v0.2.0#ecae9794fb2220aa03fdc04329bda32ca8441056"
 dependencies = [
  "proc-macro-error",
  "proc-macro2",
@@ -141,8 +141,8 @@ dependencies = [
 
 [[package]]
 name = "arrow-macros-derive"
-version = "0.1.1-develop.2"
-source = "git+https://github.com/Arrow-air/lib-common.git?tag=v0.1.1-develop.2#c7e0fc4918d3346a13ab84e2d4fc16d430a60c59"
+version = "0.2.0"
+source = "git+https://github.com/Arrow-air/lib-common.git?tag=v0.2.0#ecae9794fb2220aa03fdc04329bda32ca8441056"
 dependencies = [
  "arrow-macros-core",
  "proc-macro-error",
@@ -1075,8 +1075,8 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "lib-common"
-version = "0.1.1-develop.2"
-source = "git+https://github.com/Arrow-air/lib-common.git?tag=v0.1.1-develop.2#c7e0fc4918d3346a13ab84e2d4fc16d430a60c59"
+version = "0.2.0"
+source = "git+https://github.com/Arrow-air/lib-common.git?tag=v0.2.0#ecae9794fb2220aa03fdc04329bda32ca8441056"
 dependencies = [
  "arrow-macros-derive",
  "cargo-husky",
