@@ -25,13 +25,16 @@ stub_server = ["test_util"]
 stub_client = ["stub_backends"]
 
 [dependencies]
-anyhow              = "1.0"
-byteorder           = "1.4"
-bytes               = "1.0"
-cargo-husky         = "1"
-cfg-if              = "1.0"
-chrono              = { version = "0.4", features = ["serde"] }
-clap                = { version = "4.0", features = ["derive"] }
+anyhow      = "1.0"
+byteorder   = "1.4"
+bytes       = "1.0"
+cargo-husky = "1"
+cfg-if      = "1.0"
+chrono      = { version = "0.4", features = ["serde"] }
+# pin clap to 4.3 for now, since 4.4 requires rustc 1.70.0 or newer
+clap = { version = "4.3.24", features = ["derive"] }
+# pin clap_lex to 0.5.0 for now, since 0.5.1 requires rustc 1.70.0 or newer
+clap_lex            = "0.5.0"
 config              = "0.13"
 deadpool            = "0.9"
 deadpool-postgres   = { version = "0.10", features = ["serde", "rt_tokio_1"] }
