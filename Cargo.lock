@@ -2185,7 +2185,6 @@ dependencies = [
  "num-traits",
  "once_cell",
  "openssl",
- "ordered-float 3.9.1",
  "paste",
  "postgis",
  "postgres-native-tls",
