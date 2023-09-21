@@ -73,7 +73,7 @@ where
             ref_params.push(field.as_ref());
         }
 
-        // TODO(R3): Move this to 2 separate functions which can be used in other places as well
+        // TODO(R4): Move this to 2 separate functions which can be used in other places as well
         match transaction {
             Some(client) => {
                 let stmt = client.prepare_cached(&query).await?;
@@ -149,7 +149,7 @@ where
 }
 
 /// Generic trait for the Arrow Resources that are stored in the CockroachDB backend.
-/// TODO: use `#![feature(async_fn_in_trait)]` once available: <https://blog.rust-lang.org/inside-rust/2022/11/17/async-fn-in-trait-nightly.html>
+/// TODO Rust 1.74: use `#![feature(async_fn_in_trait)]` once available: <https://blog.rust-lang.org/inside-rust/2023/05/03/stabilizing-async-fn-in-trait.html>
 #[tonic::async_trait]
 pub trait PsqlObjectType<T>
 where
@@ -163,7 +163,7 @@ where
     /// returns [Row] on success
     async fn read(&self) -> Result<Row, ArrErr> {
         psql_debug!("(read) start: [{:?}]", self.try_get_uuid());
-        //TODO(R3): implement shared memcache here to get object data if present
+        //TODO(R4): implement shared memcache here to get object data if present
         let id = self.try_get_uuid()?;
         Self::get_by_id(&id).await
     }
@@ -216,7 +216,7 @@ where
         let client = get_psql_pool().get().await?;
         client.execute(update_sql, &params[..]).await?;
 
-        //TODO(R3): flush shared memcache for this resource when memcache is implemented
+        //TODO(R4): flush shared memcache for this resource when memcache is implemented
         Ok((Some(self.read().await?), validation_result))
     }
 
@@ -291,7 +291,7 @@ where
         match client.execute(&stmt, &[&id]).await {
             Ok(num_rows) => {
                 if num_rows == 1 {
-                    //TODO(R3): flush shared memcache for this resource when memcache is implemented
+                    //TODO(R4): flush shared memcache for this resource when memcache is implemented
                     Ok(())
                 } else {
                     let error = format!(
@@ -335,7 +335,7 @@ where
         match client.execute(&stmt, &[&id]).await {
             Ok(num_rows) => {
                 if num_rows == 1 {
-                    //TODO(R3): flush shared memcache for this resource when memcache is implemented
+                    //TODO(R4): flush shared memcache for this resource when memcache is implemented
                     Ok(())
                 } else {
                     let error = format!(

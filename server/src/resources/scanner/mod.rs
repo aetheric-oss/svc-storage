@@ -70,7 +70,7 @@ impl Resource for ResourceObject<Data> {
 
     fn get_table_indices() -> Vec<String> {
         [
-            // TODO(R3) After groups are implemented, add organization_id index
+            // TODO(R4) After groups are implemented, add organization_id index
             // r#"ALTER TABLE scanner ADD CONSTRAINT fk_organization_id FOREIGN KEY(organization_id) REFERENCES itinerary_flight_plan(organization_id)"#.to_owned(),
         ]
         .to_vec()

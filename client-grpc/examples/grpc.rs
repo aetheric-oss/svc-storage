@@ -172,10 +172,6 @@ async fn flight_plan_parcel_scenario() -> Result<(), Status> {
         assert_eq!(data.status, expected_status as i32);
     });
 
-    //
-    // Get acquire and deliver fields - TODO
-    //
-
     Ok(())
 }
 
