@@ -843,9 +843,10 @@ pub(crate) fn filter_for_operator(
                         log::debug!("found!");
                         filtered.push(object.clone())
                     }
-                } else if let Ok(date_val) =
-                    lib_common::time::DateTime::parse_from_rfc3339(val.as_str().unwrap())
-                {
+                } else if let Ok(date_val) = lib_common::time::DateTime::parse_from_rfc3339(
+                    val.as_str()
+                        .ok_or("Could not convert provided value to string.")?,
+                ) {
                     log::debug!("Can convert val to date, got [{}]", date_val);
                     let date_min =
                         lib_common::time::DateTime::parse_from_rfc3339(&min).map_err(|e| {
@@ -928,9 +929,10 @@ pub(crate) fn filter_for_operator(
                         log::debug!("found!");
                         filtered.push(object.clone())
                     }
-                } else if let Ok(date_val) =
-                    lib_common::time::DateTime::parse_from_rfc3339(val.as_str().unwrap())
-                {
+                } else if let Ok(date_val) = lib_common::time::DateTime::parse_from_rfc3339(
+                    val.as_str()
+                        .ok_or("Could not convert provided value to string.")?,
+                ) {
                     log::debug!("Can convert val to date, got [{}]", date_val);
                     let search_date = lib_common::time::DateTime::parse_from_rfc3339(&search_val)
                         .map_err(|e| {
@@ -969,9 +971,10 @@ pub(crate) fn filter_for_operator(
                         log::debug!("found!");
                         filtered.push(object.clone())
                     }
-                } else if let Ok(date_val) =
-                    lib_common::time::DateTime::parse_from_rfc3339(val.as_str().unwrap())
-                {
+                } else if let Ok(date_val) = lib_common::time::DateTime::parse_from_rfc3339(
+                    val.as_str()
+                        .ok_or("Could not convert provided value to string.")?,
+                ) {
                     log::debug!("Can convert val to date, got [{}]", date_val);
                     let search_date = lib_common::time::DateTime::parse_from_rfc3339(&search_val)
                         .map_err(|e| {
@@ -1010,9 +1013,10 @@ pub(crate) fn filter_for_operator(
                         log::debug!("found!");
                         filtered.push(object.clone())
                     }
-                } else if let Ok(date_val) =
-                    lib_common::time::DateTime::parse_from_rfc3339(val.as_str().unwrap())
-                {
+                } else if let Ok(date_val) = lib_common::time::DateTime::parse_from_rfc3339(
+                    val.as_str()
+                        .ok_or("Could not convert provided value to string.")?,
+                ) {
                     log::debug!("Can convert val to date, got [{}]", date_val);
                     let search_date = lib_common::time::DateTime::parse_from_rfc3339(&search_val)
                         .map_err(|e| {
@@ -1051,9 +1055,10 @@ pub(crate) fn filter_for_operator(
                         log::debug!("found!");
                         filtered.push(object.clone())
                     }
-                } else if let Ok(date_val) =
-                    lib_common::time::DateTime::parse_from_rfc3339(val.as_str().unwrap())
-                {
+                } else if let Ok(date_val) = lib_common::time::DateTime::parse_from_rfc3339(
+                    val.as_str()
+                        .ok_or("Could not convert provided value to string.")?,
+                ) {
                     log::debug!("Can convert val to date, got [{}]", date_val);
                     let search_date = lib_common::time::DateTime::parse_from_rfc3339(&search_val)
                         .map_err(|e| {

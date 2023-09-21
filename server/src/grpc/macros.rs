@@ -81,7 +81,7 @@ macro_rules! grpc_server_link_service_mod {
                 grpc_debug!("(link MOCK) request: {:?}", request);
                 let request = request.into_inner();
                 let id = request.id;
-                let other_ids = request.other_id_list.unwrap();
+                let other_ids = request.other_id_list.ok_or(Status::invalid_argument("No other_id_list found in request."))?;
                 let mut mem_data_links = MEM_DATA_LINKS.lock().await;
 
                 let mut resource_list: Vec<$resource::Object> = $resource::MEM_DATA.lock().await.clone();
@@ -148,7 +148,7 @@ macro_rules! grpc_server_link_service_mod {
                 grpc_debug!("(replace_linked MOCK) request: {:?}", request);
                 let request = request.into_inner();
                 let id = request.id;
-                let other_ids = request.other_id_list.unwrap();
+                let other_ids = request.other_id_list.ok_or(Status::invalid_argument("No other_id_list found in request."))?;
                 let mut mem_data_links = MEM_DATA_LINKS.lock().await;
 
                 let mut resource_list: Vec<$resource::Object> = $resource::MEM_DATA.lock().await.clone();
@@ -531,9 +531,10 @@ macro_rules! grpc_server_simple_service_mod {
                         }));
                     }
 
-                    let unfiltered = list.iter().map(|val| {
-                        serde_json::to_value(val).unwrap()
-                    }).collect::<Vec<serde_json::Value>>();
+                    let mut unfiltered: Vec<serde_json::Value> = vec![];
+                    for val in list.iter() {
+                        unfiltered.push(serde_json::to_value(val).map_err(|e| Status::internal(format!("Could not convert [{:?}] to json value: {}", val, e)))?);
+                    }
                     grpc_debug!("(search MOCK) unfiltered serialized objects: {:?}", unfiltered);
 
                     let mut collected: Vec<serde_json::Value> = vec![];
@@ -556,10 +557,12 @@ macro_rules! grpc_server_simple_service_mod {
                                     super::ComparisonOperator::And => {
                                         let unfiltered = collected.clone();
                                         collected = vec![];
-                                        $crate::grpc::server::search::filter_for_operator(&filter.search_field, &filter.search_value, &unfiltered, &mut collected, operator).map_err(|e| tonic::Status::internal(format!("Could not get filtered values for provided filter: {}", e)))?
+                                        $crate::grpc::server::search::filter_for_operator(&filter.search_field, &filter.search_value, &unfiltered, &mut collected, operator)
+                                            .map_err(|e| tonic::Status::internal(format!("Could not get filtered values for provided filter: {}", e)))?
                                     }
                                     super::ComparisonOperator::Or => {
-                                        $crate::grpc::server::search::filter_for_operator(&filter.search_field, &filter.search_value, &unfiltered, &mut collected, operator).map_err(|e| tonic::Status::internal(format!("Could not get filtered values for provided filter: {}", e)))?
+                                        $crate::grpc::server::search::filter_for_operator(&filter.search_field, &filter.search_value, &unfiltered, &mut collected, operator)
+                                            .map_err(|e| tonic::Status::internal(format!("Could not get filtered values for provided filter: {}", e)))?
                                     }
                                 }
                                 None => {
@@ -569,14 +572,18 @@ macro_rules! grpc_server_simple_service_mod {
                                     )));
                                 }
                             },
-                            None => $crate::grpc::server::search::filter_for_operator(&filter.search_field, &filter.search_value, &unfiltered, &mut collected, operator).map_err(|e| tonic::Status::internal(format!("Could not get filtered values for provided filter: {}", e)))?
+                            None => $crate::grpc::server::search::filter_for_operator(&filter.search_field, &filter.search_value, &unfiltered, &mut collected, operator)
+                                .map_err(|e| tonic::Status::internal(format!("Could not get filtered values for provided filter: {}", e)))?
                         };
                     }
 
-                    let filtered = collected.iter().map(|val| {
-                        let val: Object = serde_json::from_value(val.clone()).unwrap();
-                        val
-                    }).collect::<Vec<Object>>();
+                    let mut filtered: Vec<Object> = vec![];
+                    for val in collected.iter() {
+                        filtered.push(
+                            serde_json::from_value(val.clone())
+                                .map_err(|e| Status::internal(format!("Could not convert [{:?}] to Object from json value: {}", val, e)))?
+                        );
+                    }
                     let response = List {
                         list: filtered
                     };
@@ -702,7 +709,7 @@ macro_rules! grpc_server_simple_service_mod {
                         if object.id == id {
                             object.data = Some(
                                 Data {
-                                    ..update.data.clone().unwrap()
+                                    ..update.data.clone().ok_or(Status::invalid_argument("No update data given."))?
                                 }
                             );
 
@@ -1071,9 +1078,16 @@ macro_rules! grpc_server_simple_service_linked_mod {
                     // object for now and assume the rest of the keys are valid
                     // for the Data object
                     let row_data = linked_resource_list[0].clone();
-                    let mut data_serialized = serde_json::to_value(row_data.clone()).unwrap();
-                    data_serialized.as_object_mut().unwrap().retain(|key, _| key != id_field && key != other_id_field);
-                    let data: Data = serde_json::from_value(data_serialized).unwrap();
+                    let mut data_serialized = serde_json::to_value(row_data.clone())
+                        .map_err(|e| tonic::Status::internal(format!("Could not convert [{:?}] to json value: {}", row_data, e)))?;
+
+                    data_serialized.as_object_mut()
+                        .ok_or(Status::internal("Could not convert json data into mutable object"))?
+                        .retain(|key, _| key != id_field && key != other_id_field);
+
+                    let data: Data = serde_json::from_value(data_serialized.clone())
+                        .map_err(|e| Status::internal(format!("Could not convert [{:?}] to Data from json value: {}", data_serialized, e)))?;
+
                     paste::paste!{
                         let object = Object {
                             ids: vec![
@@ -1157,12 +1171,19 @@ macro_rules! grpc_server_simple_service_linked_mod {
                     let mut unfiltered: Vec<serde_json::Value> = vec![];
                     for val in list.iter() {
                         let mut object = serde_json::Map::new();
-                        let mut data_serialized = serde_json::to_value(val.clone()).unwrap();
+                        let mut data_serialized = serde_json::to_value(val.clone())
+                            .map_err(|e| Status::internal(format!("Could not convert [{:?}] to json value: {}", val, e)))?;
                         let ids = serde_json::json!([{
                             "field": id_field.clone(),
-                            "value": data_serialized.as_object().unwrap().get(other_id_field).unwrap().clone()
+                            "value": data_serialized.as_object()
+                                .ok_or(Status::internal("Could not convert json data to object."))?
+                                .get(other_id_field)
+                                .ok_or(Status::internal(format!("Could not get value for other id field [{}]", other_id_field)))?
+                                .clone()
                         }]);
-                        data_serialized.as_object_mut().unwrap().retain(|key, _| key != id_field && key != other_id_field);
+                        data_serialized.as_object_mut()
+                            .ok_or(Status::internal("Could not convert json data to mutable object."))?
+                            .retain(|key, _| key != id_field && key != other_id_field);
                         object.insert(String::from("ids"), ids);
                         object.insert(String::from("data"), data_serialized.clone());
                         unfiltered.push(serde_json::Value::Object(object));
@@ -1189,10 +1210,12 @@ macro_rules! grpc_server_simple_service_linked_mod {
                                     super::ComparisonOperator::And => {
                                         let unfiltered = collected.clone();
                                         collected = vec![];
-                                        $crate::grpc::server::search::filter_for_operator(&filter.search_field, &filter.search_value, &unfiltered, &mut collected, operator).map_err(|e| tonic::Status::internal(format!("Could not get filtered values for provided filter: {}", e)))?
+                                        $crate::grpc::server::search::filter_for_operator(&filter.search_field, &filter.search_value, &unfiltered, &mut collected, operator)
+                                            .map_err(|e| tonic::Status::internal(format!("Could not get filtered values for provided filter: {}", e)))?
                                     }
                                     super::ComparisonOperator::Or => {
-                                        $crate::grpc::server::search::filter_for_operator(&filter.search_field, &filter.search_value, &unfiltered, &mut collected, operator).map_err(|e| tonic::Status::internal(format!("Could not get filtered values for provided filter: {}", e)))?
+                                        $crate::grpc::server::search::filter_for_operator(&filter.search_field, &filter.search_value, &unfiltered, &mut collected, operator)
+                                            .map_err(|e| tonic::Status::internal(format!("Could not get filtered values for provided filter: {}", e)))?
                                     }
                                 }
                                 None => {
@@ -1202,19 +1225,27 @@ macro_rules! grpc_server_simple_service_linked_mod {
                                     )));
                                 }
                             },
-                            None => $crate::grpc::server::search::filter_for_operator(&filter.search_field, &filter.search_value, &unfiltered, &mut collected, operator).map_err(|e| tonic::Status::internal(format!("Could not get filtered values for provided filter: {}", e)))?
+                            None => $crate::grpc::server::search::filter_for_operator(&filter.search_field, &filter.search_value, &unfiltered, &mut collected, operator)
+                                .map_err(|e| tonic::Status::internal(format!("Could not get filtered values for provided filter: {}", e)))?
                         };
                     }
 
-                    let filtered = collected.iter().map(|val| {
-                        let mut row_data_serialized = val.get("data").unwrap().as_object().unwrap().clone();
-                        let ids: Ids = serde_json::from_value(val.get("ids").unwrap().clone()).unwrap();
+                    let mut filtered: Vec<RowData> = vec![];
+                    for val in collected.iter() {
+                        let mut row_data_serialized = val.get("data")
+                            .ok_or(Status::internal("No [data] key found."))?
+                            .as_object()
+                            .ok_or(Status::internal("Could not convert json to object."))?
+                            .clone();
+                        let ids: Ids = serde_json::from_value(val.get("ids").ok_or(Status::internal("No [ids] key found."))?.clone())
+                            .map_err(|e| Status::internal(format!("Could not convert [{:?}] to Ids from json value: {}", val.get("ids"), e)))?;
                         for id in ids.ids {
                             row_data_serialized.insert(id.field.clone(), serde_json::Value::String(id.value.clone()));
                         }
-                        let row_data: RowData = serde_json::from_value(serde_json::Value::Object(row_data_serialized.clone())).unwrap();
-                        row_data
-                    }).collect::<Vec<RowData>>();
+                        let row_data: RowData = serde_json::from_value(serde_json::Value::Object(row_data_serialized.clone()))
+                            .map_err(|e| Status::internal(format!("Could not convert [{:?}] to RowData from json value: {}", row_data_serialized, e)))?;
+                        filtered.push(row_data);
+                    }
                     let response = RowDataList {
                         list: filtered
                     };
@@ -1278,9 +1309,16 @@ macro_rules! grpc_server_simple_service_linked_mod {
                     // Data object so we'll just remove the keys from the RowData
                     // object for now and assume the rest of the keys are valid
                     // for the Data object
-                    let mut data_serialized = serde_json::to_value(request.clone()).unwrap();
-                    data_serialized.as_object_mut().unwrap().retain(|key, _| key != id_field && key != other_id_field);
-                    let data: Data = serde_json::from_value(data_serialized).unwrap();
+                    let mut data_serialized = serde_json::to_value(request.clone())
+                        .map_err(|e| Status::internal(format!("Could not convert [{:?}] to json value: {}", request, e)))?;
+
+                    data_serialized.as_object_mut()
+                        .ok_or(Status::internal("Could not convert json data to mutable object."))?
+                        .retain(|key, _| key != id_field && key != other_id_field);
+
+                    let data: Data = serde_json::from_value(data_serialized.clone())
+                        .map_err(|e| Status::internal(format!("Could not convert [{:?}] to Data from json value: {}", data_serialized, e)))?;
+
                     paste::paste!{
                         let object = Object {
                             ids: vec![
@@ -1383,11 +1421,16 @@ macro_rules! grpc_server_simple_service_linked_mod {
                     paste::paste!{
                         for mut row_data in linked_resource_list {
                             if row_data.[<$resource _id>] == resource_id && row_data.[<$other_resource _id>] == other_resource_id {
-                                let mut row_data_serialized = serde_json::to_value(request.data.clone()).unwrap().as_object_mut().unwrap().to_owned();
+                                let mut row_data_serialized = serde_json::to_value(request.data.clone())
+                                    .map_err(|e| Status::internal(format!("Could not convert [{:?}] to json value: {}", request.data.clone(), e)))?
+                                    .as_object_mut()
+                                    .ok_or(Status::internal("Could not convert json data to mutable object."))?
+                                    .to_owned();
                                 for id in &ids {
                                     row_data_serialized.insert(id.field.clone(), serde_json::Value::String(id.value.clone()));
                                 }
-                                let new_row_data: RowData = serde_json::from_value(serde_json::Value::Object(row_data_serialized.clone())).unwrap();
+                                let new_row_data: RowData = serde_json::from_value(serde_json::Value::Object(row_data_serialized.clone()))
+                                    .map_err(|e| Status::internal(format!("Could not convert [{:?}] to RowData from json value: {}", row_data_serialized, e)))?;
                                 let _ = std::mem::replace(&mut row_data, new_row_data);
                             }
                         }
