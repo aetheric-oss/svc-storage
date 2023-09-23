@@ -26,7 +26,7 @@ pub fn validate_uuid(
         Ok(id) => Some(id),
         Err(e) => {
             let error = format!("Could not convert [{}] to UUID: {}", field, e);
-            psql_info!("{}", error);
+            psql_info!("(validate_uuid) {}", error);
             errors.push(ValidationError { field, error });
             None
         }
@@ -51,7 +51,7 @@ pub fn validate_dt(
                 "Could not convert [{}] to NaiveDateTime::from_timestamp_opt({})",
                 field, value
             );
-            psql_info!("{}", error);
+            psql_info!("(validate_dt) {}", error);
             errors.push(ValidationError { field, error });
             None
         }
@@ -72,7 +72,7 @@ pub fn validate_enum(
         Some(val) => Some(val),
         None => {
             let error = format!("Could not convert enum [{}] to i32: value not found", field);
-            psql_error!("{}", error);
+            psql_error!("(validate_enum) {}", error);
             errors.push(ValidationError { field, error });
             None
         }
@@ -86,10 +86,10 @@ pub fn validate_point(field: String, value: &Point, errors: &mut Vec<ValidationE
     let mut success = true;
     if value.x() < -180.0 || value.x() > 180.0 {
         let error = format!(
-                "(validate_point) Could not convert [{}] to POINT: The provided value contains an invalid Long value, [{}] is out of range.",
+                "Could not convert [{}] to POINT: The provided value contains an invalid Long value, [{}] is out of range.",
                 field, value.x()
             );
-        psql_info!("{}", error);
+        psql_info!("(validate_point) {}", error);
         errors.push(ValidationError {
             field: field.clone(),
             error,
@@ -98,10 +98,10 @@ pub fn validate_point(field: String, value: &Point, errors: &mut Vec<ValidationE
     }
     if value.y() < -90.0 || value.y() > 90.0 {
         let error = format!(
-                "(validate_point) Could not convert [{}] to POINT: The provided value contains an invalid Lat value, [{}] is out of range.",
+                "Could not convert [{}] to POINT: The provided value contains an invalid Lat value, [{}] is out of range.",
                 field, value.y()
             );
-        psql_info!("{}", error);
+        psql_info!("(validate_point) {}", error);
         errors.push(ValidationError { field, error });
         success = false
     }
@@ -119,9 +119,9 @@ pub fn validate_polygon(field: String, value: &Polygon, errors: &mut Vec<Validat
     // A polygon should have at least 2 lines to make a closed loop
     if exterior.lines().len() < 2 {
         let error = format!(
-            "(validate_polygon) Could not convert [{}] to POLYGON: The provided exterior LineString contains less than 3 lines.", field
+            "Could not convert [{}] to POLYGON: The provided exterior LineString contains less than 3 lines.", field
         );
-        psql_error!("{}", error);
+        psql_error!("(validate_polygon) {}", error);
         errors.push(ValidationError {
             field: field.clone(),
             error,
@@ -138,10 +138,10 @@ pub fn validate_polygon(field: String, value: &Polygon, errors: &mut Vec<Validat
     let end = exterior.coords().last();
     if start != end {
         let error = format!(
-                "(validate_polygon) Could not convert [{}] to POLYGON: The provided start point does not match the end point, should be a closed loop.",
+                "Could not convert [{}] to POLYGON: The provided start point does not match the end point, should be a closed loop.",
                 field,
             );
-        psql_info!("{}", error);
+        psql_info!("(validate_polygon) {}", error);
         errors.push(ValidationError {
             field: field.clone(),
             error,
@@ -153,10 +153,10 @@ pub fn validate_polygon(field: String, value: &Polygon, errors: &mut Vec<Validat
     for interior in interiors {
         if interior.lines().len() < 2 {
             let error = format!(
-                "(validate_polygon) Could not convert [{}] to POLYGON: One of the provided interior LineStrings contains less than 3 lines.",
+                "Could not convert [{}] to POLYGON: One of the provided interior LineStrings contains less than 3 lines.",
                 field.clone(),
             );
-            psql_info!("{}", error);
+            psql_info!("(validate_polygon) {}", error);
             errors.push(ValidationError {
                 field: field.clone(),
                 error,
@@ -196,10 +196,10 @@ fn validate_coord(
     let mut success = true;
     if coord.x < -180.0 || coord.x > 180.0 {
         let error = format!(
-                "(validate_coord) Could not convert [{}] to POLYGON: The provided {} LineString contains 1 or more invalid Long values. [{}] is out of range.",
+                "Could not convert [{}] to POLYGON: The provided {} LineString contains 1 or more invalid Long values. [{}] is out of range.",
                 field, polygon_field, coord.x
             );
-        psql_info!("{}", error);
+        psql_info!("(validate_coord) {}", error);
         errors.push(ValidationError {
             field: field.clone(),
             error,
@@ -208,10 +208,10 @@ fn validate_coord(
     }
     if coord.y < -90.0 || coord.y > 90.0 {
         let error = format!(
-                "(validate_coord) Could not convert [{}] to POLYGON: The provided {} LineString contains 1 or more invalid Lat values. [{}] is out of range.",
+                "Could not convert [{}] to POLYGON: The provided {} LineString contains 1 or more invalid Lat values. [{}] is out of range.",
                 field, polygon_field, coord.y
             );
-        psql_info!("{}", error);
+        psql_info!("(validate_coord) {}", error);
         errors.push(ValidationError { field, error });
         success = false
     }
@@ -258,13 +258,10 @@ pub fn get_insert_vars<'a>(
         let field_definition = match definition.fields.get(key) {
             Some(val) => val,
             None => {
-                let error = format!(
-                    "(get_insert_vars) no field definition found for field: {}",
-                    key
-                );
-                psql_error!("{}", error);
+                let error = format!("No field definition found for field: {}", key);
+                psql_error!("(get_insert_vars) {}", error);
                 psql_debug!(
-                    "(get_insert_vars) got definition for fields: {:?}",
+                    "(get_insert_vars) Got definition for fields: {:?}",
                     definition.fields
                 );
                 return Err(ArrErr::Error(error));
@@ -286,10 +283,10 @@ pub fn get_insert_vars<'a>(
                             };
                         } else {
                             let error = format!(
-                                "(get_insert_vars) Could not convert value into a geo_types::Point for field: {}",
+                                "Could not convert value into a geo_types::Point for field: {}",
                                 key
                             );
-                            psql_error!("{}", error);
+                            psql_error!("(get_insert_vars) {}", error);
                             psql_debug!("(get_insert_vars) field_value: {:?}", value);
                             return Err(ArrErr::Error(error));
                         }
@@ -304,10 +301,10 @@ pub fn get_insert_vars<'a>(
                             };
                         } else {
                             let error = format!(
-                                "(get_insert_vars) Could not convert value into a geo_types::Polygon for field: {}",
+                                "Could not convert value into a geo_types::Polygon for field: {}",
                                 key
                             );
-                            psql_error!("{}", error);
+                            psql_error!("(get_insert_vars) {}", error);
                             psql_debug!("(get_insert_vars) field_value: {:?}", value);
                             return Err(ArrErr::Error(error));
                         }
@@ -322,10 +319,10 @@ pub fn get_insert_vars<'a>(
                             };
                         } else {
                             let error = format!(
-                                "(get_insert_vars) Could not convert value into a geo_types::Path for field: {}",
+                                "Could not convert value into a geo_types::Path for field: {}",
                                 key
                             );
-                            psql_error!("{}", error);
+                            psql_error!("(get_insert_vars) {}", error);
                             psql_debug!("(get_insert_vars) field_value: {:?}", value);
                             return Err(ArrErr::Error(error));
                         }
@@ -342,7 +339,7 @@ pub fn get_insert_vars<'a>(
             }
             None => {
                 psql_debug!(
-                    "Skipping insert [{}] for [{}], no value provided",
+                    "(get_insert_vars) Skipping insert [{}] for [{}], no value provided.",
                     key,
                     definition.psql_table,
                 );
@@ -367,11 +364,8 @@ pub fn get_update_vars<'a>(
         let field_definition = match definition.fields.get(key) {
             Some(val) => val,
             None => {
-                let error = format!(
-                    "(get_update_vars) no field definition found for field: {}",
-                    key
-                );
-                psql_error!("{}", error);
+                let error = format!("No field definition found for field: {}", key);
+                psql_error!("(get_update_vars) {}", error);
                 psql_debug!(
                     "(get_update_vars) got definition for fields: {:?}",
                     definition.fields
@@ -393,10 +387,10 @@ pub fn get_update_vars<'a>(
                             };
                         } else {
                             let error = format!(
-                                    "(get_update_vars) Could not convert value into a geo_types::Point for field: {}",
-                                    key
-                                );
-                            psql_error!("{}", error);
+                                "Could not convert value into a geo_types::Point for field: {}",
+                                key
+                            );
+                            psql_error!("(get_update_vars) {}", error);
                             psql_debug!("(get_update_vars) field_value: {:?}", value);
                             return Err(ArrErr::Error(error));
                         }
@@ -411,10 +405,10 @@ pub fn get_update_vars<'a>(
                             };
                         } else {
                             let error = format!(
-                                    "(get_update_vars) Could not convert value into a geo_types::Polygon for field: {}",
-                                    key
-                                );
-                            psql_error!("{}", error);
+                                "Could not convert value into a geo_types::Polygon for field: {}",
+                                key
+                            );
+                            psql_error!("(get_update_vars) {}", error);
                             psql_debug!("(get_update_vars) field_value: {:?}", value);
                             return Err(ArrErr::Error(error));
                         }
@@ -429,10 +423,10 @@ pub fn get_update_vars<'a>(
                             };
                         } else {
                             let error = format!(
-                                    "(get_update_vars) Could not convert value into a geo_types::Path for field: {}",
-                                    key
-                                );
-                            psql_error!("{}", error);
+                                "Could not convert value into a geo_types::Path for field: {}",
+                                key
+                            );
+                            psql_error!("(get_update_vars) {}", error);
                             psql_debug!("(get_update_vars) field_value: {:?}", value);
                             return Err(ArrErr::Error(error));
                         }
@@ -449,7 +443,7 @@ pub fn get_update_vars<'a>(
             }
             None => {
                 psql_debug!(
-                    "Skipping update [{}] for [{}], no value provided",
+                    "(get_update_vars) Skipping update [{}] for [{}], no value provided.",
                     key,
                     definition.psql_table,
                 );
@@ -547,7 +541,7 @@ pub fn validate<T>(data: &impl GrpcDataObjectType) -> Result<(PsqlData, Validati
 where
     T: Resource,
 {
-    psql_debug!("(validate) start: [{:?}]", data);
+    psql_debug!("(validate) Start: [{:?}].", data);
     let definition = T::get_definition();
 
     let mut converted: PsqlData = PsqlData::new();
@@ -590,7 +584,7 @@ where
                     None => {
                         if field.is_mandatory() {
                             let error = format!("Got 'GrpcField::Option' for [{}] [{:?}] while this field is not marked as optional in the definition.", key, field);
-                            psql_error!("{}", error);
+                            psql_error!("(validate) {}", error);
                             return Err(ArrErr::Error(error));
                         }
                         continue;
@@ -600,7 +594,7 @@ where
             _ => {
                 if !field.is_mandatory() {
                     let error = format!("Expected 'GrpcField::Option' for [{}] [{:?}] since this field is marked as optional in the definition.", key, field);
-                    psql_error!("{}", error);
+                    psql_error!("(validate) {}", error);
                     return Err(ArrErr::Error(error));
                 }
                 field_value
@@ -608,7 +602,7 @@ where
         };
 
         psql_debug!(
-            "(validate) got value to validate [{:?}] with field type [{:?}]",
+            "(validate) Got value to validate [{:?}] with field type [{:?}].",
             val_to_validate,
             field.field_type
         );
@@ -692,7 +686,7 @@ where
                     definition.psql_table,
                     field.field_type.name()
                 );
-                psql_error!("{}", error);
+                psql_error!("(validate) {}", error);
                 return Err(ArrErr::Error(error));
             }
         }
@@ -700,13 +694,13 @@ where
 
     if !errors.is_empty() {
         success = false;
-        psql_debug!("fields provided: {:?}", data);
-        psql_debug!("errors found: {:?}", errors);
+        psql_debug!("(validate) Fields provided: {:?}", data);
+        psql_debug!("(validate) Errors found: {:?}", errors);
         let info = format!(
             "Conversion errors found in fields for table [{}], return without updating.",
             definition.psql_table
         );
-        psql_info!("{}", info);
+        psql_info!("(validate) {}", info);
     }
 
     Ok((converted, ValidationResult { errors, success }))

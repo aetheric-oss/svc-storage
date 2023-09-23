@@ -716,7 +716,7 @@ impl AdvancedSearchFilter {
 #[allow(dead_code)]
 pub(crate) fn get_single_search_value(search_value: &Vec<String>) -> Result<String, String> {
     log::debug!(
-        "(get_single_search_value) get value from: {:?}",
+        "(get_single_search_value) get value from: {:?}.",
         search_value
     );
     if search_value.len() == 1 {
@@ -751,12 +751,12 @@ pub(crate) fn filter_for_operator(
                 let search_val: String = get_single_search_value(search_values)?;
                 let val = val.to_string();
                 log::debug!(
-                    "Equals filter with value [{}] for val [{}]",
+                    "(filter_for_operator) Equals filter with value [{}] for val [{}].",
                     search_val,
                     val
                 );
                 if val == *search_val {
-                    log::debug!("found!");
+                    log::debug!("(filter_for_operator) found!");
                     filtered.push(object.clone())
                 }
             }
@@ -764,25 +764,25 @@ pub(crate) fn filter_for_operator(
                 let search_val: String = get_single_search_value(search_values)?;
                 let val = val.to_string();
                 log::debug!(
-                    "NotEquals filter with value [{}] for val [{}]",
+                    "(filter_for_operator) NotEquals filter with value [{}] for val [{}].",
                     search_val,
                     val
                 );
                 if val != *search_val {
-                    log::debug!("found!");
+                    log::debug!("(filter_for_operator) found!");
                     filtered.push(object.clone())
                 }
             }
             PredicateOperator::In => {
                 let val = val.to_string();
                 log::debug!(
-                    "In filter with values [{:?}] for val [{}]",
+                    "(filter_for_operator) In filter with values [{:?}] for val [{}].",
                     search_values,
                     val
                 );
                 for search_val in search_values {
                     if val == *search_val {
-                        log::debug!("found!");
+                        log::debug!("(filter_for_operator) found!");
                         filtered.push(object.clone())
                     }
                 }
@@ -790,7 +790,7 @@ pub(crate) fn filter_for_operator(
             PredicateOperator::NotIn => {
                 let val = val.to_string();
                 log::debug!(
-                    "NotIn filter with values [{:?}] for val [{}]",
+                    "(filter_for_operator) NotIn filter with values [{:?}] for val [{}].",
                     search_values,
                     val
                 );
@@ -801,13 +801,13 @@ pub(crate) fn filter_for_operator(
                     }
                 }
                 if !found {
-                    log::debug!("found!");
+                    log::debug!("(filter_for_operator) found!");
                     filtered.push(object.clone())
                 }
             }
             PredicateOperator::Between => {
                 log::debug!(
-                    "Between filter with values [{:?}] for val [{}]",
+                    "(filter_for_operator) Between filter with values [{:?}] for val [{}].",
                     search_values,
                     val
                 );
@@ -826,13 +826,16 @@ pub(crate) fn filter_for_operator(
                     }
                 };
                 log::debug!(
-                    "Found min [{}] and max [{}] values to compare with.",
+                    "(filter_for_operator) Found min [{}] and max [{}] values to compare with.",
                     min,
                     max
                 );
 
                 if let Some(num_val) = val.as_f64() {
-                    log::debug!("Can convert val to number, got [{}]", num_val);
+                    log::debug!(
+                        "(filter_for_operator) Can convert val to number, got [{}].",
+                        num_val
+                    );
                     let num_min = min.parse::<f64>().map_err(|e| {
                         format!("Could not convert search_value min [{}] to f64: {}", min, e)
                     })?;
@@ -840,14 +843,17 @@ pub(crate) fn filter_for_operator(
                         format!("Could not convert search_value max [{}] to f64: {}", max, e)
                     })?;
                     if num_val >= num_min && num_val <= num_max {
-                        log::debug!("found!");
+                        log::debug!("(filter_for_operator) found!");
                         filtered.push(object.clone())
                     }
                 } else if let Ok(date_val) = lib_common::time::DateTime::parse_from_rfc3339(
                     val.as_str()
                         .ok_or("Could not convert provided value to string.")?,
                 ) {
-                    log::debug!("Can convert val to date, got [{}]", date_val);
+                    log::debug!(
+                        "(filter_for_operator) Can convert val to date, got [{}].",
+                        date_val
+                    );
                     let date_min =
                         lib_common::time::DateTime::parse_from_rfc3339(&min).map_err(|e| {
                             format!(
@@ -864,27 +870,30 @@ pub(crate) fn filter_for_operator(
                             )
                         })?;
                     if date_val >= date_min && date_val <= date_max {
-                        log::debug!("found!");
+                        log::debug!("(filter_for_operator) found!");
                         filtered.push(object.clone())
                     }
                 } else {
-                    log::debug!(
-                        "Can't convert val [{}] to number or date, don't know what to do",
+                    log::warn!(
+                        "(filter_for_operator) Can't convert val [{}] to number or date, don't know what to do.",
                         &val.to_string()
                     );
                 }
             }
             PredicateOperator::IsNull => {
-                log::debug!("IsNull filter for value [{}]", val);
+                log::debug!("(filter_for_operator) IsNull filter for value [{}].", val);
                 if val.is_null() {
-                    log::debug!("found!");
+                    log::debug!("(filter_for_operator) found!");
                     filtered.push(object.clone())
                 }
             }
             PredicateOperator::IsNotNull => {
-                log::debug!("IsNotNull filter for value [{}]", val);
+                log::debug!(
+                    "(filter_for_operator) IsNotNull filter for value [{}].",
+                    val
+                );
                 if !val.is_null() {
-                    log::debug!("found!");
+                    log::debug!("(filter_for_operator) found!");
                     filtered.push(object.clone())
                 }
             }
@@ -913,12 +922,15 @@ pub(crate) fn filter_for_operator(
             PredicateOperator::Greater => {
                 let search_val: String = get_single_search_value(search_values)?;
                 log::debug!(
-                    "Greater filter with value [{:?}] for val [{}]",
+                    "(filter_for_operator) Greater filter with value [{:?}] for val [{}].",
                     search_val,
                     val
                 );
                 if let Some(num_val) = val.as_f64() {
-                    log::debug!("Can convert val to number, got [{}]", num_val);
+                    log::debug!(
+                        "(filter_for_operator) Can convert val to number, got [{}].",
+                        num_val
+                    );
                     let num_search_val = search_val.parse::<f64>().map_err(|e| {
                         format!(
                             "Could not convert search_value [{}] to f64: {}",
@@ -926,14 +938,17 @@ pub(crate) fn filter_for_operator(
                         )
                     })?;
                     if num_val > num_search_val {
-                        log::debug!("found!");
+                        log::debug!("(filter_for_operator) found!");
                         filtered.push(object.clone())
                     }
                 } else if let Ok(date_val) = lib_common::time::DateTime::parse_from_rfc3339(
                     val.as_str()
                         .ok_or("Could not convert provided value to string.")?,
                 ) {
-                    log::debug!("Can convert val to date, got [{}]", date_val);
+                    log::debug!(
+                        "(filter_for_operator) Can convert val to date, got [{}].",
+                        date_val
+                    );
                     let search_date = lib_common::time::DateTime::parse_from_rfc3339(&search_val)
                         .map_err(|e| {
                         format!(
@@ -942,12 +957,12 @@ pub(crate) fn filter_for_operator(
                         )
                     })?;
                     if date_val > search_date {
-                        log::debug!("found!");
+                        log::debug!("(filter_for_operator) found!");
                         filtered.push(object.clone())
                     }
                 } else {
-                    log::debug!(
-                        "Can't convert val [{}] to number or date, don't know what to do",
+                    log::warn!(
+                        "(filter_for_operator) Can't convert val [{}] to number or date, don't know what to do.",
                         &val.to_string()
                     );
                 }
@@ -955,12 +970,15 @@ pub(crate) fn filter_for_operator(
             PredicateOperator::GreaterOrEqual => {
                 let search_val: String = get_single_search_value(search_values)?;
                 log::debug!(
-                    "GreaterOrEqual filter with value [{:?}] for val [{}]",
+                    "(filter_for_operator) GreaterOrEqual filter with value [{:?}] for val [{}].",
                     search_val,
                     val
                 );
                 if let Some(num_val) = val.as_f64() {
-                    log::debug!("Can convert val to number, got [{}]", num_val);
+                    log::debug!(
+                        "(filter_for_operator) Can convert val to number, got [{}].",
+                        num_val
+                    );
                     let num_search_val = search_val.parse::<f64>().map_err(|e| {
                         format!(
                             "Could not convert search_value [{}] to f64: {}",
@@ -968,14 +986,17 @@ pub(crate) fn filter_for_operator(
                         )
                     })?;
                     if num_val >= num_search_val {
-                        log::debug!("found!");
+                        log::debug!("(filter_for_operator) found!");
                         filtered.push(object.clone())
                     }
                 } else if let Ok(date_val) = lib_common::time::DateTime::parse_from_rfc3339(
                     val.as_str()
                         .ok_or("Could not convert provided value to string.")?,
                 ) {
-                    log::debug!("Can convert val to date, got [{}]", date_val);
+                    log::debug!(
+                        "(filter_for_operator) Can convert val to date, got [{}].",
+                        date_val
+                    );
                     let search_date = lib_common::time::DateTime::parse_from_rfc3339(&search_val)
                         .map_err(|e| {
                         format!(
@@ -984,12 +1005,12 @@ pub(crate) fn filter_for_operator(
                         )
                     })?;
                     if date_val >= search_date {
-                        log::debug!("found!");
+                        log::debug!("(filter_for_operator) found!");
                         filtered.push(object.clone())
                     }
                 } else {
-                    log::debug!(
-                        "Can't convert val [{}] to number or date, don't know what to do",
+                    log::warn!(
+                        "(filter_for_operator) Can't convert val [{}] to number or date, don't know what to do.",
                         &val.to_string()
                     );
                 }
@@ -997,12 +1018,15 @@ pub(crate) fn filter_for_operator(
             PredicateOperator::Less => {
                 let search_val: String = get_single_search_value(search_values)?;
                 log::debug!(
-                    "Less filter with value [{:?}] for val [{}]",
+                    "(filter_for_operator) Less filter with value [{:?}] for val [{}].",
                     search_val,
                     val
                 );
                 if let Some(num_val) = val.as_f64() {
-                    log::debug!("Can convert val to number, got [{}]", num_val);
+                    log::debug!(
+                        "(filter_for_operator) Can convert val to number, got [{}].",
+                        num_val
+                    );
                     let num_search_val = search_val.parse::<f64>().map_err(|e| {
                         format!(
                             "Could not convert search_value [{}] to f64: {}",
@@ -1010,14 +1034,17 @@ pub(crate) fn filter_for_operator(
                         )
                     })?;
                     if num_val < num_search_val {
-                        log::debug!("found!");
+                        log::debug!("(filter_for_operator) found!");
                         filtered.push(object.clone())
                     }
                 } else if let Ok(date_val) = lib_common::time::DateTime::parse_from_rfc3339(
                     val.as_str()
                         .ok_or("Could not convert provided value to string.")?,
                 ) {
-                    log::debug!("Can convert val to date, got [{}]", date_val);
+                    log::debug!(
+                        "(filter_for_operator) Can convert val to date, got [{}].",
+                        date_val
+                    );
                     let search_date = lib_common::time::DateTime::parse_from_rfc3339(&search_val)
                         .map_err(|e| {
                         format!(
@@ -1026,12 +1053,12 @@ pub(crate) fn filter_for_operator(
                         )
                     })?;
                     if date_val < search_date {
-                        log::debug!("found!");
+                        log::debug!("(filter_for_operator) found!");
                         filtered.push(object.clone())
                     }
                 } else {
-                    log::debug!(
-                        "Can't convert val [{}] to number or date, don't know what to do",
+                    log::warn!(
+                        "(filter_for_operator) Can't convert val [{}] to number or date, don't know what to do.",
                         &val.to_string()
                     );
                 }
@@ -1039,12 +1066,15 @@ pub(crate) fn filter_for_operator(
             PredicateOperator::LessOrEqual => {
                 let search_val: String = get_single_search_value(search_values)?;
                 log::debug!(
-                    "LessOrEqual filter with value [{:?}] for val [{}]",
+                    "(filter_for_operator) LessOrEqual filter with value [{:?}] for val [{}].",
                     search_val,
                     val
                 );
                 if let Some(num_val) = val.as_f64() {
-                    log::debug!("Can convert val to number, got [{}]", num_val);
+                    log::debug!(
+                        "(filter_for_operator) Can convert val to number, got [{}].",
+                        num_val
+                    );
                     let num_search_val = search_val.parse::<f64>().map_err(|e| {
                         format!(
                             "Could not convert search_value [{}] to f64: {}",
@@ -1052,14 +1082,17 @@ pub(crate) fn filter_for_operator(
                         )
                     })?;
                     if num_val <= num_search_val {
-                        log::debug!("found!");
+                        log::debug!("(filter_for_operator) found!");
                         filtered.push(object.clone())
                     }
                 } else if let Ok(date_val) = lib_common::time::DateTime::parse_from_rfc3339(
                     val.as_str()
                         .ok_or("Could not convert provided value to string.")?,
                 ) {
-                    log::debug!("Can convert val to date, got [{}]", date_val);
+                    log::debug!(
+                        "(filter_for_operator) Can convert val to date, got [{}].",
+                        date_val
+                    );
                     let search_date = lib_common::time::DateTime::parse_from_rfc3339(&search_val)
                         .map_err(|e| {
                         format!(
@@ -1068,12 +1101,12 @@ pub(crate) fn filter_for_operator(
                         )
                     })?;
                     if date_val <= search_date {
-                        log::debug!("found!");
+                        log::debug!("(filter_for_operator) found!");
                         filtered.push(object.clone())
                     }
                 } else {
-                    log::debug!(
-                        "Can't convert val [{}] to number or date, don't know what to do",
+                    log::warn!(
+                        "(filter_for_operator) Can't convert val [{}] to number or date, don't know what to do.",
                         &val.to_string()
                     );
                 }

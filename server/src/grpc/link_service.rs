@@ -121,7 +121,7 @@ where
                     "Could not convert provided id String [{}] into uuid: {}",
                     id, e
                 );
-                grpc_error!("{}", error);
+                grpc_error!("(generic_link) {}", error);
                 return Err(Status::new(Code::NotFound, error));
             }
         };
@@ -131,7 +131,7 @@ where
                 Self::ResourceObject::get_psql_table(),
                 id
             );
-            grpc_error!("{}", error);
+            grpc_error!("(generic_link) {}", error);
             return Err(Status::new(Code::NotFound, error));
         }
 
@@ -171,7 +171,7 @@ where
             .is_err()
         {
             let error = format!("No resource found for specified uuids: {:?}", id);
-            grpc_error!("{}", error);
+            grpc_error!("(generic_unlink) {}", error);
             return Err(Status::new(Code::NotFound, error));
         }
 
@@ -242,7 +242,7 @@ where
             .is_err()
         {
             let error = format!("No resource found for specified uuid: {}", id.id);
-            grpc_error!("{}", error);
+            grpc_error!("(_get_linked) {}", error);
             return Err(ArrErr::Error(error));
         }
 

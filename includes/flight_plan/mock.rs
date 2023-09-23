@@ -47,7 +47,7 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
     let now = match NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
         .unwrap_or_else(|| {
             panic!(
-                "invalid current date from year [{}], month [{}] and day [{}].",
+                "(_get_data_obj) invalid current date from year [{}], month [{}] and day [{}].",
                 now.year(),
                 now.month(),
                 now.day()
@@ -59,7 +59,7 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
         .earliest()
     {
         Some(res) => res,
-        None => panic!("Could not get current time for timezone Utc"),
+        None => panic!("(_get_data_obj) Could not get current time for timezone Utc"),
     };
     let mut rng = rand::thread_rng();
 
@@ -107,7 +107,7 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
     let mut actual_departure = None;
     if departure_date < now {
         println!(
-            "departure_date {} is in the past of now {}",
+            "(_get_data_obj) departure_date {} is in the past of now {}",
             departure_date, now
         );
         // we're at least in_flight, so change the status
@@ -122,7 +122,7 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
         approved_by = Some(Uuid::new_v4().to_string());
     } else if now.signed_duration_since(departure_date).num_hours() <= 1 {
         println!(
-            "now {} departure_date {} are less than 1 hour apart: [{:?}]",
+            "(_get_data_obj) now {} departure_date {} are less than 1 hour apart: {:?}",
             now,
             departure_date,
             now.signed_duration_since(departure_date)
@@ -135,7 +135,7 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
         flight_status = FlightStatus::Ready as i32;
     } else if now.signed_duration_since(departure_date).num_seconds() <= 600 {
         println!(
-            "now {} departure_date {} are less than 10 mins apart: [{:?}]",
+            "(_get_data_obj) now {} departure_date {} are less than 10 mins apart: {:?}",
             now,
             departure_date,
             now.signed_duration_since(departure_date)
@@ -144,19 +144,19 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
         flight_status = FlightStatus::Boarding as i32;
     } else {
         println!(
-            "departure_date {} is in the future of now {}",
+            "(_get_data_obj) departure_date {} is in the future of now {}",
             departure_date, now
         );
     }
     let mut actual_arrival = None;
     if arrival_date >= now {
         println!(
-            "arrival_date {} is in the future of now {}",
+            "(_get_data_obj) arrival_date {} is in the future of now {}",
             arrival_date, now
         );
     } else {
         println!(
-            "arrival_date {} is in the past of now {}",
+            "(_get_data_obj) arrival_date {} is in the past of now {}",
             arrival_date, now
         );
 

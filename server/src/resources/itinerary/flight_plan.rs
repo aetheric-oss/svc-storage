@@ -34,7 +34,10 @@ impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("Converting Row to itinerary_flight_plan::Data: {:?}", row);
+        debug!(
+            "(try_from) Converting Row to itinerary_flight_plan::Data: {:?}",
+            row
+        );
         Ok(Data {})
     }
 }

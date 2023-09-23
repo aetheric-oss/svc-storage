@@ -109,7 +109,7 @@ impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("Converting Row to vertipad::Data: {:?}", row);
+        debug!("(try_from) Converting Row to vertipad::Data: {:?}", row);
         let vertiport_id: Uuid = row.get("vertiport_id");
         let schedule: Option<String> = row.get("schedule");
         let geo_location: GeoPoint = row.get::<&str, GeoPoint>("geo_location");

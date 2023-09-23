@@ -19,7 +19,7 @@ where
     /// Get the resource's id column name using the resource's [ResourceDefinition](crate::resources::base::ResourceDefinition)
     fn try_get_id_field() -> Result<String, ArrErr> {
         psql_debug!(
-            "(try_get_id_field) start: [{:?}]",
+            "(try_get_id_field) Start [{:?}].",
             Self::get_definition().psql_id_cols
         );
         let definition = Self::get_definition();
@@ -28,7 +28,7 @@ where
                 "No id column configured for table {}",
                 definition.psql_table
             );
-            psql_error!("{}", error);
+            psql_error!("(try_get_id_field) {}", error);
             return Err(ArrErr::Error(error));
         }
         Ok(definition.psql_id_cols[0].clone())
@@ -36,7 +36,7 @@ where
 
     /// Generic get by id function to get a row using the UUID column
     async fn get_by_id(id: &Uuid) -> Result<Row, ArrErr> {
-        psql_debug!("(get_by_id) start: [{:?}]", id);
+        psql_debug!("(get_by_id) Start [{:?}].", id);
         super::queries::get_by_id::<Self>(id).await
     }
 
@@ -48,7 +48,7 @@ where
     where
         T: GrpcDataObjectType,
     {
-        psql_debug!("(create) start: [{:?}]", data);
+        psql_debug!("(create) Start [{:?}].", data);
         let (psql_data, validation_result) = validate::<Self>(data)?;
 
         if !validation_result.success {
@@ -67,8 +67,8 @@ where
             inserts.join(", "),
             id_col
         );
-        psql_debug!("(create) {}", insert_sql);
-        psql_debug!("{:?}", &params);
+        psql_debug!("(create) [{}].", insert_sql);
+        psql_debug!("(create) [{:?}].", &params);
 
         psql_info!(
             "(create) Inserting new entry for table [{}].",
@@ -95,7 +95,7 @@ where
     ///
     /// returns [Row] on success
     async fn read(&self) -> Result<Row, ArrErr> {
-        psql_debug!("(read) start: [{:?}]", self.try_get_uuid());
+        psql_debug!("(read) Start [{:?}].", self.try_get_uuid());
         //TODO(R4): implement shared memcache here to get object data if present
         let id = self.try_get_uuid()?;
         Self::get_by_id(&id).await
@@ -113,7 +113,7 @@ where
     /// Returns [`ArrErr`] from [`PoolError`](deadpool::managed::PoolError) if no client connection could be returned from the connection [`Pool`](deadpool::managed::Pool)
     /// Returns [`ArrErr`] Database Error if database query execution failed
     async fn update<'a>(&self, data: &T) -> Result<(Option<Row>, ValidationResult), ArrErr> {
-        psql_debug!("(update) start: [{:?}]", data);
+        psql_debug!("(update) Start [{:?}].", data);
 
         let (psql_data, validation_result) = validate::<Self>(data)?;
         if !validation_result.success {
@@ -137,15 +137,16 @@ where
             id_col,
             params.len() + 1
         );
-        psql_debug!("{}", update_sql);
         params.push(&id);
-        psql_debug!("{:?}", &params);
 
         psql_info!(
-            "Updating entry in table [{}]. uuid: {}",
+            "(update) Updating entry in table [{}]. uuid: {}",
             definition.psql_table,
             id
         );
+        psql_debug!("(update) [{}].", update_sql);
+        psql_debug!("(update) [{:?}].", &params);
+
         let client = get_psql_pool().get().await?;
         client.execute(update_sql, &params[..]).await?;
 
@@ -173,7 +174,7 @@ where
     ///
     /// Calls [delete_row](PsqlObjectType::delete_row) otherwise
     async fn delete(&self) -> Result<(), ArrErr> {
-        psql_debug!("(delete) start.");
+        psql_debug!("(delete) Start.");
         let definition = Self::get_definition();
         if definition.fields.contains_key("deleted_at") {
             self.set_deleted_at_now().await
@@ -193,24 +194,25 @@ where
     /// Returns [`ArrErr`] "Failed to update \[deleted_at\] col" if database query execution returns zero updated rows
     /// Returns [`ArrErr`] Database Error if database query execution failed
     async fn set_deleted_at_now(&self) -> Result<(), ArrErr> {
-        psql_debug!("(set_deleted_at_now) start: [{:?}]", self.try_get_uuid());
+        psql_debug!("(set_deleted_at_now) Start [{:?}].", self.try_get_uuid());
         let definition = Self::get_definition();
         let id_col = Self::try_get_id_field()?;
         let id = self.try_get_uuid()?;
 
         if self.is_archived().await {
             psql_info!(
-                "[deleted_at] column is already set, refusing to overwrite for [{}]. uuid: {}",
+                "(set_deleted_at_now) [deleted_at] column is already set, refusing to overwrite for [{}]. uuid: {}",
                 definition.psql_table,
                 id
             );
             return Err(ArrErr::Error(
-                "[deleted_at] column is already set, will not overwrite.".to_owned(),
+                "(set_deleted_at_now) [deleted_at] column is already set, will not overwrite."
+                    .to_owned(),
             ));
         }
 
         psql_info!(
-            "Updating [deleted_at] field for [{}]. uuid: {}",
+            "(set_deleted_at_now) Updating [deleted_at] field for [{}]. uuid: {}",
             definition.psql_table,
             id
         );
@@ -228,10 +230,10 @@ where
                     Ok(())
                 } else {
                     let error = format!(
-                        "Failed to update [deleted_at] col for [{}] with id [{}] (does not exist?)",
+                        "Failed to update [deleted_at] col for [{}] with id [{}] (does not exist?).",
                         definition.psql_table, id
                     );
-                    psql_info!("{}", error);
+                    psql_info!("(set_deleted_at_now) {}", error);
                     Err(ArrErr::Error(error))
                 }
             }
@@ -249,13 +251,13 @@ where
     /// Returns [`ArrErr`] "Failed to delete entry" if database query execution returns zero updated rows
     /// Returns [`ArrErr`] Database Error if database query execution failed
     async fn delete_row(&self) -> Result<(), ArrErr> {
-        psql_debug!("(set_deleted_at_now) start: [{:?}]", self.try_get_uuid());
+        psql_debug!("(delete_row) Start [{:?}].", self.try_get_uuid());
         let definition = Self::get_definition();
         let id_col = Self::try_get_id_field()?;
 
         let id = self.try_get_uuid()?;
         psql_info!(
-            "Deleting entry from table [{}]. uuid: {}",
+            "(delete_row) Deleting entry from table [{}]. uuid: {}",
             definition.psql_table,
             id
         );
@@ -272,10 +274,10 @@ where
                     Ok(())
                 } else {
                     let error = format!(
-                        "Failed to delete entry for [{}] with id [{}] (does not exist?)",
+                        "Failed to delete entry for [{}] with id [{}] (does not exist?).",
                         definition.psql_table, id
                     );
-                    psql_info!("{}", error);
+                    psql_info!("(delete_row) {}", error);
                     Err(ArrErr::Error(error))
                 }
             }

@@ -151,7 +151,7 @@ pub async fn grpc_server(config: Config, shutdown_rx: Option<tokio::sync::onesho
     let full_grpc_addr: SocketAddr = match format!("[::]:{}", grpc_port).parse() {
         Ok(addr) => addr,
         Err(e) => {
-            grpc_error!("Failed to parse gRPC address: {}", e);
+            grpc_error!("(grpc_server) Failed to parse gRPC address: {}", e);
             return;
         }
     };

@@ -78,7 +78,7 @@ impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("Converting Row to group::Data: {:?}", row);
+        debug!("(try_from) Converting Row to group::Data: {:?}", row);
         let parent_group_id: Option<Uuid> = row.get("parent_group_id");
         let parent_group_id = parent_group_id.map(|val| val.to_string());
 

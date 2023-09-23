@@ -132,7 +132,7 @@ impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("Converting Row to vehicle::Data: {:?}", row);
+        debug!("(try_from) Converting Row to vehicle::Data: {:?}", row);
 
         let last_maintenance: Option<prost_wkt_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("last_maintenance")

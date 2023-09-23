@@ -75,7 +75,7 @@ impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("Converting Row to itinerary::Data: {:?}", row);
+        debug!("(try_from) Converting Row to itinerary::Data: {:?}", row);
         let user_id: String = row.get::<&str, Uuid>("user_id").to_string();
 
         let status = ItineraryStatus::from_str_name(row.get("status"))

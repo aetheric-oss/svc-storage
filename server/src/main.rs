@@ -16,7 +16,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     init_logger(&config);
 
-    info!("Running database initialization");
+    info!("(main) Running database initialization.");
     init_psql_pool().await?;
 
     // Allow options for psql init or and/ or recreation
@@ -24,21 +24,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Cli::parse();
     if let Some(rebuild_psql) = args.rebuild_psql {
         if rebuild_psql {
-            info!("Found argument [rebuild_psql]. Rebuilding now...");
+            info!("(main) Found argument [rebuild_psql]. Rebuilding now...");
             recreate_db().await?;
-            info!("PSQL Rebuild completed.");
+            info!("(main) PSQL Rebuild completed.");
         }
     } else if let Some(init_psql) = args.init_psql {
         if init_psql {
-            info!("Found argument [init_psql]. Creating database schema now...");
+            info!("(main) Found argument [init_psql]. Creating database schema now...");
             create_db().await?;
-            info!("PSQL Database creation completed.");
+            info!("(main) PSQL Database creation completed.");
         }
     }
 
     // Start GRPC Server
     tokio::spawn(grpc::server::grpc_server(config, None)).await?;
-    info!("Server shutdown.");
+    info!("(main) Server shutdown.");
 
     // Make sure all log message are written/ displayed before shutdown
     log::logger().flush();

@@ -96,7 +96,7 @@ impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("Converting Row to vertiport::Data: {:?}", row);
+        debug!("(try_from) Converting Row to vertiport::Data: {:?}", row);
         let schedule: Option<String> = row.get("schedule");
         let geo_location = row.get::<&str, postgis::ewkb::Polygon>("geo_location");
 

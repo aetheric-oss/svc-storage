@@ -92,7 +92,7 @@ impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("Converting Row to parcel::Data: {:?}", row);
+        debug!("(try_from) Converting Row to parcel::Data: {:?}", row);
         let user_id: String = row.get::<&str, Uuid>("user_id").to_string();
         let weight_grams: i64 = row.get("weight_grams");
         let status = ParcelStatus::from_str_name(row.get("status"))

@@ -71,7 +71,7 @@ impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("Converting Row to pilot::Data: {:?}", row);
+        debug!("(try_from) Converting Row to pilot::Data: {:?}", row);
         Ok(Data {
             first_name: row.get("first_name"),
             last_name: row.get("last_name"),

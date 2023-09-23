@@ -73,7 +73,7 @@ where
             Ok(Response::new(resource.into()))
         } else {
             let error = format!("No resource found for specified uuid: {}", id.id);
-            grpc_error!("{}", error);
+            grpc_error!("(generic_get_by_id) {}", error);
             Err(Status::new(Code::NotFound, error))
         }
     }
@@ -117,7 +117,10 @@ where
     ) -> Result<Response<Self::Response>, Status> {
         let data = request.into_inner();
         let mut resource: Self::ResourceObject = data.into();
-        grpc_debug!("Inserting with data {:?}", resource.try_get_data()?);
+        grpc_debug!(
+            "(generic_insert) Inserting with data [{:?}].",
+            resource.try_get_data()?
+        );
         let (id, validation_result) =
             Self::ResourceObject::create(&resource.try_get_data()?).await?;
         if let Some(id) = id {
@@ -130,10 +133,10 @@ where
             };
             Ok(Response::new(result.into()))
         } else {
-            let error = "Error calling insert function";
-            grpc_error!("{}", error);
-            grpc_debug!("{:?}", resource.try_get_data()?);
-            grpc_debug!("{:?}", validation_result);
+            let error = "Error calling insert function.";
+            grpc_error!("(generic_insert) {}", error);
+            grpc_debug!("(generic_insert) [{:?}].", resource.try_get_data()?);
+            grpc_debug!("(generic_insert) [{:?}].", validation_result);
             let result = GenericResourceResult {
                 phantom: PhantomData,
                 validation_result,
@@ -171,7 +174,7 @@ where
             Some(data) => data,
             None => {
                 let err = format!("No data provided for update with id: {}", req.try_get_id()?);
-                grpc_error!("{}", err);
+                grpc_error!("(generic_update) {}", err);
                 return Err(Status::cancelled(err));
             }
         };
@@ -186,10 +189,10 @@ where
             };
             Ok(Response::new(result.into()))
         } else {
-            let error = "Error calling update function";
-            grpc_error!("{}", error);
-            grpc_debug!("{:?}", data);
-            grpc_debug!("{:?}", validation_result);
+            let error = "Error calling update function.";
+            grpc_error!("(generic_update) {}", error);
+            grpc_debug!("(generic_update) [{:?}].", data);
+            grpc_debug!("(generic_update) [{:?}].", validation_result);
             let result = GenericResourceResult {
                 phantom: PhantomData,
                 validation_result,

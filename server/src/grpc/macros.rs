@@ -170,7 +170,7 @@ macro_rules! grpc_server_link_service_mod {
                             "Could not convert provided id String [{}] into uuid: {}",
                             id, e
                         );
-                        grpc_error!("{}", error);
+                        grpc_error!("(replace_linked MOCK) {}", error);
                         return Err(tonic::Status::not_found(error));
                     }
                 };

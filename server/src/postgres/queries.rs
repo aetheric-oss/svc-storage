@@ -14,7 +14,7 @@ pub async fn get_by_id<V>(id: &Uuid) -> Result<Row, ArrErr>
 where
     V: Resource + super::simple_resource::PsqlType,
 {
-    psql_debug!("(get_by_id) start: [{:?}]", id);
+    psql_debug!("(get_by_id) Start: {:?}", id);
 
     let definition = V::get_definition();
     let id_col = V::try_get_id_field()?;
@@ -30,7 +30,7 @@ where
         definition.psql_table,
         id
     );
-    psql_debug!("{}", &query);
+    psql_debug!("(get_by_id) [{}].", &query);
     match client.query_one(&stmt, &[&id]).await {
         Ok(row) => Ok(row),
         Err(e) => Err(e.into()),
@@ -43,7 +43,7 @@ pub async fn get_for_ids<V>(ids: &HashMap<String, Uuid>) -> Result<Row, ArrErr>
 where
     V: Resource,
 {
-    psql_debug!("(get_for_ids) start: [{:?}]", ids);
+    psql_debug!("(get_for_ids) Start: {:?}", ids);
     let definition = V::get_definition();
 
     let mut params: Vec<Box<PsqlFieldSend>> = vec![];
@@ -71,8 +71,8 @@ where
         definition.psql_table,
         ids
     );
-    psql_debug!("{}", &query);
-    psql_debug!("{:?}", &params);
+    psql_debug!("(get_for_ids) [{}].", &query);
+    psql_debug!("(get_for_ids) [{:?}].", &params);
 
     let mut ref_params: Vec<&PsqlField> = vec![];
     for field in params.iter() {

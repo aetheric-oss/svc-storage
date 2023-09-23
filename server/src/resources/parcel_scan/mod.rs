@@ -89,7 +89,7 @@ impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("Converting Row to parcel::Data: {:?}", row);
+        debug!("(try_from) Converting Row to parcel::Data: {:?}", row);
         let scanner_id = row.get::<&str, Uuid>("scanner_id").to_string();
         let parcel_id = row.get::<&str, Uuid>("parcel_id").to_string();
         let geo_location: GeoPoint = row.get::<&str, GeoPoint>("geo_location");

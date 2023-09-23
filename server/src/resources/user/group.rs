@@ -34,7 +34,7 @@ impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("Converting Row to user_group::Data: {:?}", row);
+        debug!("(try_from) Converting Row to user_group::Data: {:?}", row);
         Ok(Data {})
     }
 }

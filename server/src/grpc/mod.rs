@@ -117,7 +117,7 @@ impl From<ArrErr> for Status {
         // <https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html#error-handling>
         // <https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html#which-events-to-log>
         let err: Error = err.into();
-        grpc_warn!("{:#}", err);
+        grpc_warn!("(from) {:#}", err);
 
         tonic::Status::internal("error".to_string())
     }

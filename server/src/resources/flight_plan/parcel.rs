@@ -57,7 +57,10 @@ impl TryFrom<Row> for Data {
         let acquire: bool = row.get::<&str, bool>("acquire");
         let deliver: bool = row.get::<&str, bool>("deliver");
 
-        debug!("Converting Row to flight_plan_parcel::Data: {:?}", row);
+        debug!(
+            "(try_from) Converting Row to flight_plan_parcel::Data: {:?}",
+            row
+        );
         Ok(Data { acquire, deliver })
     }
 }
@@ -88,7 +91,10 @@ impl TryFrom<Row> for RowData {
         let acquire: bool = row.get::<&str, bool>("acquire");
         let deliver: bool = row.get::<&str, bool>("deliver");
 
-        debug!("Converting Row to flight_plan_parcel::Data: {:?}", row);
+        debug!(
+            "(try_from) Converting Row to flight_plan_parcel::Data: {:?}",
+            row
+        );
         Ok(RowData {
             flight_plan_id,
             parcel_id,

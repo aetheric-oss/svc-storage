@@ -97,7 +97,7 @@ impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("Converting Row to scanner::Data: {:?}", row);
+        debug!("(try_from) Converting Row to scanner::Data: {:?}", row);
         let organization_id: Uuid = row.get("organization_id");
 
         let scanner_status = ScannerStatus::from_str_name(row.get("scanner_status"))

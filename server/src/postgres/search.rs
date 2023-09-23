@@ -109,7 +109,7 @@ where
                     sort_expressions.push(try_get_sort_str(sort_option)?);
                 } else {
                     psql_error!(
-                        "Invalid field provided [{}] for sort order in advanced_search",
+                        "(advanced_search) Invalid field provided [{}] for sort order in advanced_search.",
                         sort_option.sort_field
                     );
                 }
@@ -127,11 +127,11 @@ where
         let search_sql = &client.prepare_cached(&search_query).await?;
 
         psql_info!(
-            "Searching table [{}] with query [{}]",
+            "(advanced_search) Searching table [{}] with query [{}].",
             definition.psql_table,
             search_query
         );
-        psql_debug!("Params: {:?}", params);
+        psql_debug!("(advanced_search) Params: {:?}", params);
 
         let mut ref_params: Vec<&PsqlField> = vec![];
         for field in params.iter() {
@@ -151,11 +151,8 @@ where
         let col_val = match &col.value {
             Some(val) => val,
             None => {
-                let err = format!(
-                    "(_param_from_search_col) search col [{}] has no value: {:?}",
-                    col.col_name, col
-                );
-                psql_error!("{}", err);
+                let err = format!("Search col [{}] has no value: {:?}", col.col_name, col);
+                psql_error!("(_param_from_search_col) {}", err);
                 return Err(ArrErr::Error(err));
             }
         };
@@ -169,7 +166,7 @@ where
                             "Can't convert search col [{}] with value [{}] to i32: {}",
                             col.col_name, col_val, e
                         );
-                        psql_error!("{}", err);
+                        psql_error!("(_param_from_search_col) {}", err);
                         return Err(ArrErr::Error(err));
                     }
                 };
@@ -177,10 +174,10 @@ where
                     Some(string_val) => Ok(Box::new(string_val)),
                     None => {
                         let err = format!(
-                            "Can't convert search col [{}] with value [{}] to enum string for value [{}]",
+                            "Can't convert search col [{}] with value [{}] to enum string for value [{}].",
                             col.col_name, col_val, int_val
                         );
-                        psql_error!("{}", err);
+                        psql_error!("(_param_from_search_col) {}", err);
                         Err(ArrErr::Error(err))
                     }
                 }
@@ -199,7 +196,10 @@ pub(crate) fn get_filter_str(
 ) -> Result<(String, i32), ArrErr> {
     let mut filter_str;
     let mut next_param_index = cur_param_index;
-    psql_debug!("Found [{}] filter", operator.as_str_name());
+    psql_debug!(
+        "(get_filter_str) Found [{}] filter.",
+        operator.as_str_name()
+    );
     match operator {
         PredicateOperator::Equals => {
             filter_str = format!(r#" "{}" = ${}"#, search_col.col_name, next_param_index);
@@ -387,15 +387,12 @@ pub(crate) fn try_get_sort_str(sort_option: &SortOption) -> Result<String, ArrEr
 pub(super) fn param_from_search_col(
     col: &SearchCol,
 ) -> Result<Box<dyn ToSql + Sync + Send>, ArrErr> {
-    psql_debug!("(param_from_search_col) called for col: {:?}", col);
+    psql_debug!("(param_from_search_col) Called for col: {:?}", col);
     let col_val = match &col.value {
         Some(val) => val,
         None => {
-            let err = format!(
-                "(_param_from_search_col) search col [{}] has no value: {:?}",
-                col.col_name, col
-            );
-            psql_error!("{}", err);
+            let err = format!("Search col [{}] has no value: {:?}", col.col_name, col);
+            psql_error!("(param_from_search_col) {}", err);
             return Err(ArrErr::Error(err));
         }
     };
@@ -407,7 +404,7 @@ pub(super) fn param_from_search_col(
                     "Can't convert search col [{}] with value [{}] to boolean: {}",
                     col.col_name, col_val, e
                 );
-                psql_error!("{}", err);
+                psql_error!("(param_from_search_col) {}", err);
                 Err(ArrErr::Error(err))
             }
         },
@@ -418,7 +415,7 @@ pub(super) fn param_from_search_col(
                     "Can't convert search col [{}] with value [{}] to f64: {}",
                     col.col_name, col_val, e
                 );
-                psql_error!("{}", err);
+                psql_error!("(param_from_search_col) {}", err);
                 Err(ArrErr::Error(err))
             }
         },
@@ -429,7 +426,7 @@ pub(super) fn param_from_search_col(
                     "Can't convert search col [{}] with value [{}] to i16: {}",
                     col.col_name, col_val, e
                 );
-                psql_error!("{}", err);
+                psql_error!("(param_from_search_col) {}", err);
                 Err(ArrErr::Error(err))
             }
         },
@@ -440,7 +437,7 @@ pub(super) fn param_from_search_col(
                     "Can't convert search col [{}] with value [{}] to i32: {}",
                     col.col_name, col_val, e
                 );
-                psql_error!("{}", err);
+                psql_error!("(param_from_search_col) {}", err);
                 Err(ArrErr::Error(err))
             }
         },
@@ -451,7 +448,7 @@ pub(super) fn param_from_search_col(
                     "Can't convert search col [{}] with value [{}] to i64: {}",
                     col.col_name, col_val, e
                 );
-                psql_error!("{}", err);
+                psql_error!("(param_from_search_col) {}", err);
                 Err(ArrErr::Error(err))
             }
         },
@@ -462,7 +459,7 @@ pub(super) fn param_from_search_col(
                     "Can't convert search col [{}] with value [{}] to Uuid: {}",
                     col.col_name, col_val, e
                 );
-                psql_error!("{}", err);
+                psql_error!("(param_from_search_col) {}", err);
                 Err(ArrErr::Error(err))
             }
         },
@@ -473,7 +470,7 @@ pub(super) fn param_from_search_col(
                     "Can't convert search col [{}] with value [{}] to DateTime<Utc>: {}",
                     col.col_name, col_val, e
                 );
-                psql_error!("{}", err);
+                psql_error!("(param_from_search_col) {}", err);
                 Err(ArrErr::Error(err))
             }
         },

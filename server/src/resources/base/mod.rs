@@ -75,9 +75,8 @@ where
         match self.get_data() {
             Some(data) => Ok(data),
             None => {
-                let error =
-                    "No data provided for ObjectType<T> when calling [try_get_data]".to_string();
-                error!("{}", error);
+                let error = "No data provided for ObjectType<T>.".to_string();
+                error!("(try_get_data) {}", error);
                 Err(ArrErr::Error(error))
             }
         }
@@ -97,10 +96,14 @@ where
                 }
                 Ok(result)
             }
-            None => Err(ArrErr::Error(format!(
-                "No ids configured for resource [{}]",
-                Self::get_psql_table()
-            ))),
+            None => {
+                let error = format!(
+                    "No ids configured for resource [{}].",
+                    Self::get_psql_table()
+                );
+                error!("(try_get_uuids) {}", error);
+                Err(ArrErr::Error(error))
+            }
         }
     }
     /// Returns [`ObjectType<T>`]'s `id_field` value as [`Option<String>`] if found
@@ -317,7 +320,7 @@ impl TryFrom<PsqlJsonValue> for Vec<u32> {
                     "Could not convert [PsqlJsonValue] to [Vec<u32>]: {:?}",
                     json_value
                 );
-                error!("{}", error);
+                error!("(try_from) {}", error);
                 Err(ArrErr::Error(error))
             }
         }

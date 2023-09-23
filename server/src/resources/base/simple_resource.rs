@@ -50,7 +50,7 @@ where
             },
             Err(_) => {
                 error!(
-                    "Could not set id for Resource Object [{}]",
+                    "(set_id) Could not set id for Resource Object [{}].",
                     Self::get_psql_table()
                 );
             }
@@ -65,9 +65,8 @@ where
         match self.get_id() {
             Some(id) => Ok(id),
             None => {
-                let error =
-                    "No id provided for GenericResource when calling [try_get_id]".to_string();
-                error!("{}", error);
+                let error = "No id provided for GenericResource.".to_string();
+                error!("(try_get_id) {}", error);
                 Err(ArrErr::Error(error))
             }
         }
@@ -116,7 +115,7 @@ where
             Err(e) => {
                 // Panic here, we should -always- have an id_field configured for our simple resources.
                 // If we hit this scenario, we should fix our code, so we need to let this know with a hard crash.
-                panic!("Can't convert Id into ResourceObject<T>: {e}")
+                panic!("(from) Can't convert Id into ResourceObject<T>: {e}")
             }
         };
 
@@ -158,7 +157,7 @@ macro_rules! build_grpc_simple_resource_impl {
             type Error = ArrErr;
 
             fn try_from(rows: Vec<Row>) -> Result<Self, ArrErr> {
-                debug!("Converting Vec<Row> to List: {:?}", rows);
+                debug!("(try_from) Converting Vec<Row> to List: {:?}", rows);
                 let mut res: Vec<Object> = Vec::with_capacity(rows.len());
 
                 for row in rows.into_iter() {
@@ -186,7 +185,7 @@ macro_rules! build_generic_resource_impl_from {
                     Err(e) => {
                         // Panic here, we should -always- have an id_field configured for our simple resources.
                         // If we hit this scenario, we should fix our code, so we need to let this know with a hard crash.
-                        panic!("Can't convert Object into ResourceObject<Data>: {e}")
+                        panic!("(from) Can't convert Object into ResourceObject<Data>: {e}")
                     }
                 };
                 Self {
@@ -206,7 +205,7 @@ macro_rules! build_generic_resource_impl_from {
                     },
                     Err(e) => {
                         panic!(
-                            "Can't convert ResourceObject<Data> into {} without an 'id': {e}",
+                            "(from) Can't convert ResourceObject<Data> into {} without an 'id': {e}",
                             stringify!(Object)
                         )
                     }
@@ -220,7 +219,7 @@ macro_rules! build_generic_resource_impl_from {
                     Err(e) => {
                         // Panic here, we should -always- have an id_field configured for our simple resources.
                         // If we hit this scenario, we should fix our code, so we need to let this know with a hard crash.
-                        panic!("Can't convert UpdateObject into ResourceObject<Data>: {e}")
+                        panic!("(from) Can't convert UpdateObject into ResourceObject<Data>: {e}")
                     }
                 };
                 Self {

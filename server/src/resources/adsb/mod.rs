@@ -69,7 +69,7 @@ impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("Converting Row to adsb::Data: {:?}", row);
+        debug!("(try_from) Converting Row to adsb::Data: {:?}", row);
 
         let network_timestamp: Option<prost_wkt_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("network_timestamp")

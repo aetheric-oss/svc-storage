@@ -197,7 +197,7 @@ impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("Converting Row to flight_plan::Data: {:?}", row);
+        debug!("(try_from) Converting Row to flight_plan::Data: {:?}", row);
         let pilot_id: String = row.get::<&str, Uuid>("pilot_id").to_string();
         let vehicle_id: String = row.get::<&str, Uuid>("vehicle_id").to_string();
         let path = row.get::<&str, postgis::ewkb::LineString>("path");

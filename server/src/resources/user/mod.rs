@@ -85,7 +85,7 @@ impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, Self::Error> {
-        debug!("Converting Row to user::Data: {:?}", row);
+        debug!("(try_from) Converting Row to user::Data: {:?}", row);
         Ok(Data {
             display_name: row.get("display_name"),
             auth_method: AuthMethod::from_str_name(row.get("auth_method"))
