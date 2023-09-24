@@ -1,3 +1,91 @@
+## [Release 0.11.0](https://github.com/Arrow-air/svc-storage/releases/tag/v0.11.0)
+
+### ✨ Features
+
+- add feature flags for clients ([`3f7493b`](https://github.com/Arrow-air/svc-storage/commit/3f7493b401f3e66688e0ff258ab112f9973d5ecd))
+- add parcel resource ([`f5ce584`](https://github.com/Arrow-air/svc-storage/commit/f5ce584884a27561e8b685d44e795cade1f935eb))
+- add parcel implementation ([`4bfbabe`](https://github.com/Arrow-air/svc-storage/commit/4bfbabe29ec28964d91a14f889bf3ad3c02360a2))
+- add owner_id to parcel ([`4d195a5`](https://github.com/Arrow-air/svc-storage/commit/4d195a5de8bbca59e598f3f5d745c5df9c05b7fb))
+- add parcel to postgres init ([`4c08f86`](https://github.com/Arrow-air/svc-storage/commit/4c08f868a470151ce8c46f2829039240bfa19cfa))
+- add scanner type ([`21543b1`](https://github.com/Arrow-air/svc-storage/commit/21543b1126a9fa2005a86d9ce5dbc873012c9257))
+- implement geometry types ([`8c245bf`](https://github.com/Arrow-air/svc-storage/commit/8c245bf488a9415cf844dcc88f45e98f36a0b2c6))
+- add scanner type to grpc client ([`affc6bb`](https://github.com/Arrow-air/svc-storage/commit/affc6bb5e6f15fb0532dcffa30da10411529bfcd))
+- add parcel_scan table ([`65805f9`](https://github.com/Arrow-air/svc-storage/commit/65805f9b0b0bdbfced26871bfd17ac97e30c814a))
+-  **user:** add new user resource ([`0dd8d50`](https://github.com/Arrow-air/svc-storage/commit/0dd8d50f8f119c2a8229c39d312abeeba0d5bd35))
+-  **group:** add new group resource ([`ffa0186`](https://github.com/Arrow-air/svc-storage/commit/ffa0186a9fd9b1e832b12823a629f06887547b02))
+-  **user_group:** add new user_group resource ([`2fe31d5`](https://github.com/Arrow-air/svc-storage/commit/2fe31d58bcbca9373919246d959a9f4783a31f24))
+-  **group_user:** add new group_user resource ([`52fd0b2`](https://github.com/Arrow-air/svc-storage/commit/52fd0b26f1aba4ed88f3445853c68ab5fa239488))
+-  **grpc-client:** use serializable Timestamp ([`37d509b`](https://github.com/Arrow-air/svc-storage/commit/37d509bd21b8395fbd16c226c5120d7f3622e6f8))
+- add path field to flight plan ([`74be4ee`](https://github.com/Arrow-air/svc-storage/commit/74be4ee82ac9a7cba7b0d465cbcc381aabd9611f))
+- add option to mark fields as read_only ([`07daa18`](https://github.com/Arrow-air/svc-storage/commit/07daa18e8d2830078d81e2cea2743fb5a8df2a56))
+-  **vertiport:** expose created_at and updated_at as read_only ([`682b45d`](https://github.com/Arrow-air/svc-storage/commit/682b45dfb20d8e078a1dc2dace5942428447a28a))
+-  **vehicle:** expose created_at and updated_at as read_only ([`68a7b6b`](https://github.com/Arrow-air/svc-storage/commit/68a7b6bc0f7b7f7f3376422bf507ef5f1cb971f4))
+-  **vertipad:** expose created_at and updated_at as read_only ([`84949fd`](https://github.com/Arrow-air/svc-storage/commit/84949fd4cb39ed82086c99f62d23eb54b8b22b07))
+- add search mock function for stub features ([`99bbe1c`](https://github.com/Arrow-air/svc-storage/commit/99bbe1c1ca05275bdb3d9e0847403d78122ca5ac))
+- add support for linked table simple service ([`2e98aac`](https://github.com/Arrow-air/svc-storage/commit/2e98aac3947a6b7643ff5d53bb4e1d10b1fab413))
+- add flight plan parcel link table ([`4ec0751`](https://github.com/Arrow-air/svc-storage/commit/4ec0751309837bf794615eb3f488e0ff4d097bb7))
+- add created_at field to parcel_scan Data ([`9107b98`](https://github.com/Arrow-air/svc-storage/commit/9107b98b74c6c3d011391ccbdc0609ec1e747c4d))
+- add is_ready call for all resources ([`cfac135`](https://github.com/Arrow-air/svc-storage/commit/cfac1350b822912fa9c7c90fe99601fe468e6969))
+
+### 🐛 Fixes
+
+- flight_plan mock data including tests ([`c546a3f`](https://github.com/Arrow-air/svc-storage/commit/c546a3f3b73e450596eeb1369e896d1674ab75d3))
+- correct spellings and remove owner_id ([`040a7d8`](https://github.com/Arrow-air/svc-storage/commit/040a7d8240c82d98fe0c74686a6d562d098e8e63))
+-  **dev:** log output and example target fixes ([`ac86ca9`](https://github.com/Arrow-air/svc-storage/commit/ac86ca94cfc59433a98164f8a12d920caac28985))
+-  **cargo:** restructure dependencies and fix feature tests ([`b93c3e3`](https://github.com/Arrow-air/svc-storage/commit/b93c3e38c8039462da69cb16e9be413b6a77da82))
+- deleted_at fields should not be mandatory ([`5653644`](https://github.com/Arrow-air/svc-storage/commit/5653644a0275c6814b897a9aeee2931dc9e0d2ff))
+-  **flight_plan:** i64 field types should be u32 ([`df00526`](https://github.com/Arrow-air/svc-storage/commit/df00526c2950903b4c582c4f50ca98ca2c40c764))
+- revert rust.mk to reach parity ([`bc841fd`](https://github.com/Arrow-air/svc-storage/commit/bc841fd2cde8162e64eb95462e1a0c0b6c0fa8c4))
+- address pr comments ([`233fffc`](https://github.com/Arrow-air/svc-storage/commit/233fffc54eb3ac2d92aed3adb031b9957c83623f))
+-  **cargo:** correcting features and clearify usage ([`cc58cfb`](https://github.com/Arrow-air/svc-storage/commit/cc58cfb604b1788e0dc2670f2bdb7e4d48197528))
+-  **geo_types:** coords x,y correction to lat,long ([`9afa6e3`](https://github.com/Arrow-air/svc-storage/commit/9afa6e3c20cab99700e29e1d82b4278d73ab265d))
+-  **client-grpc:** add empty Clients struct when no resource feature enabled ([`c9e771f`](https://github.com/Arrow-air/svc-storage/commit/c9e771f767437606a64c3ee0e35e83b39f423f92))
+- use quoted columns for all queries ([`9295e26`](https://github.com/Arrow-air/svc-storage/commit/9295e2662e644f8356142a2b017c68f4060a0dcf))
+-  **server:** postgres module improvements ([`0d613fb`](https://github.com/Arrow-air/svc-storage/commit/0d613fb06389775289d43b208d6b9df370b71d44))
+-  **client-grpc:** use utoipa namespaced names for simple resource types ([`f02b869`](https://github.com/Arrow-air/svc-storage/commit/f02b869ecb3d1d718099be709af7830040a31694))
+-  **grcp-geo-types:** add support for use with utoipa ([`f57c369`](https://github.com/Arrow-air/svc-storage/commit/f57c369b4527ff690f83003a83d656b77bc3d6bc))
+- remove new_internal from parcel_scan created_at ([`b3d61c0`](https://github.com/Arrow-air/svc-storage/commit/b3d61c0f92757a7587a46080f5a0ff534733b119))
+-  **parcel:** parcel related bug fixes ([`b91e6d9`](https://github.com/Arrow-air/svc-storage/commit/b91e6d910b020076df0e79b59fbc23b61c5927cc))
+
+### 🔥 Refactorings
+
+-  **client-grpc:** use lib-common traits and add mock features ([`f793c96`](https://github.com/Arrow-air/svc-storage/commit/f793c966a6dc455cd850621457875b924e71bc9b))
+-  **server:** use lib-common traits and add mock features ([`52f17e8`](https://github.com/Arrow-air/svc-storage/commit/52f17e806a2ec1b77e9b2f7728f11e70927b2710))
+
+### 🛠 Maintenance
+
+- terraform provisioned file changes ([`1b3c3d0`](https://github.com/Arrow-air/svc-storage/commit/1b3c3d025a3756a56851975d986b38609c4fdd9c))
+- remove obsolete function get_all_with_filter ([`ef26f77`](https://github.com/Arrow-air/svc-storage/commit/ef26f77331c1eade7eeca04ec924e25ef9d47b23))
+- terraform provisioned file changes ([`03f98cc`](https://github.com/Arrow-air/svc-storage/commit/03f98cc4f52f40b086df72dec0253aeddfb10d8e))
+- remove duplicate functionality enum from_str ([`75dee10`](https://github.com/Arrow-air/svc-storage/commit/75dee10b3bb7e4a89112471a3b56aa43a5b9acb9))
+- expose geo_types to dependend services ([`7cdcecb`](https://github.com/Arrow-air/svc-storage/commit/7cdcecb67b257ff00705a3d0d9abba3b2cc5fca7))
+- mock data should retain insert order ([`5168e92`](https://github.com/Arrow-air/svc-storage/commit/5168e92a02e03c7ff52178bc73f0921e807232a7))
+- update lib common release tag ([`1015faf`](https://github.com/Arrow-air/svc-storage/commit/1015faf21787656f7397f6833aff91b2e848974d))
+- update TODOs for new release ([`f94fa71`](https://github.com/Arrow-air/svc-storage/commit/f94fa71dc8d81be292936b12c72a66eb1bb7a3de))
+- remove unneeded dependency ([`cebc20f`](https://github.com/Arrow-air/svc-storage/commit/cebc20f68115badef9c4f1ebd8b240f29ddf78a4))
+- handle unwrap() calls in stub functions ([`82700b4`](https://github.com/Arrow-air/svc-storage/commit/82700b4af82b98c51b0688ae6e4187c64e5336a3))
+- fix debug prefixes and punctuations ([`8be2f20`](https://github.com/Arrow-air/svc-storage/commit/8be2f20fc1a796c0b04609d7653df112874f901c))
+
+### ✅ Tests
+
+- adds loads of unit tests ([`1165c65`](https://github.com/Arrow-air/svc-storage/commit/1165c657d3c872e78ea186c0c2472b03589800f5))
+-  **vertiport:** client-grpc integration test scenario ([`ec52171`](https://github.com/Arrow-air/svc-storage/commit/ec521712d175f0ef4ca7388e4e7e04100e502c7f))
+-  **vertipad:** client-grpc integration test scenario ([`1cfa6db`](https://github.com/Arrow-air/svc-storage/commit/1cfa6dbcd72bcac6c9bb893214ece8cf0cffee2d))
+-  **vehicle:** client-grpc integration test scenario ([`6f054e6`](https://github.com/Arrow-air/svc-storage/commit/6f054e6faa039b118aca81cbb7ff03059918e7d8))
+-  **adsb:** client-grpc integration test scenario ([`609a36a`](https://github.com/Arrow-air/svc-storage/commit/609a36a068dcf70c85e1401523f57806de631fb3))
+-  **client-grpc:** fix integration tests ([`1736fd7`](https://github.com/Arrow-air/svc-storage/commit/1736fd77d50b4d5177b7f77bb72486caeadf4fb2))
+- add logging capabilities ([`9fccc39`](https://github.com/Arrow-air/svc-storage/commit/9fccc39926d719944222cddfdb4de2e68efd46b3))
+
+### 📚 Documentation
+
+-  **readme:** update README files badges ([`a5adc00`](https://github.com/Arrow-air/svc-storage/commit/a5adc00c7bd9fc1620101fd8620f8e9fd17128e8))
+- update doc banners ([`38576d4`](https://github.com/Arrow-air/svc-storage/commit/38576d48a86d9ffe762a5649cc5c96894a436268))
+-  **readme:** add new resource creation guide ([`e95c6d5`](https://github.com/Arrow-air/svc-storage/commit/e95c6d5b92e86f2c8c7967b23907a3cb6110183a))
+-  **sdd:** update datamodel with latest resources ([`7efba42`](https://github.com/Arrow-air/svc-storage/commit/7efba429e254906a99a7526c7f7b3f48f7692836))
+- fix headings and add icons ([`9c3453d`](https://github.com/Arrow-air/svc-storage/commit/9c3453d2d1086e150c2ae23b09cddad59ab59f38))
+- fix rust-doc proto files ([`a2d6e42`](https://github.com/Arrow-air/svc-storage/commit/a2d6e42cb3fc3769a350db36031fc6adc8e8eba6))
+-  **rust-doc:** provide rust-docs for Client traits ([`d98bf61`](https://github.com/Arrow-air/svc-storage/commit/d98bf61398e7f02360b1dfecc86a0e6fdae9e719))
+
 ## [Release 0.10.0](https://github.com/Arrow-air/svc-storage/releases/tag/v0.10.0)
 
 ### ✨ Features
