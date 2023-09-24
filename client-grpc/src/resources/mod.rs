@@ -3,6 +3,8 @@
 #![allow(unused_qualifications)]
 include!("../../out/grpc/client/grpc.rs");
 
+use crate::{Deserialize, IntoParams, Serialize, ToSchema};
+
 pub mod grpc_geo_types;
 
 use lib_common::log_macros;
@@ -11,8 +13,6 @@ log_macros!("grpc", "app::client::storage");
 cfg_if::cfg_if! {
     if #[cfg(any(feature = "all_resources", feature = "any_resource"))] {
         use tonic::transport::Channel;
-
-        use grpc_geo_types::*;
 
         use super::*;
         #[cfg(not(feature = "stub_client"))]
@@ -24,7 +24,6 @@ cfg_if::cfg_if! {
 
         #[cfg(feature = "stub_client")]
         use std::str::FromStr;
-
 
         cfg_if::cfg_if! {
             if #[cfg(feature = "adsb")] {
@@ -343,7 +342,7 @@ cfg_if::cfg_if! {
         }
     } else {
         #[derive(Debug, Clone)]
-        pub struct Clients {};
+        pub struct Clients {}
 
         impl Clients {
             /// Provides a way to get and connect all clients at once.
