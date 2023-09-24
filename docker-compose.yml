@@ -1,4 +1,7 @@
 ---
+## DO NOT EDIT!
+## This file was provisioned by Terraform
+## File origin: https://github.com/Arrow-air/tf-github/tree/main/src/templates/rust-svc/docker-compose.yml
 version: '3.6'
 volumes:
   cockroachdb:
@@ -55,31 +58,29 @@ services:
     ports:
       - ${HOST_PORT_REST}:${DOCKER_PORT_REST}
       - ${HOST_PORT_GRPC}:${DOCKER_PORT_GRPC}
-    volumes:
-      - type: bind
-        source: log4rs.yaml
-        target: /log4rs.yaml
-      - type: volume
-        source: cockroachdb-ssl
-        target: /cockroach/ssl
-        read_only: true
     healthcheck:
       test: ["CMD", "grpc_health_probe", "-addr", "localhost:${DOCKER_PORT_GRPC}"]
       interval: 2s
       timeout: 1s
       retries: 3
-    command: rebuild_psql init_psql
+      start_period: 30s
+    volumes:
+      - type: bind
+        source: log4rs.yaml
+        target: ${LOG_CONFIG}
+      - type: bind
+        source: logs/
+        target: /logs/
+      - type: bind
+        source: .env
+        target: /.env
+      - type: volume
+        source: cockroachdb-ssl
+        target: /cockroach/ssl
+        read_only: true
+    command: --rebuild-psql=true  --init-psql=true
     environment:
       - RUST_BACKTRACE
-      - PG__USER
-      - PG__DBNAME
-      - PG__HOST
-      - PG__PORT
-      - PG__SSLMODE
-      - DB_CA_CERT
-      - DB_CLIENT_CERT
-      - DB_CLIENT_KEY
-      - DOCKER_PORT_GRPC
     depends_on:
       cockroachdb:
         condition: service_healthy
@@ -105,4 +106,5 @@ services:
       - SERVER_PORT_GRPC
       - SERVER_PORT_REST
       - EXAMPLE_TARGET
+      - RUST_BACKTRACE
     command: cargo run --manifest-path "${CARGO_MANIFEST_PATH}" --example "${EXAMPLE_TARGET}"

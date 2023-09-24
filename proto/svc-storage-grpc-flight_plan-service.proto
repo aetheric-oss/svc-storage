@@ -7,10 +7,6 @@ import "svc-storage-grpc.proto";
 
 // Flight Plan gRPC service
 service RpcService {
-    // Search flight_plans using a simple filter
-    // This function will be deprecated soon, please use `search` instead
-    rpc get_all_with_filter(grpc.SearchFilter) returns (List);
-
     // Returns a [`tonic::Response`] containing an flight_plan [`Object`](super::Object)
     // Takes an [`id`](super::super::Id) to find the right record to return.
     //
@@ -20,7 +16,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{Id, FlightPlanClient};
+    // use svc_storage_client_grpc::{Id, FlightPlanClient, simple_service::Client};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut client = FlightPlanClient::connect("http://localhost:50051").await?;
@@ -54,7 +50,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{FlightPlanClient, Id};
+    // use svc_storage_client_grpc::{Id, FlightPlanClient, simple_service::Client, GeoLineString, Timestamp};
     // use svc_storage_client_grpc::flight_plan::{Data, FlightStatus, FlightPriority};
     // use std::time::SystemTime;
     //
@@ -71,20 +67,20 @@ service RpcService {
     //         flight_status: FlightStatus::Draft as i32,
     //         vehicle_id,
     //         pilot_id,
-    //         cargo_weight_grams: vec![20],
-    //         flight_distance_meters: 6000,
+    //         path: Some(GeoLineString { points: vec![] }),
     //         weather_conditions: Some("Cloudy, low wind".to_owned()),
     //         departure_vertipad_id,
     //         departure_vertiport_id: None,
     //         destination_vertipad_id,
     //         destination_vertiport_id: None,
-    //         scheduled_departure: Some(prost_types::Timestamp::from(SystemTime::now())),
-    //         scheduled_arrival: Some(prost_types::Timestamp::from(SystemTime::now())),
+    //         scheduled_departure: Some(Timestamp::from(SystemTime::now())),
+    //         scheduled_arrival: Some(Timestamp::from(SystemTime::now())),
     //         actual_departure: None,
     //         actual_arrival: None,
     //         flight_release_approval: None,
-    //         flight_plan_submitted: Some(prost_types::Timestamp::from(SystemTime::now())),
+    //         flight_plan_submitted: Some(Timestamp::from(SystemTime::now())),
     //         approved_by: None,
+    //         carrier_ack: None,
     //         flight_priority: FlightPriority::Low as i32,
     //     }))
     //     .await
@@ -115,7 +111,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{FieldMask, FlightPlanClient, Id};
+    // use svc_storage_client_grpc::{FieldMask, FlightPlanClient, simple_service::Client, Id};
     // use svc_storage_client_grpc::flight_plan::{Data, FlightStatus, UpdateObject};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
@@ -143,7 +139,7 @@ service RpcService {
     //             ..flight_plan
     //         }),
     //         mask: Some(FieldMask {
-    //             paths: vec!["data.flight_status".to_owned()],
+    //             paths: vec!["flight_status".to_owned()],
     //         }),
     //     })).await
     //     {
@@ -166,7 +162,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{Id, FlightPlanClient};
+    // use svc_storage_client_grpc::{Id, FlightPlanClient, simple_service::Client};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut client = FlightPlanClient::connect("http://localhost:50051").await?;
@@ -195,7 +191,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{AdvancedSearchFilter, FlightPlanClient};
+    // use svc_storage_client_grpc::{AdvancedSearchFilter, FlightPlanClient, simple_service::Client};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut client = FlightPlanClient::connect("http://localhost:50051").await?;
@@ -217,4 +213,7 @@ service RpcService {
     // }
     // ```
     rpc search(grpc.AdvancedSearchFilter) returns (List);
+
+    // Simple ready check to allow callers to validate the client connection status.
+    rpc is_ready (ReadyRequest) returns (ReadyResponse);
 }

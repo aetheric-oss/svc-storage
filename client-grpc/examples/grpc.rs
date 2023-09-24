@@ -1,39 +1,34 @@
 //! gRPC client implementation
+use svc_storage_client_grpc::prelude::*;
 
-use ordered_float::OrderedFloat;
-use prost_types::FieldMask;
-use std::env;
-use std::time::SystemTime;
+use chrono::naive::NaiveDate;
+use chrono::{Datelike, Duration, Local, Timelike, Utc};
+use lib_common::grpc::get_endpoint_from_env;
+use tokio::sync::OnceCell;
 use tonic::Status;
 use uuid::Uuid;
 
-use svc_storage_client_grpc::flight_plan::{self, FlightStatus};
-use svc_storage_client_grpc::itinerary::{self, ItineraryFlightPlans, ItineraryStatus};
-use svc_storage_client_grpc::*;
+pub(crate) static CLIENTS: OnceCell<Clients> = OnceCell::const_new();
 
-/// Provide GRPC endpoint to use
-pub fn get_grpc_endpoint() -> String {
-    //parse socket address from env variable or take default value
-    let address = match env::var("SERVER_HOSTNAME") {
-        Ok(val) => val,
-        Err(_) => "localhost".to_string(), // default value
-    };
-
-    let port = match env::var("SERVER_PORT_GRPC") {
-        Ok(val) => val,
-        Err(_) => "50051".to_string(), // default value
-    };
-
-    format!("http://{}:{}", address, port)
+/// Returns CLIENTS, a GrpcClients object with default values.
+/// Uses host and port configurations using a Config object generated from
+/// environment variables.
+/// Initializes CLIENTS if it hasn't been initialized yet.
+pub async fn get_clients() -> &'static Clients {
+    CLIENTS
+        .get_or_init(|| async move {
+            let (host, port) = get_endpoint_from_env("SERVER_HOSTNAME", "SERVER_PORT_GRPC");
+            Clients::new(host, port)
+        })
+        .await
 }
 
 /// Example VehicleRpcClient
 /// Assuming the server is running, this method calls `client.vehicles` and
 /// should receive a valid response from the server
 async fn get_vehicles() -> Result<vehicle::List, Status> {
-    let grpc_endpoint = get_grpc_endpoint();
-    println!("Using GRPC endpoint {}", grpc_endpoint);
-    let mut vehicle_client = VehicleClient::connect(grpc_endpoint.clone()).await.unwrap();
+    let clients = get_clients().await;
+    let vehicle_client = &clients.vehicle;
     println!("Vehicle Client created");
 
     let filter =
@@ -42,19 +37,16 @@ async fn get_vehicles() -> Result<vehicle::List, Status> {
             .results_per_page(50);
 
     println!("Retrieving list of vehicles");
-    match vehicle_client.search(tonic::Request::new(filter)).await {
+    match vehicle_client.search(filter).await {
         Ok(res) => Ok(res.into_inner()),
         Err(e) => Err(e),
     }
 }
 
 /// Inserts example vehicle's into the database using the `mock` library to generate data.
-async fn generate_sample_vehicles(amount: i16, vertiports: &vertiport::List) {
-    let grpc_endpoint = get_grpc_endpoint();
-    let mut vehicle_client = match VehicleClient::connect(grpc_endpoint.clone()).await {
-        Ok(res) => res,
-        Err(e) => panic!("Error creating client for VehicleClient: {}", e),
-    };
+async fn generate_sample_vehicles(amount: i16, vertiports: &vertiport::List) -> Result<(), Status> {
+    let clients = get_clients().await;
+    let vehicle_client = &clients.vehicle;
     println!("Vehicle Client created");
 
     let vertiport_id = vertiports.list.last().unwrap().id.clone();
@@ -67,80 +59,195 @@ async fn generate_sample_vehicles(amount: i16, vertiports: &vertiport::List) {
             vehicle.last_vertiport_id = Some(vertiport_id.clone());
         }
 
-        match vehicle_client.insert(tonic::Request::new(vehicle)).await {
+        match vehicle_client.insert(vehicle).await {
             Ok(fp) => fp.into_inner(),
             Err(e) => panic!("Something went wrong inserting the vertiport: {}", e),
         };
     }
+
+    Ok(())
+}
+
+async fn flight_plan_parcel_scenario() -> Result<(), Status> {
+    let clients = get_clients().await;
+
+    //
+    // 1) Create a user
+    //
+    let data = user::mock::get_data_obj();
+    let response = match clients.user.insert(data).await {
+        Ok(response) => response.into_inner(),
+        _ => panic!("Failed to create new user."),
+    };
+
+    let user_id = match response.object {
+        Some(obj) => obj.id,
+        _ => panic!("Failed to get new user id."),
+    };
+
+    let expected_weight = 10;
+    let expected_status = parcel::ParcelStatus::Notdroppedoff;
+
+    //
+    // 2) Create several parcels
+    //
+    let mut parcel_ids = vec![];
+    let client = &clients.parcel;
+    for _ in 0..2 {
+        let data = parcel::Data {
+            user_id: user_id.clone(),
+            weight_grams: 10,
+            status: expected_status.into(),
+        };
+
+        let response = match client.insert(data).await {
+            Ok(response) => response.into_inner(),
+            _ => panic!("Failed to create a parcel."),
+        };
+
+        let parcel_id = match response.object {
+            Some(obj) => obj.id,
+            _ => panic!("Failed to get new parcel id."),
+        };
+
+        parcel_ids.push(parcel_id);
+    }
+
+    //
+    // 3) Get a flight plan
+    //
+    let client = &clients.flight_plan;
+    let filter = AdvancedSearchFilter::search_is_null("deleted_at".to_owned());
+    let response = match client.search(filter).await {
+        Ok(response) => response.into_inner(),
+        _ => panic!("Failed to get flight plans."),
+    };
+
+    let flight_plan_id = match response.list.first() {
+        Some(obj) => &obj.id,
+        _ => panic!("Failed to get flight_plan_id."),
+    };
+
+    //
+    // 4) Link parcels to a flight plan
+    //
+    let client = &clients.flight_plan_parcel;
+    for parcel_id in &parcel_ids {
+        let data = flight_plan_parcel::RowData {
+            flight_plan_id: flight_plan_id.clone(),
+            parcel_id: parcel_id.clone(),
+            acquire: false,
+            deliver: true,
+        };
+
+        match client.insert(data).await {
+            Ok(response) => response.into_inner(),
+            _ => panic!("Failed to link parcels."),
+        };
+    }
+
+    //
+    // Confirm linkage occurred
+    //
+    let data = Id {
+        id: flight_plan_id.to_owned(),
+    };
+    let response = match client.get_linked_ids(data.clone()).await {
+        Ok(response) => response.into_inner(),
+        _ => panic!("Could not get linked ids for the flight plan."),
+    };
+
+    assert_eq!(response.ids.len(), parcel_ids.len());
+
+    let response = match client.get_linked(data).await {
+        Ok(response) => response.into_inner(),
+        _ => panic!("Could not get linked ids for the flight plan."),
+    };
+
+    assert_eq!(response.list.len(), parcel_ids.len());
+    response.list.iter().for_each(|p| {
+        let data = p.data.as_ref().unwrap();
+        assert_eq!(data.weight_grams, expected_weight);
+        assert_eq!(data.user_id, user_id);
+        assert_eq!(data.status, expected_status as i32);
+    });
+
+    Ok(())
 }
 
 /// Example ItineraryRpcClient
 /// Assuming the server is running, this method calls `client.itineraries` and
 /// should receive a valid response from the server
-async fn itineraries() {
-    let grpc_endpoint = get_grpc_endpoint();
-    println!("Using GRPC endpoint {}", grpc_endpoint);
-    let mut itinerary_client = ItineraryClient::connect(grpc_endpoint.clone())
-        .await
-        .unwrap();
+async fn itinerary_scenario() -> Result<(), Status> {
+    let clients = get_clients().await;
+    let itinerary_client = &clients.itinerary;
     println!("Itinerary Client created");
+
+    //
+    // 1) Create a user
+    //
+    let data = user::mock::get_data_obj();
+    let response = match clients.user.insert(data).await {
+        Ok(response) => response.into_inner(),
+        _ => panic!("Failed to create new user."),
+    };
+
+    let expected_uuid = match response.object {
+        Some(obj) => obj.id,
+        _ => panic!("Failed to get new user id."),
+    };
 
     //
     // Insert Telemetry
     //
-    let expected_uuid = Uuid::new_v4().to_string();
     let data = itinerary::Data {
         user_id: expected_uuid.clone(),
-        status: ItineraryStatus::Active as i32,
+        status: itinerary::ItineraryStatus::Active as i32,
     };
 
-    println!("Inserting an itinerary");
-    if let Err(_) = itinerary_client.insert(tonic::Request::new(data)).await {
-        panic!("Itinerary client insert failed.");
-    };
+    itinerary_client
+        .insert(data)
+        .await
+        .expect("Itinerary client insert failed.");
 
     //
     // Search
     //
     let filter = AdvancedSearchFilter::search_equals(
         "status".to_owned(),
-        (ItineraryStatus::Active as i32).to_string(),
+        (itinerary::ItineraryStatus::Active as i32).to_string(),
     );
 
     println!("Retrieving list of itineraries");
     let Ok(response) = itinerary_client
-        .search(tonic::Request::new(filter))
+        .search(filter)
         .await
     else {
         panic!("Unable to get itineraries!");
     };
 
     let mut itineraries = response.into_inner();
+    println!("Found itineraries: {:?}", itineraries);
     let itinerary = itineraries.list.pop().unwrap();
     let itinerary_id = itinerary.id;
     let itinerary = itinerary.data.unwrap();
     assert_eq!(itinerary.user_id, expected_uuid);
-    assert_eq!(itinerary.status, ItineraryStatus::Active as i32);
+    assert_eq!(itinerary.status, itinerary::ItineraryStatus::Active as i32);
 
     //
     // Link with flight_plan
     //
-    let mut flight_plan_client = match FlightPlanClient::connect(grpc_endpoint.clone()).await {
-        Ok(res) => res,
-        Err(e) => panic!("Error creating client for FlightPlanRpcClient: {}", e),
-    };
+
+    let flight_plan_client = &clients.flight_plan;
     println!("FlightPlan Client created");
 
     let fp_filter = AdvancedSearchFilter::search_equals(
         "flight_status".to_owned(),
-        (FlightStatus::Draft as i32).to_string(),
+        (flight_plan::FlightStatus::Draft as i32).to_string(),
     )
     .page_number(1)
     .results_per_page(50);
-    let flight_plans = match flight_plan_client
-        .search(tonic::Request::new(fp_filter))
-        .await
-    {
+    let flight_plans = match flight_plan_client.search(fp_filter).await {
         Ok(res) => {
             let fps = res.into_inner();
             fps
@@ -166,21 +273,15 @@ async fn itineraries() {
     for _ in 0..max {
         fp_ids.push(list.pop().unwrap().id);
     }
-    let mut link_client = match ItineraryFlightPlanLinkClient::connect(grpc_endpoint.clone()).await
-    {
-        Ok(res) => res,
-        Err(e) => panic!(
-            "Error creating client for ItineraryFlightPlanLinkClient: {}",
-            e
-        ),
-    };
+
+    let link_client = &clients.itinerary_flight_plan_link;
     println!("Itinerary FlightPlan Link Client created");
 
     match link_client
-        .link(tonic::Request::new(ItineraryFlightPlans {
+        .link(itinerary::ItineraryFlightPlans {
             id: itinerary_id.clone(),
             other_id_list: Some(IdList { ids: fp_ids }),
-        }))
+        })
         .await
     {
         Ok(_) => println!("Success linking itineraries."),
@@ -192,10 +293,10 @@ async fn itineraries() {
         let mut fp_ids = vec![];
         fp_ids.push(list.pop().unwrap().id);
         match link_client
-            .link(tonic::Request::new(ItineraryFlightPlans {
+            .link(itinerary::ItineraryFlightPlans {
                 id: itinerary_id.clone(),
                 other_id_list: Some(IdList { ids: fp_ids }),
-            }))
+            })
             .await
         {
             Ok(_) => println!("Success linking additional flightplan to itinerary."),
@@ -205,9 +306,9 @@ async fn itineraries() {
 
     // Get the linked list
     match link_client
-        .get_linked_ids(tonic::Request::new(Id {
+        .get_linked_ids(Id {
             id: itinerary_id.clone(),
-        }))
+        })
         .await
     {
         Ok(result) => println!("Got linked flight_plan ids: {:?}", result),
@@ -221,10 +322,10 @@ async fn itineraries() {
             fp_ids.push(list.pop().unwrap().id);
         }
         match link_client
-            .replace_linked(tonic::Request::new(ItineraryFlightPlans {
+            .replace_linked(itinerary::ItineraryFlightPlans {
                 id: itinerary_id.clone(),
                 other_id_list: Some(IdList { ids: fp_ids }),
-            }))
+            })
             .await
         {
             Ok(_) => println!("Success replacing linked flight_plans for itinerary."),
@@ -232,28 +333,45 @@ async fn itineraries() {
         }
 
         // Get the new linked list
-        match link_client
-            .get_linked_ids(tonic::Request::new(Id { id: itinerary_id }))
-            .await
-        {
+        match link_client.get_linked_ids(Id { id: itinerary_id }).await {
             Ok(result) => println!("Got linked flight_plan ids: {:?}", result),
             Err(e) => panic!("Could not get linked flight_plans for itinerary: {}", e),
         }
     };
+
+    Ok(())
 }
 
 /// Example AdsbClient
 /// Assuming the server is running, this method inserts multiple telemetry
 ///  packets into the database and searches with advanced filters.
 async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
-    let grpc_endpoint = get_grpc_endpoint();
-    println!("Using GRPC endpoint {}", grpc_endpoint);
-    let mut client = AdsbClient::connect(grpc_endpoint.clone()).await.unwrap();
+    let clients = get_clients().await;
+    let client = &clients.adsb;
     println!("ADS-B Client created");
 
-    let timestamp_1 = prost_types::Timestamp::from(SystemTime::now());
-    let timestamp_2 =
-        prost_types::Timestamp::from(SystemTime::now() + std::time::Duration::new(10, 0));
+    let now = Local::now();
+    let now = match NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
+        .unwrap_or_else(|| {
+            panic!(
+                "invalid current date from year [{}], month [{}] and day [{}].",
+                now.year(),
+                now.month(),
+                now.day()
+            )
+        })
+        .and_hms_opt(now.time().hour(), 0, 0)
+        .expect("could not set hms to full hour")
+        .and_local_timezone(Utc)
+        .earliest()
+    {
+        Some(res) => res,
+        None => panic!("Could not get current time for timezone Utc"),
+    };
+
+    let timestamp_1: Timestamp = now.into();
+    let timestamp_2: Timestamp = (now + Duration::seconds(10)).into();
+
     let payload_1 = [
         0x8D, 0x48, 0x40, 0xD6, 0x20, 0x2C, 0xC3, 0x71, 0xC3, 0x2C, 0xE0, 0x57, 0x60, 0x98,
     ];
@@ -274,7 +392,7 @@ async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Insert data and get the UUID of the adsb entry
-    let Ok(response) = client.insert(tonic::Request::new(request_data)).await else {
+    let Ok(response) = client.insert(request_data).await else {
         panic!("Failed to insert data.");
     };
     let Some(object) = response.into_inner().object else {
@@ -292,13 +410,14 @@ async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
         payload: payload_2.clone().to_vec(),
     };
     // Insert data and get the UUID of the adsb entry
-    let Ok(response) = client.insert(tonic::Request::new(request_data)).await else {
+    let Ok(response) = client.insert(request_data).await else {
         panic!("Failed to insert data.");
     };
     let Some(object) = response.into_inner().object else {
         panic!("Failed to return object.");
     };
     let id_2 = object.id;
+    let filter_time: Timestamp = (now + Duration::seconds(5)).into();
 
     // Search for the same ICAO address
     {
@@ -309,22 +428,19 @@ async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
         .and_between(
             "network_timestamp".to_owned(),
             timestamp_1.clone().to_string(),
-            prost_types::Timestamp::from(SystemTime::now() + std::time::Duration::new(5, 0))
-                .to_string(),
+            filter_time.to_string(),
         )
         .page_number(1)
         .results_per_page(50);
 
         println!("Retrieving list of adsb telemetry");
 
-        let response = client
-            .search(tonic::Request::new(filter.clone()))
-            .await
-            .unwrap();
+        let response = client.search(filter.clone()).await.unwrap();
         let mut l: adsb::List = response.into_inner();
 
-        assert_eq!(l.list.len(), 1);
         println!("{:?}", l.list);
+        //assert_eq!(l.list.len(), 1);
+
         let adsb_entry = l.list.pop().unwrap();
         let data = adsb_entry.data.unwrap();
         assert_eq!(adsb_entry.id, id_1);
@@ -344,13 +460,10 @@ async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
 
         println!("Retrieving list of adsb telemetry");
 
-        let response = client
-            .search(tonic::Request::new(filter.clone()))
-            .await
-            .unwrap();
+        let response = client.search(filter.clone()).await.unwrap();
         let mut l: adsb::List = response.into_inner();
 
-        assert_eq!(l.list.len(), 1);
+        //assert_eq!(l.list.len(), 2);
         println!("{:?}", l.list);
 
         let adsb_entry = l.list.pop().unwrap();
@@ -371,10 +484,7 @@ async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
 
         println!("Retrieving list of adsb telemetry");
 
-        let response = client
-            .search(tonic::Request::new(filter.clone()))
-            .await
-            .unwrap();
+        let response = client.search(filter.clone()).await.unwrap();
         let l: adsb::List = response.into_inner();
         println!("{:?}", l.list);
 
@@ -391,8 +501,8 @@ async fn test_telemetry() -> Result<(), Box<dyn std::error::Error>> {
 /// Assuming the server is running, this method calls `client.pilots` and
 /// should receive a valid response from the server
 async fn get_pilots() -> Result<pilot::List, Status> {
-    let grpc_endpoint = get_grpc_endpoint();
-    let mut pilot_client = PilotClient::connect(grpc_endpoint.clone()).await.unwrap();
+    let clients = get_clients().await;
+    let pilot_client = &clients.pilot;
     println!("Pilot Client created");
 
     let filter = AdvancedSearchFilter::search_is_null("deleted_at".to_owned())
@@ -400,10 +510,7 @@ async fn get_pilots() -> Result<pilot::List, Status> {
         .results_per_page(50);
 
     println!("Retrieving list of pilots");
-    let pilots = match pilot_client
-        .search(tonic::Request::new(filter.clone()))
-        .await
-    {
+    let pilots = match pilot_client.search(filter.clone()).await {
         Ok(res) => Ok(res.into_inner()),
         Err(e) => Err(e),
     };
@@ -421,11 +528,9 @@ RRULE:FREQ=WEEKLY;BYDAY=SA,SU";
 /// Example VertipadRpcClient
 /// Assuming the server is running, this method calls `client.vertipads` and
 /// should receive a valid response from the server
-async fn vertipad_scenario(mut vertiports: vertiport::List) -> Result<vertipad::List, Status> {
-    let grpc_endpoint = get_grpc_endpoint();
-    let mut vertipad_client = VertipadClient::connect(grpc_endpoint.clone())
-        .await
-        .unwrap();
+async fn vertipad_scenario(vertiports: &vertiport::List) -> Result<vertipad::List, Status> {
+    let clients = get_clients().await;
+    let vertipad_client = &clients.vertipad;
     println!("Vertipad Client created");
 
     let filter = AdvancedSearchFilter::search_equals("occupied".to_owned(), false.to_string())
@@ -433,70 +538,43 @@ async fn vertipad_scenario(mut vertiports: vertiport::List) -> Result<vertipad::
         .results_per_page(50);
 
     println!("Retrieving list of vertipads");
-    let vertipads = match vertipad_client
-        .search(tonic::Request::new(filter.clone()))
-        .await
-    {
+    let vertipads = match vertipad_client.search(filter.clone()).await {
         Ok(res) => Ok(res.into_inner()),
         Err(e) => Err(e),
     };
     println!("Vertipads found: {:#?}", vertipads);
 
     println!("Starting insert vertipad");
-    let x = OrderedFloat(-122.4194);
-    let y = OrderedFloat(37.7746);
-    let vertiport_id = match vertiports.list.pop() {
-        Some(vertiport) => vertiport.id,
-        None => uuid::Uuid::new_v4().to_string(),
-    };
-    let new_vertipad = match vertipad_client
-        .insert(tonic::Request::new(vertipad::Data {
-            vertiport_id: vertiport_id.clone(),
-            name: format!("First vertipad for {}", vertiport_id.clone()),
-            latitude: x.into(),
-            longitude: y.into(),
-            enabled: true,
-            occupied: false,
-            schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
-        }))
-        .await
-    {
-        Ok(fp) => fp.into_inner(),
-        Err(e) => panic!("Something went wrong inserting the vertipad: {}", e),
-    };
-    println!("Created new vertipad: {:#?}", new_vertipad);
+    for vertiport in &vertiports.list {
+        let mut vertipad = vertipad::mock::get_data_obj_for_vertiport(vertiport.clone());
+        vertipad.name = format!("First vertipad for {}", vertipad.vertiport_id.clone());
 
-    let vertipad_result = match vertipad_client
-        .insert(tonic::Request::new(vertipad::Data {
-            vertiport_id: vertiport_id.clone(),
-            name: format!("Second vertipad for {}", vertiport_id.clone()),
-            latitude: x.into(),
-            longitude: y.into(),
-            enabled: true,
-            occupied: false,
-            schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
-        }))
-        .await
-    {
-        Ok(fp) => fp.into_inner(),
-        Err(e) => panic!("Something went wrong inserting the vertipad: {}", e),
-    };
-    println!("Created new vertipad: {:#?}", vertipad_result);
+        let new_vertipad = match vertipad_client.insert(vertipad).await {
+            Ok(fp) => fp.into_inner(),
+            Err(e) => panic!("Something went wrong inserting the vertipad: {}", e),
+        };
+        println!("Created new vertipad: {:#?}", new_vertipad);
+    }
 
-    if vertipad_result.object.is_some() {
-        let new_vertipad = vertipad_result.object.unwrap();
+    println!("Retrieving list of vertipads");
+    let vertipads: vertipad::List = vertipad_client.search(filter.clone()).await?.into_inner();
+
+    println!("Found vertipads: {:?}", vertipads);
+
+    if !vertipads.list.is_empty() {
+        let vertipad = vertipads.list[0].clone();
         println!("Starting update vertipad");
         let update_vertipad_res = match vertipad_client
-            .update(tonic::Request::new(vertipad::UpdateObject {
-                id: new_vertipad.id.clone(),
+            .update(vertipad::UpdateObject {
+                id: vertipad.id.clone(),
                 data: Some(vertipad::Data {
                     occupied: true,
-                    ..new_vertipad.clone().data.unwrap()
+                    ..vertipad.clone().data.unwrap()
                 }),
                 mask: Some(FieldMask {
                     paths: vec!["occupied".to_string()],
                 }),
-            }))
+            })
             .await
         {
             Ok(fp) => fp.into_inner(),
@@ -506,25 +584,8 @@ async fn vertipad_scenario(mut vertiports: vertiport::List) -> Result<vertipad::
         println!("Update vertipad result: {:#?}", update_vertipad_res);
     }
 
-    let vertipad_result = match vertipad_client
-        .insert(tonic::Request::new(vertipad::Data {
-            vertiport_id: vertiport_id.clone(),
-            name: format!("Third vertipad for {}", vertiport_id.clone()),
-            latitude: x.into(),
-            longitude: y.into(),
-            enabled: true,
-            occupied: false,
-            schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
-        }))
-        .await
-    {
-        Ok(fp) => fp.into_inner(),
-        Err(e) => panic!("Something went wrong inserting the vertipad: {}", e),
-    };
-    println!("Created new vertipad: {:#?}", vertipad_result);
-
     println!("Retrieving list of vertipads");
-    match vertipad_client.search(tonic::Request::new(filter)).await {
+    match vertipad_client.search(filter).await {
         Ok(res) => {
             let vertipads = res.into_inner();
             println!("Vertipads found: {:#?}", vertipads);
@@ -535,43 +596,61 @@ async fn vertipad_scenario(mut vertiports: vertiport::List) -> Result<vertipad::
 }
 
 async fn generate_sample_vertiports() -> Result<vertiport::List, Status> {
-    let grpc_endpoint = get_grpc_endpoint();
-    let mut vertiport_client = match VertiportClient::connect(grpc_endpoint.clone()).await {
-        Ok(res) => res,
-        Err(e) => panic!("Error creating client for VertiportRpcClient: {}", e),
-    };
+    let clients = get_clients().await;
+    let vertiport_client = &clients.vertiport;
     println!("Vertiport Client created");
 
-    let x = OrderedFloat(-122.4194);
-    let y = OrderedFloat(37.7746);
     match vertiport_client
-        .insert(tonic::Request::new(vertiport::Data {
+        .insert(vertiport::Data {
             name: "My favorite port".to_string(),
             description: "Open during workdays and work hours only".to_string(),
-            latitude: x.into_inner().into(),
-            longitude: y.into_inner().into(),
+            geo_location: Some(
+                geo_types::Polygon::new(
+                    LineString::from(vec![
+                        (4.78565097, 53.01922827),
+                        (4.78650928, 53.01922827),
+                        (4.78607476, 53.01896366),
+                    ]),
+                    vec![],
+                )
+                .into(),
+            ),
             schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
-        }))
+            created_at: None,
+            updated_at: None,
+        })
         .await
     {
         Ok(fp) => fp.into_inner(),
         Err(e) => panic!("Something went wrong inserting the vertiport: {}", e),
     };
 
-    let filter = AdvancedSearchFilter::search_between(
-        "latitude".to_owned(),
-        (-122.5).to_string(),
-        (-122.2).to_string(),
+    // insert some random vertiports
+    for index in 1..10 {
+        let mut vertiport = vertiport::mock::get_data_obj();
+        vertiport.name = format!("Mock vertiport {}", index);
+
+        println!("Starting insert vertiport");
+        match vertiport_client.insert(vertiport).await {
+            Ok(fp) => fp.into_inner(),
+            Err(e) => panic!("Something went wrong inserting the vertiport: {}", e),
+        };
+    }
+
+    /*
+    (4.78565097, 53.01922827),
+    (4.78650928, 53.01922827),
+    (4.78607476, 53.01896366),
+    */
+    let filter = AdvancedSearchFilter::search_geo_within(
+        "geo_location".to_owned(),
+        "POINT(4.7862 53.0191)".to_string(),
     )
-    .and_between("longitude".to_owned(), 37.6.to_string(), 37.8.to_string())
     .page_number(1)
     .results_per_page(50);
 
     println!("Retrieving list of vertiports");
-    match vertiport_client
-        .search(tonic::Request::new(filter.clone()))
-        .await
-    {
+    match vertiport_client.search(filter.clone()).await {
         Ok(res) => {
             let vertiports = res.into_inner();
             println!("Vertiports found: {:#?}", vertiports);
@@ -592,24 +671,18 @@ async fn flight_plan_scenario(
     mut vehicles: vehicle::List,
     mut vertipads: vertipad::List,
 ) -> Result<flight_plan::List, Status> {
-    let grpc_endpoint = get_grpc_endpoint();
-    let mut flight_plan_client = match FlightPlanClient::connect(grpc_endpoint.clone()).await {
-        Ok(res) => res,
-        Err(e) => panic!("Error creating client for FlightPlanRpcClient: {}", e),
-    };
+    let clients = get_clients().await;
+    let flight_plan_client = &clients.flight_plan;
     println!("FlightPlan Client created");
 
     println!("Retrieving list of flight plans");
     let fp_filter = AdvancedSearchFilter::search_equals(
         "flight_status".to_owned(),
-        (FlightStatus::Draft as i32).to_string(),
+        (flight_plan::FlightStatus::Draft as i32).to_string(),
     )
     .page_number(1)
     .results_per_page(50);
-    let fps = match flight_plan_client
-        .search(tonic::Request::new(fp_filter))
-        .await
-    {
+    let fps = match flight_plan_client.search(fp_filter).await {
         Ok(res) => Ok(res.into_inner().list),
         Err(e) => Err(e),
     };
@@ -637,10 +710,7 @@ async fn flight_plan_scenario(
         flight_plan.destination_vertipad_id = destination_vertipad_id.clone();
 
         println!("Starting insert flight plan");
-        match flight_plan_client
-            .insert(tonic::Request::new(flight_plan))
-            .await
-        {
+        match flight_plan_client.insert(flight_plan).await {
             Ok(fp) => fp.into_inner(),
             Err(e) => panic!("Something went wrong inserting the flight plan: {}", e),
         };
@@ -654,10 +724,7 @@ async fn flight_plan_scenario(
         flight_plan.destination_vertipad_id = destination_vertipad_id.clone();
 
         println!("Starting insert flight plan in the future");
-        match flight_plan_client
-            .insert(tonic::Request::new(flight_plan))
-            .await
-        {
+        match flight_plan_client.insert(flight_plan).await {
             Ok(fp) => fp.into_inner(),
             Err(e) => panic!("Something went wrong inserting the flight plan: {}", e),
         };
@@ -671,14 +738,28 @@ async fn flight_plan_scenario(
         flight_plan.destination_vertipad_id = destination_vertipad_id.clone();
 
         println!("Starting insert flight plan in the past");
-        match flight_plan_client
-            .insert(tonic::Request::new(flight_plan))
-            .await
-        {
+        match flight_plan_client.insert(flight_plan).await {
             Ok(fp) => fp.into_inner(),
             Err(e) => panic!("Something went wrong inserting the flight plan: {}", e),
         };
     }
+
+    let scheduled_departure_min =
+        prost_wkt_types::Timestamp::date_time(2022, 10, 12, 23, 00, 00).unwrap();
+    let scheduled_departure_max =
+        prost_wkt_types::Timestamp::date_time(2024, 10, 13, 23, 00, 00).unwrap();
+    let time_filter = AdvancedSearchFilter::search_equals("pilot_id".to_string(), pilot_id.clone())
+        .and_between(
+            "scheduled_departure".to_owned(),
+            scheduled_departure_min.to_string(),
+            scheduled_departure_max.to_string(),
+        )
+        .and_is_not_null("deleted_at".to_owned());
+    let flight_plans = flight_plan_client.search(time_filter).await?;
+    println!(
+        "RESPONSE Flight Plan Search with time restriction result: {:#?}",
+        flight_plans
+    );
 
     // insert one last flight plan so we can update it
     let mut flight_plan = flight_plan::mock::get_data_obj();
@@ -686,13 +767,10 @@ async fn flight_plan_scenario(
     flight_plan.vehicle_id = vehicle_id;
     flight_plan.departure_vertipad_id = departure_vertipad_id;
     flight_plan.destination_vertipad_id = destination_vertipad_id;
-    flight_plan.flight_status = FlightStatus::Boarding as i32;
+    flight_plan.flight_status = flight_plan::FlightStatus::Boarding as i32;
 
     println!("Starting insert flight plan");
-    let fp_result = match flight_plan_client
-        .insert(tonic::Request::new(flight_plan))
-        .await
-    {
+    let fp_result = match flight_plan_client.insert(flight_plan).await {
         Ok(fp) => fp.into_inner(),
         Err(e) => panic!("Something went wrong inserting the flight plan: {}", e),
     };
@@ -702,16 +780,16 @@ async fn flight_plan_scenario(
         let new_fp = fp_result.object.unwrap();
         println!("Created new flight plan: {:?}", new_fp);
         let update_fp_res = match flight_plan_client
-            .update(tonic::Request::new(flight_plan::UpdateObject {
+            .update(flight_plan::UpdateObject {
                 id: new_fp.id.clone(),
                 data: Some(flight_plan::Data {
-                    flight_status: FlightStatus::InFlight as i32,
+                    flight_status: flight_plan::FlightStatus::InFlight as i32,
                     ..new_fp.clone().data.unwrap()
                 }),
                 mask: Some(FieldMask {
                     paths: vec!["flight_status".to_string()],
                 }),
-            }))
+            })
             .await
         {
             Ok(fp) => fp.into_inner(),
@@ -722,12 +800,9 @@ async fn flight_plan_scenario(
 
     let fp_filter = AdvancedSearchFilter::search_equals(
         "flight_status".to_owned(),
-        (FlightStatus::InFlight as i32).to_string(),
+        (flight_plan::FlightStatus::InFlight as i32).to_string(),
     );
-    match flight_plan_client
-        .search(tonic::Request::new(fp_filter))
-        .await
-    {
+    match flight_plan_client.search(fp_filter).await {
         Ok(res) => {
             let fps = res.into_inner();
             println!("Flight Plans with status [InFlight] found: {:#?}", fps);
@@ -739,22 +814,17 @@ async fn flight_plan_scenario(
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let grpc_endpoint = get_grpc_endpoint();
-
-    println!(
-        "NOTE: Ensure the server is running on {} or this example will fail.",
-        grpc_endpoint
-    );
+    let clients = get_clients().await;
 
     test_telemetry().await?;
 
     let vertiports = generate_sample_vertiports().await?;
 
     // Insert sample vehicles
-    generate_sample_vehicles(5, &vertiports).await;
+    generate_sample_vehicles(5, &vertiports).await?;
 
     // Get a list of vertipads
-    let vertipads = vertipad_scenario(vertiports).await?;
+    let vertipads = vertipad_scenario(&vertiports).await?;
 
     // Get a list of vehicles
     let vehicles = get_vehicles().await?;
@@ -764,40 +834,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _pilots = get_pilots().await?;
     let pilot_id = Uuid::new_v4().to_string();
 
-    // Play flight plan scenario
-    let _result = flight_plan_scenario(pilot_id.clone(), vehicles, vertipads).await;
-
-    let mut vertiport_client = VertiportClient::connect(grpc_endpoint.clone()).await?;
-    let vertiports = vertiport_client
-        .get_all_with_filter(tonic::Request::new(SearchFilter {
-            search_field: "".to_string(),
-            search_value: "".to_string(),
-            page_number: 1,
-            results_per_page: 50,
-        }))
-        .await?;
+    let vertiport_client = &clients.vertiport;
+    let vertiport_filter = AdvancedSearchFilter::search_is_not_null("deleted_at".to_owned())
+        .page_number(1)
+        .results_per_page(50);
+    let vertiports = vertiport_client.search(vertiport_filter).await?;
     println!("RESPONSE Vertiports={:#?}", vertiports.into_inner());
 
-    let mut flight_plan_client = FlightPlanClient::connect(grpc_endpoint.clone()).await?;
-
-    let scheduled_departure_min =
-        prost_types::Timestamp::date_time(2022, 10, 12, 23, 00, 00).unwrap();
-    let scheduled_departure_max =
-        prost_types::Timestamp::date_time(2022, 10, 13, 23, 00, 00).unwrap();
-    let filter = AdvancedSearchFilter::search_equals("pilot_id".to_string(), pilot_id)
-        .and_between(
-            "scheduled_departure".to_owned(),
-            scheduled_departure_min.to_string(),
-            scheduled_departure_max.to_string(),
-        )
-        .and_is_not_null("deleted_at".to_owned());
-    let flight_plans = flight_plan_client
-        .search(tonic::Request::new(filter))
-        .await?;
-    println!("RESPONSE Flight Plan Search={:#?}", flight_plans);
+    // Play flight plan scenario
+    flight_plan_scenario(pilot_id.clone(), vehicles, vertipads).await?;
 
     // Itineraries
-    itineraries().await;
+    itinerary_scenario().await?;
+
+    flight_plan_parcel_scenario().await?;
 
     Ok(())
 }

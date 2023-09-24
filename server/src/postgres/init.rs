@@ -6,7 +6,8 @@ use super::linked_resource::PsqlType as LinkedPsqlType;
 use super::simple_resource::PsqlType as SimplePsqlType;
 use super::{get_psql_pool, ArrErr, PsqlFieldType};
 use crate::grpc::server::{
-    adsb, flight_plan, itinerary, itinerary_flight_plan, pilot, vehicle, vertipad, vertiport,
+    adsb, flight_plan, flight_plan_parcel, group, itinerary, itinerary_flight_plan, parcel,
+    parcel_scan, pilot, scanner, user, user_group, vehicle, vertipad, vertiport,
 };
 use crate::resources::{
     base::FieldDefinition,
@@ -16,7 +17,10 @@ use crate::resources::{
 /// If the database is fresh, we need to create all tables.
 /// This function makes sure the tables will be created in the correct order
 pub async fn create_db() -> Result<(), ArrErr> {
-    psql_info!("Creating database tables.");
+    psql_info!("(create_db) Creating database tables.");
+    ResourceObject::<group::Data>::init_table().await?;
+    ResourceObject::<user::Data>::init_table().await?;
+    ResourceObject::<user_group::Data>::init_table().await?;
     ResourceObject::<vertiport::Data>::init_table().await?;
     ResourceObject::<vertipad::Data>::init_table().await?;
     ResourceObject::<vehicle::Data>::init_table().await?;
@@ -25,14 +29,22 @@ pub async fn create_db() -> Result<(), ArrErr> {
     ResourceObject::<flight_plan::Data>::init_table().await?;
     ResourceObject::<itinerary::Data>::init_table().await?;
     ResourceObject::<itinerary_flight_plan::Data>::init_table().await?;
+    ResourceObject::<parcel::Data>::init_table().await?;
+    ResourceObject::<flight_plan_parcel::Data>::init_table().await?;
+    ResourceObject::<scanner::Data>::init_table().await?;
+    ResourceObject::<parcel_scan::Data>::init_table().await?;
     Ok(())
 }
 
 /// If we want to recreate the database tables created by this module, we will want to drop the existing tables first.
 /// This function makes sure the tables will be dropped in the correct order
 pub async fn drop_db() -> Result<(), ArrErr> {
-    psql_warn!("Dropping database tables.");
+    psql_warn!("(drop_db) Dropping database tables.");
     // Drop our tables (in the correct order)
+    ResourceObject::<parcel_scan::Data>::drop_table().await?;
+    ResourceObject::<scanner::Data>::drop_table().await?;
+    ResourceObject::<flight_plan_parcel::Data>::drop_table().await?;
+    ResourceObject::<parcel::Data>::drop_table().await?;
     ResourceObject::<itinerary_flight_plan::Data>::drop_table().await?;
     ResourceObject::<itinerary::Data>::drop_table().await?;
     ResourceObject::<flight_plan::Data>::drop_table().await?;
@@ -41,12 +53,15 @@ pub async fn drop_db() -> Result<(), ArrErr> {
     ResourceObject::<vehicle::Data>::drop_table().await?;
     ResourceObject::<vertipad::Data>::drop_table().await?;
     ResourceObject::<vertiport::Data>::drop_table().await?;
+    ResourceObject::<user_group::Data>::drop_table().await?;
+    ResourceObject::<user::Data>::drop_table().await?;
+    ResourceObject::<group::Data>::drop_table().await?;
     Ok(())
 }
 
 /// Recreate the database by dropping all tables first (if they exist) and recreating them again
 pub async fn recreate_db() -> Result<(), ArrErr> {
-    psql_warn!("Re-creating database tables.");
+    psql_warn!("(recreate_db) Re-creating database tables.");
     drop_db().await?;
     create_db().await?;
     Ok(())
@@ -70,9 +85,13 @@ where
         let mut client = get_psql_pool().get().await?;
         let transaction = client.transaction().await?;
         for index_query in queries {
-            psql_debug!("{}", index_query);
+            psql_debug!("(_init_table_indices) [{}].", index_query);
             if let Err(e) = transaction.execute(&index_query, &[]).await {
-                psql_error!("Failed to create indices for table [flight_plan]: {}", e);
+                psql_error!(
+                    "(_init_table_indices) Failed to create indices for table [{}]: {}",
+                    Self::get_psql_table(),
+                    e
+                );
                 return transaction.rollback().await.map_err(ArrErr::from);
             }
         }
@@ -85,9 +104,9 @@ where
         let transaction = client.transaction().await?;
         let create_table = Self::_get_create_table_query();
 
-        psql_debug!("{}", create_table);
+        psql_debug!("(init_table) [{}].", create_table);
         if let Err(e) = transaction.execute(&create_table, &[]).await {
-            psql_error!("Failed to create table: {}", e);
+            psql_error!("(init_table) Failed to create table: {}", e);
             return transaction.rollback().await.map_err(ArrErr::from);
         }
         transaction.commit().await?;
@@ -101,11 +120,15 @@ where
         let transaction = client.transaction().await?;
 
         let drop_query = format!(r#"DROP TABLE IF EXISTS "{}""#, definition.psql_table);
-        psql_debug!("{}", drop_query);
+        psql_debug!("(drop_table) [{}].", drop_query);
 
-        psql_info!("Dropping table [{}].", definition.psql_table);
+        psql_info!("(drop_table) Dropping table [{}].", definition.psql_table);
         if let Err(e) = transaction.execute(&drop_query, &[]).await {
-            psql_error!("Failed to drop table [{}]: {}", e, definition.psql_table);
+            psql_error!(
+                "(drop_table) Failed to drop table [{}]: {}",
+                e,
+                definition.psql_table
+            );
             return transaction.rollback().await.map_err(ArrErr::from);
         }
         transaction.commit().await.map_err(ArrErr::from)
@@ -127,7 +150,7 @@ where
     fn _get_create_table_query() -> String {
         let definition = Self::get_definition();
         psql_info!(
-            "composing create table query for [{}]",
+            "(_get_create_table_query) Composing create table query for [{}].",
             definition.psql_table
         );
         let id_field = match Self::try_get_id_field() {
@@ -135,7 +158,9 @@ where
             Err(e) => {
                 // Panic here, we should -always- have an id_field configured for our simple resources.
                 // If we hit this scenario, we should fix our code, so we need to let this know with a hard crash.
-                panic!("Can't convert Object into ResourceObject<Data>: {e}")
+                panic!(
+                    "(_get_create_table_query) Can't convert Object into ResourceObject<Data>: {e}"
+                )
             }
         };
         let mut fields = vec![];
@@ -165,7 +190,7 @@ where
     fn _get_create_table_query() -> String {
         let definition = Self::get_definition();
         psql_info!(
-            "composing create table query for [{}]",
+            "(_get_create_table_query) Composing create table query for [{}].",
             definition.psql_table
         );
 
@@ -200,6 +225,9 @@ fn get_create_table_fields_sql(fields: &HashMap<String, FieldDefinition>) -> Vec
             PsqlFieldType::INT8 => field_sql.push_str(" BIGINT"),
             PsqlFieldType::NUMERIC => field_sql.push_str(" DOUBLE PRECISION"),
             PsqlFieldType::BYTEA => field_sql.push_str(" BYTEA"),
+            PsqlFieldType::PATH => field_sql.push_str(" GEOMETRY"),
+            PsqlFieldType::POINT => field_sql.push_str(" GEOMETRY"),
+            PsqlFieldType::POLYGON => field_sql.push_str(" GEOMETRY"),
             _ => field_sql.push_str(&format!(" {}", field.field_type.name().to_uppercase())),
         }
 

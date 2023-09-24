@@ -1,5 +1,6 @@
 use super::Data;
-use chrono::{Datelike, Local};
+use chrono::{Datelike, Duration, NaiveDate, Timelike, Utc};
+use rand::seq::SliceRandom;
 use rand::Rng;
 use uuid::Uuid;
 
@@ -11,33 +12,51 @@ RRULE:FREQ=WEEKLY;BYDAY=SA,SU";
 
 /// Creates a new [Data] object with fields set with random data
 pub fn get_data_obj() -> Data {
-    let now = Local::now();
-    let month_now: u8 = now.month().try_into().unwrap();
     let mut rng = rand::thread_rng();
 
+    let now = Utc::now();
+    let now = match NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
+        .unwrap_or_else(|| {
+            panic!(
+                "invalid current date from year [{}], month [{}] and day [{}].",
+                now.year(),
+                now.month(),
+                now.day()
+            )
+        })
+        .and_hms_opt(now.time().hour(), 0, 0)
+        .expect("could not set hms to full hour")
+        .and_local_timezone(Utc)
+        .earliest()
+    {
+        Some(res) => res,
+        None => panic!("Could not get current time for timezone Utc"),
+    };
+
+    let last_maintenance = now
+        + Duration::days(rng.gen_range(-1000..0))
+        + Duration::hours(rng.gen_range(0..24))
+        + Duration::minutes(
+            *[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
+                .choose(&mut rng)
+                .expect("invalid minutes generated"),
+        );
+    let created_at = Some((last_maintenance + Duration::days(30)).into());
+    let updated_at = created_at.clone();
+    let last_maintenance = Some(last_maintenance.into());
+
+    let next_maintenance = now
+        + Duration::days(rng.gen_range(0..1000))
+        + Duration::hours(rng.gen_range(0..24))
+        + Duration::minutes(
+            *[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
+                .choose(&mut rng)
+                .expect("invalid minutes generated"),
+        );
+    let next_maintenance = Some(next_maintenance.into());
+
     let vehicle_model_id = Uuid::new_v4().to_string();
-    let last_maintenance = Some(
-        prost_types::Timestamp::date_time(
-            rng.gen_range(2000..now.year().into()),
-            rng.gen_range(1..=12),
-            rng.gen_range(1..=28),
-            rng.gen_range(8..=18),
-            rng.gen_range(1..=60),
-            0,
-        )
-        .unwrap(),
-    );
-    let next_maintenance = Some(
-        prost_types::Timestamp::date_time(
-            rng.gen_range(now.year().into()..(now.year() + 5i32).into()),
-            rng.gen_range((month_now + 1u8)..12u8),
-            rng.gen_range(1..=28),
-            rng.gen_range(8..=18),
-            rng.gen_range(1..=60),
-            0,
-        )
-        .unwrap(),
-    );
+
     Data {
         vehicle_model_id,
         serial_number: format!("S-MOCK-{:0>8}", rng.gen_range(0..10000000)),
@@ -48,5 +67,20 @@ pub fn get_data_obj() -> Data {
         last_vertiport_id: None,
         last_maintenance,
         next_maintenance,
+        created_at,
+        updated_at,
     }
+}
+
+#[test]
+fn test_get_data_obj() {
+    let data: Data = get_data_obj();
+
+    assert!(Uuid::parse_str(&data.vehicle_model_id).is_ok());
+    assert!(data.serial_number.len() > 0);
+    assert!(data.registration_number.len() > 0);
+    assert!(data.description.is_some());
+    assert!(data.schedule.is_some());
+    assert!(data.created_at.is_some());
+    assert!(data.updated_at.is_some());
 }

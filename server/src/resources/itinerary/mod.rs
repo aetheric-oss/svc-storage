@@ -3,9 +3,9 @@
 pub use crate::grpc::server::itinerary::*;
 pub mod flight_plan;
 
+use anyhow::{Context, Result};
 use log::debug;
 use std::collections::HashMap;
-use std::str::FromStr;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
 use uuid::Uuid;
@@ -20,40 +20,6 @@ crate::build_generic_resource_impl_from!();
 
 // Generate grpc server implementations
 crate::build_grpc_simple_resource_impl!(itinerary);
-
-impl TryFrom<Row> for Data {
-    type Error = ArrErr;
-
-    fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("Converting Row to itinerary::Data: {:?}", row);
-        let user_id: String = row.get::<&str, Uuid>("user_id").to_string();
-
-        let result = ItineraryStatus::from_str(row.get("status"));
-        let Ok(status) = result else {
-            return Err(result.unwrap_err());
-        };
-
-        Ok(Data {
-            user_id,
-            status: status.into(),
-        })
-    }
-}
-
-impl FromStr for ItineraryStatus {
-    type Err = ArrErr;
-
-    fn from_str(s: &str) -> ::core::result::Result<ItineraryStatus, Self::Err> {
-        match s {
-            "ACTIVE" => ::core::result::Result::Ok(ItineraryStatus::Active),
-            "CANCELLED" => ::core::result::Result::Ok(ItineraryStatus::Cancelled),
-            _ => ::core::result::Result::Err(ArrErr::Error(format!(
-                "Unknown ItineraryStatus: {}",
-                s
-            ))),
-        }
-    }
-}
 
 impl Resource for ResourceObject<Data> {
     fn get_definition() -> ResourceDefinition {
@@ -84,8 +50,7 @@ impl Resource for ResourceObject<Data> {
 
     fn get_table_indices() -> Vec<String> {
         [
-            // uncomment after User table is added
-            // r#"ALTER TABLE itinerary ADD CONSTRAINT fk_user_id FOREIGN KEY(user_id) REFERENCES user(user_id)"#.to_string()
+            r#"ALTER TABLE "itinerary" ADD CONSTRAINT fk_user_id FOREIGN KEY("user_id") REFERENCES "user"("user_id")"#.to_string()
         ]
         .to_vec()
     }
@@ -101,5 +66,115 @@ impl GrpcDataObjectType for Data {
                 key
             ))),
         }
+    }
+}
+
+#[cfg(not(tarpaulin_include))]
+// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
+impl TryFrom<Row> for Data {
+    type Error = ArrErr;
+
+    fn try_from(row: Row) -> Result<Self, ArrErr> {
+        debug!("(try_from) Converting Row to itinerary::Data: {:?}", row);
+        let user_id: String = row.get::<&str, Uuid>("user_id").to_string();
+
+        let status = ItineraryStatus::from_str_name(row.get("status"))
+            .context("(try_from) Could not convert database value to ItineraryStatus Enum type.")?
+            as i32;
+
+        Ok(Data { user_id, status })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{config::Config, init_logger, test_util::*};
+
+    #[test]
+    fn test_itinerary_schema() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+        unit_test_info!("(test_itinerary_schema) start");
+
+        let id = Uuid::new_v4().to_string();
+        let data = mock::get_data_obj();
+        let object: ResourceObject<Data> = Object {
+            id,
+            data: Some(data.clone()),
+        }
+        .into();
+        test_schema::<ResourceObject<Data>, Data>(object);
+
+        let result = validate::<ResourceObject<Data>>(&data);
+        assert!(result.is_ok());
+        if let Ok((sql_fields, validation_result)) = result {
+            unit_test_info!("{:?}", sql_fields);
+            unit_test_info!("{:?}", validation_result);
+            assert_eq!(validation_result.success, true);
+        }
+        unit_test_info!("(test_itinerary_schema) success");
+    }
+
+    #[test]
+    fn test_itinerary_invalid_data() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+        unit_test_info!("(test_itinerary_invalid_data) start");
+
+        let data = Data {
+            user_id: String::from("INVALID"),
+            status: -1,
+        };
+
+        let result = validate::<ResourceObject<Data>>(&data);
+        assert!(result.is_ok());
+        if let Ok((_, validation_result)) = result {
+            unit_test_info!("{:?}", validation_result);
+            assert_eq!(validation_result.success, false);
+
+            let expected_errors = vec!["user_id", "status"];
+            assert_eq!(expected_errors.len(), validation_result.errors.len());
+            assert!(contains_field_errors(&validation_result, &expected_errors));
+        }
+        unit_test_info!("(test_itinerary_invalid_data) success");
+    }
+
+    #[test]
+    fn test_itinerary_status_get_enum_string_val() {
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val("status", ItineraryStatus::Active.into()),
+            Some(String::from("ACTIVE"))
+        );
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val(
+                "status",
+                ItineraryStatus::Cancelled.into()
+            ),
+            Some(String::from("CANCELLED"))
+        );
+
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val("status", -1),
+            None
+        );
+    }
+
+    #[test]
+    fn test_itinerary_status_as_str_name() {
+        assert_eq!(ItineraryStatus::Active.as_str_name(), "ACTIVE");
+        assert_eq!(ItineraryStatus::Cancelled.as_str_name(), "CANCELLED");
+    }
+
+    #[test]
+    fn test_itinerary_status_from_str_name() {
+        assert_eq!(
+            ItineraryStatus::from_str_name("ACTIVE"),
+            Some(ItineraryStatus::Active)
+        );
+        assert_eq!(
+            ItineraryStatus::from_str_name("CANCELLED"),
+            Some(ItineraryStatus::Cancelled)
+        );
+
+        assert_eq!(ItineraryStatus::from_str_name("INVALID"), None);
     }
 }

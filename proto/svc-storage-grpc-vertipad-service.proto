@@ -7,10 +7,6 @@ import "svc-storage-grpc-vertipad.proto";
 
 // Vertipad gRPC service
 service RpcService {
-    // Search vertipads using a simple filter
-    // This function will be deprecated soon, please use `search` instead
-    rpc get_all_with_filter(grpc.SearchFilter) returns (grpc.vertipad.List);
-
     // Returns a [`tonic::Response`] containing an vertipad [`Object`](super::Object)
     // Takes an [`id`](super::super::Id) to find the right record to return.
     //
@@ -20,7 +16,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{Id, VertipadClient};
+    // use svc_storage_client_grpc::{Id, VertipadClient, simple_service::Client};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut vertipad_client = VertipadClient::connect("http://localhost:50051").await?;
@@ -54,7 +50,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{Id, VertipadClient};
+    // use svc_storage_client_grpc::{Id, VertipadClient, simple_service::Client};
     // use svc_storage_client_grpc::vertipad::Data;
     //
     // const CAL_WORKDAYS_8AM_6PM: &str = "\
@@ -72,11 +68,12 @@ service RpcService {
     //     .insert(tonic::Request::new(Data {
     //         vertiport_id: vertiport_id.clone(),
     //         name: format!("First vertipad for {}", vertiport_id.clone()),
-    //         latitude: -122.4194,
-    //         longitude: 37.7746,
+    //         geo_location: Some(geo_types::Point::new(37.7746, -122.4194).into()),
     //         enabled: true,
     //         occupied: false,
     //         schedule: Some(CAL_WORKDAYS_8AM_6PM.to_owned()),
+    //         created_at: None,
+    //         updated_at: None
     //     }))
     //     .await
     //     {
@@ -106,7 +103,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{FieldMask, Id, VertipadClient};
+    // use svc_storage_client_grpc::{FieldMask, Id, VertipadClient, simple_service::Client};
     // use svc_storage_client_grpc::vertipad::{Data, UpdateObject};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
@@ -157,7 +154,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{Id, VertipadClient};
+    // use svc_storage_client_grpc::{Id, VertipadClient, simple_service::Client};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut vertipad_client = VertipadClient::connect("http://localhost:50051").await?;
@@ -186,7 +183,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{AdvancedSearchFilter, VertipadClient};
+    // use svc_storage_client_grpc::{AdvancedSearchFilter, VertipadClient, simple_service::Client};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut vertipad_client = VertipadClient::connect("http://localhost:50051").await?;
@@ -213,4 +210,7 @@ service RpcService {
     // }
     // ```
     rpc search(grpc.AdvancedSearchFilter) returns (grpc.vertipad.List);
+
+    // Simple ready check to allow callers to validate the client connection status.
+    rpc is_ready (ReadyRequest) returns (ReadyResponse);
 }

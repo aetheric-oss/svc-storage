@@ -1,34 +1,34 @@
+![Arrow Banner](https://github.com/Arrow-air/tf-github/raw/main/src/templates/doc-banner-services.png)
+
 # Interface Control Document (ICD) - `svc-storage`
 
-<center>
-
-<img src="https://github.com/Arrow-air/tf-github/raw/main/src/templates/doc-banner-services.png" style="height:250px" />
-
-</center>
-
-## Overview
+## :telescope: Overview
 
 This document defines the gRPC interfaces unique to the `svc-storage` microservice.
 
-Attribute | Description
---- | ---
-Status | Draft
+### Metadata
 
-## Related Documents
+| Attribute     | Description                                                       |
+| ------------- |-------------------------------------------------------------------|
+| Maintainer(s) | [Services Team](https://github.com/orgs/Arrow-air/teams/services) |
+| Stuckee       | Lotte ([@owlot](https://github.com/owlot))                        |
+| Status        | Development                                                       |
 
-Document | Description
---- | ---
-[High-Level Concept of Operations (CONOPS)](https://github.com/Arrow-air/se-services/blob/develop/docs/conops.md) | Overview of Arrow microservices.
-[High-Level Interface Control Document (ICD)](https://github.com/Arrow-air/se-services/blob/develop/docs/icd.md)  | Interfaces and frameworks common to all Arrow microservices.
-[Requirements - `svc-storage`](https://nocodb.arrowair.com/dashboard/#/nc/p_uyeuw6scqlnpri/table/L4/svc-storage) | Requirements and user stories for this microservice.
-[Concept of Operations - `svc-storage`](./conops.md) | Defines the motivation and duties of this microservice.
-[Software Design Document (SDD) - `svc-storage`](./sdd.md) | Specifies the internal activity of this microservice.
+## :books: Related Documents
 
-## Frameworks
+| Document                                                                                                          | Description
+| ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| [High-Level Concept of Operations (CONOPS)](https://github.com/Arrow-air/se-services/blob/develop/docs/conops.md) | Overview of Arrow microservices. |
+| [High-Level Interface Control Document (ICD)](https://github.com/Arrow-air/se-services/blob/develop/docs/icd.md)  | Interfaces and frameworks common to all Arrow microservices. |
+| [Requirements - `svc-storage`](https://nocodb.arrowair.com/dashboard/#/nc/p_uyeuw6scqlnpri/table/L4/svc-storage)  | Requirements and user stories for this microservice. |
+| [Concept of Operations - `svc-storage`](./conops.md)                                                              | Defines the motivation and duties of this microservice. |
+| [Software Design Document (SDD) - `svc-storage`](./sdd.md)                                                        | Specifies the internal activity of this microservice. |
 
-See [High-Level Services ICD](https://github.com/Arrow-air/se-services/blob/develop/docs/icd.md).
+## :hammer: Frameworks
 
-## gRPC
+See the High-Level ICD.
+
+## :speech_balloon: gRPC
 
 ### Files
 
@@ -56,8 +56,6 @@ See [High-Level Services ICD](https://github.com/Arrow-air/se-services/blob/deve
 ### gRPC Server Methods ("Services")
 
 gRPC server methods are called "services", an unfortunate name clash with the broader concept of web services.
-
-Ⓘ ***A more detailed API description will be available in the next release***
 
 #### StorageRpc
 
@@ -88,6 +86,9 @@ Implemented for:
 
 Implemented for:
  * itinerary_flight_plan
+ * user_group
+ * group_user
+ * flight_plan_parcel
 
 | Service          | Description |
 | ---------------- | ----------- |

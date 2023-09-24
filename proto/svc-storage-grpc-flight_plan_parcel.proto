@@ -1,0 +1,72 @@
+syntax = "proto3";
+package grpc.flight_plan_parcel;
+
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "svc-storage-grpc-geo_types.proto";
+import "svc-storage-grpc.proto";
+
+// Response struct returning an [Object] on success and [ValidationResult] if
+// invalid fields were provided
+message Response {
+    // struct with field -> error pairs to provide feedback about invalid fields
+    grpc.ValidationResult validation_result = 1;
+    // Object struct with ids [`Vec\<FieldValue\>`] in [`Uuid`](uuid::Uuid) format and [`Data`]
+    // struct with flight_plan_parcel data
+    optional Object object = 2;
+}
+
+// Object struct with `id` and `data` field
+// * `ids` [`Vec\<FieldValue\>`] where the field_value's should be in [`Uuid`](uuid::Uuid) format
+// * `data` [`Data`] struct with flight_plan_parcel_parcel data
+message Object {
+    // list of field_name / id UUID v4 combinations
+    repeated grpc.FieldValue ids = 1;
+    // data
+    Data data = 2;
+}
+
+// UpdateObject struct with `ids`, `data` and `mask` fields
+// * `ids` [`Vec\<FieldValue\>`] where the field_value's should be in [`Uuid`](uuid::Uuid) format
+// * `data` [`Data`] struct with flight_plan_parcel data which should be used for update
+// * `mask` [`FieldMask`] struct with flight_plan_parcel fields that should be updated
+message UpdateObject {
+    // list of field_name / id UUID v4 combinations
+    repeated grpc.FieldValue ids = 1;
+    // struct with flight_plan_parcel data which should be used for update
+    Data data = 2;
+    // struct with flight_plan_parcel fields that should be updated
+    google.protobuf.FieldMask mask = 3;
+}
+
+// Data struct with flight_plan_parcel data
+message Data {
+    // If the parcels are picked up at the departure vertiport
+    bool acquire = 1;
+    // If the parcels are delivered at the destination vertiport
+    bool deliver = 2;
+}
+
+// Data struct with flight_plan_parcel data including id fields
+message RowData {
+    // the UUID of the flight_plan
+    string flight_plan_id = 1;
+    // the UUID of the parcel
+    string parcel_id = 2;
+    // If the parcels are picked up at the departure vertiport
+    bool acquire = 3;
+    // If the parcels are delivered at the destination vertiport
+    bool deliver = 4;
+}
+
+// Struct containing a `list` of flight_plan_parcel [`Vec\<Object\>`]
+message List {
+    // array/vector of flight plan parcel items
+    repeated Object list = 1;
+}
+
+// Struct containing a `list` of flight_plan_parcel [`Vec\<RowData\>`]
+message RowDataList {
+    // array/vector of flight plan parcel items including id fields
+    repeated RowData list = 1;
+}

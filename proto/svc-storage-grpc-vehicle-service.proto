@@ -7,10 +7,6 @@ import "svc-storage-grpc-vehicle.proto";
 
 // Vehicle gRPC service
 service RpcService {
-    // Search vehicles using a simple filter
-    // This function will be deprecated soon, please use `search` instead
-    rpc get_all_with_filter(grpc.SearchFilter) returns (List);
-
     // Returns a [`tonic::Response`] containing an vehicle [`Object`](super::Object)
     // Takes an [`id`](super::super::Id) to find the right record to return.
     //
@@ -20,7 +16,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{Id, VehicleClient};
+    // use svc_storage_client_grpc::{Id, VehicleClient, simple_service::Client};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut vehicle_client = VehicleClient::connect("http://localhost:50051").await?;
@@ -54,7 +50,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{Id, VehicleClient};
+    // use svc_storage_client_grpc::{Id, VehicleClient, simple_service::Client};
     // use svc_storage_client_grpc::vehicle::Data;
     //
     // const CAL_WORKDAYS_8AM_6PM: &str = "\
@@ -111,7 +107,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{FieldMask, Id, VehicleClient};
+    // use svc_storage_client_grpc::{FieldMask, Id, VehicleClient, simple_service::Client};
     // use svc_storage_client_grpc::vehicle::{Data, UpdateObject};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
@@ -163,7 +159,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{Id, VehicleClient};
+    // use svc_storage_client_grpc::{Id, VehicleClient, simple_service::Client};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut vehicle_client = VehicleClient::connect("http://localhost:50051").await?;
@@ -192,7 +188,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{AdvancedSearchFilter, VehicleClient};
+    // use svc_storage_client_grpc::{AdvancedSearchFilter, VehicleClient, simple_service::Client};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut vehicle_client = VehicleClient::connect("http://localhost:50051").await?;
@@ -213,4 +209,7 @@ service RpcService {
     // }
     // ```
     rpc search(grpc.AdvancedSearchFilter) returns (List);
+
+    // Simple ready check to allow callers to validate the client connection status.
+    rpc is_ready (ReadyRequest) returns (ReadyResponse);
 }

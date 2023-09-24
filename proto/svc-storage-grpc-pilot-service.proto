@@ -7,10 +7,6 @@ import "svc-storage-grpc-pilot.proto";
 
 // Pilot gRPC service
 service RpcService {
-    // Search pilots using a simple filter
-    // This function will be deprecated soon, please use `search` instead
-    rpc get_all_with_filter(grpc.SearchFilter) returns (grpc.pilot.List);
-
     // Returns a [`tonic::Response`] containing an pilot [`Object`](super::Object)
     // Takes an [`id`](super::super::Id) to find the right record to return.
     //
@@ -20,7 +16,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{Id, PilotClient};
+    // use svc_storage_client_grpc::{Id, PilotClient, simple_service::Client};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut pilot_client = PilotClient::connect("http://localhost:50051").await?;
@@ -54,7 +50,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{Id, PilotClient};
+    // use svc_storage_client_grpc::{Id, PilotClient, simple_service::Client};
     // use svc_storage_client_grpc::pilot::Data;
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
@@ -94,7 +90,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{FieldMask, Id, PilotClient};
+    // use svc_storage_client_grpc::{FieldMask, Id, PilotClient, simple_service::Client};
     // use svc_storage_client_grpc::pilot::{Data, UpdateObject};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
@@ -145,7 +141,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{Id, PilotClient};
+    // use svc_storage_client_grpc::{Id, PilotClient, simple_service::Client};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut pilot_client = PilotClient::connect("http://localhost:50051").await?;
@@ -174,7 +170,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{AdvancedSearchFilter, PilotClient};
+    // use svc_storage_client_grpc::{AdvancedSearchFilter, PilotClient, simple_service::Client};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut pilot_client = PilotClient::connect("http://localhost:50051").await?;
@@ -194,4 +190,7 @@ service RpcService {
     // }
     // ```
     rpc search(grpc.AdvancedSearchFilter) returns (grpc.pilot.List);
+
+    // Simple ready check to allow callers to validate the client connection status.
+    rpc is_ready (ReadyRequest) returns (ReadyResponse);
 }

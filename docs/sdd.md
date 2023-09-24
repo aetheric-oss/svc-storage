@@ -1,12 +1,18 @@
-# `svc-storage` - Software Design Document (SDD)
+![Arrow Banner](https://github.com/Arrow-air/tf-github/raw/main/src/templates/doc-banner-services.png)
 
-<center>
+# Software Design Document (SDD) - `svc-storage`
 
-<img src="https://github.com/Arrow-air/tf-github/raw/main/src/templates/doc-banner-services.png" style="height:250px" />
+## :telescope: Overview
 
-</center>
+This document details the software implementation of `svc-storage`.
 
-## Overview
+This process is responsible for handling interactions with clients for data storage and retrieval.
+
+*Note: This module is intended to be used by other Arrow micro-services via gRPC.*
+
+*This document is under development as Arrow operates on a pre-revenue and
+pre-commercial stage. Storage requirements may evolve as per business needs,
+which may result in architectural/implementation changes to the storage module.*
 
 ### Metadata
 
@@ -16,44 +22,28 @@
 | Stuckee       | Lotte ([@owlot](https://github.com/owlot))                        |
 | Status        | Development                                                       |
 
-This document details the software implementation of `svc-storage`.
-
-This process is responsible for handling interactions with clients for data storage and retrieval.
-
-*Note: This module is intended to be used by other Arrow micro-services via gRPC.*
-
-*This document is under development as Arrow operates on a pre-revenue and pre-commercial stage. Storage requirements may evolve as per business needs, which may result in architectural/implementation changes to the storage module.*
-
-## Related Documents
+## :books: Related Documents
 
 | Document                                                                                                          | Description
 | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-[High-Level Concept of Operations (CONOPS)](https://github.com/Arrow-air/se-services/blob/develop/docs/conops.md) | Overview of Arrow microservices.
-[High-Level Interface Control Document (ICD)](https://github.com/Arrow-air/se-services/blob/develop/docs/icd.md)  | Interfaces and frameworks common to all Arrow microservices.
-[Requirements - `svc-storage`](https://nocodb.arrowair.com/dashboard/#/nc/p_uyeuw6scqlnpri/table/L4/svc-storage) | Requirements and user stories for this microservice.
-[Concept of Operations - `svc-storage`](./conops.md) | Defines the motivation and duties of this microservice.
-[Interface Control Document (ICD) - `svc-storage`](./icd.md) | Defines the inputs and outputs of this microservice.
+| [High-Level Concept of Operations (CONOPS)](https://github.com/Arrow-air/se-services/blob/develop/docs/conops.md) | Overview of Arrow microservices. |
+| [High-Level Interface Control Document (ICD)](https://github.com/Arrow-air/se-services/blob/develop/docs/icd.md)  | Interfaces and frameworks common to all Arrow microservices. |
+| [Requirements - `svc-storage`](https://nocodb.arrowair.com/dashboard/#/nc/p_uyeuw6scqlnpri/table/L4/svc-storage)  | Requirements and user stories for this microservice. |
+| [Concept of Operations - `svc-storage`](./conops.md)                                                              | Defines the motivation and duties of this microservice. |
+| [Interface Control Document (ICD) - `svc-storage`](./icd.md)                                                      | Defines the inputs and outputs of this microservice. |
 
-## Frameworks
-
-See the [High-Level Services ICD](https://github.com/Arrow-air/se-services/blob/develop/docs/icd.md).
-
-## Location
-
-Server-side service.
-
-## Module Attributes
+## :dna: Module Attributes
 
 | Attribute       | Applies | Explanation                                                             |
 | --------------- | ------- | ----------------------------------------------------------------------- |
 | Safety Critical | No      | As of now, the storage service does not handle any safety critical data |
 | Realtime        | No      | As of now, the storage service does not handle any realtime data        |
 
-## Global Variables
+## :globe_with_meridians: Global Variables
 
 None
 
-## Logic 
+## :gear: Logic
 
 ### Initialization
 
@@ -81,13 +71,13 @@ This information allows `svc-storage` to connect to the CockroachDB database bac
 
 :exclamation: These environment variables will *not* default to anything if not found. In this case, requests involving the handler will result in a server panic.
 
-For detailed sequence diagrams regarding request handlers, see [GRPC Handlers](#grpc-handlers).
+For detailed sequence diagrams regarding request handlers, see [gRPC Handlers](#speech_balloon-grpc-handlers).
 
 ### Cleanup
 
 None
 
-## GRPC Handlers
+## :speech_balloon: gRPC Handlers
 
 See [the ICD](./icd.md) for this microservice.
 
@@ -196,13 +186,13 @@ sequenceDiagram
     grpc_server->>+grpc_service: generic_get_by_id(Request<Id>)
     grpc_service->>+psql_simple: get_by_id(Uuid)
     rect rgb(64,97,255)
-		critical Get DB connection from the pool
-			psql_simple->>+psql: get_psql_pool()
-			psql-->>psql_simple: <Pool>
-		option No connection
-			psql-->>-psql_simple: Database pool not initialized
-		end
-	end
+        critical Get DB connection from the pool
+            psql_simple->>+psql: get_psql_pool()
+            psql-->>psql_simple: <Pool>
+        option No connection
+            psql-->>-psql_simple: Database pool not initialized
+        end
+    end
     psql_simple-->>-grpc_service: Result<Row, Error>
     alt Err
         grpc_service-->>grpc_server: Status(Code::NotFound)
@@ -225,13 +215,13 @@ sequenceDiagram
     grpc_server->>+grpc_service: generic_search(Request<AdvancedSearchFilter>)
     grpc_service->>+psql_simple: advanced_search(AdvancedSearchFilter)
     rect rgb(64,97,255)
-		critical Get DB connection from the pool
-			psql_simple->>+psql: get_psql_pool()
-			psql-->>psql_simple: <Pool>
-		option No connection
-			psql-->>-psql_simple: Database pool not initialized
-		end
-	end
+        critical Get DB connection from the pool
+            psql_simple->>+psql: get_psql_pool()
+            psql-->>psql_simple: <Pool>
+        option No connection
+            psql-->>-psql_simple: Database pool not initialized
+        end
+    end
     psql_simple-->>-grpc_service: Result<Rows, Error>
     alt Err (database error)
         grpc_service-->>grpc_server: Status(Code::Internal)
@@ -345,7 +335,7 @@ sequenceDiagram
         psql_simple_object-->>psql_simple_object: run db update query
         psql_simple_object-->>grpc_service: Result
     else
-		psql_simple_object-->>psql_simple_object: delete_row()
+        psql_simple_object-->>psql_simple_object: delete_row()
         rect rgb(64,97,255)
             critical Get DB connection from the pool
                 psql_simple_object->>+psql: get_psql_pool()
@@ -356,7 +346,7 @@ sequenceDiagram
         end
         psql_simple_object-->>psql_simple_object: run db delete query
         psql_simple_object-->>-grpc_service: Result
-	end
+    end
     alt Err (database error)
         grpc_service-->>grpc_server: Status(Code::Internal)
     else Ok (delete success)
@@ -642,12 +632,18 @@ sequenceDiagram
 
 ```mermaid
 erDiagram
+    %field {
+    %    serial field_id PK
+    %    text field_name
+    %    text field_type "string / int / bool / datetime / etc..."
+    %    text re_validation "Optional - regex validation string"
+    %    text validation_message "Optional"
+    %}
     flight_plan {
         uuid flight_plan_id PK
         uuid pilot_id FK
         uuid vehicle_id FK
-        json cargo_weight_grams
-        integer flight_distance_meters
+        geometry path "LINESTRING"
         text weather_conditions "Optional"
         uuid departure_vertipad_id FK
         uuid destination_vertipad_id FK
@@ -662,7 +658,14 @@ erDiagram
         text flight_priority "Default LOW"
         timestamp created_at "Default NOW"
         timestamp updated_at "Default NOW"
-        timestamp deleted_at "Default NULL"
+        timestamp deleted_at "Optional Default NULL"
+    }
+    flight_plan_parcel {
+        combined flight_plan_id_parcel_id PK
+        uuid flight_plan_id FK
+        uuid parcel_id FK
+        bool acquire
+        bool deliver
     }
     itinerary {
         uuid itinerary_id PK
@@ -678,25 +681,23 @@ erDiagram
         uuid vertiport_id PK
         text name
         text description
-        float longitude
-        float latitude
+        geometry geo_location "POLYGON"
         text schedule
         timestamp created_at "Default NOW"
         timestamp updated_at "Default NOW"
-        timestamp deleted_at "Default NULL"
+        timestamp deleted_at "Optional Default NULL"
     }
     vertipad {
         uuid vertipad_id PK
         uuid vertiport_id FK
         text name
-        float longitude
-        float latitude
+        geometry geo_location "POINT"
         text schedule
         bool enabled "Default true"
         bool occupied "Default false"
         timestamp created_at "Default NOW"
         timestamp updated_at "Default NOW"
-        timestamp deleted_at "Default NULL"
+        timestamp deleted_at "Optional Default NULL"
     }
     pilot {
         uuid pilot_id PK
@@ -704,7 +705,7 @@ erDiagram
         text last_name
         timestamp created_at "Default NOW"
         timestamp updated_at "Default NOW"
-        timestamp deleted_at "Default NULL"
+        timestamp deleted_at "Optional Default NULL"
     }
     vehicle {
         uuid vehicle_id PK
@@ -719,8 +720,74 @@ erDiagram
         uuid last_vertiport_id FK "Optional"
         timestamp created_at "Default NOW"
         timestamp updated_at "Default NOW"
-        timestamp deleted_at "Default NULL"
+        timestamp deleted_at "Optional Default NULL"
     }
+    scanner {
+        uuid scanner_id PK
+        uuid organization_id
+        text scanner_type "ENUM(MOBILE,LOCKER,FACILITY,UNDERBELLY)"
+        text scanner_status "ENUM(ACTIVE,DISABLED)"
+        timestamp created_at "Default NOW"
+        timestamp updated_at "Default NOW"
+        timestamp deleted_at "Optional Default NULL"
+    }
+    parcel {
+        uuid parcel_id PK
+        uuid user_id FK
+        uint weight_grams
+        text status "ENUM(NOTDROPPEDOFF,DROPPEDOFF,ENROUTE,ARRIVED,PICKEDUP,COMPLETE)"
+        timestamp created_at "Default NOW"
+        timestamp updated_at "Default NOW"
+        timestamp deleted_at "Optional Default NULL"
+    }
+    parcel_scan {
+        uuid parcel_id FK
+        uuid scanner_id FK
+        geometry geo_location "POINT"
+        timestamp created_at "Default NOW"
+        timestamp updated_at "Default NOW"
+        timestamp deleted_at "Optional Default NULL"
+    }
+    user {
+        uuid user_id PK
+        text auth_method "ENUM (OAUTH_GOOGLE,OAUTH_FACEBOOK,OAUTH_AZURE_AD,LOCAL)"
+        text display_name
+        timestamp created_at "Default NOW"
+        timestamp updated_at "Default NOW"
+        timestamp deleted_at "Optional Default NULL"
+    }
+    %user_field {
+    %    serial user_field_id PK
+    %    serial field_id FK
+    %    bool is_mandatory "Default false"
+    %    text category "ENUM (additional_info, settings)"
+    %}
+    %user_field_value {
+    %    serial user_field_id PK
+    %    uuid user_id PK
+    %    text value
+    %    timestamp updated_at "Default NOW"
+    %}
+    group {
+        uuid group_id PK
+        text name
+        text description
+        uuid parent_group_id FK "Optional"
+        timestamp created_at "Default NOW"
+        timestamp updated_at "Default NOW"
+        timestamp deleted_at "Optional Default NULL"
+    }
+    user_group {
+        uuid user_id FK
+        uuid group_id FK
+    }
+
+    %field }o--o{ user_field : field_id
+    %user_field }o--o{ user_field_value : user_field_id
+    %user }o--|| user_field_value : user_id
+
+    user }o--o{ user_group : user_id
+    group }o--o{ user_group : group_id
 
     flight_plan }o--|| vertipad : departure_vertipad_id
     flight_plan }o--|| vertipad : destination_vertipad_id
@@ -731,4 +798,10 @@ erDiagram
     itinerary_flight_plan |o--|| itinerary : itinerary_id
 
     vertipad }o--|| vertiport : vertiport_id
+
+    parcel }o--o{ parcel_scan : parcel_id
+    scanner }o--o{ parcel_scan : scanner_id
+
+    flight_plan_parcel |o--|{ parcel : parcel_id
+    flight_plan_parcel |o--|| flight_plan : flight_plan_id
 ```

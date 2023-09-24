@@ -1,6 +1,7 @@
 use super::{get_psql_pool, ArrErr, PsqlField, PsqlFieldType};
 use crate::grpc::server::{
-    AdvancedSearchFilter, ComparisonOperator, PredicateOperator, SortOption, SortOrder,
+    search::get_single_search_value, AdvancedSearchFilter, ComparisonOperator, PredicateOperator,
+    SortOption, SortOrder,
 };
 use crate::postgres::PsqlFieldSend;
 use crate::resources::base::Resource;
@@ -47,7 +48,14 @@ where
         // Go over all the filters and compose the search query string.
         for filter in filter.filters.iter() {
             let col = filter.search_field.clone();
-            let field_type = definition.try_get_field(&col)?.field_type.clone();
+
+            // Check if provided search col is part of the primary key
+            let field_type = if definition.get_psql_id_cols().contains(&col) {
+                PsqlFieldType::UUID
+            } else {
+                definition.try_get_field(&col)?.field_type.clone()
+            };
+
             let operator: PredicateOperator =
                 match PredicateOperator::from_i32(filter.predicate_operator) {
                     Some(val) => val,
@@ -90,8 +98,8 @@ where
         // Validate filter params making sure they are conform the column field type.
         // Adding the value to the list of query parameters if valid.
         let mut params: Vec<Box<PsqlFieldSend>> = vec![];
-        for param in filter_params.iter() {
-            params.push(Self::_param_from_search_col(param)?);
+        for search_col in filter_params.iter() {
+            params.push(Self::_param_from_search_col(search_col)?);
         }
 
         // Check if we need to order the results on given parameters
@@ -101,7 +109,7 @@ where
                     sort_expressions.push(try_get_sort_str(sort_option)?);
                 } else {
                     psql_error!(
-                        "Invalid field provided [{}] for sort order in advanced_search",
+                        "(advanced_search) Invalid field provided [{}] for sort order in advanced_search.",
                         sort_option.sort_field
                     );
                 }
@@ -119,10 +127,11 @@ where
         let search_sql = &client.prepare_cached(&search_query).await?;
 
         psql_info!(
-            "Searching table [{}] with query [{}]",
+            "(advanced_search) Searching table [{}] with query [{}].",
             definition.psql_table,
             search_query
         );
+        psql_debug!("(advanced_search) Params: {:?}", params);
 
         let mut ref_params: Vec<&PsqlField> = vec![];
         for field in params.iter() {
@@ -139,14 +148,15 @@ where
     /// Converts the passed string value for the search field into the right Sql type.
     /// for internal use
     fn _param_from_search_col(col: &SearchCol) -> Result<Box<dyn ToSql + Sync + Send>, ArrErr> {
-        let col_val = col.value.as_ref().ok_or({
-            let err = format!(
-                "(_param_from_search_col) called while search col [{}] has no value",
-                col.col_name,
-            );
-            psql_error!("{}", err);
-            ArrErr::Error(err)
-        })?;
+        let col_val = match &col.value {
+            Some(val) => val,
+            None => {
+                let err = format!("Search col [{}] has no value: {:?}", col.col_name, col);
+                psql_error!("(_param_from_search_col) {}", err);
+                return Err(ArrErr::Error(err));
+            }
+        };
+
         match col.col_type {
             PsqlFieldType::ANYENUM => {
                 let int_val: i32 = match col_val.parse() {
@@ -156,7 +166,7 @@ where
                             "Can't convert search col [{}] with value [{}] to i32: {}",
                             col.col_name, col_val, e
                         );
-                        psql_error!("{}", err);
+                        psql_error!("(_param_from_search_col) {}", err);
                         return Err(ArrErr::Error(err));
                     }
                 };
@@ -164,10 +174,10 @@ where
                     Some(string_val) => Ok(Box::new(string_val)),
                     None => {
                         let err = format!(
-                            "Can't convert search col [{}] with value [{}] to enum string for value [{}]",
+                            "Can't convert search col [{}] with value [{}] to enum string for value [{}].",
                             col.col_name, col_val, int_val
                         );
-                        psql_error!("{}", err);
+                        psql_error!("(_param_from_search_col) {}", err);
                         Err(ArrErr::Error(err))
                     }
                 }
@@ -186,20 +196,23 @@ pub(crate) fn get_filter_str(
 ) -> Result<(String, i32), ArrErr> {
     let mut filter_str;
     let mut next_param_index = cur_param_index;
-    psql_debug!("Found [{}] filter", operator.as_str_name());
+    psql_debug!(
+        "(get_filter_str) Found [{}] filter.",
+        operator.as_str_name()
+    );
     match operator {
         PredicateOperator::Equals => {
             filter_str = format!(r#" "{}" = ${}"#, search_col.col_name, next_param_index);
-            let val: String = get_single_search_value(values)?;
+            let val: String = get_single_search_value(&values).map_err(ArrErr::Error)?;
             search_col.set_value(val);
-            params.push(search_col);
+            params.push(search_col.clone());
             next_param_index += 1;
         }
         PredicateOperator::NotEquals => {
             filter_str = format!(r#" "{}" <> ${}"#, search_col.col_name, next_param_index);
-            let val: String = get_single_search_value(values)?;
+            let val: String = get_single_search_value(&values).map_err(ArrErr::Error)?;
             search_col.set_value(val);
-            params.push(search_col);
+            params.push(search_col.clone());
             next_param_index += 1;
         }
         PredicateOperator::In => {
@@ -213,6 +226,21 @@ pub(crate) fn get_filter_str(
             }
             filter_str = format!(
                 r#" "{}" IN ({})"#,
+                search_col.col_name,
+                search_values.join(",")
+            );
+        }
+        PredicateOperator::NotIn => {
+            let mut search_values = vec![];
+            for value in values {
+                let mut col = search_col.clone();
+                search_values.push(format!("${}", next_param_index));
+                col.set_value(value.to_string());
+                params.push(col);
+                next_param_index += 1;
+            }
+            filter_str = format!(
+                r#" "{}" NOT IN ({})"#,
                 search_col.col_name,
                 search_values.join(",")
             );
@@ -263,8 +291,8 @@ pub(crate) fn get_filter_str(
                 r#" "{}"::text ILIKE ${}"#,
                 search_col.col_name, next_param_index
             );
-            search_col.set_value(get_single_search_value(values)?);
-            params.push(search_col);
+            search_col.set_value(get_single_search_value(&values).map_err(ArrErr::Error)?);
+            params.push(search_col.clone());
             next_param_index += 1;
         }
         PredicateOperator::Like => {
@@ -272,36 +300,63 @@ pub(crate) fn get_filter_str(
                 r#" "{}"::text LIKE ${}"#,
                 search_col.col_name, next_param_index
             );
-            search_col.set_value(get_single_search_value(values)?);
-            params.push(search_col);
+            search_col.set_value(get_single_search_value(&values).map_err(ArrErr::Error)?);
+            params.push(search_col.clone());
             next_param_index += 1;
         }
         PredicateOperator::Greater => {
             filter_str = format!(r#" "{}" > ${}"#, search_col.col_name, next_param_index);
-            let val: String = get_single_search_value(values)?;
+            let val: String = get_single_search_value(&values).map_err(ArrErr::Error)?;
             search_col.set_value(val);
-            params.push(search_col);
+            params.push(search_col.clone());
             next_param_index += 1;
         }
         PredicateOperator::GreaterOrEqual => {
             filter_str = format!(r#" "{}" >= ${}"#, search_col.col_name, next_param_index);
-            let val: String = get_single_search_value(values)?;
+            let val: String = get_single_search_value(&values).map_err(ArrErr::Error)?;
             search_col.set_value(val);
-            params.push(search_col);
+            params.push(search_col.clone());
             next_param_index += 1;
         }
         PredicateOperator::Less => {
             filter_str = format!(r#" "{}" < ${}"#, search_col.col_name, next_param_index);
-            let val: String = get_single_search_value(values)?;
+            let val: String = get_single_search_value(&values).map_err(ArrErr::Error)?;
             search_col.set_value(val);
-            params.push(search_col);
+            params.push(search_col.clone());
             next_param_index += 1;
         }
         PredicateOperator::LessOrEqual => {
             filter_str = format!(r#" "{}" <= ${}"#, search_col.col_name, next_param_index);
-            let val: String = get_single_search_value(values)?;
+            let val: String = get_single_search_value(&values).map_err(ArrErr::Error)?;
             search_col.set_value(val);
-            params.push(search_col);
+            params.push(search_col.clone());
+            next_param_index += 1;
+        }
+        PredicateOperator::GeoIntersect => {
+            filter_str = format!(
+                r#" st_intersect(st_geomfromtext(${}), "{}")"#,
+                next_param_index, search_col.col_name,
+            );
+            search_col.set_value(get_single_search_value(&values).map_err(ArrErr::Error)?);
+            params.push(search_col.clone());
+            next_param_index += 1;
+        }
+        PredicateOperator::GeoWithin => {
+            filter_str = format!(
+                r#" st_within(st_geomfromtext(${}), "{}")"#,
+                next_param_index, search_col.col_name,
+            );
+            search_col.set_value(get_single_search_value(&values).map_err(ArrErr::Error)?);
+            params.push(search_col.clone());
+            next_param_index += 1;
+        }
+        PredicateOperator::GeoDisjoint => {
+            filter_str = format!(
+                r#" st_disjoint(st_geomfromtext(${}), "{}")"#,
+                next_param_index, search_col.col_name,
+            );
+            search_col.set_value(get_single_search_value(&values).map_err(ArrErr::Error)?);
+            params.push(search_col.clone());
             next_param_index += 1;
         }
     }
@@ -327,30 +382,20 @@ pub(crate) fn try_get_sort_str(sort_option: &SortOption) -> Result<String, ArrEr
     ))
 }
 
-fn get_single_search_value(search_value: Vec<String>) -> Result<String, ArrErr> {
-    if search_value.len() == 1 {
-        Ok(search_value[0].clone())
-    } else {
-        Err(ArrErr::Error(format!(
-            "Error in advanced search parameters. Expecting a single value, but got [{}] values",
-            search_value.len()
-        )))
-    }
-}
-
 /// Converts the passed string value for a field into the right Sql type.
 /// for internal use
 pub(super) fn param_from_search_col(
     col: &SearchCol,
 ) -> Result<Box<dyn ToSql + Sync + Send>, ArrErr> {
-    let col_val = col.value.as_ref().ok_or({
-        let err = format!(
-            "(param_from_search_col) called while search col [{}] has no value",
-            col.col_name,
-        );
-        psql_error!("{}", err);
-        ArrErr::Error(err)
-    })?;
+    psql_debug!("(param_from_search_col) Called for col: {:?}", col);
+    let col_val = match &col.value {
+        Some(val) => val,
+        None => {
+            let err = format!("Search col [{}] has no value: {:?}", col.col_name, col);
+            psql_error!("(param_from_search_col) {}", err);
+            return Err(ArrErr::Error(err));
+        }
+    };
     match col.col_type {
         PsqlFieldType::BOOL => match col_val.parse::<bool>() {
             Ok(val) => Ok(Box::new(val)),
@@ -359,7 +404,7 @@ pub(super) fn param_from_search_col(
                     "Can't convert search col [{}] with value [{}] to boolean: {}",
                     col.col_name, col_val, e
                 );
-                psql_error!("{}", err);
+                psql_error!("(param_from_search_col) {}", err);
                 Err(ArrErr::Error(err))
             }
         },
@@ -370,7 +415,7 @@ pub(super) fn param_from_search_col(
                     "Can't convert search col [{}] with value [{}] to f64: {}",
                     col.col_name, col_val, e
                 );
-                psql_error!("{}", err);
+                psql_error!("(param_from_search_col) {}", err);
                 Err(ArrErr::Error(err))
             }
         },
@@ -381,7 +426,7 @@ pub(super) fn param_from_search_col(
                     "Can't convert search col [{}] with value [{}] to i16: {}",
                     col.col_name, col_val, e
                 );
-                psql_error!("{}", err);
+                psql_error!("(param_from_search_col) {}", err);
                 Err(ArrErr::Error(err))
             }
         },
@@ -392,7 +437,7 @@ pub(super) fn param_from_search_col(
                     "Can't convert search col [{}] with value [{}] to i32: {}",
                     col.col_name, col_val, e
                 );
-                psql_error!("{}", err);
+                psql_error!("(param_from_search_col) {}", err);
                 Err(ArrErr::Error(err))
             }
         },
@@ -403,7 +448,7 @@ pub(super) fn param_from_search_col(
                     "Can't convert search col [{}] with value [{}] to i64: {}",
                     col.col_name, col_val, e
                 );
-                psql_error!("{}", err);
+                psql_error!("(param_from_search_col) {}", err);
                 Err(ArrErr::Error(err))
             }
         },
@@ -414,7 +459,7 @@ pub(super) fn param_from_search_col(
                     "Can't convert search col [{}] with value [{}] to Uuid: {}",
                     col.col_name, col_val, e
                 );
-                psql_error!("{}", err);
+                psql_error!("(param_from_search_col) {}", err);
                 Err(ArrErr::Error(err))
             }
         },
@@ -425,7 +470,7 @@ pub(super) fn param_from_search_col(
                     "Can't convert search col [{}] with value [{}] to DateTime<Utc>: {}",
                     col.col_name, col_val, e
                 );
-                psql_error!("{}", err);
+                psql_error!("(param_from_search_col) {}", err);
                 Err(ArrErr::Error(err))
             }
         },
@@ -434,5 +479,115 @@ pub(super) fn param_from_search_col(
             Ok(Box::new(val))
         }
         _ => Ok(Box::new(col_val.clone())),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::resources::base::ResourceObject;
+    use crate::{config::Config, init_logger, test_util::*};
+
+    #[test]
+    fn test_get_param_from_search_col() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+        unit_test_info!("(test_get_param_from_search_col) start");
+
+        // Our TestData object should have fields for each possible field_type.
+        // We'll use it to loop over all the fields and test the expected return
+        // value for that type.
+        let definition = ResourceObject::<TestData>::get_definition();
+        for field in definition.get_psql_id_cols() {
+            let val = uuid::Uuid::new_v4();
+            let search_col = SearchCol {
+                col_name: field.clone(),
+                col_type: PsqlFieldType::UUID,
+                value: Some(val.to_string()),
+            };
+            let result = param_from_search_col(&search_col);
+            assert!(result.is_ok());
+            let value = result.unwrap();
+            assert_eq!(format!("{:?}", val), format!("{:?}", value))
+        }
+
+        for (field, field_definition) in definition.fields {
+            let (string_val, display_val) = match field_definition.field_type {
+                PsqlFieldType::UUID => {
+                    let val = uuid::Uuid::new_v4();
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::TIMESTAMPTZ => {
+                    let val = &chrono::Utc::now();
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::ANYENUM => {
+                    let val = "TEST";
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::POINT => {
+                    let val = "Point(1.0 2.0)";
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::POLYGON => {
+                    let val = "Polygon((1.1 1.1, 2.1 2.2), (3.1 3.2, 4.1 4.2))";
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::PATH => {
+                    let val = "LineString(1.1 1.1, 2.1 2.2)";
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::TEXT => {
+                    let val: String = String::from("search text");
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::INT2 => {
+                    let val: i16 = 16;
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::INT4 => {
+                    let val: i32 = 32;
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::INT8 => {
+                    let val: i64 = 64;
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::FLOAT8 => {
+                    let val: f64 = 64.0;
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::JSON => {
+                    let val = "[1,2,3]";
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::BOOL => {
+                    let val: bool = true;
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::BYTEA => {
+                    let val = b"Test".to_vec();
+                    (
+                        std::str::from_utf8(&val).unwrap().to_string(),
+                        format!("{:?}", val),
+                    )
+                }
+                _ => {
+                    panic!(
+                        "Conversion errors found in fields for table [{}], unknown field type [{}].",
+                        definition.psql_table, field_definition.field_type.name()
+                    )
+                }
+            };
+            let search_col = SearchCol {
+                col_name: field.clone(),
+                col_type: field_definition.field_type,
+                value: Some(string_val),
+            };
+            let result = param_from_search_col(&search_col);
+            assert!(result.is_ok());
+            let value = result.unwrap();
+            assert_eq!(display_val, format!("{:?}", value))
+        }
+        unit_test_info!("(test_get_param_from_search_col) success");
     }
 }

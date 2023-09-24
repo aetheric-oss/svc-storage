@@ -2,19 +2,21 @@ syntax = "proto3";
 package grpc.vertipad;
 
 import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "svc-storage-grpc-geo_types.proto";
 import "svc-storage-grpc.proto";
 
 // Response struct returning an [Object] on success and [ValidationResult] if invalid fields were provided
 message Response {
     // struct with field -> error pairs to provide feedback about invalid fields
     grpc.ValidationResult validation_result = 1;
-    // Object struct with id [String] in [Uuid](uuid::Uuid) format and [Data] struct with vertiport data
+    // Object struct with id [`String`] in [`Uuid`](uuid::Uuid) format and [`Data`] struct with vertiport data
     optional Object object = 2;
 }
 
 // Object struct with `id` and `data` field
-// * `id` [String] in [Uuid](uuid::Uuid) format
-// * `data` [Data] struct with vertiport data
+// * `id` [`String`] in [`Uuid`](uuid::Uuid) format
+// * `data` [`Data`] struct with vertiport data
 message Object {
     //id UUID v4
     string id = 1;
@@ -23,11 +25,11 @@ message Object {
 }
 
 // UpdateObject struct with `id`, `data` and `mask` fields
-// * `id` [String] in [Uuid](uuid::Uuid) format
-// * `data` [Data] struct with vertiport data which should be used for update
-// * `mask` [FieldMask] struct with vertiport fields that should be updated
+// * `id` [`String`] in [`Uuid`](uuid::Uuid) format
+// * `data` [`Data`] struct with vertiport data which should be used for update
+// * `mask` [`FieldMask`] struct with vertiport fields that should be updated
 message UpdateObject {
-    // `id` [String] in [Uuid](uuid::Uuid) format
+    // `id` [`String`] in [`Uuid`](uuid::Uuid) format
     string id = 1;
     // struct with vertiport data which should be used for update
     Data data = 2;
@@ -41,16 +43,18 @@ message Data {
     string vertiport_id = 1;
     // human readable name of the vertipad
     string name = 2;
-    // vertipad latitude location
-    double latitude = 3;
-    // vertipad longitude location
-    double longitude = 4;
+    // geographical location of the vertipad
+    grpc.geo_types.GeoPoint geo_location = 3;
     // indicates if the vertipad is in business
-    bool enabled = 5;
+    bool enabled = 4;
     // indicates if the vertipad is currently occupied
-    bool occupied = 6;
+    bool occupied = 5;
     // RRULE data string to indicate the vertipad's opening days and hours
-    optional string schedule = 7;
+    optional string schedule = 6;
+    // timestamp of the date and time the vertipad has been created
+    optional google.protobuf.Timestamp created_at = 7;
+    // timestamp of the last update action performed on the data
+    optional google.protobuf.Timestamp updated_at = 8;
 }
 
 // Struct containing a `list` of vertipad [Vec\<Object\>]

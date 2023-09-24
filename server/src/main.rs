@@ -1,71 +1,47 @@
 //! Main function starting the gRPC server and initializing dependencies.
-use log::error;
+
 use log::info;
-use std::env;
-use svc_storage::common::{use_psql_get, ArrErr};
-use svc_storage::config::Config;
-use svc_storage::grpc::server::grpc_server;
 use svc_storage::postgres::init::{create_db, recreate_db};
 use svc_storage::postgres::init_psql_pool;
+use svc_storage::*;
 
+/// Main entry point: starts gRPC Server on specified address and port
 #[tokio::main]
-async fn main() -> Result<(), ArrErr> {
+#[cfg(not(tarpaulin_include))]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    println!("(svc-storage) server startup.");
+
     // Will use default config settings if no environment vars are found.
-    let config = Config::from_env().unwrap_or_default();
-    {
-        // Set up logger runtime -- needs access to log4rs.yaml
-        let log_cfg: &str = config.log_config.as_str();
-        if let Err(e) = log4rs::init_file(log_cfg, Default::default()) {
-            error!("(logger) could not parse {}. {}", log_cfg, e);
-            panic!();
-        }
-    }
+    let config = Config::try_from_env().unwrap_or_default();
 
-    // Check command line args
-    let args: Vec<String> = env::args().collect();
-    for option in args.iter() {
-        if option == &args[0] {
-            // skip first arg, it's our own program name
-            continue;
-        }
-        apply_arg(option).await?;
-    }
+    init_logger(&config);
 
-    if use_psql_get() {
-        info!("Running database initialization");
-        init_psql_pool().await?;
+    info!("(main) Running database initialization.");
+    init_psql_pool().await?;
+
+    // Allow options for psql init or and/ or recreation
+    // locally: cargo run -- --init-psql true
+    let args = Cli::parse();
+    if let Some(rebuild_psql) = args.rebuild_psql {
+        if rebuild_psql {
+            info!("(main) Found argument [rebuild_psql]. Rebuilding now...");
+            recreate_db().await?;
+            info!("(main) PSQL Rebuild completed.");
+        }
+    } else if let Some(init_psql) = args.init_psql {
+        if init_psql {
+            info!("(main) Found argument [init_psql]. Creating database schema now...");
+            create_db().await?;
+            info!("(main) PSQL Database creation completed.");
+        }
     }
 
     // Start GRPC Server
-    tokio::spawn(grpc_server(config)).await?;
+    tokio::spawn(grpc::server::grpc_server(config, None)).await?;
+    info!("(main) Server shutdown.");
 
-    info!("Server shutdown.");
+    // Make sure all log message are written/ displayed before shutdown
+    log::logger().flush();
+
     Ok(())
-}
-
-/// Matches given arguments with known options
-async fn apply_arg(option: &str) -> Result<(), ArrErr> {
-    match option {
-        "init_psql" => {
-            init_psql_pool().await?;
-            info!(
-                "Found argument [{}]. Creating database schema now...",
-                option
-            );
-            create_db().await?;
-            info!("PSQL Database creation completed.");
-            Ok(())
-        }
-        "rebuild_psql" => {
-            init_psql_pool().await?;
-            info!("Found argument [{}]. Rebuilding now...", option);
-            recreate_db().await?;
-            info!("PSQL Rebuild completed.");
-            Ok(())
-        }
-        _ => {
-            info!("Unknown argument {}, ignoring...", option);
-            Ok(())
-        }
-    }
 }

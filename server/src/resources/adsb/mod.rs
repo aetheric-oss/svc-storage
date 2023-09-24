@@ -3,7 +3,6 @@
 pub use crate::grpc::server::adsb::*;
 
 use chrono::{DateTime, Utc};
-use lib_common::time::datetime_to_timestamp;
 use log::debug;
 use std::collections::HashMap;
 use tokio_postgres::row::Row;
@@ -45,13 +44,6 @@ impl Resource for ResourceObject<Data> {
             ]),
         }
     }
-
-    fn get_table_indices() -> Vec<String> {
-        [
-            // none
-        ]
-        .to_vec()
-    }
 }
 
 impl GrpcDataObjectType for Data {
@@ -71,17 +63,17 @@ impl GrpcDataObjectType for Data {
     }
 }
 
+#[cfg(not(tarpaulin_include))]
+// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
 impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("Converting Row to adsb::Data: {:?}", row);
+        debug!("(try_from) Converting Row to adsb::Data: {:?}", row);
 
-        let result = row.get::<&str, Option<DateTime<Utc>>>("network_timestamp");
-        let network_timestamp = match result {
-            Some(val) => datetime_to_timestamp(&val),
-            None => None,
-        };
+        let network_timestamp: Option<prost_wkt_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("network_timestamp")
+            .map(|val| val.into());
 
         Ok(Data {
             icao_address: row.get::<&str, i64>("icao_address"),
@@ -89,5 +81,62 @@ impl TryFrom<Row> for Data {
             network_timestamp,
             payload: row.get::<&str, Vec<u8>>("payload"),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{config::Config, init_logger, test_util::*};
+
+    #[test]
+    fn test_adsb_schema() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+        unit_test_info!("(test_adsb_schema) start");
+
+        let id = Uuid::new_v4().to_string();
+        let data = mock::get_data_obj();
+        let object: ResourceObject<Data> = Object {
+            id,
+            data: Some(data.clone()),
+        }
+        .into();
+        test_schema::<ResourceObject<Data>, Data>(object);
+
+        let result = validate::<ResourceObject<Data>>(&data);
+        assert!(result.is_ok());
+        if let Ok((sql_fields, validation_result)) = result {
+            unit_test_info!("{:?}", sql_fields);
+            unit_test_info!("{:?}", validation_result);
+            assert_eq!(validation_result.success, true);
+        }
+        unit_test_info!("(test_adsb_schema) success");
+    }
+    #[test]
+    fn test_adsb_invalid_data() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+        unit_test_info!("(test_adsb_invalid_data) start");
+
+        let data = Data {
+            icao_address: -1,
+            message_type: -1,
+            network_timestamp: Some(prost_wkt_types::Timestamp {
+                seconds: -1,
+                nanos: -1,
+            }),
+            payload: vec![255, 0, 0, 0],
+        };
+
+        let result = validate::<ResourceObject<Data>>(&data);
+        assert!(result.is_ok());
+        if let Ok((_, validation_result)) = result {
+            unit_test_info!("{:?}", validation_result);
+            assert_eq!(validation_result.success, false);
+
+            let expected_errors = vec!["network_timestamp"];
+            assert_eq!(expected_errors.len(), validation_result.errors.len());
+            assert!(contains_field_errors(&validation_result, &expected_errors));
+        }
+        unit_test_info!("(test_adsb_invalid_data) success");
     }
 }

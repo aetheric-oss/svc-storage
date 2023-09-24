@@ -8,7 +8,7 @@ use dotenv::dotenv;
 use serde::Deserialize;
 
 /// struct holding configuration options
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Config {
     /// deadpool configuration object
     pub pg: deadpool_postgres::Config,
@@ -29,6 +29,7 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Self {
+        log::warn!("(default) Creating Config object with default values.");
         Self::new()
     }
 }
@@ -37,27 +38,54 @@ impl Config {
     /// Create new configuration object with default values
     pub fn new() -> Self {
         Config {
+            docker_port_grpc: 50051,
+            log_config: String::from("log4rs.yaml"),
             pg: deadpool_postgres::Config::new(),
             use_tls: true,
             db_ca_cert: "".to_string(),
             db_client_cert: None,
             db_client_key: None,
-            docker_port_grpc: 50051,
-            log_config: String::from("log4rs.yaml"),
         }
     }
 
     /// Create a new `Config` object using environment variables
-    pub fn from_env() -> Result<Self, ConfigError> {
+    pub fn try_from_env() -> Result<Self, ConfigError> {
         // read .env file if present
         dotenv().ok();
 
         config::Config::builder()
-            .set_default("use_tls", true)?
             .set_default("docker_port_grpc", 50051)?
             .set_default("log_config", String::from("log4rs.yaml"))?
+            .set_default("use_tls", true)?
             .add_source(Environment::default().separator("__"))
             .build()?
             .try_deserialize()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{config::Config, init_logger};
+
+    #[test]
+    fn test_config_from_default() {
+        let config = Config::default();
+
+        assert_eq!(config.docker_port_grpc, 50051);
+        assert_eq!(config.log_config, String::from("log4rs.yaml"));
+        assert_eq!(config.use_tls, true);
+    }
+
+    #[test]
+    fn test_config_from_env() {
+        // Make sure logger is initialized for tests before we mess with our env vars
+        init_logger(&Config::try_from_env().unwrap_or_default());
+
+        std::env::set_var("DOCKER_PORT_GRPC", "6789");
+        std::env::set_var("LOG_CONFIG", "config_file.yaml");
+
+        let config = Config::try_from_env().unwrap();
+
+        assert_eq!(config.use_tls, true);
     }
 }

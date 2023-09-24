@@ -45,8 +45,7 @@ impl Resource for ResourceObject<Data> {
                 ),
                 (
                     "deleted_at".to_string(),
-                    FieldDefinition::new_internal(PsqlFieldType::TIMESTAMPTZ, true)
-                        .set_default(String::from("CURRENT_TIMESTAMP")),
+                    FieldDefinition::new_internal(PsqlFieldType::TIMESTAMPTZ, false),
                 ),
             ]),
         }
@@ -66,14 +65,46 @@ impl GrpcDataObjectType for Data {
     }
 }
 
+#[cfg(not(tarpaulin_include))]
+// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
 impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("Converting Row to pilot::Data: {:?}", row);
+        debug!("(try_from) Converting Row to pilot::Data: {:?}", row);
         Ok(Data {
             first_name: row.get("first_name"),
             last_name: row.get("last_name"),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{config::Config, init_logger, test_util::*};
+
+    #[test]
+    fn test_pilot_schema() {
+        init_logger(&Config::try_from_env().unwrap_or_default());
+        unit_test_info!("(test_pilot_schema) start");
+
+        let id = Uuid::new_v4().to_string();
+        let data = mock::get_data_obj();
+        let object: ResourceObject<Data> = Object {
+            id,
+            data: Some(data.clone()),
+        }
+        .into();
+        test_schema::<ResourceObject<Data>, Data>(object);
+
+        let result = validate::<ResourceObject<Data>>(&data);
+        assert!(result.is_ok());
+        if let Ok((sql_fields, validation_result)) = result {
+            unit_test_info!("{:?}", sql_fields);
+            unit_test_info!("{:?}", validation_result);
+            assert_eq!(validation_result.success, true);
+        }
+        unit_test_info!("(test_pilot_schema) success");
     }
 }

@@ -1,0 +1,72 @@
+syntax = "proto3";
+package grpc.user;
+
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "svc-storage-grpc.proto";
+
+// Vehicle Model Type Enum
+enum AuthMethod {
+    // OAUTH Google
+    OAUTH_GOOGLE = 0;
+    // OAUTH Facebook
+    OAUTH_FACEBOOK = 1;
+    // OAUTH Azure ID
+    OAUTH_AZURE_AD = 2;
+    // LOCAL / Password
+    LOCAL = 3;
+}
+
+// Response struct returning an [Object] on success and [ValidationResult] if invalid fields were provided
+message Response {
+    // struct with field -> error pairs to provide feedback about invalid fields
+    grpc.ValidationResult validation_result = 1;
+    // Object struct with id [`String`] in [`Uuid`](uuid::Uuid) format and [`Data`] struct with user data
+    optional Object object = 2;
+}
+
+// Object struct with `id` and `data` field
+// * `id` [`String`] in [`Uuid`](uuid::Uuid) format
+// * `data` [`Data`] struct with user data
+message Object {
+    //id UUID v4
+    string id = 1;
+    //data
+    Data data = 2;
+}
+
+// UpdateObject struct with `id`, `data` and `mask` fields
+// * `id` [`String`] in [`Uuid`](uuid::Uuid) format
+// * `data` [`Data`] struct with user data which should be used for update
+// * `mask` [`FieldMask`] struct with user fields that should be updated
+message UpdateObject {
+    // `id` [`String`] in [`Uuid`](uuid::Uuid) format
+    string id = 1;
+    // struct with user data which should be used for update
+    Data data = 2;
+    // struct with user fields that should be updated
+    google.protobuf.FieldMask mask = 3;
+}
+
+// Data struct with user data
+// PI data will be stored in a separate database/ service
+message Data {
+    // the User's authentication method
+    AuthMethod auth_method = 2;
+    // the User's preferred display name
+    string display_name = 3;
+}
+
+// Struct containing a `list` of user [`Vec\<Object\>`]
+message List {
+    // array/vector of user items
+    repeated Object list = 1;
+}
+
+// Struct used to link groups to user
+message UserGroups {
+    // `id` [`String`] in [`Uuid`](uuid::Uuid) format
+    string id = 1;
+    // group ids as [`Vec\<String\>`] in [`Uuid`](uuid::Uuid) format
+    IdList other_id_list = 2;
+}

@@ -6,7 +6,11 @@ pub mod macros;
 pub mod init;
 pub mod linked_resource;
 pub mod simple_resource;
+pub mod simple_resource_linked;
+pub(crate) mod util;
 
+mod postgis;
+mod queries;
 mod search;
 
 use crate::config::Config;
@@ -51,21 +55,21 @@ pub fn get_psql_pool() -> Pool {
 impl From<tokio_postgres::Error> for ArrErr {
     fn from(err: tokio_postgres::Error) -> Self {
         let err: Error = err.into();
-        psql_error!("error executing DB query: {}", err);
+        psql_error!("(from) Error executing DB query: {}", err);
         ArrErr::Error(err.to_string())
     }
 }
 impl From<deadpool_postgres::PoolError> for ArrErr {
     fn from(err: deadpool_postgres::PoolError) -> Self {
         let err: Error = err.into();
-        psql_error!("postgres pool error: {}", err);
+        psql_error!("(from) Postgres pool error: {}", err);
         ArrErr::Error(err.to_string())
     }
 }
 impl From<deadpool_postgres::ConfigError> for ArrErr {
     fn from(err: deadpool_postgres::ConfigError) -> Self {
         let err: Error = err.into();
-        psql_error!("postgres pool config error: {}", err);
+        psql_error!("(from) Postgres pool config error: {}", err);
         ArrErr::Error(err.to_string())
     }
 }
@@ -102,52 +106,79 @@ impl PostgresPool {
     /// }
     /// ```
     pub fn from_config() -> Result<PostgresPool, ArrErr> {
-        let mut settings = Config::from_env().unwrap_or_default();
+        let mut settings = Config::try_from_env().unwrap_or_default();
 
         settings.pg.manager = Some(ManagerConfig {
             recycling_method: RecyclingMethod::Fast,
         });
         psql_debug!(
-            "Creating PostgresPool with configuration: {:?}",
+            "(from_config) Creating PostgresPool with configuration: {:?}",
             settings.pg
         );
 
         let pool = if settings.use_tls {
-            let root_cert_file = fs::read(settings.db_ca_cert.clone()).unwrap_or_else(|e| {
-                panic!(
-                    "Unable to read db_ca_cert file [{}]: {}",
-                    settings.db_ca_cert, e
-                )
-            });
-            let root_cert = Certificate::from_pem(&root_cert_file).unwrap_or_else(|e| {
-                panic!(
-                    "Unable to load Certificate from pem file [{}]: {}",
-                    settings.db_ca_cert, e
-                )
-            });
+            psql_info!("(from_config) Initializing connection with TLS settings.");
+            psql_debug!("(from_config) [{:?}].", settings);
+            psql_info!(
+                "(from_config) Try read root cert file: {}",
+                settings.db_ca_cert
+            );
+            let root_cert_file = match fs::read(settings.db_ca_cert.clone()) {
+                Ok(root_cert_file) => root_cert_file,
+                Err(e) => {
+                    let error = format!(
+                        "Unable to read db_ca_cert file [{}]: {}",
+                        settings.db_ca_cert, e
+                    );
+                    psql_error!("(from_config) {}", error);
+                    return Err(ArrErr::Error(error));
+                }
+            };
+            psql_info!("(from_config) Try load root cert file.");
+            let root_cert = match Certificate::from_pem(&root_cert_file) {
+                Ok(root_cert) => root_cert,
+                Err(e) => {
+                    let error = format!(
+                        "Unable to load Certificate from pem file [{}]: {}",
+                        settings.db_ca_cert, e
+                    );
+                    psql_error!("(from_config) {}", error);
+                    return Err(ArrErr::Error(error));
+                }
+            };
+            psql_debug!("(from_config) Root cert load success.");
+
             // If client cert and key are specified, try using it. Otherwise default to user/pass.
             // Since the TlsConnector builder sucks
             let builder = if settings.db_client_cert.is_some() && settings.db_client_key.is_some() {
                 let cert: String = settings
                     .db_client_cert
-                    .unwrap_or_else(|| panic!("No DB_CLIENT_CERT env var found"));
+                    .ok_or("No DB_CLIENT_CERT env var found.")
+                    .map_err(|e| ArrErr::Error(e.to_owned()))?;
                 let key: String = settings
                     .db_client_key
-                    .unwrap_or_else(|| panic!("No DB_CLIENT_KEY env var found"));
-                let client_cert_file = fs::read(cert.clone()).unwrap_or_else(|e| {
-                    panic!(
+                    .ok_or("No DB_CLIENT_KEY env var found")
+                    .map_err(|e| ArrErr::Error(e.to_owned()))?;
+                psql_info!("(from_config) Try read client cert file.");
+                let client_cert_file = fs::read(cert.clone()).map_err(|e| {
+                    let error = format!(
                         "Unable to read client certificate db_client_cert file [{}]: {}",
                         cert, e
-                    )
-                });
-                let client_key_file = fs::read(key.clone()).unwrap_or_else(|e| {
-                    panic!(
+                    );
+                    psql_error!("(from_config) {}", error);
+                    ArrErr::Error(error)
+                })?;
+                psql_info!("(from_config) Try read client key file.");
+                let client_key_file = fs::read(key.clone()).map_err(|e| {
+                    let error = format!(
                         "Unable to read client key db_client_key file [{}]: {}",
                         key, e
-                    )
-                });
+                    );
+                    psql_error!("(from_config) {}", error);
+                    ArrErr::Error(error)
+                })?;
 
-                psql_info!("Setting up TLS connection with client cert and key.");
+                psql_info!("(from_config) Setting up TLS connection with client cert and key.");
                 TlsConnector::builder()
                     .add_root_certificate(root_cert)
                     .identity(
@@ -165,7 +196,7 @@ impl PostgresPool {
                         panic!("Unable to connect build connector custom ca and client certs: {}", e)
                     })
             } else {
-                psql_info!("Setting up TLS connection with client password.");
+                psql_warn!("(from_config) Setting up TLS connection with client password.");
                 TlsConnector::builder()
                     .add_root_certificate(root_cert)
                     .build()
@@ -180,19 +211,18 @@ impl PostgresPool {
 
             settings.pg.create_pool(Some(Runtime::Tokio1), connector)?
         } else {
-            psql_warn!("Setting up database connection without TLS and using client password.");
+            psql_warn!("(from_config) Setting up database connection without TLS and using client password.");
             settings.pg.create_pool(Some(Runtime::Tokio1), NoTls)?
         };
 
-        psql_info!("Successfully created PostgresPool.");
+        psql_info!("(from_config) Successfully created PostgresPool.");
         Ok(PostgresPool { pool })
     }
 
     /// Returns an error if queries can not be served
     pub async fn readiness(&self) -> Result<(), ArrErr> {
-        psql_debug!("Checking database readiness.");
+        psql_debug!("(readiness) Checking database readiness.");
         let client_check = self.check().await;
-        //TODO(R3): provide metrics, eg: self.metrics.postgres_ready(client_check.is_ok());
         client_check?;
         Ok(())
     }
@@ -203,7 +233,7 @@ impl PostgresPool {
         let st = client.prepare("SELECT 1 + 1").await?;
         match client.query_one(&st, &[]).await {
             Ok(_) => {
-                psql_debug!("Success, the database is ready.");
+                psql_debug!("(check) Success, the database is ready.");
                 Ok(())
             }
             Err(e) => Err(ArrErr::from(e)),
@@ -214,10 +244,10 @@ impl PostgresPool {
 /// Initializes the database pool if it hasn't been created yet.
 /// Uses the configuration from the environment.
 pub async fn init_psql_pool() -> Result<(), ArrErr> {
-    psql_info!("Initializing global shared psql pool.");
+    psql_info!("(init_psql_pool) Initializing global shared psql pool.");
     match DB_POOL
         .get_or_try_init(|| async move {
-            println!("Initializing database connection pool.");
+            println!("(init_psql_pool) Initializing database connection pool.");
             // Initialize global postgresql DB connection pool
             let pg = PostgresPool::from_config()?;
             match pg.readiness().await {

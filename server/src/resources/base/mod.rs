@@ -2,14 +2,13 @@
 
 pub mod linked_resource;
 pub mod simple_resource;
-use crate::grpc::server::{Id, IdList, ValidationError};
+pub mod simple_resource_linked;
+
+use crate::grpc::server::{Id, IdList, Ids};
 use crate::postgres::PsqlJsonValue;
 use crate::{common::ArrErr, grpc::GrpcDataObjectType};
-use chrono::{DateTime, Utc};
 use core::fmt::Debug;
-use lib_common::time::timestamp_to_datetime;
 use log::error;
-use prost_types::Timestamp;
 use std::collections::HashMap;
 use tokio_postgres::types::Type as PsqlFieldType;
 use uuid::Uuid;
@@ -76,9 +75,8 @@ where
         match self.get_data() {
             Some(data) => Ok(data),
             None => {
-                let error =
-                    "No data provided for ObjectType<T> when calling [try_get_data]".to_string();
-                error!("{}", error);
+                let error = "No data provided for ObjectType<T>.".to_string();
+                error!("(try_get_data) {}", error);
                 Err(ArrErr::Error(error))
             }
         }
@@ -98,10 +96,14 @@ where
                 }
                 Ok(result)
             }
-            None => Err(ArrErr::Error(format!(
-                "No ids configured for resource [{}]",
-                Self::get_psql_table()
-            ))),
+            None => {
+                let error = format!(
+                    "No ids configured for resource [{}].",
+                    Self::get_psql_table()
+                );
+                error!("(try_get_uuids) {}", error);
+                Err(ArrErr::Error(error))
+            }
         }
     }
     /// Returns [`ObjectType<T>`]'s `id_field` value as [`Option<String>`] if found
@@ -195,6 +197,8 @@ pub struct FieldDefinition {
     mandatory: bool,
     /// [`bool`] to set if field should not be exposed to gRPC object
     internal: bool,
+    /// [`bool`] to set if field should be read only for clients
+    read_only: bool,
     /// [`String`] option to provide a default value used during database inserts
     default: Option<String>,
 }
@@ -206,6 +210,7 @@ impl FieldDefinition {
             field_type,
             mandatory,
             internal: false,
+            read_only: false,
             default: None,
         }
     }
@@ -215,6 +220,17 @@ impl FieldDefinition {
             field_type,
             mandatory,
             internal: true,
+            read_only: true,
+            default: None,
+        }
+    }
+    /// Create a new read_only [`FieldDefinition`] with provided field_type and mandatory setting
+    pub fn new_read_only(field_type: PsqlFieldType, mandatory: bool) -> Self {
+        Self {
+            field_type,
+            mandatory,
+            internal: false,
+            read_only: true,
             default: None,
         }
     }
@@ -227,6 +243,11 @@ impl FieldDefinition {
     pub fn is_internal(&self) -> bool {
         self.internal
     }
+    /// Returns [`bool`] internal
+    pub fn is_read_only(&self) -> bool {
+        self.read_only
+    }
+
     /// Returns [`bool`] `true` if a `default` value has been provided for this field and `false`if not
     pub fn has_default(&self) -> bool {
         self.default.is_some()
@@ -266,91 +287,195 @@ impl TryFrom<IdList> for Vec<Uuid> {
         Ok(uuid_list)
     }
 }
-
-impl TryFrom<PsqlJsonValue> for Vec<i64> {
+impl TryFrom<Ids> for HashMap<String, Uuid> {
+    type Error = ArrErr;
+    fn try_from(ids: Ids) -> Result<Self, ArrErr> {
+        let mut uuid_hash = HashMap::new();
+        for id in ids.ids.iter() {
+            uuid_hash.insert(
+                id.field.clone(),
+                Uuid::try_parse(&id.value).map_err(ArrErr::UuidError)?,
+            );
+        }
+        Ok(uuid_hash)
+    }
+}
+impl TryFrom<PsqlJsonValue> for Vec<u32> {
     type Error = ArrErr;
     fn try_from(json_value: PsqlJsonValue) -> Result<Self, ArrErr> {
         match json_value.value.as_array() {
             Some(arr) => {
                 let iter = arr.iter();
-                let mut vec: Vec<i64> = vec![];
+                let mut vec: Vec<u32> = vec![];
                 for val in iter {
-                    vec.push(val.as_i64().ok_or(ArrErr::Error(format!(
-                        "json_value did not contain array with i64: {}",
+                    vec.push(val.as_u64().ok_or(ArrErr::Error(format!(
+                        "json_value did not contain array with u32: {}",
                         json_value.value
-                    )))?);
+                    )))? as u32);
                 }
                 Ok(vec)
             }
             None => {
                 let error = format!(
-                    "Could not convert [PsqlJsonValue] to [Vec<i64>]: {:?}",
+                    "Could not convert [PsqlJsonValue] to [Vec<u32>]: {:?}",
                     json_value
                 );
-                error!("{}", error);
+                error!("(try_from) {}", error);
                 Err(ArrErr::Error(error))
             }
         }
     }
 }
 
-/// Convert a [`String`] (used by grpc) into a [`Uuid`] (used by postgres).
-/// Creates an error entry in the errors list if a conversion was not possible.
-pub fn validate_uuid(
-    field: String,
-    value: &str,
-    errors: &mut Vec<ValidationError>,
-) -> Option<Uuid> {
-    match Uuid::try_parse(value) {
-        Ok(id) => Some(id),
-        Err(e) => {
-            let error = format!("Could not convert [{}] to UUID: {}", field, e);
-            error!("{}", error);
-            errors.push(ValidationError { field, error });
-            None
-        }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio_postgres::types::Type as PsqlFieldType;
+
+    // FieldDefinition tests
+    #[test]
+    fn test_field_definition_new() {
+        let field_type = PsqlFieldType::VARCHAR;
+        let mandatory = true;
+        let field_def = FieldDefinition::new(field_type.clone(), mandatory);
+
+        assert_eq!(field_def.field_type, field_type);
+        assert_eq!(field_def.is_mandatory(), mandatory);
+        assert!(!field_def.is_internal());
+        assert!(!field_def.is_read_only());
+        assert!(!field_def.has_default());
     }
-}
 
-/// Convert a [`prost_types::Timestamp`] (used by grpc) into a [`chrono::DateTime::<Utc>`] (used by postgres).
-/// Creates an error entry in the errors list if a conversion was not possible.
-pub fn validate_dt(
-    field: String,
-    value: &Timestamp,
-    errors: &mut Vec<ValidationError>,
-) -> Option<DateTime<Utc>> {
-    let dt = timestamp_to_datetime(value);
-    match dt {
-        Some(dt) => Some(dt),
-        None => {
-            let error = format!(
-                "Could not convert [{}] to NaiveDateTime::from_timestamp_opt({})",
-                field, value
-            );
-            error!("{}", error);
-            errors.push(ValidationError { field, error });
-            None
-        }
+    #[test]
+    fn test_field_definition_internal_field() {
+        let field_type = PsqlFieldType::FLOAT8;
+        let mandatory = false;
+        let field_def = FieldDefinition::new_internal(field_type.clone(), mandatory);
+
+        assert_eq!(field_def.field_type, field_type);
+        assert_eq!(field_def.is_mandatory(), mandatory);
+        assert!(field_def.is_internal());
+        assert!(field_def.is_read_only());
+        assert!(!field_def.has_default());
     }
-}
 
-/// Convert an enum integer value (used by grpc) into a string (used by postgres).
-/// Creates an error entry in the errors list if a conversion was not possible.
-/// Relies on implementation of `get_enum_string_val`
-pub fn validate_enum(
-    field: String,
-    value: Option<String>,
-    errors: &mut Vec<ValidationError>,
-) -> Option<String> {
-    //let string_value = Self::get_enum_string_val(&field, value);
+    #[test]
+    fn test_field_definition_read_only_field() {
+        let field_type = PsqlFieldType::FLOAT8;
+        let mandatory = false;
+        let field_def = FieldDefinition::new_read_only(field_type.clone(), mandatory);
 
-    match value {
-        Some(val) => Some(val),
-        None => {
-            let error = format!("Could not convert enum [{}] to i32: value not found", field);
-            error!("{}", error);
-            errors.push(ValidationError { field, error });
-            None
-        }
+        assert_eq!(field_def.field_type, field_type);
+        assert_eq!(field_def.is_mandatory(), mandatory);
+        assert!(!field_def.is_internal());
+        assert!(field_def.is_read_only());
+        assert!(!field_def.has_default());
+    }
+
+    #[test]
+    fn test_field_definition_set_default() {
+        let field_type = PsqlFieldType::BOOL;
+        let mandatory = true;
+        let mut field_def = FieldDefinition::new(field_type, mandatory);
+
+        assert!(!field_def.has_default());
+
+        let default_value = "true".to_owned();
+        field_def.set_default(default_value.clone());
+
+        assert!(field_def.has_default());
+        assert_eq!(field_def.get_default(), default_value);
+    }
+
+    #[test]
+    #[should_panic(expected = "get_default called on a field without a default value")]
+    fn test_field_definition_get_default_without_default() {
+        let field_type = PsqlFieldType::TEXT;
+        let mandatory = false;
+        let field_def = FieldDefinition::new_internal(field_type, mandatory);
+
+        field_def.get_default();
+    }
+
+    #[test]
+    fn test_field_definition_get_default_with_default() {
+        let field_type = PsqlFieldType::FLOAT4;
+        let mandatory = false;
+        let default_value = "3.14".to_owned();
+        let mut field_def = FieldDefinition::new(field_type, mandatory);
+        field_def.set_default(default_value.clone());
+
+        assert_eq!(field_def.get_default(), default_value);
+    }
+
+    // ResourceDefinition tests
+    #[test]
+    fn test_resource_definition_get_psql_table() {
+        let psql_table = "my_table".to_owned();
+        let resource_def = ResourceDefinition {
+            psql_table: psql_table.clone(),
+            psql_id_cols: Vec::new(),
+            fields: HashMap::new(),
+        };
+
+        assert_eq!(resource_def.get_psql_table(), psql_table);
+    }
+
+    #[test]
+    fn test_resource_definition_get_psql_id_cols() {
+        let psql_id_cols = vec!["id".to_owned(), "name".to_owned()];
+        let resource_def = ResourceDefinition {
+            psql_table: String::new(),
+            psql_id_cols: psql_id_cols.clone(),
+            fields: HashMap::new(),
+        };
+
+        assert_eq!(resource_def.get_psql_id_cols(), psql_id_cols);
+    }
+
+    #[test]
+    fn test_resource_definition_has_field() {
+        let field_name = "field1";
+        let field_def = FieldDefinition::new(PsqlFieldType::TEXT, true);
+
+        let mut fields = HashMap::new();
+        fields.insert(field_name.to_owned(), field_def);
+
+        let resource_def = ResourceDefinition {
+            psql_table: String::new(),
+            psql_id_cols: Vec::new(),
+            fields,
+        };
+
+        assert!(resource_def.has_field(field_name));
+        assert!(!resource_def.has_field("nonexistent_field"));
+    }
+
+    #[test]
+    fn test_resource_definition_try_get_field() {
+        let field_name = "field1";
+        let field_def = FieldDefinition::new(PsqlFieldType::TEXT, true);
+
+        let mut fields = HashMap::new();
+        fields.insert(field_name.to_owned(), field_def.clone());
+
+        let resource_def = ResourceDefinition {
+            psql_table: String::from("test"),
+            psql_id_cols: vec![String::from("test_id")],
+            fields,
+        };
+
+        let result = resource_def.try_get_field(field_name);
+        assert!(result.is_ok());
+        assert!(matches!(result.unwrap(), _field_def));
+
+        let result = resource_def.try_get_field("nonexistent_field");
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            format!(
+                "error: Tried to get field [nonexistent_field] for table [{}], but the field does not exist.", resource_def.get_psql_table()
+            )
+        );
     }
 }

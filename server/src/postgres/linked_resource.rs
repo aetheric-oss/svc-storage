@@ -16,51 +16,14 @@ use uuid::Uuid;
 #[tonic::async_trait]
 pub trait PsqlType
 where
-    Self: Resource + Clone + Sized,
+    Self: Resource + super::simple_resource::PsqlType + Clone + Sized,
 {
     /// Generic get for id function to get rows for the provided key fields
     /// Since this is a linked resource, the id is expected to be given as a [Vec\<FieldValuePair\>]
     /// to specify the id_column / value pairs to match
-    async fn get_for_ids(ids: HashMap<String, Uuid>) -> Result<Vec<Row>, ArrErr> {
-        psql_debug!("(get_for_ids) start: [{:?}]", ids);
-        let definition = Self::get_definition();
-
-        let mut params: Vec<Box<PsqlFieldSend>> = vec![];
-        let mut query = format!(r#"SELECT * FROM "{}""#, definition.psql_table);
-        let mut search_operator = "WHERE";
-        let mut next_param_index: i32 = 1;
-
-        for (field, value) in ids.clone() {
-            if Self::has_id_col(&field) {
-                query.push_str(&format!(
-                    r#" {} "{}" = ${}"#,
-                    search_operator, field, next_param_index
-                ));
-                params.push(Box::new(value));
-                search_operator = "AND";
-                next_param_index += 1;
-            }
-        }
-
-        let client = get_psql_pool().get().await?;
-        let stmt = client.prepare_cached(&query).await?;
-
-        psql_debug!("{}", &query);
-        psql_debug!("{:?}", &params);
-        psql_info!(
-            "Fetching row data for table [{}]. uuids: {:?}",
-            definition.psql_table,
-            ids
-        );
-
-        let mut ref_params: Vec<&PsqlField> = vec![];
-        for field in params.iter() {
-            ref_params.push(field.as_ref());
-        }
-        match client.query(&stmt, &ref_params[..]).await {
-            Ok(row) => Ok(row),
-            Err(e) => Err(e.into()),
-        }
+    async fn get_for_ids(ids: HashMap<String, Uuid>) -> Result<Row, ArrErr> {
+        psql_debug!("(get_for_ids) Start [{:?}].", ids);
+        super::queries::get_for_ids::<Self>(&ids).await
     }
 
     /// Generic delete for ids function to delete rows for the provided key fields
@@ -72,7 +35,7 @@ where
         ids: HashMap<String, Uuid>,
         transaction: Option<&Transaction>,
     ) -> Result<(), ArrErr> {
-        psql_debug!("(delete_for_ids) start: [{:?}]", ids);
+        psql_debug!("(delete_for_ids) Start [{:?}].", ids);
         let definition = Self::get_definition();
 
         let mut params: Vec<Box<PsqlFieldSend>> = vec![];
@@ -92,27 +55,27 @@ where
             }
         }
 
-        psql_debug!("{}", &query);
-        psql_debug!("{:?}", &params);
         psql_info!(
-            "Deleting rows for table [{}]. uuids: {:?}",
+            "(delete_for_ids) Deleting rows for table [{}]. uuids: {:?}",
             definition.psql_table,
             ids
         );
+        psql_debug!("(delete_for_ids) [{}].", &query);
+        psql_debug!("(delete_for_ids) [{:?}].", &params);
 
         let mut ref_params: Vec<&PsqlField> = vec![];
         for field in params.iter() {
             ref_params.push(field.as_ref());
         }
 
-        // TODO(R3): Move this to 2 separate functions which can be used in other places as well
+        // TODO(R4): Move this to 2 separate functions which can be used in other places as well
         match transaction {
             Some(client) => {
                 let stmt = client.prepare_cached(&query).await?;
                 match client.execute(&stmt, &ref_params[..]).await {
                     Ok(rows) => {
                         psql_debug!(
-                            "Removed [{}] entries from [{}]",
+                            "(delete_for_ids) Removed [{}] entries from [{}].",
                             rows,
                             definition.get_psql_table()
                         );
@@ -127,7 +90,7 @@ where
                 match client.execute(&stmt, &ref_params[..]).await {
                     Ok(rows) => {
                         psql_debug!(
-                            "Removed [{}] entries from [{}]",
+                            "(delete_for_ids) Removed [{}] entries from [{}].",
                             rows,
                             definition.get_psql_table()
                         );
@@ -147,7 +110,7 @@ where
         ids: Vec<HashMap<String, Uuid>>,
         replace: HashMap<String, Uuid>,
     ) -> Result<(), ArrErr> {
-        psql_debug!("(link_ids) start: [{:?}] replace [{:?}]", ids, replace);
+        psql_debug!("(link_ids) Start: [{:?}] replace [{:?}].", ids, replace);
         let definition = Self::get_definition();
 
         let mut client = get_psql_pool().get().await?;
@@ -179,10 +142,13 @@ where
                 inserts.join(", "),
                 definition.psql_id_cols.join(", ")
             );
-            psql_debug!("{}", insert_sql);
-            psql_debug!("{:?}", &params);
+            psql_debug!("(link_ids) {}", insert_sql);
+            psql_debug!("(link_ids) {:?}", &params);
 
-            psql_info!("Update/Insert entry for table [{}].", definition.psql_table);
+            psql_info!(
+                "(link_ids) Update/Insert entry for table [{}].",
+                definition.psql_table
+            );
 
             let mut ref_params: Vec<&PsqlField> = vec![];
             for field in params.iter() {
@@ -198,7 +164,7 @@ where
 }
 
 /// Generic trait for the Arrow LinkedResources that are stored in the CockroachDB backend.
-/// TODO: use `#![feature(async_fn_in_trait)]` once available: <https://blog.rust-lang.org/inside-rust/2022/11/17/async-fn-in-trait-nightly.html>
+/// TODO Rust 1.74: use `#![feature(async_fn_in_trait)]` once available: <https://blog.rust-lang.org/inside-rust/2023/05/03/stabilizing-async-fn-in-trait.html>
 #[tonic::async_trait]
 pub trait PsqlObjectType<T>
 where
@@ -208,8 +174,8 @@ where
     /// get data from the database using the Object's UUIDs
     /// returns [Row] on success
     async fn read(&self) -> Result<Row, ArrErr> {
-        psql_debug!("(read) start: [{:?}]", self.try_get_uuids());
-        //TODO(R3): implement shared memcache here to get object data if present
+        psql_debug!("(read) Start [{:?}].", self.try_get_uuids());
+        //TODO(R4): implement shared memcache here to get object data if present
         let definition = Self::get_definition();
         let ids = self.try_get_uuids()?;
 
@@ -227,14 +193,14 @@ where
             search_operator = "AND";
             next_param_index += 1;
         }
-        psql_debug!("{}", query);
-        psql_debug!("{:?}", &params);
+        psql_debug!("(read) [{}].", query);
+        psql_debug!("(read) [{:?}].", &params);
 
         let client = get_psql_pool().get().await?;
         let stmt = client.prepare_cached(&query).await?;
 
         psql_info!(
-            "Fetching row data for table [{}]. uuids: {:?}",
+            "(read) Fetching row data for table [{}]. uuids: {:?}",
             definition.psql_table,
             ids.clone()
         );
@@ -250,12 +216,12 @@ where
 
     /// delete database record from the database using the Object's primary key
     async fn delete(&self) -> Result<(), ArrErr> {
-        psql_debug!("(delete) start: [{:?}]", self.try_get_uuids());
+        psql_debug!("(delete) Start [{:?}].", self.try_get_uuids());
         let definition = Self::get_definition();
 
         let ids = self.try_get_uuids()?;
         psql_info!(
-            "Deleting entry from table [{}]. uuids: {:?}",
+            "(delete) Deleting entry from table [{}]. uuids: {:?}",
             definition.psql_table,
             ids
         );
@@ -274,13 +240,16 @@ where
             search_operator = "AND";
             next_param_index += 1;
         }
-        psql_debug!("{}", query);
-        psql_debug!("{:?}", &params);
+        psql_debug!("(delete) [{}].", query);
+        psql_debug!("(delete ) [{:?}].", &params);
 
         let client = get_psql_pool().get().await?;
         let stmt = client.prepare_cached(&query).await?;
 
-        psql_info!("Removing entry from table [{}].", definition.psql_table);
+        psql_info!(
+            "(delete) Removing entry from table [{}].",
+            definition.psql_table
+        );
 
         let mut ref_params: Vec<&PsqlField> = vec![];
         for field in params.iter() {
@@ -290,7 +259,7 @@ where
         match client.execute(&stmt, &ref_params[..]).await {
             Ok(num_rows) => {
                 if num_rows == 1 {
-                    //TODO(R3): flush shared memcache for this resource when memcache is implemented
+                    //TODO(R4): flush shared memcache for this resource when memcache is implemented
                     Ok(())
                 } else {
                     let error = format!(
@@ -298,7 +267,7 @@ where
                         definition.psql_table,
                         self.try_get_uuids()?
                     );
-                    psql_info!("{}", error);
+                    psql_info!("(delete) {}", error);
                     Err(ArrErr::Error(error))
                 }
             }

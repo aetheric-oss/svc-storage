@@ -7,10 +7,6 @@ import "svc-storage-grpc.proto";
 
 // ADS-B Telemetry gRPC service
 service RpcService {
-    // Search ads-b telemetry using a simple filter
-    // This function will be deprecated soon, please use `search` instead
-    rpc get_all_with_filter(SearchFilter) returns (adsb.List);
-
     // Returns a [`tonic::Response`] containing an adsb [`Object`](super::Object)
     // Takes an [`id`](super::super::Id) to find the right record to return.
     //
@@ -20,10 +16,10 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{AdsbClient, Id};
+    // use svc_storage_client_grpc::{simple_service::Client, Id};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
-    //     let mut client = AdsbClient::connect("http://localhost:50051").await?;
+    //     let mut client = RpcServiceClient::connect("http://localhost:50051").await?;
     //
     //     let id = "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned();
     //     match client
@@ -55,11 +51,11 @@ service RpcService {
     // # Examples
     // ```
     // use std::time::SystemTime;
-    // use svc_storage_client_grpc::{AdsbClient, Id};
+    // use svc_storage_client_grpc::{simple_service::Client, Id, Timestamp};
     // use svc_storage_client_grpc::adsb::{UpdateObject, Data};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
-    //     let mut client = AdsbClient::connect("http://localhost:50051").await?;
+    //     let mut client = RpcServiceClient::connect("http://localhost:50051").await?;
     //
     //     let icao_address = 0x4840D6;
     //     let message_type = 4;
@@ -69,7 +65,7 @@ service RpcService {
     //     .insert(tonic::Request::new(Data {
     //         icao_address,
     //         message_type,
-    //         network_timestamp: Some(prost_types::Timestamp::from(SystemTime::now())),
+    //         network_timestamp: Some(Timestamp::from(SystemTime::now())),
     //         payload
     //     }))
     //     .await
@@ -100,11 +96,11 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{AdsbClient, FieldMask, Id};
+    // use svc_storage_client_grpc::{simple_service::Client, FieldMask, Id};
     // use svc_storage_client_grpc::adsb::{UpdateObject, Data};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
-    //     let mut client = AdsbClient::connect("http://localhost:50051").await?;
+    //     let mut client = RpcServiceClient::connect("http://localhost:50051").await?;
     //
     //     let id = "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned();
     //     let response = match client
@@ -151,10 +147,10 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{AdsbClient, Id};
+    // use svc_storage_client_grpc::{simple_service::Client, Id};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
-    //     let mut client = AdsbClient::connect("http://localhost:50051").await?;
+    //     let mut client = RpcServiceClient::connect("http://localhost:50051").await?;
     //
     //     let id = "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned();
     //     match client.delete(tonic::Request::new(Id{id})).await
@@ -180,10 +176,10 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{AdsbClient, AdvancedSearchFilter};
+    // use svc_storage_client_grpc::{simple_service::Client, AdvancedSearchFilter};
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
-    //     let mut client = AdsbClient::connect("http://localhost:50051").await?;
+    //     let mut client = RpcServiceClient::connect("http://localhost:50051").await?;
     //
     //     let icao_address = 0x4840D6.to_string();
     //     let filter = AdvancedSearchFilter::search_equals("icao_address".to_owned(), icao_address)
@@ -202,4 +198,7 @@ service RpcService {
     // }
     // ```
     rpc search(AdvancedSearchFilter) returns (adsb.List);
+
+    // Simple ready check to allow callers to validate the client connection status.
+    rpc is_ready (ReadyRequest) returns (ReadyResponse);
 }

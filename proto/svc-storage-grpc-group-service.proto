@@ -1,0 +1,354 @@
+syntax = "proto3";
+package grpc.group.service;
+
+import "google/protobuf/empty.proto";
+import "svc-storage-grpc.proto";
+import "svc-storage-grpc-user.proto";
+import "svc-storage-grpc-group.proto";
+
+service RpcUserLink {
+    // Link provided list `other_id_list` (user_ids) with the provided group `id`.
+    // Will only add/ update entries and not delete existing ones that aren't present in the provided `other_id_list` vector
+    //
+    // # Errors
+    //
+    // Returns [`Status`](tonic::Status) with [`Code::NotFound`](tonic::Code::NotFound) if the group id does not match a record in the db.
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if any error is returned from a db call.
+    //
+    // # Examples
+    // ```
+    // use svc_storage_client_grpc::IdList;
+    // use svc_storage_client_grpc::GroupUserLinkClient;
+    // use svc_storage_client_grpc::user::GroupUsers;
+    // async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    //     let mut link_client = GroupUserLinkClient::connect("http://localhost:50051").await?;
+    //
+    //     let id = "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned();
+    //     let other_id_list = Some( IdList {
+    //         ids: vec!["a5354261-075f-4bea-9f8a-b06dc3ec0cd9".to_owned()]
+    //     });
+    //     match link_client
+    //         .link(tonic::Request::new(UserGroups { id, other_id_list }))
+    //         .await
+    //     {
+    //         Ok(res) => {
+    //           println!("RESPONSE Group Link={:?}", res);
+    //           Ok(())
+    //         },
+    //         Err(e) => Err(Box::new(e))
+    //     }
+    // }
+    // ```
+    rpc link(GroupUsers) returns (google.protobuf.Empty);
+    // Link provided list `other_id_list` (user_ids) with the provided group `id`.
+    // Will delete existing entries first and then add the new ones present in the provided `other_id_list` vector
+    //
+    // # Errors
+    //
+    // Returns [`Status`](tonic::Status) with [`Code::NotFound`](tonic::Code::NotFound) if the group id does not match a record in the db.
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if any error is returned from a db call.
+    //
+    // # Examples
+    // ```
+    // use svc_storage_client_grpc::IdList;
+    // use svc_storage_client_grpc::GroupUserLinkClient;
+    // use svc_storage_client_grpc::user::GroupUsers;
+    // async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    //     let mut link_client = GroupUserLinkClient::connect("http://localhost:50051").await?;
+    //
+    //     let id = "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned();
+    //     let other_id_list = Some( IdList {
+    //         ids: vec!["a5354261-075f-4bea-9f8a-b06dc3ec0cd9".to_owned()]
+    //     });
+    //     match link_client
+    //         .replace_linked(tonic::Request::new(GroupUsers { id, other_id_list }))
+    //         .await
+    //     {
+    //         Ok(res) => {
+    //           println!("RESPONSE Group Replace Linked={:?}", res);
+    //           Ok(())
+    //         },
+    //         Err(e) => Err(Box::new(e))
+    //     }
+    // }
+    // ```
+    rpc replace_linked(GroupUsers) returns (google.protobuf.Empty);
+    // Remove all linked entries for the provided group `id`.
+    //
+    // # Errors
+    //
+    // Returns [`Status`](tonic::Status) with [`Code::NotFound`](tonic::Code::NotFound) if the group id does not match a record in the db.
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if any error is returned from a db call.
+    //
+    // # Examples
+    // ```
+    // use svc_storage_client_grpc::Id;
+    // use svc_storage_client_grpc::GroupUserLinkClient;
+    // async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    //     let mut link_client = GroupUserLinkClient::connect("http://localhost:50051").await?;
+    //
+    //     let id = Id { id: "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned() };
+    //     match link_client
+    //         .unlink(tonic::Request::new(id))
+    //         .await
+    //     {
+    //         Ok(res) => {
+    //           println!("RESPONSE Group Unlink={:?}", res);
+    //           Ok(())
+    //         },
+    //         Err(e) => Err(Box::new(e))
+    //     }
+    // }
+    // ```
+    rpc unlink(Id) returns (google.protobuf.Empty);
+    // Get all the user_ids that are linked to the provided group `id`.
+    //
+    // # Errors
+    //
+    // Returns [`Status`](tonic::Status) with [`Code::NotFound`](tonic::Code::NotFound) if the group id does not match a record in the db.
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if any error is returned from a db call.
+    //
+    // # Examples
+    // ```
+    // use svc_storage_client_grpc::Id;
+    // use svc_storage_client_grpc::GroupUserLinkClient;
+    // async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    //     let mut link_client = GroupUserLinkClient::connect("http://localhost:50051").await?;
+    //
+    //     let id = Id { id: "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned() };
+    //     match link_client
+    //         .get_linked_ids(tonic::Request::new(id))
+    //         .await
+    //     {
+    //         Ok(res) => {
+    //           println!("RESPONSE Group Get Linked Ids={:?}", res);
+    //           Ok(())
+    //         },
+    //         Err(e) => Err(Box::new(e))
+    //     }
+    // }
+    // ```
+    rpc get_linked_ids(grpc.Id) returns (IdList);
+    // Get all the user_ids that are linked to the provided group `id`.
+    //
+    // # Errors
+    //
+    // Returns [`Status`](tonic::Status) with [`Code::NotFound`](tonic::Code::NotFound) if the group id does not match a record in the db.
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if any error is returned from a db call.
+    //
+    // # Examples
+    // ```
+    // use svc_storage_client_grpc::Id;
+    // use svc_storage_client_grpc::GroupUserLinkClient;
+    // async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    //     let mut link_client = GroupUserLinkClient::connect("http://localhost:50051").await?;
+    //
+    //     let id = Id { id: "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned() };
+    //     match link_client
+    //         .get_linked(tonic::Request::new(id))
+    //         .await
+    //     {
+    //         Ok(res) => {
+    //           println!("RESPONSE Group Get Linked={:?}", res);
+    //           Ok(())
+    //         },
+    //         Err(e) => Err(Box::new(e))
+    //     }
+    // }
+    // ```
+    rpc get_linked(grpc.Id) returns (grpc.user.List);
+
+    // Simple ready check to allow callers to validate the client connection status.
+    rpc is_ready (ReadyRequest) returns (ReadyResponse);
+}
+
+// Group gRPC service
+service RpcService {
+    // Returns a [`tonic::Response`] containing an group [`Object`](super::Object)
+    // Takes an [`id`](super::super::Id) to find the right record to return.
+    //
+    // # Errors
+    //
+    // Returns [`tonic::Status`] with [`Code::NotFound`](tonic::Code::NotFound) if no record is returned from the database
+    //
+    // # Examples
+    // ```
+    // use svc_storage_client_grpc::{Id, GroupClient, simple_service::Client};
+    //
+    // async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    //     let mut group_client = GroupClient::connect("http://localhost:50051").await?;
+    //
+    //     let id = "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned();
+    //     match group_client
+    //         .get_by_id(tonic::Request::new(Id { id }))
+    //         .await
+    //     {
+    //         Ok(res) => {
+    //           println!("RESPONSE Group By ID={:?}", res);
+    //           Ok(())
+    //         },
+    //         Err(e) => Err(Box::new(e))
+    //     }
+    // }
+    // ```
+    rpc get_by_id(grpc.Id) returns (grpc.group.Object);
+
+    // Returns a [`tonic::Response`] containing a group [`Response`](super::Response) object
+    // of the inserted record after saving the provided group [`Data`](super::Data)
+    //
+    // The given data will be validated before insert.
+    // A new UUID will be generated by the database and returned as `id` as part of the returned group [`Response`](super::Response).
+    // Any errors found during validation will be added to the [`ValidationResult`](super::super::ValidationResult).
+    //
+    // # Errors
+    //
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if the [`tonic::Request`] doesn't contain any data.
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if any error is returned from a db call.
+    //
+    // # Examples
+    // ```
+    // use svc_storage_client_grpc::{Id, GroupClient, simple_service::Client};
+    // use svc_storage_client_grpc::group::Data;
+    //
+    // async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    //     let mut group_client = GroupClient::connect("http://localhost:50051").await?;
+    //
+    //     println!("Starting insert group");
+    //     match group_client
+    //     .insert(tonic::Request::new(Data {
+    //         name: "Europe group".to_owned(),
+    //         description: "All assets we control in Europe".to_owned(),
+    //         parent_group: None
+    //     }))
+    //     .await
+    //     {
+    //         Ok(res) => {
+    //           println!("RESPONSE Group Insert={:?}", res);
+    //           Ok(())
+    //         },
+    //         Err(e) => Err(Box::new(e))
+    //     }
+    // }
+    // ```
+    rpc insert(grpc.group.Data) returns (grpc.group.Response);
+
+    // Returns a [`tonic::Response`] containing a group [`Response`](super::Response) object
+    // of the updated record after saving the provided group [`Data`](super::Data)
+    //
+    // The given data will be validated before insert.
+    // Any errors found during validation will be added to the [`ValidationResult`](super::super::ValidationResult).
+    // A field [`prost_types::FieldMask`] can be provided to restrict updates to specific fields.
+    //
+    // # Errors
+    //
+    // Returns [`Status`](tonic::Status) with [`Code::Cancelled`](tonic::Code::Cancelled) if the [`Request`](tonic::Request) doesn't contain any data.
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if any error is returned from a db call.
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if the provided Id can not be converted to a [`uuid::Uuid`].
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if the resulting Vec<tokio_postgres::Row> data could not be converted into [`List`](super::List).
+    //
+    // # Examples
+    // ```
+    // use svc_storage_client_grpc::{FieldMask, Id, GroupClient, simple_service::Client};
+    // use svc_storage_client_grpc::group::{Data, UpdateObject};
+    //
+    // async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    //     let mut group_client = GroupClient::connect("http://localhost:50051").await?;
+    //
+    //     let id = "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned();
+    //     let response = match group_client
+    //         .get_by_id(tonic::Request::new(Id { id: id.clone() }))
+    //         .await
+    //     {
+    //         Ok(res) => {
+    //           println!("RESPONSE Group By ID={:?}", res);
+    //           res
+    //         },
+    //         Err(e) => {
+    //             return Err(Box::new(e));
+    //         }
+    //     };
+    //
+    //     let group = response.into_inner().data.unwrap();
+    //     match group_client.update(tonic::Request::new(UpdateObject {
+    //         id,
+    //         data: Some(Data {
+    //             first_name: "Alice".to_owned(),
+    //             ..group
+    //         }),
+    //         mask: Some(FieldMask {
+    //             paths: vec!["data.first_name".to_owned()],
+    //         }),
+    //     })).await
+    //     {
+    //         Ok(res) => {
+    //           println!("RESPONSE Group Update={:?}", res);
+    //           Ok(())
+    //         },
+    //         Err(e) => Err(Box::new(e))
+    //     }
+    // }
+    // ```
+    rpc update(grpc.group.UpdateObject) returns (grpc.group.Response);
+
+    // Takes an [`Id`](super::super::Id) to set the matching group record as deleted in the database"
+    //
+    // # Errors
+    //
+    // Returns [`Status`](tonic::Status) with [`Code::NotFound`](tonic::Code::NotFound) if no record is returned from the database.
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if any error is returned from a db call.
+    //
+    // # Examples
+    // ```
+    // use svc_storage_client_grpc::{Id, GroupClient, simple_service::Client};
+    //
+    // async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    //     let mut group_client = GroupClient::connect("http://localhost:50051").await?;
+    //
+    //     let id = "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned();
+    //     match group_client.delete(tonic::Request::new(Id{id})).await
+    //     {
+    //         Ok(res) => {
+    //           println!("RESPONSE Group Delete={:?}", res);
+    //           Ok(())
+    //         },
+    //         Err(e) => Err(Box::new(e))
+    //     }
+    // }
+    // ```
+    rpc delete(grpc.Id) returns (google.protobuf.Empty);
+
+    // Search groups using an advanced filter
+    //
+    // This method supports paged results.
+    //
+    // # Errors
+    //
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if any error is returned from the db search result.
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if the resulting Vec<tokio_postgres::Row> data could not be converted into [`List`](super::List).
+    //
+    // # Examples
+    // ```
+    // use svc_storage_client_grpc::{AdvancedSearchFilter, GroupClient, simple_service::Client};
+    //
+    // async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    //     let mut group_client = GroupClient::connect("http://localhost:50051").await?;
+    //
+    //     let filter = AdvancedSearchFilter::search_equals("first_name".to_owned(), "John".to_owned());
+    //
+    //     match group_client
+    //         .search(tonic::Request::new(filter))
+    //         .await
+    //     {
+    //         Ok(res) => {
+    //           println!("RESPONSE Group Search={:?}", res);
+    //           Ok(())
+    //         },
+    //         Err(e) => Err(Box::new(e))
+    //     }
+    // }
+    // ```
+    rpc search(grpc.AdvancedSearchFilter) returns (grpc.group.List);
+
+    // Simple ready check to allow callers to validate the client connection status.
+    rpc is_ready (ReadyRequest) returns (ReadyResponse);
+}

@@ -5,33 +5,68 @@ appenders:
     encoder:
       # https://medium.com/nikmas-group-rust/advanced-logging-in-rust-with-log4rs-2d712bb322de
       pattern: "{d(%Y-%m-%d %H:%M:%S)} | {({l}):5.5} | {f}:{L} — {m}{n}"
-  requests:
+  grpc_requests:
     kind: rolling_file
-    path: "log/requests.log"
+    path: "logs/grpc_requests.log"
     policy:
       trigger:
         kind: size
         limit: 20mb
       roller:
         kind: fixed_window
-        pattern: logs/requests_{}.gz
+        pattern: logs/grpc_requests_{}.gz
+        count: 5
+        base: 1
+    encoder:
+      kind: json
+  backend_requests:
+    kind: rolling_file
+    path: "logs/backend_requests.log"
+    policy:
+      trigger:
+        kind: size
+        limit: 20mb
+      roller:
+        kind: fixed_window
+        pattern: logs/backend_requests_{}.gz
+        count: 5
+        base: 1
+    encoder:
+      kind: json
+  tests:
+    kind: rolling_file
+    path: "logs/tests.log"
+    policy:
+      trigger:
+        kind: size
+        limit: 20mb
+      roller:
+        kind: fixed_window
+        pattern: logs/tests_{}.gz
         count: 5
         base: 1
     encoder:
       kind: json
 
 root:
-  level: debug
+  level: info
   appenders:
     - stdout
 
 loggers:
-  app::backend::psql:
+  backend::psql:
     level: info
-  app::backend::memdb:
-    level: info
-  app::grpc:
-    level: debug
     appenders:
-      - requests
-    additive: false
+      - backend_requests
+  app::grpc:
+    level: info
+    appenders:
+      - grpc_requests
+  app::grpc::clients:
+    level: info
+    appenders:
+      - grpc_requests
+  test::unit:
+    level: info
+    appenders:
+      - tests
