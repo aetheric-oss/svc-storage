@@ -21,6 +21,7 @@ pub mod prelude;
 use prelude::*;
 pub use resources::Clients;
 
+#[cfg(feature = "any_resource")]
 fn timestamp_schema() -> utoipa::openapi::Object {
     utoipa::openapi::ObjectBuilder::new()
         .schema_type(utoipa::openapi::SchemaType::String)

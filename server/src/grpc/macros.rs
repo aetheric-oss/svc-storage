@@ -540,20 +540,20 @@ macro_rules! grpc_server_simple_service_mod {
                     let mut collected: Vec<serde_json::Value> = vec![];
                     for filter in filters {
                         let operator: super::PredicateOperator =
-                            match super::PredicateOperator::from_i32(filter.predicate_operator) {
-                                Some(val) => val,
-                                None => {
+                            match super::PredicateOperator::try_from(filter.predicate_operator) {
+                                Ok(val) => val,
+                                Err(e) => {
                                     return Err(tonic::Status::internal(format!(
-                                        "Can't convert i32 [{}] into PredicateOperator Enum value",
-                                        filter.predicate_operator
+                                        "Can't convert i32 [{}] into PredicateOperator Enum value: {}",
+                                        filter.predicate_operator, e
                                     )));
                                 }
                             };
 
 
                         match filter.comparison_operator {
-                            Some(comparison_operator) => match super::ComparisonOperator::from_i32(comparison_operator) {
-                                Some(comparison_operator) => match comparison_operator {
+                            Some(comparison_operator) => match super::ComparisonOperator::try_from(comparison_operator) {
+                                Ok(comparison_operator) => match comparison_operator {
                                     super::ComparisonOperator::And => {
                                         let unfiltered = collected.clone();
                                         collected = vec![];
@@ -565,10 +565,10 @@ macro_rules! grpc_server_simple_service_mod {
                                             .map_err(|e| tonic::Status::internal(format!("Could not get filtered values for provided filter: {}", e)))?
                                     }
                                 }
-                                None => {
+                                Err(e) => {
                                     return Err(tonic::Status::internal(format!(
-                                        "Can't convert i32 [{}] into ComparisonOperator Enum value",
-                                        comparison_operator
+                                        "Can't convert i32 [{}] into ComparisonOperator Enum value: {}",
+                                        comparison_operator, e
                                     )));
                                 }
                             },
@@ -1193,20 +1193,20 @@ macro_rules! grpc_server_simple_service_linked_mod {
                     let mut collected: Vec<serde_json::Value> = vec![];
                     for filter in filters {
                         let operator: super::PredicateOperator =
-                            match super::PredicateOperator::from_i32(filter.predicate_operator) {
-                                Some(val) => val,
-                                None => {
+                            match super::PredicateOperator::try_from(filter.predicate_operator) {
+                                Ok(val) => val,
+                                Err(e) => {
                                     return Err(tonic::Status::internal(format!(
-                                        "Can't convert i32 [{}] into PredicateOperator Enum value",
-                                        filter.predicate_operator
+                                        "Can't convert i32 [{}] into PredicateOperator Enum value: {}",
+                                        filter.predicate_operator, e
                                     )));
                                 }
                             };
 
 
                         match filter.comparison_operator {
-                            Some(comparison_operator) => match super::ComparisonOperator::from_i32(comparison_operator) {
-                                Some(comparison_operator) => match comparison_operator {
+                            Some(comparison_operator) => match super::ComparisonOperator::try_from(comparison_operator) {
+                                Ok(comparison_operator) => match comparison_operator {
                                     super::ComparisonOperator::And => {
                                         let unfiltered = collected.clone();
                                         collected = vec![];
@@ -1218,10 +1218,10 @@ macro_rules! grpc_server_simple_service_linked_mod {
                                             .map_err(|e| tonic::Status::internal(format!("Could not get filtered values for provided filter: {}", e)))?
                                     }
                                 }
-                                None => {
+                                Err(e) => {
                                     return Err(tonic::Status::internal(format!(
-                                        "Can't convert i32 [{}] into ComparisonOperator Enum value",
-                                        comparison_operator
+                                        "Can't convert i32 [{}] into ComparisonOperator Enum value: {}",
+                                        comparison_operator, e
                                     )));
                                 }
                             },

@@ -60,10 +60,13 @@ impl Resource for ResourceObject<Data> {
     /// Converts raw i32 values into string based on matching Enum value
     fn get_enum_string_val(field: &str, value: i32) -> Option<String> {
         match field {
-            "scanner_status" => {
-                ScannerStatus::from_i32(value).map(|val| val.as_str_name().to_string())
-            }
-            "scanner_type" => ScannerType::from_i32(value).map(|val| val.as_str_name().to_string()),
+            "scanner_status" => Some(
+                ScannerStatus::try_from(value)
+                    .ok()?
+                    .as_str_name()
+                    .to_string(),
+            ),
+            "scanner_type" => Some(ScannerType::try_from(value).ok()?.as_str_name().to_string()),
             _ => None,
         }
     }

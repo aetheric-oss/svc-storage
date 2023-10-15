@@ -60,7 +60,7 @@ impl Resource for ResourceObject<Data> {
     /// Converts raw i32 values into string based on matching Enum value
     fn get_enum_string_val(field: &str, value: i32) -> Option<String> {
         match field {
-            "auth_method" => AuthMethod::from_i32(value).map(|val| val.as_str_name().to_string()),
+            "auth_method" => Some(AuthMethod::try_from(value).ok()?.as_str_name().to_string()),
             _ => None,
         }
     }

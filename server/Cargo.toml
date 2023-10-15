@@ -25,48 +25,48 @@ stub_server = ["test_util"]
 stub_client = ["stub_backends"]
 
 [dependencies]
-anyhow      = "1.0"
-byteorder   = "1.4"
-bytes       = "1.0"
-cargo-husky = "1"
-cfg-if      = "1.0"
-chrono      = { version = "0.4", features = ["serde"] }
-# pin clap to 4.3 for now, since 4.4 requires rustc 1.70.0 or newer
-clap = { version = "=4.3.24", features = ["derive"] }
-# pin clap_lex to 0.5.0 for now, since 0.5.1 requires rustc 1.70.0 or newer
-clap_lex            = "=0.5.0"
+anyhow              = "1.0"
+byteorder           = "1.5"
+bytes               = "1.5"
+cargo-husky         = "1"
+cfg-if              = "1.0"
+chrono              = { version = "0.4", features = ["serde"] }
+clap                = { version = "4.4", features = ["derive"] }
 config              = "0.13"
-deadpool            = "0.9"
-deadpool-postgres   = { version = "0.10", features = ["serde", "rt_tokio_1"] }
+deadpool            = "0.10"
+deadpool-postgres   = { version = "0.11", features = ["serde", "rt_tokio_1"] }
 dotenv              = "0.15"
 futures             = "0.3"
-geo                 = { version = "0.25", optional = true }
+geo                 = { version = "0.26", optional = true }
 geo-types           = "0.7"
 hyper               = "0.14"
 lazy_static         = "1.4"
-lib-common          = { git = "https://github.com/Arrow-air/lib-common.git", tag = "v0.2.0" }
 log                 = "0.4"
 native-tls          = "0.2"
-num-derive          = "0.3"
+num-derive          = "0.4"
 num-traits          = "0.2"
-once_cell           = "1.16"
+once_cell           = "1.18"
 openssl             = "0.10"
 paste               = "1.0"
 postgis             = "0.9"
 postgres-native-tls = "0.5"
-prost               = "0.11"
-prost-types         = "0.11"
-prost-wkt-types     = "0.4"
+prost               = "0.12"
+prost-types         = "0.12"
+prost-wkt-types     = "0.5"
 rand                = { version = "0.8", optional = true }
 serde               = "1.0"
 serde_json          = "1.0"
 serde_yaml          = "0.9"
 thiserror           = "1.0"
-tokio               = { version = "1.28", features = ["full"] }
+tokio               = { version = "1.33", features = ["full"] }
 tokio-util          = "0.7"
-tonic               = "0.8"
-tonic-health        = "0.8"
-uuid                = { version = "1.2", features = ["v4"] }
+tonic               = "0.10"
+tonic-health        = "0.10"
+uuid                = { version = "1.4", features = ["v4"] }
+
+[dependencies.lib-common]
+git = "https://github.com/Arrow-air/lib-common"
+tag = "v0.2.1-develop.0"
 
 [dependencies.log4rs]
 features = [
@@ -91,7 +91,7 @@ features = ["with-uuid-1", "with-geo-types-0_7", "array-impls"]
 version  = "0.7"
 
 [dev-dependencies]
-assert_matches = "1.4"
+assert_matches = "1.5"
 logtest        = "2.0"
 rand           = "0.8"
 
@@ -106,4 +106,4 @@ features = ["dev"]
 path     = "."
 
 [build-dependencies]
-tonic-build = { version = "0.8", features = ["cleanup-markdown"] }
+tonic-build = { version = "0.10", features = ["cleanup-markdown"] }

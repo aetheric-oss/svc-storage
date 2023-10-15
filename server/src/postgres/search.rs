@@ -57,22 +57,22 @@ where
             };
 
             let operator: PredicateOperator =
-                match PredicateOperator::from_i32(filter.predicate_operator) {
-                    Some(val) => val,
-                    None => {
+                match PredicateOperator::try_from(filter.predicate_operator) {
+                    Ok(val) => val,
+                    Err(e) => {
                         return Err(ArrErr::Error(format!(
-                            "Can't convert i32 [{}] into PredicateOperator Enum value",
-                            filter.predicate_operator
+                            "Can't convert i32 [{}] into PredicateOperator Enum value: {}",
+                            filter.predicate_operator, e
                         )));
                     }
                 };
             let comparison_operator = match filter.comparison_operator {
-                Some(operator) => match ComparisonOperator::from_i32(operator) {
-                    Some(operator) => operator.as_str_name(),
-                    None => {
+                Some(operator) => match ComparisonOperator::try_from(operator) {
+                    Ok(operator) => operator.as_str_name(),
+                    Err(e) => {
                         return Err(ArrErr::Error(format!(
-                            "Can't convert i32 [{}] into ComparisonOperator Enum value",
-                            operator
+                            "Can't convert i32 [{}] into ComparisonOperator Enum value: {}",
+                            operator, e
                         )));
                     }
                 },
@@ -365,12 +365,12 @@ pub(crate) fn get_filter_str(
 }
 
 pub(crate) fn try_get_sort_str(sort_option: &SortOption) -> Result<String, ArrErr> {
-    let sort_order: SortOrder = match SortOrder::from_i32(sort_option.sort_order) {
-        Some(val) => val,
-        None => {
+    let sort_order: SortOrder = match SortOrder::try_from(sort_option.sort_order) {
+        Ok(val) => val,
+        Err(e) => {
             return Err(ArrErr::Error(format!(
-                "Can't convert i32 [{}] into SortOperator Enum value",
-                sort_option.sort_order
+                "Can't convert i32 [{}] into SortOperator Enum value: {}",
+                sort_option.sort_order, e
             )));
         }
     };

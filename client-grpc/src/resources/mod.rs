@@ -341,12 +341,13 @@ cfg_if::cfg_if! {
             }
         }
     } else {
-        #[derive(Debug, Clone)]
+        /// struct providing all available clients
+        #[derive(Debug, Clone, Copy)]
         pub struct Clients {}
 
         impl Clients {
             /// Provides a way to get and connect all clients at once.
-            pub fn new(host: String, port: u16) -> Self {
+            pub fn new(_host: String, _port: u16) -> Self {
                 Self {}
             }
         }
