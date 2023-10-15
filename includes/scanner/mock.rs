@@ -15,12 +15,6 @@ fn test_get_data_obj() {
     let data: Data = get_data_obj();
 
     assert!(Uuid::parse_str(&data.organization_id).is_ok());
-
-    let scanner_status = ScannerStatus::from_i32(data.scanner_status);
-    assert!(scanner_status.is_some());
-    assert_eq!(scanner_status.unwrap(), ScannerStatus::Active);
-
-    let scanner_type = ScannerType::from_i32(data.scanner_type);
-    assert!(scanner_type.is_some());
-    assert_eq!(scanner_type.unwrap(), ScannerType::Mobile);
+    assert!(ScannerStatus::try_from(data.scanner_status) == Ok(ScannerStatus::Active));
+    assert!(ScannerType::try_from(data.scanner_type) == Ok(ScannerType::Mobile));
 }

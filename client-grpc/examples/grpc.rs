@@ -219,10 +219,7 @@ async fn itinerary_scenario() -> Result<(), Status> {
     );
 
     println!("Retrieving list of itineraries");
-    let Ok(response) = itinerary_client
-        .search(filter)
-        .await
-    else {
+    let Ok(response) = itinerary_client.search(filter).await else {
         panic!("Unable to get itineraries!");
     };
 

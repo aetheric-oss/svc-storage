@@ -232,8 +232,12 @@ mod tests {
 
         let result = validate::<ResourceObject<Data>>(&data);
         assert!(result.is_ok());
-        if let Ok((_, validation_result)) = result {
-            unit_test_info!("{:?}", validation_result);
+        if let Ok((data, validation_result)) = result {
+            unit_test_debug!(
+                "(test_vehicle_invalid_data) validation result: {:?}",
+                validation_result
+            );
+            unit_test_debug!("(test_vehicle_invalid_data) data: {:?}", data);
             assert_eq!(validation_result.success, false);
 
             let expected_errors = vec![
