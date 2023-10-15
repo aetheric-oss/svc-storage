@@ -1,0 +1,34 @@
+## DO NOT EDIT!
+# This file was provisioned by Terraform
+# File origin: https://github.com/Arrow-air/tf-github/tree/main/src/templates/rust-all/.github/workflows/weekly.yml
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * FRI' # run at 4 AM UTC every Friday
+
+name: Weekly Integration Test Coverage report
+
+env:
+  TERM: xterm
+
+jobs:
+  build_and_test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: develop
+      - name: Build
+        run: make rust-build
+      - name: Build Docker
+        run: make docker-build-dev
+      - name: Test
+        run: |
+          make rust-it-coverage
+      - name: Generate coverage report
+        uses: vebr/jest-lcov-reporter@v0.2.0
+        with:
+          github-token: ${{ secrets.github_token }}
+          lcov-file: ./coverage/lcov.info
