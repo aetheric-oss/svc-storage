@@ -8,8 +8,7 @@ use crate::resources::base::{Resource, ResourceDefinition};
 use crate::resources::ValidationResult;
 use chrono::{DateTime, Utc};
 use geo_types::{Coord, LineString, Point, Polygon};
-use lib_common::time::timestamp_to_datetime;
-use prost_wkt_types::Timestamp;
+use lib_common::time::Timestamp;
 use serde_json::json;
 use tokio_postgres::types::Type as PsqlFieldType;
 
@@ -40,21 +39,17 @@ pub fn validate_dt(
     value: &Timestamp,
     errors: &mut Vec<ValidationError>,
 ) -> Option<DateTime<Utc>> {
-    let dt = timestamp_to_datetime(&prost_types::Timestamp {
-        nanos: value.nanos,
-        seconds: value.seconds,
-    });
-    match dt {
-        Some(dt) => Some(dt),
-        None => {
-            let error = format!(
-                "Could not convert [{}] to NaiveDateTime::from_timestamp_opt({})",
-                field, value
-            );
-            psql_info!("(validate_dt) {}", error);
-            errors.push(ValidationError { field, error });
-            None
-        }
+    let date_time: DateTime<Utc> = (*value).clone().into();
+    if date_time.timestamp() >= 0 {
+        Some(date_time)
+    } else {
+        let error = format!(
+            "Could not convert [{}] to DateTime::<Utc>({})",
+            field, value
+        );
+        psql_info!("(validate_dt) {}", error);
+        errors.push(ValidationError { field, error });
+        None
     }
 }
 

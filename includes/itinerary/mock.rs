@@ -13,8 +13,6 @@ pub fn get_data_obj() -> Data {
 fn test_get_data_obj() {
     let data: Data = get_data_obj();
 
-    let status = ItineraryStatus::from_i32(data.status);
     assert!(Uuid::parse_str(&data.user_id).is_ok());
-    assert!(status.is_some());
-    assert_eq!(status.unwrap(), ItineraryStatus::Active);
+    assert!(ItineraryStatus::try_from(data.status) == Ok(ItineraryStatus::Active));
 }

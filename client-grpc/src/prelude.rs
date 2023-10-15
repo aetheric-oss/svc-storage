@@ -12,5 +12,5 @@ pub use simple_service::Client as SimpleClient;
 pub use simple_service_linked::Client as SimpleLinkedClient;
 
 pub use lib_common::grpc::Client;
+pub use lib_common::time::Timestamp;
 pub use prost_types::FieldMask;
-pub use prost_wkt_types::Timestamp;
