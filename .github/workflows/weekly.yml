@@ -1,0 +1,45 @@
+## DO NOT EDIT!
+# This file was provisioned by Terraform
+# File origin: https://github.com/Arrow-air/tf-github/tree/main/src/templates/rust-all/.github/workflows/weekly.yml
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * FRI' # run at 4 AM UTC every Friday
+
+name: Weekly Integration Test Coverage report
+
+env:
+  TERM: xterm
+
+jobs:
+  build_and_test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: develop
+      - name: Build
+        run: make rust-build
+      - name: Build Docker
+        run: make docker-build-dev
+      - name: Test
+        run: |
+          make rust-it-coverage | tee coverage/it.txt
+      - name: Generate coverage report
+        run: |
+          sudo apt-get -y install lcov
+          genhtml coverage/lcov.info --legend --title "${{ github.ref_name }}" --output-directory=coverage/it-report/
+      # Login to AWS and Sync docs to AWS S3 bucket
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          role-to-assume: "arn:aws:iam::${{ secrets.AWS_ACCOUNT_WEBSITE }}:role/${{ secrets.AWS_S3_SERVICES_DOCS_ROLE }}"
+          role-session-name: arrow-rust-docs
+          aws-region: "us-east-2"
+      - name: Sync rust docs to S3 for processing
+        run: |
+          aws s3 sync ./coverage/it-report/ "s3://${{ secrets.AWS_S3_SERVICES_DOCS_BUCKET }}${{ env.AWS_S3_DOCS_RUST_DEST_PATH }}${BRANCHPATH}/it-report/"  --delete --size-only
+      - name: Generate Job summary
+        run: sed '/||/,$!d' coverage/ut.txt >> $GITHUB_STEP_SUMMARY
