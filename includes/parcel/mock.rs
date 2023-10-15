@@ -16,9 +16,7 @@ pub fn get_data_obj() -> Data {
 fn test_get_data_obj() {
     let data: Data = get_data_obj();
 
-    let status = ParcelStatus::from_i32(data.status);
+    assert!(ParcelStatus::try_from(data.status) == Ok(ParcelStatus::Enroute));
     assert!(Uuid::parse_str(&data.user_id).is_ok());
     assert!(data.weight_grams > 0);
-    assert!(status.is_some());
-    assert_eq!(status.unwrap(), ParcelStatus::Enroute);
 }

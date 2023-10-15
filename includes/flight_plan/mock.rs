@@ -236,7 +236,7 @@ fn test_get_past_data_obj() {
         assert!(actual_departure < now as i64);
 
         // Check flight_status is FINISHED
-        assert!(FlightStatus::from_i32(past_data.flight_status) == Some(FlightStatus::Finished));
+        assert!(FlightStatus::try_from(past_data.flight_status) == Ok(FlightStatus::Finished));
     }
 }
 

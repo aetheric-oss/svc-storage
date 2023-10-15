@@ -70,23 +70,23 @@ anyhow          = "1.0"
 cfg-if          = "1.0"
 chrono          = { version = "0.4", optional = true }
 futures         = { version = "0.3", optional = true }
-geo             = { version = "0.25", optional = true }
+geo             = { version = "0.26", optional = true }
 geo-types       = "0.7"
 lazy_static     = { version = "1.4", optional = true }
 log             = "0.4"
-num-derive      = "0.3"
+num-derive      = "0.4"
 num-traits      = "0.2"
-ordered-float   = "3.3"
+ordered-float   = "4.1"
 paste           = { version = "1.0", optional = true }
-prost           = "0.11"
-prost-types     = "0.11"
-prost-wkt-types = "0.4"
+prost           = "0.12"
+prost-types     = "0.12"
+prost-wkt-types = "0.5"
 rand            = { version = "0.8", optional = true }
 serde           = { version = "1.0", features = ["derive"] }
 serde_json      = "1.0"
-tonic           = "0.8"
+tonic           = "0.10"
 tower           = { version = "0.4", optional = true }
-uuid            = { version = "1.2", features = ["v4"] }
+uuid            = { version = "1.4", features = ["v4"] }
 
 [dependencies.svc-storage]
 optional = true
@@ -94,15 +94,15 @@ path     = "../server"
 
 [dependencies.lib-common]
 features = ["grpc"]
-git      = "https://github.com/Arrow-air/lib-common.git"
-tag      = "v0.2.0"
+git      = "https://github.com/Arrow-air/lib-common"
+tag      = "v0.2.1-develop.0"
 
 [dependencies.tokio]
 features = ["macros", "rt-multi-thread"]
-version  = "1.28"
+version  = "1.33"
 
 [dependencies.utoipa]
-version = "3.3"
+version = "4.0"
 
 [dev-dependencies.log4rs]
 features = [
@@ -125,7 +125,7 @@ features = ["dev"]
 path     = "."
 
 [build-dependencies]
-tonic-build = "0.8"
+tonic-build = "0.10"
 
 [[example]]
 name              = "grpc"
