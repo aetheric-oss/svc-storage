@@ -3,6 +3,7 @@ pub use crate::grpc::server::*;
 pub mod base;
 
 pub mod adsb;
+pub mod asset_group;
 pub mod flight_plan;
 pub mod group;
 pub mod itinerary;

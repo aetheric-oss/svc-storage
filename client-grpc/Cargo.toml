@@ -38,8 +38,10 @@ all_resources = [
   "vehicle",
   "vertipad",
   "vertiport",
+  "asset_group",
 ]
 any_resource = []
+asset_group = ["any_resource"]
 flight_plan = ["any_resource"]
 flight_plan_parcel = ["any_resource", "flight_plan", "parcel"]
 group = ["any_resource", "user"]

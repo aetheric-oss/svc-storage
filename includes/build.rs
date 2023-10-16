@@ -26,6 +26,7 @@ fn get_types() -> Vec<String> {
         "vertipad".to_owned(),
         "vertiport".to_owned(),
         "flight_plan_parcel".to_owned(),
+        "asset_group".to_owned(),
     ]
 }
 

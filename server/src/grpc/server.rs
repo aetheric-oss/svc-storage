@@ -25,6 +25,7 @@ grpc_server_simple_service_mod!(user);
 grpc_server_simple_service_mod!(vehicle);
 grpc_server_simple_service_mod!(vertipad);
 grpc_server_simple_service_mod!(vertiport);
+grpc_server_simple_service_mod!(asset_group);
 
 // include gRPC services for all 'simple linked' resources
 grpc_server_simple_service_linked_mod!(flight_plan_parcel, flight_plan, parcel);
@@ -173,6 +174,9 @@ pub async fn grpc_server(config: Config, shutdown_rx: Option<tokio::sync::onesho
         .set_serving::<group_user::RpcUserLinkServer<group_user::GrpcServer>>()
         .await;
     health_reporter
+        .set_serving::<asset_group::RpcServiceServer<asset_group::GrpcServer>>()
+        .await;
+    health_reporter
         .set_serving::<itinerary::RpcServiceServer<itinerary::GrpcServer>>()
         .await;
     health_reporter
@@ -223,6 +227,9 @@ pub async fn grpc_server(config: Config, shutdown_rx: Option<tokio::sync::onesho
         .add_service(group::RpcServiceServer::new(group::GrpcServer::default()))
         .add_service(group_user::RpcUserLinkServer::new(
             group_user::GrpcServer::default(),
+        ))
+        .add_service(asset_group::RpcServiceServer::new(
+            asset_group::GrpcServer::default(),
         ))
         .add_service(itinerary::RpcServiceServer::new(
             itinerary::GrpcServer::default(),
