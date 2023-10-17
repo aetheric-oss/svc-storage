@@ -57,6 +57,7 @@ pub fn get_data_obj() -> Data {
             .into(),
         ),
         schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
+        asset_group_id: None,
         created_at,
         updated_at,
     }
@@ -72,4 +73,5 @@ fn test_get_data_obj() {
     assert!(data.schedule.is_some());
     assert!(data.created_at.is_some());
     assert!(data.updated_at.is_some());
+    assert!(data.asset_group_id.is_none());
 }

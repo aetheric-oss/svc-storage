@@ -43,6 +43,10 @@ impl Resource for ResourceObject<Data> {
                     FieldDefinition::new(PsqlFieldType::TEXT, false),
                 ),
                 (
+                    "asset_group_id".to_string(),
+                    FieldDefinition::new(PsqlFieldType::UUID, false),
+                ),
+                (
                     "created_at".to_string(),
                     FieldDefinition::new_read_only(PsqlFieldType::TIMESTAMPTZ, true)
                         .set_default(String::from("CURRENT_TIMESTAMP")),
@@ -63,6 +67,7 @@ impl Resource for ResourceObject<Data> {
     fn get_table_indices() -> Vec<String> {
         [
             r#"CREATE INDEX IF NOT EXISTS vertiport_geo_location_idx ON vertiport USING GIST(geo_location)"#.to_owned(),
+            r#"ALTER TABLE vertiport ADD CONSTRAINT fk_asset_group_id FOREIGN KEY(asset_group_id) REFERENCES asset_group(asset_group_id)"#.to_owned(),
         ].to_vec()
     }
 }
@@ -76,6 +81,9 @@ impl GrpcDataObjectType for Data {
             "schedule" => Ok(GrpcField::Option(GrpcFieldOption::String(
                 self.schedule.clone(),
             ))), // ::core::option::Option<::prost::alloc::string::String>,
+            "asset_group_id" => Ok(GrpcField::Option(GrpcFieldOption::String(
+                self.asset_group_id.clone(),
+            ))), // ::core::option::Option<::uuid::Uuid>,
             "created_at" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
                 self.created_at.clone(),
             ))), //::core::option::Option<::prost_types::Timestamp>,
@@ -112,6 +120,7 @@ impl TryFrom<Row> for Data {
             description: row.get("description"),
             geo_location: Some(geo_location.into()),
             schedule,
+            asset_group_id: row.get::<&str, Option<String>>("asset_group_id"),
             created_at,
             updated_at,
         })
@@ -166,6 +175,7 @@ mod tests {
                 .into(),
             ),
             schedule: Some(String::from("")),
+            asset_group_id: Some(String::from("INVALID")),
             // The fields below are read_only, should not be returned as invalid
             // by validation even though they are invalid
             created_at: Some(prost_wkt_types::Timestamp {

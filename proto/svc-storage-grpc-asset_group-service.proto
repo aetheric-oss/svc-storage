@@ -56,7 +56,7 @@ service RpcService {
     //
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut asset_group_client = AssetGroupClient::connect("http://localhost:50051").await?;
-    //     let default_schedule = ""DTSTART:20221020T180000Z;DURATION:PT24H\nRRULE:FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR,SA,SU".to_string();
+    //     let default_schedule = "DTSTART:20221020T180000Z;DURATION:PT24H\nRRULE:FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR,SA,SU".to_string();
     //     println!("Starting insert asset group");
     //     match asset_group_client
     //     .insert(tonic::Request::new(Data {

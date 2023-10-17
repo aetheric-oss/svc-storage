@@ -47,10 +47,12 @@ message Data {
     grpc.geo_types.GeoPolygon geo_location = 3;
     // RRULE data string to indicate the vertipad's opening days and hours
     optional string schedule = 4;
+    // asset group ID
+    optional string asset_group_id = 5;
     // timestamp of the date and time the vertiport has been created
-    optional google.protobuf.Timestamp created_at = 5;
+    optional google.protobuf.Timestamp created_at = 6;
     // timestamp of the last update action performed on the data
-    optional google.protobuf.Timestamp updated_at = 6;
+    optional google.protobuf.Timestamp updated_at = 7;
 }
 
 // Struct containing a `list` of vertiport [Vec\<Object\>]

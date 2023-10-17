@@ -148,9 +148,6 @@ impl TryFrom<Row> for Data {
             .get::<&str, Option<DateTime<Utc>>>("updated_at")
             .map(|val| val.into());
 
-        let asset_group_id: Option<Uuid> = row.get("asset_group_id");
-        let asset_group_id = asset_group_id.map(|val| val.to_string());
-
         let last_vertiport_id: Option<Uuid> = row.get("last_vertiport_id");
         let last_vertiport_id = last_vertiport_id.map(|val| val.to_string());
         Ok(Data {
@@ -158,7 +155,7 @@ impl TryFrom<Row> for Data {
             serial_number: row.get::<&str, String>("serial_number"),
             registration_number: row.get::<&str, String>("registration_number"),
             description: row.get::<&str, Option<String>>("description"),
-            asset_group_id,
+            asset_group_id: row.get::<&str, Option<String>>("asset_group_id"),
             schedule: row.get::<&str, Option<String>>("schedule"),
             last_vertiport_id,
             last_maintenance,
@@ -208,7 +205,7 @@ mod tests {
             serial_number: String::from(""),
             registration_number: String::from(""),
             description: Some(String::from("")),
-            asset_group_id: Some(String::from("INVALID")),
+            asset_group_id: String::from("INVALID"),
             schedule: Some(String::from("")),
             last_vertiport_id: Some(String::from("INVALID")),
             last_maintenance: Some(prost_wkt_types::Timestamp {

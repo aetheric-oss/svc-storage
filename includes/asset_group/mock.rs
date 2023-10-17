@@ -6,8 +6,8 @@ pub fn get_data_obj() -> Data {
     Data {
         name: "Default Assets".to_owned(),
         description: "Default asset group.".to_owned(),
-        default_vertiport_schedule: default_schedule.clone(),
-        default_aircraft_schedule: default_schedule
+        default_vertiport_schedule: Some(default_schedule.clone()),
+        default_aircraft_schedule: Some(default_schedule)
     }
 }
 
