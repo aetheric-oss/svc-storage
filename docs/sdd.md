@@ -632,13 +632,6 @@ sequenceDiagram
 
 ```mermaid
 erDiagram
-    %field {
-    %    serial field_id PK
-    %    text field_name
-    %    text field_type "string / int / bool / datetime / etc..."
-    %    text re_validation "Optional - regex validation string"
-    %    text validation_message "Optional"
-    %}
     flight_plan {
         uuid flight_plan_id PK
         uuid pilot_id FK
@@ -715,7 +708,6 @@ erDiagram
         text serial_number
         text registration_number
         text description "Optional"
-        uuid asset_group_id "Optional"
         text schedule "Optional"
         timestamp last_maintenance "Optional"
         timestamp next_maintenance "Optional"
@@ -759,38 +751,6 @@ erDiagram
         timestamp updated_at "Default NOW"
         timestamp deleted_at "Optional Default NULL"
     }
-    %user_field {
-    %    serial user_field_id PK
-    %    serial field_id FK
-    %    bool is_mandatory "Default false"
-    %    text category "ENUM (additional_info, settings)"
-    %}
-    %user_field_value {
-    %    serial user_field_id PK
-    %    uuid user_id PK
-    %    text value
-    %    timestamp updated_at "Default NOW"
-    %}
-    group {
-        uuid group_id PK
-        text name
-        text description
-        uuid parent_group_id FK "Optional"
-        timestamp created_at "Default NOW"
-        timestamp updated_at "Default NOW"
-        timestamp deleted_at "Optional Default NULL"
-    }
-    user_group {
-        uuid user_id FK
-        uuid group_id FK
-    }
-
-    %field }o--o{ user_field : field_id
-    %user_field }o--o{ user_field_value : user_field_id
-    %user }o--|| user_field_value : user_id
-
-    user }o--o{ user_group : user_id
-    group }o--o{ user_group : group_id
 
     flight_plan }o--|| vertipad : origin_vertipad_id
     flight_plan }o--|| vertipad : target_vertipad_id
@@ -807,4 +767,295 @@ erDiagram
 
     flight_plan_parcel |o--|{ parcel : parcel_id
     flight_plan_parcel |o--|| flight_plan : flight_plan_id
+```
+
+## Group schema for users and assets
+
+Groups can have multiple functions:
+ - providing a way to organize
+ - assign ACLs to a group of users
+ - provide default settings 
+
+To distinguish the group's purpose, each group has a group `type`:
+ - `acl` - The group can be linked to the `group_acl` table.
+ - `settings` - The group can be linked to the `group_field_value` table.
+ - `display` - The group is only used to allow for an organized view in the frontend.
+
+```mermaid
+erDiagram
+    group {
+        uuid group_id PK
+        text name
+        text description
+        text type "ENUM (acl, settings, display)"
+        uuid parent_group_id FK "Optional"
+        timestamp created_at "Default NOW"
+        timestamp updated_at "Default NOW"
+        timestamp deleted_at "Optional Default NULL"
+    }
+
+    user {
+        uuid user_id FK
+        _ _ "user fields"
+    }
+    user_group {
+        uuid user_id FK
+        uuid group_id FK
+    }
+    group ||--o{ user_group : multiple
+    user ||--o{ user_group : multiple
+
+    supplier {
+        uuid supplier_id FK
+        _ _ "supplier fields"
+    }
+    supplier_group {
+        uuid supplier_id FK
+        uuid group_id FK
+    }
+    supplier ||--o{ supplier_group : multiple
+    group ||--o{ supplier_group : multiple
+
+    vehicle {
+        uuid vehicle_id FK
+        _ _ "asset fields"
+    }
+    vertipad {
+        uuid vertipad_id FK
+        _ _ "asset fields"
+    }
+    vertiport {
+        uuid vertiport_id FK
+        _ _ "asset fields"
+    }
+    asset_group {
+        uuid asset_id FK
+        uuid group_id FK
+    }
+    group ||--o{ asset_group : multiple
+    vehicle ||--o{ asset_group : multiple
+    vertipad ||--o{ asset_group : multiple
+    vertiport ||--o{ asset_group : multiple
+    vehicle ||--o{ asset_group : multiple
+```
+
+### Example data
+
+**groups**
+
+| group_id | name           | description                                    | type     | parent_group_id |
+|----------|----------------|------------------------------------------------|----------|-----------------|
+| group_1  | Countries      | Parent group for country specific settings     | settings | NULL            |
+| group_2  | Assets NL      | Default settings for assets in The Netherlands | settings | group_1         |
+| group_3  | Assets US      | Default settings for assets in the US          | settings | group_1         |
+| group_4  | Assets US TX   | Default settings for assets in US Texas        | settings | group_3         |
+| group_5  | Assets US WA   | Default settings for assets in US Texas        | settings | group_3         |
+| group_6  | Assets US CA   | Default settings for assets in US Texas        | settings | group_3         |
+| group_8  | Supplier 1     | Parent group for Supplier 1                    | display  | NULL            |
+| group_9  | Favorites      | My favorite assets                             | display  | group_8         |
+| group_10 | Administrator  | Group for users with administrator privileges  | acl      | group_8         |
+| group_11 | Asset manager  | Group for users with asset manager privileges  | acl      | group_8         |
+| group_12 | Super Admin    | Group for users with super admin privileges    | acl      | NULL            |
+| group_13 | Supplier Admin | Group for users with supplier admin privileges | acl      | NULL            |
+
+**users**
+| user_id | display_name |
+|---------|--------------|
+| user_1  | Thomasg      |
+| user_2  | A.M. Smith   |
+| user_3  | MissQueen    |
+| user_4  | Owlot        |
+
+**vehicles**
+| vehicle_id | vehicle_model | description                |
+|------------|---------------|----------------------------|
+| vehicle_1  | FEATHER1      | First Project Feather VTOL |
+
+**asset suppliers**
+| asset_supplier_id | name  |
+|-------------------|-------|
+| asset_supplier_1  | Arrow |
+
+**acl**
+| acl_id  | code            | description                |
+|---------|-----------------|----------------------------|
+| acl_0   | SUPERUSER       | All permissions            |
+| acl_1   | ASSET_CREATE    | Create new assets          |
+| acl_2   | ASSET_EDIT      | Edit existing assets       |
+| acl_3   | ASSET_DELETE    | Delete assets              |
+| acl_4   | ASSET_VIEW      | View assets                |
+| acl_5   | USER_CREATE     | Create new users           |
+| acl_6   | USER_EDIT       | Edit existing users        |
+| acl_7   | USER_DELETE     | Delete users               |
+| acl_8   | USER_VIEW       | View users                 |
+| acl_9   | SUPPLIER_CREATE | Create new suppliers       |
+| acl_10  | SUPPLIER_EDIT   | Edit existing supplier     |
+| acl_11  | SUPPLIER_DELETE | Delete suppliers           |
+| acl_12  | SUPPLIER_VIEW   | View suppliers             |
+
+We can now have the groups linked as followed:
+
+```mermaid
+flowchart TB
+    subgraph groups
+        subgraph group_1[group_1 Countries]
+            group_2[group_2 Assets NL]
+            subgraph group_3[group_3 Assets US]
+                group_4[group_4 Assets US TX]
+                group_5[group_5 Assets US WA]
+                group_6[group_6 Assets US CA]
+            end
+        end
+        subgraph group_8[group_8 Supplier 1]
+            group_9[group_9 Favorites]
+            group_10[group_10 Administrator]
+            group_11[group_11 Asset manager]
+        end
+        group_12[group_12 Super Admin]
+        group_13[group_13 Supplier Admin]
+    end
+    subgraph acl
+        acl_0[acl_0 SUPERUSER]
+        acl_1[acl_1 ASSET_CREATE]
+        acl_2[acl_2 ASSET_EDIT]
+        acl_3[acl_3 ASSET_DELETE]
+        acl_4[acl_4 ASSET_VIEW]
+        acl_5[acl_5 USER_CREATE]
+        acl_6[acl_6 USER_EDIT]
+        acl_7[acl_7 USER_DELETE]
+        acl_8[acl_8 USER_VIEW]
+        acl_9[acl_9 SUPPLIER_CREATE]
+        acl_10[acl_10 SUPPLIER_EDIT]
+        acl_11[acl_11 SUPPLIER_DELETE]
+        acl_12[acl_12 SUPPLIER_VIEW]
+    end
+    subgraph user
+        user_1[user_1 Thomasg]
+        user_2[user_2 A.M. Smith]
+        user_3[user_3 MissQueen]
+        user_4[user_4 Owlot]
+    end
+    subgraph vehicle
+        vehicle_1[FEATHER1]
+    end
+    subgraph supplier[asset_supplier]
+        asset_supplier_1[asset_supplier_1 Arrow]
+    end
+    group_12-->acl_0
+    group_10-->acl_1
+    group_10-->acl_2
+    group_10-->acl_3
+    group_10-->acl_4
+    group_10-->acl_5
+    group_10-->acl_6
+    group_10-->acl_7
+    group_10-->acl_8
+    group_10-->acl_9
+    group_11-->acl_1
+    group_11-->acl_2
+    group_11-->acl_3
+    group_11-->acl_4
+    group_13-->acl_9
+    group_13-->acl_10
+    group_13-->acl_11
+    group_13-->acl_12
+    user_2-->asset_supplier_1
+    user_3-->asset_supplier_1
+    vehicle_1-->group_2
+    asset_supplier_1-->group_8
+    user_1-->group_12
+    user_2-->group_10
+    user_3-->group_11
+    user_3-->group_9
+    user_4-->group_13
+```
+
+
+## Field schema for settings
+
+Certain resources may possess settings that are not classified as properties defining the resource itself; instead, they are settings that can undergo frequent changes, possibly on a daily or even faster basis. These settings will be stored in a separate table to enhance caching mechanisms. This optimization will be applied at both the database engine level as within the Arrow services responsible for offering and accessing these settings. A generic data model facilitates the straightforward management of these fields within both the code and the database itself.
+
+The `field` table provides information about the type of field. This allows for proper input validation. If a field is of the `integer` type, a min and or max value can be configured. In addition, regular expressions can be defined to allow for specific input validation (eg; `email` or `postal codes` inputs). The `value_length_min` and `value_length_max` columns can be used to provide a minimum or maximum length of the input text.
+
+Each resource will have a combined table, defining the fields that are linked to the resource. Additionally, a `category` can be provided, allowing grouping of settings which can be used in a frontend view.
+
+
+```mermaid
+erDiagram
+    field {
+        serial field_id PK
+        text field
+        text type "ENUM (list, string, float, boolean, integer)"
+        text regexp "Optional"
+        integer min "Optional"
+        integer max "Optional"
+        integer value_length_min "Optional"
+        integer value_length_max "Optional"
+    }
+
+    field_list_option {
+        integer field_id FK "combined key"
+        text key "combined key"
+        text value
+    }
+
+    user {
+        uuid user_id FK
+        _ _ "user fields"
+    }
+    user_field {
+        serial user_field_id PK
+        integer field_id FK
+        text name
+        bool is_mandatory "Default false"
+        text category "ENUM (additional_info, settings)"
+    }
+    user_field_value {
+        integer user_field_id FK
+        uuid user_id PK
+        text value
+        timestamp updated_at "Default NOW"
+    }
+    field ||--o{ user_field : multiple
+    user_field ||--o{ user_field_value : multiple
+    user ||--o{ user_field_value : multiple
+
+    group {
+        uuid group_id FK
+        _ _ "group fields"
+    }
+    group_field {
+        serial group_field_id PK
+        integer field_id FK
+        text name
+        bool is_mandatory "Default false"
+        text category "ENUM (settings)"
+    }
+    group_field_value {
+        integer group_field_id FK
+        uuid group_id PK
+        text value
+        timestamp updated_at "Default NOW"
+    }
+    field ||--o{ group_field : multiple
+    group_field ||--o{ group_field_value : multiple
+    group ||--o{ group_field_value : multiple
+
+    vertiport_field {
+        serial vertiport_field_id PK
+        integer field_id PK
+        text name
+        boolean is_mandatory "Default false"
+        text category "ENUM (additional_info, settings)"
+    }
+    vertiport_field_value {
+        integer vertiport_field_id FK
+        uuid vertiport_id PK
+        text value
+        timestamp updated_at "Default NOW"
+    }
+    field ||--o{ vertiport_field : multiple
+    vertiport_field ||--o{ vertiport_field_value : multiple
+    vertiport ||--o{ vertiport_field_value : multiple
+
 ```
