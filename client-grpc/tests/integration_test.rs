@@ -77,7 +77,8 @@ async fn test_client_requests_and_logs() {
     for vertiport in vertiports.list {
         let mut vehicle = vehicle::mock::get_data_obj();
         vehicle.description = Some(format!("Mock vehicle vertiports {}", vertiport.id.clone()));
-        vehicle.last_vertiport_id = Some(vertiport.id);
+        vehicle.hangar_id = Some(vertiport.id);
+        vehicle.hangar_bay_id = Some(uuid::Uuid::new_v4().to_string());
         vehicles_data.push(vehicle);
     }
 
