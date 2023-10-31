@@ -58,16 +58,18 @@ message Data {
     optional string asset_group_id = 5;
     // optional RRULE data string to indicate the vehicle's available days and hours
     optional string schedule = 6;
-    // optional id UUID v4 of the last reported vertiport it landed at
-    optional string last_vertiport_id = 7;
+    // optional id UUID v4 of the hangar this aircraft is assigned to
+    optional string hangar_id = 7;
+    // optional id UUID v4 of the hangar bay this aircraft is assigned to
+    optional string hangar_bay_id = 8;
     // optional date of vehicle's last maintenance
-    optional google.protobuf.Timestamp last_maintenance = 8;
+    optional google.protobuf.Timestamp last_maintenance = 9;
     // optional date  of vehicle's next planned maintenance
-    optional google.protobuf.Timestamp next_maintenance = 9;
+    optional google.protobuf.Timestamp next_maintenance = 10;
     // timestamp of the date and time the vehicle has been created
-    optional google.protobuf.Timestamp created_at = 10;
+    optional google.protobuf.Timestamp created_at = 11;
     // timestamp of the last update action performed on the data
-    optional google.protobuf.Timestamp updated_at = 11;
+    optional google.protobuf.Timestamp updated_at = 12;
 }
 
 // Struct containing a `list` of vehicle [Vec\<Object\>]
