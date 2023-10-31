@@ -38,7 +38,8 @@ pub async fn scenario(client: &VehicleClient, data: Vec<Data>, logger: &mut Logg
         assert_eq!(data.asset_group_id, vehicle_data.asset_group_id);
         assert_eq!(data.last_maintenance, vehicle_data.last_maintenance);
         assert_eq!(data.next_maintenance, vehicle_data.next_maintenance);
-        assert_eq!(data.last_vertiport_id, vehicle_data.last_vertiport_id);
+        assert_eq!(data.hangar_id, vehicle_data.hangar_id);
+        assert_eq!(data.hangar_bay_id, vehicle_data.hangar_bay_id);
         assert_eq!(data.registration_number, vehicle_data.registration_number);
         assert_eq!(data.vehicle_model_id, vehicle_data.vehicle_model_id);
         assert_eq!(data.serial_number, vehicle_data.serial_number);
