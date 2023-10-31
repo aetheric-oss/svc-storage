@@ -44,26 +44,21 @@ async fn get_vehicles() -> Result<vehicle::List, Status> {
 }
 
 /// Inserts example vehicle's into the database using the `mock` library to generate data.
-async fn generate_sample_vehicles(amount: i16, vertiports: &vertiport::List) -> Result<(), Status> {
+async fn generate_sample_vehicle(hangar_id: String, hangar_bay_id: String) -> Result<(), Status> {
     let clients = get_clients().await;
     let vehicle_client = &clients.vehicle;
     println!("Vehicle Client created");
 
-    let vertiport_id = vertiports.list.last().unwrap().id.clone();
+    let mut vehicle = vehicle::mock::get_data_obj();
 
-    for i in 0..amount {
-        let mut vehicle = vehicle::mock::get_data_obj();
+    // add hangar_id to some of our vehicles
+    vehicle.hangar_id = Some(hangar_id);
+    vehicle.hangar_bay_id = Some(hangar_bay_id);
 
-        // add last_vertiport_id to some of our vehicles
-        if i % 2 == 0 {
-            vehicle.last_vertiport_id = Some(vertiport_id.clone());
-        }
-
-        match vehicle_client.insert(vehicle).await {
-            Ok(fp) => fp.into_inner(),
-            Err(e) => panic!("Something went wrong inserting the vertiport: {}", e),
-        };
-    }
+    match vehicle_client.insert(vehicle).await {
+        Ok(fp) => fp.into_inner(),
+        Err(e) => panic!("Something went wrong inserting the vertiport: {}", e),
+    };
 
     Ok(())
 }
@@ -657,6 +652,40 @@ async fn generate_sample_vertiports() -> Result<vertiport::List, Status> {
     }
 }
 
+async fn generate_sample_vertipads(vertiports: &vertiport::List) -> Result<vertipad::List, Status> {
+    let clients = get_clients().await;
+    let vertipad_client = &clients.vertipad;
+    println!("Vertipad Client created");
+
+    for vertiport in &vertiports.list {
+        let mut vertipad = vertipad::mock::get_data_obj_for_vertiport(vertiport.clone());
+        vertipad.name = format!("First vertipad for {}", vertipad.vertiport_id.clone());
+        vertipad.vertiport_id = vertiport.id.clone();
+
+        let new_vertipad = match clients.storage.vertipad.insert(vertipad).await {
+            Ok(fp) => fp.into_inner(),
+            Err(e) => panic!("Something went wrong inserting the vertipad: {}", e),
+        };
+
+        println!("Created new vertipad: {:#?}", new_vertipad);
+    }
+
+    println!("Retrieving list of vertiports");
+
+    let filter = AdvancedSearchFilter::search_is_null("deleted_at".to_owned())
+        .page_number(1)
+        .results_per_page(50);
+
+    match clients.storage.vertipad.search(filter.clone()).await {
+        Ok(res) => {
+            let vertipads = res.into_inner();
+            println!("Vertipads found: {:#?}", vertipads);
+            Ok(vertipads)
+        }
+        Err(e) => Err(e),
+    }
+}
+
 /// Example FlightPlanRpcClient
 /// Assuming the ser ver is running, this method plays a scenario:
 ///   - get flight plans
@@ -816,9 +845,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     test_telemetry().await?;
 
     let vertiports = generate_sample_vertiports().await?;
+    let vertipads = generate_sample_vertipads(&vertiports).await?;
 
     // Insert sample vehicles
-    generate_sample_vehicles(5, &vertiports).await?;
+    for idx in 0..5 {
+        let hangar_id = vertipads[idx].vertiport_id;
+        let hangar_bay_id = vertipads[idx].id;
+        generate_sample_vehicle(hangar_id, hangar_bay_id).await?;
+    }
 
     // Get a list of vertipads
     let vertipads = vertipad_scenario(&vertiports).await?;

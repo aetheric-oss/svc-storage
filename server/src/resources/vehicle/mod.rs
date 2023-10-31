@@ -60,7 +60,11 @@ impl Resource for ResourceObject<Data> {
                     FieldDefinition::new(PsqlFieldType::TIMESTAMPTZ, false),
                 ),
                 (
-                    String::from("last_vertiport_id"),
+                    String::from("hangar_id"),
+                    FieldDefinition::new(PsqlFieldType::UUID, false),
+                ),
+                (
+                    String::from("hangar_bay_id"),
                     FieldDefinition::new(PsqlFieldType::UUID, false),
                 ),
                 (
@@ -83,7 +87,8 @@ impl Resource for ResourceObject<Data> {
 
     fn get_table_indices() -> Vec<String> {
         [
-            r#"ALTER TABLE vehicle ADD CONSTRAINT fk_last_vertiport_id FOREIGN KEY(last_vertiport_id) REFERENCES vertiport(vertiport_id)"#.to_owned(),
+            r#"ALTER TABLE vehicle ADD CONSTRAINT fk_hangar_id FOREIGN KEY(hangar_id) REFERENCES vertiport(vertiport_id)"#.to_owned(),
+            r#"ALTER TABLE vehicle ADD CONSTRAINT fk_hangar_bay_id FOREIGN KEY(hangar_bay_id) REFERENCES vertipad(vertipad_id)"#.to_owned(),
         ].to_vec()
     }
 }
@@ -103,8 +108,11 @@ impl GrpcDataObjectType for Data {
             "schedule" => Ok(GrpcField::Option(GrpcFieldOption::String(
                 self.schedule.clone(),
             ))), // ::core::option::Option<::prost::alloc::string::String>,
-            "last_vertiport_id" => Ok(GrpcField::Option(GrpcFieldOption::String(
-                self.last_vertiport_id.clone(),
+            "hangar_id" => Ok(GrpcField::Option(GrpcFieldOption::String(
+                self.hangar_id.clone(),
+            ))), // ::core::option::Option<::prost::alloc::string::String>,
+            "hangar_bay_id" => Ok(GrpcField::Option(GrpcFieldOption::String(
+                self.hangar_bay_id.clone(),
             ))), //::core::option::Option<::prost_types::Timestamp>,
             "last_maintenance" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
                 self.last_maintenance.clone(),
@@ -150,8 +158,12 @@ impl TryFrom<Row> for Data {
         let asset_group_id: Option<Uuid> = row.get("asset_group_id");
         let asset_group_id = asset_group_id.map(|val| val.to_string());
 
-        let last_vertiport_id: Option<Uuid> = row.get("last_vertiport_id");
-        let last_vertiport_id = last_vertiport_id.map(|val| val.to_string());
+        let hangar_id: Option<Uuid> = row.get("hangar_id");
+        let hangar_id = hangar_id.map(|val| val.to_string());
+
+        let hangar_bay_id: Option<Uuid> = row.get("hangar_bay_id");
+        let hangar_bay_id = hangar_bay_id.map(|val| val.to_string());
+
         Ok(Data {
             vehicle_model_id: row.get::<&str, Uuid>("vehicle_model_id").to_string(),
             serial_number: row.get::<&str, String>("serial_number"),
@@ -159,7 +171,8 @@ impl TryFrom<Row> for Data {
             description: row.get::<&str, Option<String>>("description"),
             asset_group_id,
             schedule: row.get::<&str, Option<String>>("schedule"),
-            last_vertiport_id,
+            hangar_id,
+            hangar_bay_id,
             last_maintenance,
             next_maintenance,
             created_at,
@@ -209,7 +222,8 @@ mod tests {
             description: Some(String::from("")),
             asset_group_id: Some(String::from("INVALID")),
             schedule: Some(String::from("")),
-            last_vertiport_id: Some(String::from("INVALID")),
+            hangar_id: Some(String::from("INVALID")),
+            hangar_bay_id: Some(String::from("INVALID")),
             last_maintenance: Some(prost_wkt_types::Timestamp {
                 seconds: -1,
                 nanos: -1,
@@ -241,7 +255,8 @@ mod tests {
             assert_eq!(validation_result.success, false);
 
             let expected_errors = vec![
-                "last_vertiport_id",
+                "hangar_id",
+                "hangar_bay_id",
                 "next_maintenance",
                 "last_maintenance",
                 "vehicle_model_id",
