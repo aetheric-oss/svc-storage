@@ -654,7 +654,6 @@ async fn generate_sample_vertiports() -> Result<vertiport::List, Status> {
 
 async fn generate_sample_vertipads(vertiports: &vertiport::List) -> Result<vertipad::List, Status> {
     let clients = get_clients().await;
-    let vertipad_client = &clients.vertipad;
     println!("Vertipad Client created");
 
     for vertiport in &vertiports.list {
@@ -662,7 +661,7 @@ async fn generate_sample_vertipads(vertiports: &vertiport::List) -> Result<verti
         vertipad.name = format!("First vertipad for {}", vertipad.vertiport_id.clone());
         vertipad.vertiport_id = vertiport.id.clone();
 
-        let new_vertipad = match clients.storage.vertipad.insert(vertipad).await {
+        let new_vertipad = match clients.vertipad.insert(vertipad).await {
             Ok(fp) => fp.into_inner(),
             Err(e) => panic!("Something went wrong inserting the vertipad: {}", e),
         };
@@ -670,13 +669,13 @@ async fn generate_sample_vertipads(vertiports: &vertiport::List) -> Result<verti
         println!("Created new vertipad: {:#?}", new_vertipad);
     }
 
-    println!("Retrieving list of vertiports");
+    println!("Retrieving list of vertipads");
 
     let filter = AdvancedSearchFilter::search_is_null("deleted_at".to_owned())
         .page_number(1)
         .results_per_page(50);
 
-    match clients.storage.vertipad.search(filter.clone()).await {
+    match clients.vertipad.search(filter.clone()).await {
         Ok(res) => {
             let vertipads = res.into_inner();
             println!("Vertipads found: {:#?}", vertipads);
@@ -714,11 +713,11 @@ async fn flight_plan_scenario(
     };
     println!("Flight Plans with status [Draft] found: {:#?}", fps);
 
-    let departure_vertipad_id = match vertipads.list.pop() {
+    let origin_vertipad_id = match vertipads.list.pop() {
         Some(vertipad) => vertipad.id,
         None => panic!("No vertipad found.. exiting"),
     };
-    let destination_vertipad_id = match vertipads.list.pop() {
+    let target_vertipad_id = match vertipads.list.pop() {
         Some(vertipad) => vertipad.id,
         None => panic!("No vertipad found.. exiting"),
     };
@@ -732,8 +731,8 @@ async fn flight_plan_scenario(
         let mut flight_plan = flight_plan::mock::get_data_obj();
         flight_plan.pilot_id = pilot_id.clone();
         flight_plan.vehicle_id = vehicle_id.clone();
-        flight_plan.departure_vertipad_id = departure_vertipad_id.clone();
-        flight_plan.destination_vertipad_id = destination_vertipad_id.clone();
+        flight_plan.origin_vertipad_id = origin_vertipad_id.clone();
+        flight_plan.target_vertipad_id = target_vertipad_id.clone();
 
         println!("Starting insert flight plan");
         match flight_plan_client.insert(flight_plan).await {
@@ -746,8 +745,8 @@ async fn flight_plan_scenario(
         let mut flight_plan = flight_plan::mock::get_future_data_obj();
         flight_plan.pilot_id = pilot_id.clone();
         flight_plan.vehicle_id = vehicle_id.clone();
-        flight_plan.departure_vertipad_id = departure_vertipad_id.clone();
-        flight_plan.destination_vertipad_id = destination_vertipad_id.clone();
+        flight_plan.origin_vertipad_id = origin_vertipad_id.clone();
+        flight_plan.target_vertipad_id = target_vertipad_id.clone();
 
         println!("Starting insert flight plan in the future");
         match flight_plan_client.insert(flight_plan).await {
@@ -760,8 +759,8 @@ async fn flight_plan_scenario(
         let mut flight_plan = flight_plan::mock::get_past_data_obj();
         flight_plan.pilot_id = pilot_id.clone();
         flight_plan.vehicle_id = vehicle_id.clone();
-        flight_plan.departure_vertipad_id = departure_vertipad_id.clone();
-        flight_plan.destination_vertipad_id = destination_vertipad_id.clone();
+        flight_plan.origin_vertipad_id = origin_vertipad_id.clone();
+        flight_plan.target_vertipad_id = target_vertipad_id.clone();
 
         println!("Starting insert flight plan in the past");
         match flight_plan_client.insert(flight_plan).await {
@@ -770,15 +769,15 @@ async fn flight_plan_scenario(
         };
     }
 
-    let scheduled_departure_min =
+    let origin_timeslot_min =
         prost_wkt_types::Timestamp::date_time(2022, 10, 12, 23, 00, 00).unwrap();
-    let scheduled_departure_max =
+    let origin_timeslot_max =
         prost_wkt_types::Timestamp::date_time(2024, 10, 13, 23, 00, 00).unwrap();
     let time_filter = AdvancedSearchFilter::search_equals("pilot_id".to_string(), pilot_id.clone())
         .and_between(
-            "scheduled_departure".to_owned(),
-            scheduled_departure_min.to_string(),
-            scheduled_departure_max.to_string(),
+            "origin_timeslot_start".to_owned(),
+            origin_timeslot_min.to_string(),
+            origin_timeslot_max.to_string(),
         )
         .and_is_not_null("deleted_at".to_owned());
     let flight_plans = flight_plan_client.search(time_filter).await?;
@@ -791,8 +790,8 @@ async fn flight_plan_scenario(
     let mut flight_plan = flight_plan::mock::get_data_obj();
     flight_plan.pilot_id = pilot_id;
     flight_plan.vehicle_id = vehicle_id;
-    flight_plan.departure_vertipad_id = departure_vertipad_id;
-    flight_plan.destination_vertipad_id = destination_vertipad_id;
+    flight_plan.origin_vertipad_id = origin_vertipad_id;
+    flight_plan.target_vertipad_id = target_vertipad_id;
     flight_plan.flight_status = flight_plan::FlightStatus::Boarding as i32;
 
     println!("Starting insert flight plan");
@@ -849,8 +848,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Insert sample vehicles
     for idx in 0..5 {
-        let hangar_id = vertipads[idx].vertiport_id;
-        let hangar_bay_id = vertipads[idx].id;
+        let hangar_id = vertipads.list[idx].data.clone().unwrap().vertiport_id;
+        let hangar_bay_id = vertipads.list[idx].id.clone();
         generate_sample_vehicle(hangar_id, hangar_bay_id).await?;
     }
 

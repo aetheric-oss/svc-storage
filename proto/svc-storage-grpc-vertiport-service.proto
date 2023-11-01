@@ -62,8 +62,8 @@ service RpcService {
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut vertiport_client = VertiportClient::connect("http://localhost:50051").await?;
     //
-    //     let departure_vertipad_id = "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned();
-    //     let destination_vertipad_id = "db67da52-2280-4316-8b29-9cf1bff65931".to_owned();
+    //     let origin_vertipad_id = "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned();
+    //     let target_vertipad_id = "db67da52-2280-4316-8b29-9cf1bff65931".to_owned();
     //     println!("Starting insert vertiport");
     //     match vertiport_client
     //     .insert(tonic::Request::new(Data {
