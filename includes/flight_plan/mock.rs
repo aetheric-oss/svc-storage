@@ -99,12 +99,15 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
     let flight_plan_submitted =
         Some((departure_date - Duration::days(rng.gen_range(1..90))).into());
     let carrier_ack = flight_plan_submitted.clone();
-    let scheduled_departure = Some(departure_date.into());
-    let scheduled_arrival = Some(arrival_date.into());
+    let origin_timeslot_start = Some(departure_date.into());
+    let origin_timeslot_end = Some((departure_date + Duration::minutes(1)).into());
+    let target_timeslot_start = Some((arrival_date - Duration::minutes(1)).into());
+    let target_timeslot_end = Some(arrival_date.into());
+
     let mut flight_status = FlightStatus::Draft as i32;
     let mut flight_release_approval = None;
     let mut approved_by = None;
-    let mut actual_departure = None;
+    let mut actual_departure_time = None;
     if departure_date < now {
         println!(
             "(_get_data_obj) departure_date {} is in the past of now {}",
@@ -113,7 +116,7 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
         // we're at least in_flight, so change the status
         flight_status = FlightStatus::InFlight as i32;
         // departure was in the past, set actual departure +/- 6 min
-        actual_departure =
+        actual_departure_time =
             Some((departure_date + Duration::seconds(rng.gen_range(-360..360))).into());
         // set release approval 12h to 1h before departure
         flight_release_approval =
@@ -148,7 +151,7 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
             departure_date, now
         );
     }
-    let mut actual_arrival = None;
+    let mut actual_arrival_time = None;
     if arrival_date >= now {
         println!(
             "(_get_data_obj) arrival_date {} is in the future of now {}",
@@ -161,7 +164,7 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
         );
 
         // arrival was in the past, set actual arrival +/- 6 min
-        actual_arrival = Some((arrival_date + Duration::seconds(rng.gen_range(-360..360))).into());
+        actual_arrival_time = Some((arrival_date + Duration::seconds(rng.gen_range(-360..360))).into());
         // we've arrived
         flight_status = FlightStatus::Finished as i32;
     }
@@ -171,15 +174,17 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
         vehicle_id: Uuid::new_v4().to_string(),
         path: Some(path),
         weather_conditions: Some(String::from("cold and windy")),
-        departure_vertiport_id: Some(Uuid::new_v4().to_string()),
-        departure_vertipad_id: Uuid::new_v4().to_string(),
-        destination_vertiport_id: Some(Uuid::new_v4().to_string()),
-        destination_vertipad_id: Uuid::new_v4().to_string(),
+        origin_vertiport_id: Some(Uuid::new_v4().to_string()),
+        origin_vertipad_id: Uuid::new_v4().to_string(),
+        target_vertiport_id: Some(Uuid::new_v4().to_string()),
+        target_vertipad_id: Uuid::new_v4().to_string(),
         carrier_ack,
-        scheduled_departure,
-        scheduled_arrival,
-        actual_departure,
-        actual_arrival,
+        origin_timeslot_start,
+        origin_timeslot_end,
+        target_timeslot_start,
+        target_timeslot_end,
+        actual_departure_time,
+        actual_arrival_time,
         flight_release_approval,
         flight_plan_submitted,
         approved_by,
@@ -208,32 +213,34 @@ fn test_get_past_data_obj() {
         assert!(past_data.approved_by.is_some());
 
         // Check scheduled_departure is set
-        assert!(past_data.scheduled_departure.is_some());
+        assert!(past_data.origin_timeslot_start.is_some());
+        assert!(past_data.origin_timeslot_end.is_some());
 
         // Check scheduled_departure is in the past
-        let scheduled_departure = past_data.scheduled_departure.unwrap().seconds;
+        let scheduled_departure = past_data.origin_timeslot_start.unwrap().seconds;
         assert!(scheduled_departure < now as i64);
 
-        // Check actual_departure is set
-        assert!(past_data.actual_departure.is_some());
+        // Check actual_departure_time is set
+        assert!(past_data.actual_departure_time.is_some());
 
-        // Check actual_departure is in the past
-        let actual_departure = past_data.actual_departure.unwrap().seconds;
-        assert!(actual_departure < now as i64);
+        // Check actual_departure_time is in the past
+        let actual_departure_time = past_data.actual_departure_time.unwrap().seconds;
+        assert!(actual_departure_time < now as i64);
 
         // Check scheduled_arrival is set
-        assert!(past_data.scheduled_arrival.is_some());
+        assert!(past_data.target_timeslot_start.is_some());
+        assert!(past_data.target_timeslot_end.is_some());
 
         // Check scheduled_arrival is in the past
-        let scheduled_arrival = past_data.scheduled_arrival.unwrap().seconds;
+        let scheduled_arrival = past_data.target_timeslot_end.unwrap().seconds;
         assert!(scheduled_arrival < now as i64);
 
-        // Check actual_arrival is set
-        assert!(past_data.actual_arrival.is_some());
+        // Check actual_arrival_time is set
+        assert!(past_data.actual_arrival_time.is_some());
 
-        // Check actual_arrival is in the past
-        let actual_departure = past_data.actual_arrival.unwrap().seconds;
-        assert!(actual_departure < now as i64);
+        // Check actual_arrival_time is in the past
+        let actual_departure_time = past_data.actual_arrival_time.unwrap().seconds;
+        assert!(actual_departure_time < now as i64);
 
         // Check flight_status is FINISHED
         assert!(FlightStatus::try_from(past_data.flight_status) == Ok(FlightStatus::Finished));
@@ -250,10 +257,10 @@ fn test_get_future_data_obj() {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_secs();
-        let scheduled_departure = future_data.scheduled_departure.unwrap().seconds;
+        let scheduled_departure = future_data.origin_timeslot_start.unwrap().seconds;
         assert!(scheduled_departure > now as i64);
 
-        // Check actual_departure is not set
-        assert!(future_data.actual_departure.is_none());
+        // Check actual_departure_time is not set
+        assert!(future_data.actual_departure_time.is_none());
     }
 }

@@ -141,19 +141,27 @@ fn add_utoipa_attributes(
             "#[schema(schema_with = crate::timestamp_schema)]",
         )
         .field_attribute(
-            "scheduled_departure",
+            "origin_timeslot_start",
             "#[schema(schema_with = crate::timestamp_schema)]",
         )
         .field_attribute(
-            "scheduled_arrival",
+            "origin_timeslot_end",
             "#[schema(schema_with = crate::timestamp_schema)]",
         )
         .field_attribute(
-            "actual_departure",
+            "target_timeslot_start",
             "#[schema(schema_with = crate::timestamp_schema)]",
         )
         .field_attribute(
-            "actual_arrival",
+            "target_timeslot_end",
+            "#[schema(schema_with = crate::timestamp_schema)]",
+        )
+        .field_attribute(
+            "actual_departure_time",
+            "#[schema(schema_with = crate::timestamp_schema)]",
+        )
+        .field_attribute(
+            "actual_arrival_time",
             "#[schema(schema_with = crate::timestamp_schema)]",
         )
         .field_attribute(

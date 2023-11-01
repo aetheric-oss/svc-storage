@@ -116,8 +116,8 @@ pub async fn test_telemetry(client: &AdsbClient) -> Result<(), Box<dyn std::erro
         None => panic!("Could not get current time for timezone Utc"),
     };
 
-    let timestamp_1: prost_wkt_types::Timestamp = now.into();
-    let timestamp_2: prost_wkt_types::Timestamp = (now + Duration::seconds(10)).into();
+    let timestamp_1: Timestamp = now.into();
+    let timestamp_2: Timestamp = (now + Duration::seconds(10)).into();
 
     let payload_1 = [
         0x8D, 0x48, 0x40, 0xD6, 0x20, 0x2C, 0xC3, 0x71, 0xC3, 0x2C, 0xE0, 0x57, 0x60, 0x98,
@@ -160,7 +160,7 @@ pub async fn test_telemetry(client: &AdsbClient) -> Result<(), Box<dyn std::erro
         panic!("Failed to return object.");
     };
     let id_2 = object.id;
-    let filter_time: prost_wkt_types::Timestamp = (now + Duration::seconds(5)).into();
+    let filter_time: Timestamp = (now + Duration::seconds(5)).into();
 
     // Search for the same ICAO address
     {

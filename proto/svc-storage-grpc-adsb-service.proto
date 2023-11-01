@@ -183,7 +183,7 @@ service RpcService {
     //
     //     let icao_address = 0x4840D6.to_string();
     //     let filter = AdvancedSearchFilter::search_equals("icao_address".to_owned(), icao_address)
-    //         .and_is_not_null("scheduled_departure".to_owned());
+    //         .and_is_not_null("origin_timeslot_start".to_owned());
     //
     //     match client
     //         .search(tonic::Request::new(filter))

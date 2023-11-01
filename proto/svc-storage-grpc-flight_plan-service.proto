@@ -59,8 +59,8 @@ service RpcService {
     //
     //     let vehicle_id = "62fb5d13-2cfe-45e2-b89a-16205d15e811".to_owned();
     //     let pilot_id = "a2093c5e-9bbe-4f0f-97ee-276b43fa3759".to_owned();
-    //     let departure_vertipad_id = "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned();
-    //     let destination_vertipad_id = "db67da52-2280-4316-8b29-9cf1bff65931".to_owned();
+    //     let origin_vertipad_id = "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned();
+    //     let target_vertipad_id = "db67da52-2280-4316-8b29-9cf1bff65931".to_owned();
     //     println!("Starting insert flight plan");
     //     match client
     //     .insert(tonic::Request::new(Data {
@@ -69,14 +69,16 @@ service RpcService {
     //         pilot_id,
     //         path: Some(GeoLineString { points: vec![] }),
     //         weather_conditions: Some("Cloudy, low wind".to_owned()),
-    //         departure_vertipad_id,
-    //         departure_vertiport_id: None,
-    //         destination_vertipad_id,
-    //         destination_vertiport_id: None,
-    //         scheduled_departure: Some(Timestamp::from(SystemTime::now())),
-    //         scheduled_arrival: Some(Timestamp::from(SystemTime::now())),
-    //         actual_departure: None,
-    //         actual_arrival: None,
+    //         origin_vertipad_id,
+    //         origin_vertiport_id: None,
+    //         target_vertipad_id,
+    //         target_vertiport_id: None,
+    //         origin_timeslot_start: Some(Timestamp::from(SystemTime::now())),
+    //         origin_timeslot_end: Some(Timestamp::from(SystemTime::now())),
+    //         target_timeslot_start: Some(Timestamp::from(SystemTime::now())),
+    //         target_timeslot_end: Some(Timestamp::from(SystemTime::now())),
+    //         actual_departure_time: None,
+    //         actual_arrival_time: None,
     //         flight_release_approval: None,
     //         flight_plan_submitted: Some(Timestamp::from(SystemTime::now())),
     //         approved_by: None,
@@ -198,7 +200,7 @@ service RpcService {
     //
     //     let pilot_id = "a2093c5e-9bbe-4f0f-97ee-276b43fa3759".to_owned();
     //     let filter = AdvancedSearchFilter::search_equals("pilot_id".to_owned(), pilot_id)
-    //         .and_is_not_null("scheduled_departure".to_owned());
+    //         .and_is_not_null("origin_timeslot_start".to_owned());
     //
     //     match client
     //         .search(tonic::Request::new(filter))
