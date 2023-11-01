@@ -78,10 +78,7 @@ fn build_proto(
 
 /// Returns a [tonic_build::Builder] object with all required type_attributes set for our proto types
 fn get_grpc_builder_config(out_path: &str) -> tonic_build::Builder {
-    println!(
-        "(get_grpc_builder_config) cargo:rustc-env=OUT_DIR={}",
-        out_path
-    );
+    println!("cargo:rustc-env=OUT_DIR={}", out_path);
     tonic_build::configure()
         .emit_rerun_if_changed(true)
         .out_dir(out_path)
