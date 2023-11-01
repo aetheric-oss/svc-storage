@@ -36,25 +36,25 @@ pub async fn scenario(client: &FlightPlanClient, data: Vec<Data>, logger: &mut L
 
         assert!(flight_plan.clone().data.is_some());
         let data = flight_plan.data.unwrap();
-        assert_eq!(data.actual_arrival, flight_plan_data.actual_arrival);
-        assert_eq!(data.actual_departure, flight_plan_data.actual_departure);
+        assert_eq!(
+            data.actual_arrival_time,
+            flight_plan_data.actual_arrival_time
+        );
+        assert_eq!(
+            data.actual_departure_time,
+            flight_plan_data.actual_departure_time
+        );
         assert_eq!(data.approved_by, flight_plan_data.approved_by);
         assert_eq!(data.carrier_ack, flight_plan_data.carrier_ack);
+        assert_eq!(data.origin_vertipad_id, flight_plan_data.origin_vertipad_id);
         assert_eq!(
-            data.departure_vertipad_id,
-            flight_plan_data.departure_vertipad_id
+            data.origin_vertiport_id,
+            flight_plan_data.origin_vertiport_id
         );
+        assert_eq!(data.target_vertipad_id, flight_plan_data.target_vertipad_id);
         assert_eq!(
-            data.departure_vertiport_id,
-            flight_plan_data.departure_vertiport_id
-        );
-        assert_eq!(
-            data.destination_vertipad_id,
-            flight_plan_data.destination_vertipad_id
-        );
-        assert_eq!(
-            data.destination_vertiport_id,
-            flight_plan_data.destination_vertiport_id
+            data.target_vertiport_id,
+            flight_plan_data.target_vertiport_id
         );
         assert_eq!(
             data.flight_plan_submitted,
@@ -64,10 +64,21 @@ pub async fn scenario(client: &FlightPlanClient, data: Vec<Data>, logger: &mut L
         assert_eq!(data.flight_status, flight_plan_data.flight_status);
         assert_eq!(data.path, flight_plan_data.path);
         assert_eq!(data.pilot_id, flight_plan_data.pilot_id);
-        assert_eq!(data.scheduled_arrival, flight_plan_data.scheduled_arrival);
         assert_eq!(
-            data.scheduled_departure,
-            flight_plan_data.scheduled_departure
+            data.target_timeslot_start,
+            flight_plan_data.target_timeslot_start
+        );
+        assert_eq!(
+            data.target_timeslot_end,
+            flight_plan_data.target_timeslot_end
+        );
+        assert_eq!(
+            data.origin_timeslot_start,
+            flight_plan_data.origin_timeslot_start
+        );
+        assert_eq!(
+            data.origin_timeslot_end,
+            flight_plan_data.origin_timeslot_end
         );
         assert_eq!(data.vehicle_id, flight_plan_data.vehicle_id);
         assert_eq!(data.weather_conditions, flight_plan_data.weather_conditions);
@@ -121,7 +132,7 @@ pub async fn scenario(client: &FlightPlanClient, data: Vec<Data>, logger: &mut L
 
     // Filter based on dates
     let date_filter = not_deleted_filter.and_between(
-        String::from("scheduled_departure"),
+        String::from("origin_timeslot_start"),
         chrono::Utc::now().to_rfc3339(),
         (chrono::Utc::now() + Duration::days(90)).to_rfc3339(),
     );
