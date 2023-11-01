@@ -645,12 +645,14 @@ erDiagram
         uuid vehicle_id FK
         geometry path "LINESTRING"
         text weather_conditions "Optional"
-        uuid departure_vertipad_id FK
-        uuid destination_vertipad_id FK
-        timestamp scheduled_departure
-        timestamp scheduled_arrival
-        timestamp actual_departure "Optional"
-        timestamp actual_arrival "Optional"
+        uuid origin_vertipad_id FK
+        uuid target_vertipad_id FK
+        timestamp origin_timeslot_start
+        timestamp origin_timeslot_end
+        timestamp target_timeslot_start
+        timestamp target_timeslot_end
+        timestamp actual_departure_time "Optional"
+        timestamp actual_arrival_time "Optional"
         timestamp flight_release_approval "Optional"
         timestamp flight_plan_submitted "Optional"
         uuid approved_by FK "Optional"
@@ -790,8 +792,8 @@ erDiagram
     user }o--o{ user_group : user_id
     group }o--o{ user_group : group_id
 
-    flight_plan }o--|| vertipad : departure_vertipad_id
-    flight_plan }o--|| vertipad : destination_vertipad_id
+    flight_plan }o--|| vertipad : origin_vertipad_id
+    flight_plan }o--|| vertipad : target_vertipad_id
     flight_plan }o--|| pilot : pilot_id
     flight_plan }o--|| vehicle : vehicle_id
 

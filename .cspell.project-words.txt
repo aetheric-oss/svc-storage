@@ -93,3 +93,4 @@ srid
 utoipa
 openapi
 oneshot
+timeslot

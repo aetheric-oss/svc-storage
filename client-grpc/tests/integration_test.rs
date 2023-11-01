@@ -93,15 +93,15 @@ async fn test_client_requests_and_logs() {
     let mut flight_plans_data: Vec<flight_plan::Data> = vec![];
     for _ in 0..5 {
         let mut flight_plan = flight_plan::mock::get_future_data_obj();
-        flight_plan.departure_vertipad_id = vertipads.list[0].id.clone();
-        flight_plan.destination_vertipad_id = vertipads.list[1].id.clone();
+        flight_plan.origin_vertipad_id = vertipads.list[0].id.clone();
+        flight_plan.target_vertipad_id = vertipads.list[1].id.clone();
         flight_plan.vehicle_id = vehicles.list[0].id.clone();
         flight_plans_data.push(flight_plan);
     }
     for _ in 0..5 {
         let mut flight_plan = flight_plan::mock::get_past_data_obj();
-        flight_plan.departure_vertipad_id = vertipads.list[1].id.clone();
-        flight_plan.destination_vertipad_id = vertipads.list[0].id.clone();
+        flight_plan.origin_vertipad_id = vertipads.list[1].id.clone();
+        flight_plan.target_vertipad_id = vertipads.list[0].id.clone();
         flight_plan.vehicle_id = vehicles.list[1].id.clone();
         flight_plans_data.push(flight_plan);
     }

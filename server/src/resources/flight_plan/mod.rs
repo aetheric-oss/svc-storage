@@ -48,27 +48,35 @@ impl Resource for ResourceObject<Data> {
                     FieldDefinition::new(PsqlFieldType::TEXT, false),
                 ),
                 (
-                    "departure_vertipad_id".to_string(),
+                    "origin_vertipad_id".to_string(),
                     FieldDefinition::new(PsqlFieldType::UUID, true),
                 ),
                 (
-                    "destination_vertipad_id".to_string(),
+                    "target_vertipad_id".to_string(),
                     FieldDefinition::new(PsqlFieldType::UUID, true),
                 ),
                 (
-                    "scheduled_departure".to_string(),
+                    "origin_timeslot_start".to_string(),
                     FieldDefinition::new(PsqlFieldType::TIMESTAMPTZ, true),
                 ),
                 (
-                    "scheduled_arrival".to_string(),
+                    "origin_timeslot_end".to_string(),
                     FieldDefinition::new(PsqlFieldType::TIMESTAMPTZ, true),
                 ),
                 (
-                    "actual_departure".to_string(),
+                    "target_timeslot_start".to_string(),
+                    FieldDefinition::new(PsqlFieldType::TIMESTAMPTZ, true),
+                ),
+                (
+                    "target_timeslot_end".to_string(),
+                    FieldDefinition::new(PsqlFieldType::TIMESTAMPTZ, true),
+                ),
+                (
+                    "actual_departure_time".to_string(),
                     FieldDefinition::new(PsqlFieldType::TIMESTAMPTZ, false),
                 ),
                 (
-                    "actual_arrival".to_string(),
+                    "actual_arrival_time".to_string(),
                     FieldDefinition::new(PsqlFieldType::TIMESTAMPTZ, false),
                 ),
                 (
@@ -136,8 +144,8 @@ impl Resource for ResourceObject<Data> {
 
     fn get_table_indices() -> Vec<String> {
         [
-            r#"ALTER TABLE "flight_plan" ADD CONSTRAINT fk_departure_vertipad_id FOREIGN KEY("departure_vertipad_id") REFERENCES "vertipad"("vertipad_id")"#.to_string(),
-            r#"ALTER TABLE "flight_plan" ADD CONSTRAINT fk_destination_vertipad_id FOREIGN KEY("destination_vertipad_id") REFERENCES "vertipad"("vertipad_id")"#.to_string(),
+            r#"ALTER TABLE "flight_plan" ADD CONSTRAINT fk_origin_vertipad_id FOREIGN KEY("origin_vertipad_id") REFERENCES "vertipad"("vertipad_id")"#.to_string(),
+            r#"ALTER TABLE "flight_plan" ADD CONSTRAINT fk_target_vertipad_id FOREIGN KEY("target_vertipad_id") REFERENCES "vertipad"("vertipad_id")"#.to_string(),
             r#"CREATE INDEX IF NOT EXISTS flight_plan_flight_status_idx ON "flight_plan" ("flight_status")"#.to_string(),
             r#"CREATE INDEX IF NOT EXISTS flight_plan_flight_priority_idx ON "flight_plan" ("flight_priority")"#.to_string(),
         ].to_vec()
@@ -153,27 +161,31 @@ impl GrpcDataObjectType for Data {
             "weather_conditions" => Ok(GrpcField::Option(GrpcFieldOption::String(
                 self.weather_conditions.clone(),
             ))), //::core::option::Option<::prost::alloc::string::String>,
-            "departure_vertiport_id" => Ok(GrpcField::Option(GrpcFieldOption::String(
-                self.departure_vertiport_id.clone(),
+            "origin_vertiport_id" => Ok(GrpcField::Option(GrpcFieldOption::String(
+                self.origin_vertiport_id.clone(),
             ))), //::core::option::Option<::prost::alloc::string::String>,
-            "departure_vertipad_id" => Ok(GrpcField::String(self.departure_vertipad_id.clone())), //::prost::alloc::string::String,
-            "destination_vertiport_id" => Ok(GrpcField::Option(GrpcFieldOption::String(
-                self.destination_vertiport_id.clone(),
+            "origin_vertipad_id" => Ok(GrpcField::String(self.origin_vertipad_id.clone())), //::prost::alloc::string::String,
+            "target_vertiport_id" => Ok(GrpcField::Option(GrpcFieldOption::String(
+                self.target_vertiport_id.clone(),
             ))), //::core::option::Option<::prost::alloc::string::String>,
-            "destination_vertipad_id" => {
-                Ok(GrpcField::String(self.destination_vertipad_id.clone()))
-            } //::prost::alloc::string::String,
-            "scheduled_departure" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
-                self.scheduled_departure.clone(),
+            "target_vertipad_id" => Ok(GrpcField::String(self.target_vertipad_id.clone())), //::prost::alloc::string::String,
+            "origin_timeslot_start" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
+                self.origin_timeslot_start.clone(),
             ))), //::core::option::Option<::prost_types::Timestamp>,
-            "scheduled_arrival" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
-                self.scheduled_arrival.clone(),
+            "origin_timeslot_end" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
+                self.origin_timeslot_end.clone(),
             ))), //::core::option::Option<::prost_types::Timestamp>,
-            "actual_departure" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
-                self.actual_departure.clone(),
+            "target_timeslot_start" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
+                self.target_timeslot_start.clone(),
             ))), //::core::option::Option<::prost_types::Timestamp>,
-            "actual_arrival" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
-                self.actual_arrival.clone(),
+            "target_timeslot_end" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
+                self.target_timeslot_end.clone(),
+            ))), //::core::option::Option<::prost_types::Timestamp>,
+            "actual_departure_time" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
+                self.actual_departure_time.clone(),
+            ))), //::core::option::Option<::prost_types::Timestamp>,
+            "actual_arrival_time" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
+                self.actual_arrival_time.clone(),
             ))), //::core::option::Option<::prost_types::Timestamp>,
             "flight_release_approval" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
                 self.flight_release_approval.clone(),
@@ -187,8 +199,8 @@ impl GrpcDataObjectType for Data {
             "approved_by" => Ok(GrpcField::Option(GrpcFieldOption::String(
                 self.approved_by.clone(),
             ))), //::core::option::Option<::prost::alloc::string::String>,
-            "flight_status" => Ok(GrpcField::I32(self.flight_status)), //i32,
-            "flight_priority" => Ok(GrpcField::I32(self.flight_priority)), //i32,
+            "flight_status" => Ok(GrpcField::I32(self.flight_status)),                      //i32,
+            "flight_priority" => Ok(GrpcField::I32(self.flight_priority)),                  //i32,
             _ => Err(ArrErr::Error(format!(
                 "Invalid key specified [{}], no such field found",
                 key
@@ -207,31 +219,29 @@ impl TryFrom<Row> for Data {
         let pilot_id: String = row.get::<&str, Uuid>("pilot_id").to_string();
         let vehicle_id: String = row.get::<&str, Uuid>("vehicle_id").to_string();
         let path = row.get::<&str, postgis::ewkb::LineString>("path");
-        let departure_vertipad_id: String =
-            row.get::<&str, Uuid>("departure_vertipad_id").to_string();
-        let destination_vertipad_id: String =
-            row.get::<&str, Uuid>("destination_vertipad_id").to_string();
+        let origin_vertipad_id: String = row.get::<&str, Uuid>("origin_vertipad_id").to_string();
+        let target_vertipad_id: String = row.get::<&str, Uuid>("target_vertipad_id").to_string();
 
         let approved_by: Option<Uuid> = row.get("approved_by");
         let approved_by = approved_by.map(|val| val.to_string());
 
         let handle = get_runtime_handle()?;
-        let vertipad_id = row.get("departure_vertipad_id");
+        let vertipad_id = row.get("origin_vertipad_id");
         let data = task::block_in_place(move || {
             handle.block_on(async move {
                 <ResourceObject<vertipad::Data> as PsqlType>::get_by_id(&vertipad_id).await
             })
         })?;
-        let departure_vertiport_id = data.get::<&str, Uuid>("vertiport_id").to_string();
+        let origin_vertiport_id = data.get::<&str, Uuid>("vertiport_id").to_string();
 
         let handle = get_runtime_handle()?;
-        let vertipad_id = row.get("destination_vertipad_id");
+        let vertipad_id = row.get("target_vertipad_id");
         let data = task::block_in_place(move || {
             handle.block_on(async move {
                 <ResourceObject<vertipad::Data> as PsqlType>::get_by_id(&vertipad_id).await
             })
         })?;
-        let destination_vertiport_id = data.get::<&str, Uuid>("vertiport_id").to_string();
+        let target_vertiport_id = data.get::<&str, Uuid>("vertiport_id").to_string();
 
         let flight_plan_submitted: Option<prost_wkt_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("flight_plan_submitted")
@@ -241,20 +251,28 @@ impl TryFrom<Row> for Data {
             .get::<&str, Option<DateTime<Utc>>>("carrier_ack")
             .map(|val| val.into());
 
-        let scheduled_departure: Option<prost_wkt_types::Timestamp> = row
-            .get::<&str, Option<DateTime<Utc>>>("scheduled_departure")
+        let origin_timeslot_start: Option<prost_wkt_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("origin_timeslot_start")
             .map(|val| val.into());
 
-        let scheduled_arrival: Option<prost_wkt_types::Timestamp> = row
-            .get::<&str, Option<DateTime<Utc>>>("scheduled_arrival")
+        let origin_timeslot_end: Option<prost_wkt_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("origin_timeslot_end")
             .map(|val| val.into());
 
-        let actual_departure: Option<prost_wkt_types::Timestamp> = row
-            .get::<&str, Option<DateTime<Utc>>>("actual_departure")
+        let target_timeslot_start: Option<prost_wkt_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("target_timeslot_start")
             .map(|val| val.into());
 
-        let actual_arrival: Option<prost_wkt_types::Timestamp> = row
-            .get::<&str, Option<DateTime<Utc>>>("actual_arrival")
+        let target_timeslot_end: Option<prost_wkt_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("target_timeslot_end")
+            .map(|val| val.into());
+
+        let actual_departure_time: Option<prost_wkt_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("actual_departure_time")
+            .map(|val| val.into());
+
+        let actual_arrival_time: Option<prost_wkt_types::Timestamp> = row
+            .get::<&str, Option<DateTime<Utc>>>("actual_arrival_time")
             .map(|val| val.into());
 
         let flight_release_approval: Option<prost_wkt_types::Timestamp> = row
@@ -273,14 +291,16 @@ impl TryFrom<Row> for Data {
             vehicle_id,
             path: Some(path.into()),
             weather_conditions: row.get("weather_conditions"),
-            departure_vertiport_id: Some(departure_vertiport_id),
-            departure_vertipad_id,
-            destination_vertiport_id: Some(destination_vertiport_id),
-            destination_vertipad_id,
-            scheduled_departure,
-            scheduled_arrival,
-            actual_departure,
-            actual_arrival,
+            origin_vertiport_id: Some(origin_vertiport_id),
+            origin_vertipad_id,
+            target_vertiport_id: Some(target_vertiport_id),
+            target_vertipad_id,
+            origin_timeslot_start,
+            origin_timeslot_end,
+            target_timeslot_start,
+            target_timeslot_end,
+            actual_departure_time,
+            actual_arrival_time,
             flight_release_approval,
             flight_plan_submitted,
             carrier_ack,
@@ -331,23 +351,31 @@ mod tests {
             vehicle_id: String::from("INVALID"),
             path: Some(GeoLineString { points: vec![] }),
             weather_conditions: Some(String::from("")),
-            departure_vertiport_id: None,
-            departure_vertipad_id: String::from("INVALID"),
-            destination_vertiport_id: None,
-            destination_vertipad_id: String::from("INVALID"),
-            scheduled_departure: Some(prost_wkt_types::Timestamp {
+            origin_vertiport_id: None,
+            origin_vertipad_id: String::from("INVALID"),
+            target_vertiport_id: None,
+            target_vertipad_id: String::from("INVALID"),
+            origin_timeslot_start: Some(prost_wkt_types::Timestamp {
                 seconds: -1,
                 nanos: -1,
             }),
-            scheduled_arrival: Some(prost_wkt_types::Timestamp {
+            origin_timeslot_end: Some(prost_wkt_types::Timestamp {
                 seconds: -1,
                 nanos: -1,
             }),
-            actual_departure: Some(prost_wkt_types::Timestamp {
+            target_timeslot_start: Some(prost_wkt_types::Timestamp {
                 seconds: -1,
                 nanos: -1,
             }),
-            actual_arrival: Some(prost_wkt_types::Timestamp {
+            target_timeslot_end: Some(prost_wkt_types::Timestamp {
+                seconds: -1,
+                nanos: -1,
+            }),
+            actual_departure_time: Some(prost_wkt_types::Timestamp {
+                seconds: -1,
+                nanos: -1,
+            }),
+            actual_arrival_time: Some(prost_wkt_types::Timestamp {
                 seconds: -1,
                 nanos: -1,
             }),
@@ -374,12 +402,14 @@ mod tests {
             let expected_errors = vec![
                 "pilot_id",
                 "vehicle_id",
-                "departure_vertipad_id",
-                "destination_vertipad_id",
-                "scheduled_departure",
-                "scheduled_arrival",
-                "actual_departure",
-                "actual_arrival",
+                "origin_vertipad_id",
+                "target_vertipad_id",
+                "origin_timeslot_start",
+                "origin_timeslot_end",
+                "target_timeslot_start",
+                "target_timeslot_end",
+                "actual_departure_time",
+                "actual_arrival_time",
                 "flight_release_approval",
                 "flight_plan_submitted",
                 "approved_by",
