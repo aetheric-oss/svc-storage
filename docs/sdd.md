@@ -621,7 +621,7 @@ sequenceDiagram
     grpc_server-->>-client: Result
 ```
 
-### Data model CockroachDB
+## Data model CockroachDB
 
 | Value (left) | Value (right) | Meaning                       |
 | ------------ | ------------- | ----------------------------- |
@@ -630,8 +630,71 @@ sequenceDiagram
 | }o           | o{            | Zero or more (no upper limit) |
 | }\|          | \|{           | One or more (no upper limit)  |
 
+
 ```mermaid
 erDiagram
+    user {
+        uuid user_id PK
+        text auth_method "ENUM (OAUTH_GOOGLE,OAUTH_FACEBOOK,OAUTH_AZURE_AD,LOCAL)"
+        text display_name
+        timestamp created_at "Default NOW"
+        timestamp updated_at "Default NOW"
+        timestamp deleted_at "Optional Default NULL"
+    }
+```
+
+### Itinerary and Flight Plan schema
+```mermaid
+erDiagram
+    pilot {
+        uuid pilot_id PK
+        uuid user_id FK
+        timestamp created_at "Default NOW"
+        timestamp updated_at "Default NOW"
+        timestamp deleted_at "Optional Default NULL"
+    }
+
+    vehicle {
+        uuid vehicle_id PK
+        uuid vehicle_model_id
+        text serial_number
+        text registration_number
+        text description "Optional"
+        text schedule "Optional"
+        timestamp last_maintenance "Optional"
+        timestamp next_maintenance "Optional"
+        uuid hangar_id FK "Optional"
+        uuid hangar_bay_id FK "Optional"
+        timestamp created_at "Default NOW"
+        timestamp updated_at "Default NOW"
+        timestamp deleted_at "Optional Default NULL"
+    }
+    vertipad {
+        uuid vertipad_id PK
+        uuid vertiport_id FK
+        text name
+        geometry geo_location "POINT"
+        text schedule
+        bool enabled "Default true"
+        bool occupied "Default false"
+        timestamp created_at "Default NOW"
+        timestamp updated_at "Default NOW"
+        timestamp deleted_at "Optional Default NULL"
+    }
+    vertiport {
+        uuid vertiport_id PK
+        text name
+        text description
+        geometry geo_location "POLYGON"
+        text schedule
+        timestamp created_at "Default NOW"
+        timestamp updated_at "Default NOW"
+        timestamp deleted_at "Optional Default NULL"
+    }
+    vertiport ||--o{ vertipad : vertiport_id
+    vertiport ||--o{ vehicle : hangar_id
+    vertipad ||--o{ vehicle : hangar_bay_id
+
     flight_plan {
         uuid flight_plan_id PK
         uuid pilot_id FK
@@ -655,13 +718,12 @@ erDiagram
         timestamp updated_at "Default NOW"
         timestamp deleted_at "Optional Default NULL"
     }
-    flight_plan_parcel {
-        combined flight_plan_id_parcel_id PK
-        uuid flight_plan_id FK
-        uuid parcel_id FK
-        bool acquire
-        bool deliver
-    }
+    flight_plan }o--|| vertipad : origin_vertipad_id
+    flight_plan }o--|| vertipad : target_vertipad_id
+    flight_plan }o--|| pilot : pilot_id
+    flight_plan }o--|| vehicle : vehicle_id
+    user ||--o{ pilot : user_id
+
     itinerary {
         uuid itinerary_id PK
         uuid user_id
@@ -672,51 +734,14 @@ erDiagram
         uuid itinerary_id FK
         uuid flight_plan_id FK
     }
-    vertiport {
-        uuid vertiport_id PK
-        text name
-        text description
-        geometry geo_location "POLYGON"
-        text schedule
-        timestamp created_at "Default NOW"
-        timestamp updated_at "Default NOW"
-        timestamp deleted_at "Optional Default NULL"
-    }
-    vertipad {
-        uuid vertipad_id PK
-        uuid vertiport_id FK
-        text name
-        geometry geo_location "POINT"
-        text schedule
-        bool enabled "Default true"
-        bool occupied "Default false"
-        timestamp created_at "Default NOW"
-        timestamp updated_at "Default NOW"
-        timestamp deleted_at "Optional Default NULL"
-    }
-    pilot {
-        uuid pilot_id PK
-        text first_name
-        text last_name
-        timestamp created_at "Default NOW"
-        timestamp updated_at "Default NOW"
-        timestamp deleted_at "Optional Default NULL"
-    }
-    vehicle {
-        uuid vehicle_id PK
-        uuid vehicle_model_id
-        text serial_number
-        text registration_number
-        text description "Optional"
-        text schedule "Optional"
-        timestamp last_maintenance "Optional"
-        timestamp next_maintenance "Optional"
-        uuid hangar_id FK "Optional"
-        uuid hangar_bay_id FK "Optional"
-        timestamp created_at "Default NOW"
-        timestamp updated_at "Default NOW"
-        timestamp deleted_at "Optional Default NULL"
-    }
+    itinerary_flight_plan |o--|{ flight_plan : flight_plan_id
+    itinerary_flight_plan |o--|| itinerary : itinerary_id
+```
+
+### Parcel schema
+
+```mermaid
+erDiagram
     scanner {
         uuid scanner_id PK
         uuid organization_id
@@ -726,6 +751,7 @@ erDiagram
         timestamp updated_at "Default NOW"
         timestamp deleted_at "Optional Default NULL"
     }
+
     parcel {
         uuid parcel_id PK
         uuid user_id FK
@@ -735,6 +761,8 @@ erDiagram
         timestamp updated_at "Default NOW"
         timestamp deleted_at "Optional Default NULL"
     }
+    user }o--o{ parcel : user_id
+
     parcel_scan {
         uuid parcel_id FK
         uuid scanner_id FK
@@ -743,33 +771,26 @@ erDiagram
         timestamp updated_at "Default NOW"
         timestamp deleted_at "Optional Default NULL"
     }
-    user {
-        uuid user_id PK
-        text auth_method "ENUM (OAUTH_GOOGLE,OAUTH_FACEBOOK,OAUTH_AZURE_AD,LOCAL)"
-        text display_name
-        timestamp created_at "Default NOW"
-        timestamp updated_at "Default NOW"
-        timestamp deleted_at "Optional Default NULL"
+    parcel ||--o{ parcel_scan : parcel_id
+    scanner ||--o{ parcel_scan : scanner_id
+
+    flight_plan {
+        uuid flight_plan_id FK
+        _ _ "flight_plan fields"
     }
+    flight_plan_parcel {
+        combined flight_plan_id_parcel_id PK
+        uuid flight_plan_id FK
+        uuid parcel_id FK
+        bool acquire
+        bool deliver
+    }
+    parcel }|--o| flight_plan_parcel : parcel_id
+    flight_plan ||--o| flight_plan_parcel : flight_plan_id
 
-    flight_plan }o--|| vertipad : origin_vertipad_id
-    flight_plan }o--|| vertipad : target_vertipad_id
-    flight_plan }o--|| pilot : pilot_id
-    flight_plan }o--|| vehicle : vehicle_id
-
-    itinerary_flight_plan |o--|{ flight_plan : flight_plan_id
-    itinerary_flight_plan |o--|| itinerary : itinerary_id
-
-    vertipad }o--|| vertiport : vertiport_id
-
-    parcel }o--o{ parcel_scan : parcel_id
-    scanner }o--o{ parcel_scan : scanner_id
-
-    flight_plan_parcel |o--|{ parcel : parcel_id
-    flight_plan_parcel |o--|| flight_plan : flight_plan_id
 ```
 
-## Group schema for users and assets
+### Group schema for users and assets
 
 Groups can have multiple functions:
  - providing a way to organize
@@ -794,10 +815,6 @@ erDiagram
         timestamp deleted_at "Optional Default NULL"
     }
 
-    user {
-        uuid user_id FK
-        _ _ "user fields"
-    }
     user_group {
         uuid user_id FK
         uuid group_id FK
@@ -805,10 +822,6 @@ erDiagram
     group ||--o{ user_group : multiple
     user ||--o{ user_group : multiple
 
-    supplier {
-        uuid supplier_id FK
-        _ _ "supplier fields"
-    }
     supplier_group {
         uuid supplier_id FK
         uuid group_id FK
@@ -816,30 +829,29 @@ erDiagram
     supplier ||--o{ supplier_group : multiple
     group ||--o{ supplier_group : multiple
 
-    vehicle {
+    vehicle_group {
         uuid vehicle_id FK
-        _ _ "asset fields"
-    }
-    vertipad {
-        uuid vertipad_id FK
-        _ _ "asset fields"
-    }
-    vertiport {
-        uuid vertiport_id FK
-        _ _ "asset fields"
-    }
-    asset_group {
-        uuid asset_id FK
         uuid group_id FK
     }
-    group ||--o{ asset_group : multiple
-    vehicle ||--o{ asset_group : multiple
-    vertipad ||--o{ asset_group : multiple
-    vertiport ||--o{ asset_group : multiple
-    vehicle ||--o{ asset_group : multiple
+    group ||--o{ vehicle_group : multiple
+    vehicle ||--o{ vehicle_group : multiple
+
+    vertipad_group {
+        uuid vertipad_id FK
+        uuid group_id FK
+    }
+    group ||--o{ vertipad_group : multiple
+    vertipad ||--o{ vertipad_group : multiple
+
+    vertiport_group {
+        uuid vertiport_id FK
+        uuid group_id FK
+    }
+    group ||--o{ vertiport_group : multiple
+    vertiport ||--o{ vertiport_group : multiple
 ```
 
-### Example data
+#### Example data
 
 **groups**
 
@@ -872,9 +884,9 @@ erDiagram
 | vehicle_1  | FEATHER1      | First Project Feather VTOL |
 
 **asset suppliers**
-| asset_supplier_id | name  |
+| supplier_id | name  |
 |-------------------|-------|
-| asset_supplier_1  | Arrow |
+| supplier_1  | Arrow |
 
 **acl**
 | acl_id  | code            | description                |
@@ -938,8 +950,8 @@ flowchart TB
     subgraph vehicle
         vehicle_1[FEATHER1]
     end
-    subgraph supplier[asset_supplier]
-        asset_supplier_1[asset_supplier_1 Arrow]
+    subgraph supplier[supplier]
+        supplier_1[supplier_1 Arrow]
     end
     group_12-->acl_0
     group_10-->acl_1
@@ -959,10 +971,10 @@ flowchart TB
     group_13-->acl_10
     group_13-->acl_11
     group_13-->acl_12
-    user_2-->asset_supplier_1
-    user_3-->asset_supplier_1
+    user_2-->supplier_1
+    user_3-->supplier_1
     vehicle_1-->group_2
-    asset_supplier_1-->group_8
+    supplier_1-->group_8
     user_1-->group_12
     user_2-->group_10
     user_3-->group_11
@@ -971,7 +983,7 @@ flowchart TB
 ```
 
 
-## Field schema for settings
+### Field schema for settings
 
 Certain resources may possess settings that are not classified as properties defining the resource itself; instead, they are settings that can undergo frequent changes, possibly on a daily or even faster basis. These settings will be stored in a separate table to enhance caching mechanisms. This optimization will be applied at both the database engine level as within the Arrow services responsible for offering and accessing these settings. A generic data model facilitates the straightforward management of these fields within both the code and the database itself.
 
@@ -999,14 +1011,10 @@ erDiagram
         text value
     }
 
-    user {
-        uuid user_id FK
-        _ _ "user fields"
-    }
     user_field {
         serial user_field_id PK
         integer field_id FK
-        text name
+        text name "eg: avatar"
         bool is_mandatory "Default false"
         text category "ENUM (additional_info, settings)"
     }
@@ -1020,14 +1028,10 @@ erDiagram
     user_field ||--o{ user_field_value : multiple
     user ||--o{ user_field_value : multiple
 
-    group {
-        uuid group_id FK
-        _ _ "group fields"
-    }
     group_field {
         serial group_field_id PK
         integer field_id FK
-        text name
+        text name "eg: avatar"
         bool is_mandatory "Default false"
         text category "ENUM (settings)"
     }
@@ -1044,7 +1048,7 @@ erDiagram
     vertiport_field {
         serial vertiport_field_id PK
         integer field_id PK
-        text name
+        text name "eg: schedule, status"
         boolean is_mandatory "Default false"
         text category "ENUM (additional_info, settings)"
     }
@@ -1057,5 +1061,22 @@ erDiagram
     field ||--o{ vertiport_field : multiple
     vertiport_field ||--o{ vertiport_field_value : multiple
     vertiport ||--o{ vertiport_field_value : multiple
+
+    supplier_field {
+        serial supplier_field_id PK
+        integer field_id PK
+        text name "eg: main_email, main_phone_number, website, logo_path"
+        boolean is_mandatory "Default false"
+        text category "ENUM (additional_info, settings)"
+    }
+    supplier_field_value {
+        integer supplier_field_id FK
+        uuid supplier_id PK
+        text value
+        timestamp updated_at "Default NOW"
+    }
+    field ||--o{ supplier_field : multiple
+    supplier_field ||--o{ supplier_field_value : multiple
+    supplier ||--o{ supplier_field_value : multiple
 
 ```
