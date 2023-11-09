@@ -708,11 +708,11 @@ mod tests {
     use super::*;
     use crate::resources::base::ResourceObject;
     use crate::test_util::*;
-    use crate::{config::Config, init_logger};
 
-    #[test]
-    fn test_validate_uuid_valid() {
-        init_logger(&Config::try_from_env().unwrap_or_default());
+    #[tokio::test]
+    async fn test_validate_uuid_valid() {
+        crate::get_log_handle().await;
+        ut_info!("(test_validate_uuid_valid) start");
 
         let mut errors: Vec<ValidationError> = vec![];
         let result = validate_uuid(
@@ -722,22 +722,28 @@ mod tests {
         );
         assert!(result.is_some());
         assert!(errors.is_empty());
+
+        ut_info!("(test_validate_uuid_valid) success");
     }
 
-    #[test]
-    fn test_validate_uuid_invalid() {
-        init_logger(&Config::try_from_env().unwrap_or_default());
+    #[tokio::test]
+    async fn test_validate_uuid_invalid() {
+        crate::get_log_handle().await;
+        ut_info!("(test_validate_uuid_invalid) start");
 
         let mut errors: Vec<ValidationError> = vec![];
         let result = validate_uuid(String::from("some_id"), &String::from(""), &mut errors);
         assert!(result.is_none());
         assert!(!errors.is_empty());
         assert_eq!(errors[0].field, "some_id");
+
+        ut_info!("(test_validate_uuid_invalid) success");
     }
 
-    #[test]
-    fn test_validate_dt_valid() {
-        init_logger(&Config::try_from_env().unwrap_or_default());
+    #[tokio::test]
+    async fn test_validate_dt_valid() {
+        crate::get_log_handle().await;
+        ut_info!("(test_validate_dt_valid) start");
 
         let mut errors: Vec<ValidationError> = vec![];
         let timestamp = Timestamp {
@@ -747,11 +753,14 @@ mod tests {
         let result = validate_dt("timestamp".to_string(), &timestamp, &mut errors);
         assert!(result.is_some());
         assert!(errors.is_empty());
+
+        ut_info!("(test_validate_dt_valid) success");
     }
 
-    #[test]
-    fn test_validate_dt_invalid() {
-        init_logger(&Config::try_from_env().unwrap_or_default());
+    #[tokio::test]
+    async fn test_validate_dt_invalid() {
+        crate::get_log_handle().await;
+        ut_info!("(test_validate_dt_invalid) start");
 
         let mut errors: Vec<ValidationError> = vec![];
         let timestamp = Timestamp {
@@ -762,22 +771,28 @@ mod tests {
         assert!(result.is_none());
         assert!(!errors.is_empty());
         assert_eq!(errors[0].field, "timestamp");
+
+        ut_info!("(test_validate_dt_invalid) success");
     }
 
-    #[test]
-    fn test_validate_point_valid() {
-        init_logger(&Config::try_from_env().unwrap_or_default());
+    #[tokio::test]
+    async fn test_validate_point_valid() {
+        crate::get_log_handle().await;
+        ut_info!("(test_validate_point_valid) start");
 
         let mut errors: Vec<ValidationError> = vec![];
         let point = Point::new(1.234, -1.234);
         let result = validate_point("point".to_string(), &point, &mut errors);
         assert!(result);
         assert!(errors.is_empty());
+
+        ut_info!("(test_validate_point_valid) success");
     }
 
-    #[test]
-    fn test_validate_point_invalid() {
-        init_logger(&Config::try_from_env().unwrap_or_default());
+    #[tokio::test]
+    async fn test_validate_point_invalid() {
+        crate::get_log_handle().await;
+        ut_info!("(test_validate_point_invalid) start");
 
         let mut errors: Vec<ValidationError> = vec![];
         let point = Point::new(200.234, -190.234);
@@ -787,11 +802,14 @@ mod tests {
         assert_eq!(errors.len(), 2);
         assert_eq!(errors[0].field, "point");
         assert_eq!(errors[1].field, "point");
+
+        ut_info!("(test_validate_point_invalid) start");
     }
 
-    #[test]
-    fn test_validate_polygon_valid() {
-        init_logger(&Config::try_from_env().unwrap_or_default());
+    #[tokio::test]
+    async fn test_validate_polygon_valid() {
+        crate::get_log_handle().await;
+        ut_info!("(test_validate_polygon_valid) start");
 
         let mut errors: Vec<ValidationError> = vec![];
         let polygon = Polygon::new(
@@ -801,11 +819,14 @@ mod tests {
         let result = validate_polygon("polygon".to_string(), &polygon, &mut errors);
         assert!(result);
         assert!(errors.is_empty());
+
+        ut_info!("(test_validate_polygon_valid) success");
     }
 
-    #[test]
-    fn test_validate_polygon_invalid() {
-        init_logger(&Config::try_from_env().unwrap_or_default());
+    #[tokio::test]
+    async fn test_validate_polygon_invalid() {
+        crate::get_log_handle().await;
+        ut_info!("(test_validate_polygon_invalid) start");
 
         // Not enough lines
         let mut errors: Vec<ValidationError> = vec![];
@@ -830,22 +851,28 @@ mod tests {
         assert_eq!(errors.len(), 2);
         assert_eq!(errors[0].field, "polygon");
         assert_eq!(errors[1].field, "polygon");
+
+        ut_info!("(test_validate_polygon_invalid) success");
     }
 
-    #[test]
-    fn test_validate_line_string_valid() {
-        init_logger(&Config::try_from_env().unwrap_or_default());
+    #[tokio::test]
+    async fn test_validate_line_string_valid() {
+        crate::get_log_handle().await;
+        ut_info!("(test_validate_line_string_valid) start");
 
         let mut errors: Vec<ValidationError> = vec![];
         let line = LineString::from(vec![(40.123, -40.123), (41.123, -41.123)]);
         let result = validate_line_string("line".to_string(), &line, &mut errors);
         assert!(result);
         assert!(errors.is_empty());
+
+        ut_info!("(test_validate_line_string_valid) success");
     }
 
-    #[test]
-    fn test_validate_line_string_invalid() {
-        init_logger(&Config::try_from_env().unwrap_or_default());
+    #[tokio::test]
+    async fn test_validate_line_string_invalid() {
+        crate::get_log_handle().await;
+        ut_info!("(test_validate_line_string_invalid) start");
 
         let mut errors: Vec<ValidationError> = vec![];
         let line = LineString::from(vec![(400.123, -400.123)]);
@@ -855,11 +882,14 @@ mod tests {
         assert_eq!(errors.len(), 2);
         assert_eq!(errors[0].field, "line");
         assert_eq!(errors[1].field, "line");
+
+        ut_info!("(test_validate_line_string_invalid) success");
     }
 
-    #[test]
-    fn test_get_insert_vars() {
-        init_logger(&Config::try_from_env().unwrap_or_default());
+    #[tokio::test]
+    async fn test_get_insert_vars() {
+        crate::get_log_handle().await;
+        ut_info!("(test_get_insert_vars) start");
 
         let uuid = Uuid::new_v4();
         let optional_uuid = Uuid::new_v4();
@@ -934,11 +964,14 @@ mod tests {
                 return;
             }
         }
+
+        ut_info!("(test_get_insert_vars) success");
     }
 
-    #[test]
-    fn test_get_update_vars() {
-        init_logger(&Config::try_from_env().unwrap_or_default());
+    #[tokio::test]
+    async fn test_get_update_vars() {
+        crate::get_log_handle().await;
+        ut_info!("(test_get_update_vars) start");
 
         let uuid = Uuid::new_v4();
         let optional_uuid = Uuid::new_v4();
@@ -1012,11 +1045,14 @@ mod tests {
                 return;
             }
         }
+
+        ut_info!("(test_get_update_vars) success");
     }
 
-    #[test]
-    fn test_validate_invalid_object() {
-        init_logger(&Config::try_from_env().unwrap_or_default());
+    #[tokio::test]
+    async fn test_validate_invalid_object() {
+        crate::get_log_handle().await;
+        ut_info!("(test_validate_invalid_object) start");
 
         let invalid_data = get_invalid_test_data();
 
@@ -1028,5 +1064,7 @@ mod tests {
         };
 
         assert_eq!(validation_result.success, false);
+
+        ut_info!("(test_validate_invalid_object) success");
     }
 }

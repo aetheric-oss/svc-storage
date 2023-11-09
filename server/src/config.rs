@@ -52,11 +52,12 @@ impl Config {
     pub fn try_from_env() -> Result<Self, ConfigError> {
         // read .env file if present
         dotenv().ok();
+        let default_config = Config::default();
 
         config::Config::builder()
-            .set_default("docker_port_grpc", 50051)?
-            .set_default("log_config", String::from("log4rs.yaml"))?
-            .set_default("use_tls", true)?
+            .set_default("docker_port_grpc", default_config.docker_port_grpc)?
+            .set_default("log_config", default_config.log_config)?
+            .set_default("use_tls", default_config.use_tls)?
             .add_source(Environment::default().separator("__"))
             .build()?
             .try_deserialize()
@@ -65,27 +66,39 @@ impl Config {
 
 #[cfg(test)]
 mod tests {
-    use crate::{config::Config, init_logger};
+    use super::Config;
 
-    #[test]
-    fn test_config_from_default() {
+    #[tokio::test]
+    async fn test_config_from_default() {
+        crate::get_log_handle().await;
+        ut_info!("(test_config_from_default) Start.");
+
         let config = Config::default();
 
         assert_eq!(config.docker_port_grpc, 50051);
         assert_eq!(config.log_config, String::from("log4rs.yaml"));
         assert_eq!(config.use_tls, true);
+
+        ut_info!("(test_config_from_default) Success.");
     }
 
-    #[test]
-    fn test_config_from_env() {
-        // Make sure logger is initialized for tests before we mess with our env vars
-        init_logger(&Config::try_from_env().unwrap_or_default());
+    #[tokio::test]
+    async fn test_config_from_env() {
+        crate::get_log_handle().await;
+        ut_info!("(test_config_from_default) Start.");
 
         std::env::set_var("DOCKER_PORT_GRPC", "6789");
         std::env::set_var("LOG_CONFIG", "config_file.yaml");
+        std::env::set_var("USE_TLS", "false");
 
-        let config = Config::try_from_env().unwrap();
+        let config = Config::try_from_env();
+        assert!(config.is_ok());
+        let config = config.unwrap();
 
-        assert_eq!(config.use_tls, true);
+        assert_eq!(config.docker_port_grpc, 6789);
+        assert_eq!(config.log_config, String::from("config_file.yaml"));
+        assert_eq!(config.use_tls, false);
+
+        ut_info!("(test_config_from_env) Success.");
     }
 }

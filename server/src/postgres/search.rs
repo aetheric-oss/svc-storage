@@ -486,12 +486,12 @@ pub(super) fn param_from_search_col(
 mod tests {
     use super::*;
     use crate::resources::base::ResourceObject;
-    use crate::{config::Config, init_logger, test_util::*};
+    use crate::test_util::*;
 
-    #[test]
-    fn test_get_param_from_search_col() {
-        init_logger(&Config::try_from_env().unwrap_or_default());
-        unit_test_info!("(test_get_param_from_search_col) start");
+    #[tokio::test]
+    async fn test_get_param_from_search_col() {
+        crate::get_log_handle().await;
+        ut_info!("(test_get_param_from_search_col) start");
 
         // Our TestData object should have fields for each possible field_type.
         // We'll use it to loop over all the fields and test the expected return
@@ -588,6 +588,6 @@ mod tests {
             let value = result.unwrap();
             assert_eq!(display_val, format!("{:?}", value))
         }
-        unit_test_info!("(test_get_param_from_search_col) success");
+        ut_info!("(test_get_param_from_search_col) success");
     }
 }
