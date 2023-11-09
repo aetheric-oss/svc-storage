@@ -46,7 +46,7 @@ pub async fn scenario(client: &VertipadClient, data: Vec<Data>, logger: &mut Log
     };
 
     // Check if all vertipads can be retrieved from the backend
-    let result = client.search(not_deleted_filter).await;
+    let result = client.search(not_deleted_filter.clone()).await;
     let expected = get_log_string("search", name);
     println!("expected message: {}", expected);
     assert!(logger.any(|log| check_log_string_matches(log, &expected)));
@@ -88,5 +88,16 @@ pub async fn scenario(client: &VertipadClient, data: Vec<Data>, logger: &mut Log
     println!("{:?}", result);
     assert!(result.is_ok());
 
-    vertipads
+    // Get all vertipads still left in the db
+    let result = client.search(not_deleted_filter).await;
+    let expected = get_log_string("search", name);
+    println!("expected message: {}", expected);
+    assert!(logger.any(|log| check_log_string_matches(log, &expected)));
+
+    println!("{:?}", result);
+    assert!(result.is_ok());
+    let vertipads_from_db: List = result.unwrap().into_inner();
+    assert_eq!(vertipads_from_db.list.len(), vertipads.list.len() - 1);
+
+    vertipads_from_db
 }

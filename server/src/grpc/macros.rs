@@ -1543,3 +1543,33 @@ macro_rules! grpc_server_simple_service_linked_mod {
         }
     };
 }
+
+/// Generates modules for asset group gRPC server implementations
+macro_rules! grpc_server_group_service_mod {
+    ($resource:tt) => {
+        paste::paste! {
+        #[doc = concat!("Module to expose linked resource implementations for ", stringify!($resource), "_group")]
+        pub mod [<$resource _group>] {
+            pub use super::$resource::rpc_group_link_server::*;
+            use super::$resource::[<$resource:camel Groups>];
+
+            #[doc = concat!("Dummy struct for ", stringify!($resource), "Group Data")]
+            /// Allows us to implement the required traits
+            #[derive(Clone, prost::Message, Copy)]
+            pub struct Data {}
+
+            grpc_server_link_service_mod!($resource, group, RpcGroupLink, [<$resource:camel Groups>]);
+        }
+
+        #[doc = concat!("Module to expose linked resource implementations for group_", stringify!($resource))]
+        #[doc = concat!("Uses the ", stringify!($resource), "_group Data object implementation for database schema definitions")]
+        pub mod [<group_ $resource>] {
+            pub use super::group::[<rpc_ $resource _link_server>]::*;
+            use super::group::[<Group $resource:camel s>];
+            pub use super::[<$resource _group>]::Data;
+
+            grpc_server_link_service_mod!(group, $resource, [<Rpc $resource:camel Link>], [<Group $resource:camel s>]);
+        }
+        }
+    };
+}

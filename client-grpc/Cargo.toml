@@ -42,7 +42,7 @@ all_resources = [
 any_resource = []
 flight_plan = ["any_resource"]
 flight_plan_parcel = ["any_resource", "flight_plan", "parcel"]
-group = ["any_resource", "user"]
+group = ["any_resource", "user", "vehicle", "vertipad", "vertiport"]
 itinerary = ["any_resource", "flight_plan"]
 parcel = ["any_resource"]
 parcel_scan = ["any_resource", "scanner", "parcel"]
@@ -95,7 +95,7 @@ path     = "../server"
 [dependencies.lib-common]
 features = ["grpc"]
 git      = "https://github.com/Arrow-air/lib-common"
-tag      = "v0.2.1-develop.0"
+tag      = "latest-develop"
 
 [dependencies.tokio]
 features = ["macros", "rt-multi-thread"]

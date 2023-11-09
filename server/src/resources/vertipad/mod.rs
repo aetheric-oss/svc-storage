@@ -1,6 +1,7 @@
 //! Vertipad
 
 pub use crate::grpc::server::vertipad::*;
+pub mod group;
 
 use chrono::{DateTime, Utc};
 use log::debug;

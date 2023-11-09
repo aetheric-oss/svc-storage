@@ -54,9 +54,11 @@ async fn test_client_requests_and_logs() {
     //----------------------------------------------------
     // generate random vertipads for vertiports
     let mut vertipads_data: Vec<vertipad::Data> = vec![];
-    for vertiport in vertiports.list.clone() {
-        let mut vertipad = vertipad::mock::get_data_obj_for_vertiport(vertiport);
+    for vertiport in &vertiports.list {
+        let mut vertipad = vertipad::mock::get_data_obj_for_vertiport(vertiport.clone());
         vertipad.name = format!("First vertipad for {}", vertipad.vertiport_id.clone());
+        vertipads_data.push(vertipad.clone());
+        vertipad.name = format!("Second vertipad for {}", vertipad.vertiport_id.clone());
         vertipads_data.push(vertipad);
     }
 
@@ -74,10 +76,10 @@ async fn test_client_requests_and_logs() {
         vehicle.description = Some(format!("Mock vehicle {}", index + 1));
         vehicles_data.push(vehicle);
     }
-    for vertiport in vertiports.list {
+    for vertiport in &vertiports.list {
         let mut vehicle = vehicle::mock::get_data_obj();
         vehicle.description = Some(format!("Mock vehicle vertiports {}", vertiport.id.clone()));
-        vehicle.hangar_id = Some(vertiport.id);
+        vehicle.hangar_id = Some(vertiport.id.clone());
         vehicle.hangar_bay_id = Some(uuid::Uuid::new_v4().to_string());
         vehicles_data.push(vehicle);
     }
@@ -113,7 +115,7 @@ async fn test_client_requests_and_logs() {
     //----------------------------------------------------
     // Users
     //----------------------------------------------------
-    // generate mock users
+    // generate 10 mock users
     let mut users_data: Vec<user::Data> = vec![];
     for index in 0..10 {
         let mut user = user::mock::get_data_obj();
@@ -127,7 +129,7 @@ async fn test_client_requests_and_logs() {
     //----------------------------------------------------
     // groups
     //----------------------------------------------------
-    // generate mock groups
+    // generate 10 mock groups
     let mut groups_data: Vec<group::Data> = vec![];
     for index in 0..10 {
         let mut group = group::mock::get_data_obj();
@@ -137,6 +139,38 @@ async fn test_client_requests_and_logs() {
 
     // play scenario
     let groups: group::List = group::scenario(&clients.group, groups_data, &mut logger).await;
+    //----------------------------------------------------
+    // group_users
+    //----------------------------------------------------
+    // play scenario
+    group_user::scenario(&clients.group_user_link, &groups, &users, &mut logger).await;
+    //----------------------------------------------------
+    // group_vehicles
+    //----------------------------------------------------
+    // play scenario
+    group_vehicle::scenario(&clients.group_vehicle_link, &groups, &vehicles, &mut logger).await;
+    //----------------------------------------------------
+    // group_vertipads
+    //----------------------------------------------------
+    // play scenario
+    group_vertipad::scenario(
+        &clients.group_vertipad_link,
+        &groups,
+        &vertipads,
+        &mut logger,
+    )
+    .await;
+    //----------------------------------------------------
+    // group_vertiports
+    //----------------------------------------------------
+    // play scenario
+    group_vertiport::scenario(
+        &clients.group_vertiport_link,
+        &groups,
+        &vertiports,
+        &mut logger,
+    )
+    .await;
 
     //----------------------------------------------------
     // user_groups
@@ -144,8 +178,30 @@ async fn test_client_requests_and_logs() {
     // play scenario
     user_group::scenario(&clients.user_group_link, &users, &groups, &mut logger).await;
     //----------------------------------------------------
-    // group_users
+    // vehicle_groups
     //----------------------------------------------------
     // play scenario
-    group_user::scenario(&clients.group_user_link, &groups, &users, &mut logger).await;
+    vehicle_group::scenario(&clients.vehicle_group_link, &vehicles, &groups, &mut logger).await;
+    //----------------------------------------------------
+    // vertipad_groups
+    //----------------------------------------------------
+    // play scenario
+    vertipad_group::scenario(
+        &clients.vertipad_group_link,
+        &vertipads,
+        &groups,
+        &mut logger,
+    )
+    .await;
+    //----------------------------------------------------
+    // vertiport_groups
+    //----------------------------------------------------
+    // play scenario
+    vertiport_group::scenario(
+        &clients.vertiport_group_link,
+        &vertiports,
+        &groups,
+        &mut logger,
+    )
+    .await;
 }

@@ -1,6 +1,7 @@
 //! Vertiport
 
 pub use crate::grpc::server::vertiport::*;
+pub mod group;
 
 use chrono::{DateTime, Utc};
 use log::debug;

@@ -63,9 +63,9 @@ message List {
     repeated Object list = 1;
 }
 
-// Struct used to link groups to user
+// Struct used to link groups to an user
 message UserGroups {
-    // `id` [`String`] in [`Uuid`](uuid::Uuid) format
+    // `id` [`String`] in [`Uuid`](uuid::Uuid) format. Must be a valid user_id
     string id = 1;
     // group ids as [`Vec\<String\>`] in [`Uuid`](uuid::Uuid) format
     IdList other_id_list = 2;
