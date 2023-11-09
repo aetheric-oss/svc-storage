@@ -195,6 +195,11 @@ fn add_utoipa_attributes(
             "Object",
             format!("#[schema(as = {}::Object)]", resource_type),
         )
+        .type_attribute("UpdateObject", "#[derive(ToSchema, IntoParams)]")
+        .type_attribute(
+            "UpdateObject",
+            format!("#[schema(as = {}::UpdateObject)]", resource_type),
+        )
         .type_attribute("Data", "#[derive(ToSchema, IntoParams)]")
         .type_attribute("Data", format!("#[schema(as = {}::Data)]", resource_type))
         .type_attribute("RowData", "#[derive(ToSchema, IntoParams)]")
