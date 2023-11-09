@@ -45,15 +45,14 @@ impl TryFrom<Row> for Data {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{config::Config, init_logger};
 
-    #[test]
-    fn test_itinerary_flight_plan_schema() {
-        init_logger(&Config::try_from_env().unwrap_or_default());
-        unit_test_info!("(test_itinerary_flight_plan_schema) start");
+    #[tokio::test]
+    async fn test_itinerary_flight_plan_schema() {
+        crate::get_log_handle().await;
+        ut_info!("(test_itinerary_flight_plan_schema) start");
 
         let definition = <ResourceObject<Data>>::get_definition();
         assert_eq!(definition.get_psql_table(), "itinerary_flight_plan");
-        unit_test_info!("(test_itinerary_flight_plan_schema) success");
+        ut_info!("(test_itinerary_flight_plan_schema) success");
     }
 }

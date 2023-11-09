@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 pub use crate::postgres::util::validate;
 
-log_macros!("unit_test", "test::unit");
+log_macros!("ut", "test");
 
 /// Test struct providing all data types we need to convert between gRPC
 /// and Postgres
