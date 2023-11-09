@@ -1,6 +1,7 @@
 //! vehicle
 
 pub use crate::grpc::server::vehicle::*;
+pub mod group;
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};

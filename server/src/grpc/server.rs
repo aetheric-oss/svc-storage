@@ -47,28 +47,10 @@ pub mod itinerary_flight_plan {
     );
 }
 
-/// Module to expose linked resource implementations for user_group
-pub mod user_group {
-    pub use super::user::rpc_group_link_server::*;
-    use super::user::UserGroups;
-
-    /// Dummy struct for UserGroup Data
-    /// Allows us to implement the required traits
-    #[derive(Clone, prost::Message, Copy)]
-    pub struct Data {}
-
-    grpc_server_link_service_mod!(user, group, RpcGroupLink, UserGroups);
-}
-
-/// Module to expose linked resource implementations for user_group
-/// Uses the user_group Data object implementation for database schema definitions
-pub mod group_user {
-    pub use super::group::rpc_user_link_server::*;
-    use super::group::GroupUsers;
-    pub use super::user_group::Data;
-
-    grpc_server_link_service_mod!(group, user, RpcUserLink, GroupUsers);
-}
+grpc_server_group_service_mod!(user);
+grpc_server_group_service_mod!(vehicle);
+grpc_server_group_service_mod!(vertiport);
+grpc_server_group_service_mod!(vertipad);
 
 /// Provide search helpers
 pub mod search {
@@ -173,6 +155,15 @@ pub async fn grpc_server(config: Config, shutdown_rx: Option<tokio::sync::onesho
         .set_serving::<group_user::RpcUserLinkServer<group_user::GrpcServer>>()
         .await;
     health_reporter
+        .set_serving::<group_vehicle::RpcVehicleLinkServer<group_vehicle::GrpcServer>>()
+        .await;
+    health_reporter
+        .set_serving::<group_vertipad::RpcVertipadLinkServer<group_vertipad::GrpcServer>>()
+        .await;
+    health_reporter
+        .set_serving::<group_vertiport::RpcVertiportLinkServer<group_vertiport::GrpcServer>>()
+        .await;
+    health_reporter
         .set_serving::<itinerary::RpcServiceServer<itinerary::GrpcServer>>()
         .await;
     health_reporter
@@ -200,10 +191,19 @@ pub async fn grpc_server(config: Config, shutdown_rx: Option<tokio::sync::onesho
         .set_serving::<vehicle::RpcServiceServer<vehicle::GrpcServer>>()
         .await;
     health_reporter
+        .set_serving::<vehicle_group::RpcGroupLinkServer<vehicle_group::GrpcServer>>()
+        .await;
+    health_reporter
         .set_serving::<vertipad::RpcServiceServer<vertipad::GrpcServer>>()
         .await;
     health_reporter
+        .set_serving::<vertipad_group::RpcGroupLinkServer<vertipad_group::GrpcServer>>()
+        .await;
+    health_reporter
         .set_serving::<vertiport::RpcServiceServer<vertiport::GrpcServer>>()
+        .await;
+    health_reporter
+        .set_serving::<vertiport_group::RpcGroupLinkServer<vertiport_group::GrpcServer>>()
         .await;
 
     //start server
@@ -245,11 +245,20 @@ pub async fn grpc_server(config: Config, shutdown_rx: Option<tokio::sync::onesho
         .add_service(vehicle::RpcServiceServer::new(
             vehicle::GrpcServer::default(),
         ))
+        .add_service(vehicle_group::RpcGroupLinkServer::new(
+            vehicle_group::GrpcServer::default(),
+        ))
         .add_service(vertipad::RpcServiceServer::new(
             vertipad::GrpcServer::default(),
         ))
+        .add_service(vertipad_group::RpcGroupLinkServer::new(
+            vertipad_group::GrpcServer::default(),
+        ))
         .add_service(vertiport::RpcServiceServer::new(
             vertiport::GrpcServer::default(),
+        ))
+        .add_service(vertiport_group::RpcGroupLinkServer::new(
+            vertiport_group::GrpcServer::default(),
         ))
         .serve_with_shutdown(full_grpc_addr, shutdown_signal("grpc", shutdown_rx))
         .await
