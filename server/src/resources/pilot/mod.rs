@@ -82,12 +82,12 @@ impl TryFrom<Row> for Data {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{config::Config, init_logger, test_util::*};
+    use crate::test_util::*;
 
-    #[test]
-    fn test_pilot_schema() {
-        init_logger(&Config::try_from_env().unwrap_or_default());
-        unit_test_info!("(test_pilot_schema) start");
+    #[tokio::test]
+    async fn test_pilot_schema() {
+        crate::get_log_handle().await;
+        ut_info!("(test_pilot_schema) start");
 
         let id = Uuid::new_v4().to_string();
         let data = mock::get_data_obj();
@@ -101,10 +101,11 @@ mod tests {
         let result = validate::<ResourceObject<Data>>(&data);
         assert!(result.is_ok());
         if let Ok((sql_fields, validation_result)) = result {
-            unit_test_info!("{:?}", sql_fields);
-            unit_test_info!("{:?}", validation_result);
+            ut_info!("{:?}", sql_fields);
+            ut_info!("{:?}", validation_result);
             assert_eq!(validation_result.success, true);
         }
-        unit_test_info!("(test_pilot_schema) success");
+
+        ut_info!("(test_pilot_schema) success");
     }
 }
