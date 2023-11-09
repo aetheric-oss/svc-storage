@@ -4,7 +4,7 @@ appenders:
     kind: console
     encoder:
       # https://medium.com/nikmas-group-rust/advanced-logging-in-rust-with-log4rs-2d712bb322de
-      pattern: "{d(%Y-%m-%d %H:%M:%S)} | {({l}):5.5} | {f}:{L} — {m}{n}"
+      pattern: "{d(%Y-%m-%d %H:%M:%S)} | {I} | {h({l}):5.5} | {f}:{L} | {m}{n}"
   grpc_requests:
     kind: rolling_file
     path: "logs/grpc_requests.log"
@@ -66,7 +66,11 @@ loggers:
     level: info
     appenders:
       - grpc_requests
-  test::unit:
+  test::ut:
+    level: info
+    appenders:
+      - tests
+  test::it:
     level: info
     appenders:
       - tests

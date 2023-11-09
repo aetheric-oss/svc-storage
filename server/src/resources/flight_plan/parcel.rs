@@ -124,12 +124,12 @@ impl From<RowData> for ResourceObject<Data> {
 mod tests {
     use super::*;
     use crate::resources::FieldValue;
-    use crate::{config::Config, init_logger, test_util::*};
+    use crate::test_util::*;
 
-    #[test]
-    fn test_flight_plan_parcel_schema() {
-        init_logger(&Config::try_from_env().unwrap_or_default());
-        unit_test_info!("(test_flight_plan_parcel_schema) start");
+    #[tokio::test]
+    async fn test_flight_plan_parcel_schema() {
+        crate::get_log_handle().await;
+        ut_info!("(test_flight_plan_parcel_schema) start");
 
         let definition = <ResourceObject<Data>>::get_definition();
         assert_eq!(definition.get_psql_table(), "flight_plan_parcel");
@@ -156,10 +156,10 @@ mod tests {
         let result = validate::<ResourceObject<Data>>(&data);
         assert!(result.is_ok());
         if let Ok((sql_fields, validation_result)) = result {
-            unit_test_info!("{:?}", sql_fields);
-            unit_test_info!("{:?}", validation_result);
+            ut_info!("{:?}", sql_fields);
+            ut_info!("{:?}", validation_result);
             assert_eq!(validation_result.success, true);
         }
-        unit_test_info!("(test_flight_plan_parcel_schema) success");
+        ut_info!("(test_flight_plan_parcel_schema) success");
     }
 }

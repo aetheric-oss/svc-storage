@@ -115,12 +115,12 @@ impl TryFrom<Row> for Data {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{config::Config, init_logger, test_util::*};
+    use crate::test_util::*;
 
-    #[test]
-    fn test_parcel_schema() {
-        init_logger(&Config::try_from_env().unwrap_or_default());
-        unit_test_info!("(test_parcel_schema) start");
+    #[tokio::test]
+    async fn test_parcel_schema() {
+        crate::get_log_handle().await;
+        ut_info!("(test_parcel_schema) start");
 
         let id = Uuid::new_v4().to_string();
         let data = mock::get_data_obj();
@@ -134,17 +134,17 @@ mod tests {
         let result = validate::<ResourceObject<Data>>(&data);
         assert!(result.is_ok());
         if let Ok((sql_fields, validation_result)) = result {
-            unit_test_info!("{:?}", sql_fields);
-            unit_test_info!("{:?}", validation_result);
+            ut_info!("{:?}", sql_fields);
+            ut_info!("{:?}", validation_result);
             assert_eq!(validation_result.success, true);
         }
-        unit_test_info!("(test_parcel_schema) success");
+        ut_info!("(test_parcel_schema) success");
     }
 
-    #[test]
-    fn test_parcel_invalid_data() {
-        init_logger(&Config::try_from_env().unwrap_or_default());
-        unit_test_info!("(test_parcel_invalid_data) start");
+    #[tokio::test]
+    async fn test_parcel_invalid_data() {
+        crate::get_log_handle().await;
+        ut_info!("(test_parcel_invalid_data) start");
 
         let data = Data {
             user_id: String::from("INVALID"),
@@ -155,18 +155,21 @@ mod tests {
         let result = validate::<ResourceObject<Data>>(&data);
         assert!(result.is_ok());
         if let Ok((_, validation_result)) = result {
-            unit_test_info!("{:?}", validation_result);
+            ut_info!("{:?}", validation_result);
             assert_eq!(validation_result.success, false);
 
             let expected_errors = vec!["user_id", "status"];
             assert_eq!(expected_errors.len(), validation_result.errors.len());
             assert!(contains_field_errors(&validation_result, &expected_errors));
         }
-        unit_test_info!("(test_parcel_invalid_data) success");
+        ut_info!("(test_parcel_invalid_data) success");
     }
 
-    #[test]
-    fn test_parcel_status_get_enum_string_val() {
+    #[tokio::test]
+    async fn test_parcel_get_enum_status_string_val() {
+        crate::get_log_handle().await;
+        ut_info!("(test_parcel_get_enum_status_string_val) start");
+
         assert_eq!(
             ResourceObject::<Data>::get_enum_string_val(
                 "status",
@@ -199,20 +202,30 @@ mod tests {
             ResourceObject::<Data>::get_enum_string_val("status", -1),
             None
         );
+
+        ut_info!("(test_parcel_get_enum_status_string_val) success");
     }
 
-    #[test]
-    fn test_parcel_status_as_str_name() {
+    #[tokio::test]
+    async fn test_parcel_status_as_str_name() {
+        crate::get_log_handle().await;
+        ut_info!("(test_parcel_status_as_str_name) start");
+
         assert_eq!(ParcelStatus::Notdroppedoff.as_str_name(), "NOTDROPPEDOFF");
         assert_eq!(ParcelStatus::Droppedoff.as_str_name(), "DROPPEDOFF");
         assert_eq!(ParcelStatus::Enroute.as_str_name(), "ENROUTE");
         assert_eq!(ParcelStatus::Arrived.as_str_name(), "ARRIVED");
         assert_eq!(ParcelStatus::Pickedup.as_str_name(), "PICKEDUP");
         assert_eq!(ParcelStatus::Complete.as_str_name(), "COMPLETE");
+
+        ut_info!("(test_parcel_status_as_str_name) success");
     }
 
-    #[test]
-    fn test_parcel_status_from_str_name() {
+    #[tokio::test]
+    async fn test_parcel_status_from_str_name() {
+        crate::get_log_handle().await;
+        ut_info!("(test_parcel_status_from_str_name) start");
+
         assert_eq!(
             ParcelStatus::from_str_name("NOTDROPPEDOFF"),
             Some(ParcelStatus::Notdroppedoff)
@@ -239,5 +252,7 @@ mod tests {
         );
 
         assert_eq!(ParcelStatus::from_str_name("INVALID"), None);
+
+        ut_info!("(test_parcel_status_from_str_name) success");
     }
 }
