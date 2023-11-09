@@ -5,6 +5,16 @@ import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 import "svc-storage-grpc.proto";
 
+// Flight Status Enum
+enum GroupType {
+    // Acl
+    ACL = 0;
+    // Settings
+    SETTINGS = 1;
+    // Display
+    DISPLAY = 2;
+}
+
 // Response struct returning an [Object] on success and [ValidationResult] if invalid fields were provided
 message Response {
     // struct with field -> error pairs to provide feedback about invalid fields
@@ -40,10 +50,12 @@ message UpdateObject {
 message Data {
     // the Group's name
     string name = 1;
+    // the Group's type
+    GroupType group_type = 2;
     // the Group's description
-    string description = 2;
+    string description = 3;
     // optional group parent UUID
-    optional string parent_group_id = 3;
+    optional string parent_group_id = 4;
 }
 
 // Struct containing a `list` of group [`Vec\<Object\>`]
@@ -52,10 +64,34 @@ message List {
     repeated Object list = 1;
 }
 
-// Struct used to link users to group
+// Struct used to link users to a group
 message GroupUsers {
-    // `id` [`String`] in [`Uuid`](uuid::Uuid) format
+    // `id` [`String`] in [`Uuid`](uuid::Uuid) format. Must be a valid group_id
     string id = 1;
     // user ids as [`Vec\<String\>``] in [`Uuid`](uuid::Uuid) format
+    IdList other_id_list = 2;
+}
+
+// Struct used to link vehicles to a group
+message GroupVehicles {
+    // `id` [`String`] in [`Uuid`](uuid::Uuid) format. Must be a valid group_id
+    string id = 1;
+    // vehicle ids as [`Vec\<String\>``] in [`Uuid`](uuid::Uuid) format
+    IdList other_id_list = 2;
+}
+
+// Struct used to link vertiports to a group
+message GroupVertiports {
+    // `id` [`String`] in [`Uuid`](uuid::Uuid) format. Must be a valid group_id
+    string id = 1;
+    // vertiport ids as [`Vec\<String\>``] in [`Uuid`](uuid::Uuid) format
+    IdList other_id_list = 2;
+}
+
+// Struct used to link vertipads to a group
+message GroupVertipads {
+    // `id` [`String`] in [`Uuid`](uuid::Uuid) format. Must be a valid group_id
+    string id = 1;
+    // vertipad ids as [`Vec\<String\>``] in [`Uuid`](uuid::Uuid) format
     IdList other_id_list = 2;
 }

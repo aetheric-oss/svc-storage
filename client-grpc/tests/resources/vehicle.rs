@@ -50,7 +50,7 @@ pub async fn scenario(client: &VehicleClient, data: Vec<Data>, logger: &mut Logg
     };
 
     // Check if all vehicles can be retrieved from the backend
-    let result = client.search(not_deleted_filter).await;
+    let result = client.search(not_deleted_filter.clone()).await;
     let expected = get_log_string("search", name);
     println!("expected message: {}", expected);
     assert!(logger.any(|log| check_log_string_matches(log, &expected)));
@@ -92,5 +92,16 @@ pub async fn scenario(client: &VehicleClient, data: Vec<Data>, logger: &mut Logg
     println!("{:?}", result);
     assert!(result.is_ok());
 
-    vehicles
+    // Get all vehicles still left in the db
+    let result = client.search(not_deleted_filter).await;
+    let expected = get_log_string("search", name);
+    println!("expected message: {}", expected);
+    assert!(logger.any(|log| check_log_string_matches(log, &expected)));
+
+    println!("{:?}", result);
+    assert!(result.is_ok());
+    let vehicles_from_db: List = result.unwrap().into_inner();
+    assert_eq!(vehicles_from_db.list.len(), vehicles.list.len() - 1);
+
+    vehicles_from_db
 }
