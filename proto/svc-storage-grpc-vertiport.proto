@@ -58,3 +58,11 @@ message List {
     // array/vector of vertiport items
     repeated Object list = 1;
 }
+
+// Struct used to link groups to a vertiport
+message VertiportGroups {
+    // `id` [`String`] in [`Uuid`](uuid::Uuid) format. Must be a valid vertiport_id
+    string id = 1;
+    // group ids as [`Vec\<String\>`] in [`Uuid`](uuid::Uuid) format
+    IdList other_id_list = 2;
+}

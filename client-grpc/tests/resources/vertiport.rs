@@ -44,7 +44,7 @@ pub async fn scenario(client: &VertiportClient, data: Vec<Data>, logger: &mut Lo
     };
 
     // Check if all vertiports can be retrieved from the backend
-    let result = client.search(not_deleted_filter).await;
+    let result = client.search(not_deleted_filter.clone()).await;
     let expected = get_log_string("search", name);
     println!("expected message: {}", expected);
     assert!(logger.any(|log| check_log_string_matches(log, &expected)));
@@ -86,5 +86,16 @@ pub async fn scenario(client: &VertiportClient, data: Vec<Data>, logger: &mut Lo
     println!("{:?}", result);
     assert!(result.is_ok());
 
-    vertiports
+    // Get all vertiports still left in the db
+    let result = client.search(not_deleted_filter).await;
+    let expected = get_log_string("search", name);
+    println!("expected message: {}", expected);
+    assert!(logger.any(|log| check_log_string_matches(log, &expected)));
+
+    println!("{:?}", result);
+    assert!(result.is_ok());
+    let vertiports_from_db: List = result.unwrap().into_inner();
+    assert_eq!(vertiports_from_db.list.len(), vertiports.list.len() - 1);
+
+    vertiports_from_db
 }

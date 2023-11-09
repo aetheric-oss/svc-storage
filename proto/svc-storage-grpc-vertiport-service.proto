@@ -4,6 +4,163 @@ package grpc.vertiport.service;
 import "google/protobuf/empty.proto";
 import "svc-storage-grpc.proto";
 import "svc-storage-grpc-vertiport.proto";
+import "svc-storage-grpc-group.proto";
+
+service RpcGroupLink {
+    // Link provided list `other_id_list` (group_ids) with the provided vertiport `id`.
+    // Will only add/ update entries and not delete existing ones that aren't present in the provided `other_id_list` vector
+    //
+    // # Errors
+    //
+    // Returns [`Status`](tonic::Status) with [`Code::NotFound`](tonic::Code::NotFound) if the vertiport id does not match a record in the db.
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if any error is returned from a db call.
+    //
+    // # Examples
+    // ```
+    // use svc_storage_client_grpc::IdList;
+    // use svc_storage_client_grpc::VertiportGroupLinkClient;
+    // use svc_storage_client_grpc::vertiport::VertiportGroups;
+    // async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    //     let mut link_client = VertiportGroupLinkClient::connect("http://localhost:50051").await?;
+    //
+    //     let id = "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned();
+    //     let other_id_list = Some( IdList {
+    //         ids: vec!["a5354261-075f-4bea-9f8a-b06dc3ec0cd9".to_owned()]
+    //     });
+    //     match link_client
+    //         .link(tonic::Request::new(VertiportGroups { id, other_id_list }))
+    //         .await
+    //     {
+    //         Ok(res) => {
+    //           println!("RESPONSE Vertiport Link={:?}", res);
+    //           Ok(())
+    //         },
+    //         Err(e) => Err(Box::new(e))
+    //     }
+    // }
+    // ```
+    rpc link(VertiportGroups) returns (google.protobuf.Empty);
+    // Link provided list `other_id_list` (group_ids) with the provided vertiport `id`.
+    // Will delete existing entries first and then add the new ones present in the provided `other_id_list` vector
+    //
+    // # Errors
+    //
+    // Returns [`Status`](tonic::Status) with [`Code::NotFound`](tonic::Code::NotFound) if the vertiport id does not match a record in the db.
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if any error is returned from a db call.
+    //
+    // # Examples
+    // ```
+    // use svc_storage_client_grpc::IdList;
+    // use svc_storage_client_grpc::VertiportGroupLinkClient;
+    // use svc_storage_client_grpc::vertiport::VertiportGroups;
+    // async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    //     let mut link_client = VertiportGroupLinkClient::connect("http://localhost:50051").await?;
+    //
+    //     let id = "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned();
+    //     let other_id_list = Some( IdList {
+    //         ids: vec!["a5354261-075f-4bea-9f8a-b06dc3ec0cd9".to_owned()]
+    //     });
+    //     match link_client
+    //         .replace_linked(tonic::Request::new(VertiportGroups { id, other_id_list }))
+    //         .await
+    //     {
+    //         Ok(res) => {
+    //           println!("RESPONSE Vertiport Replace Linked={:?}", res);
+    //           Ok(())
+    //         },
+    //         Err(e) => Err(Box::new(e))
+    //     }
+    // }
+    // ```
+    rpc replace_linked(VertiportGroups) returns (google.protobuf.Empty);
+    // Remove all linked entries for the provided vertiport `id`.
+    //
+    // # Errors
+    //
+    // Returns [`Status`](tonic::Status) with [`Code::NotFound`](tonic::Code::NotFound) if the vertiport id does not match a record in the db.
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if any error is returned from a db call.
+    //
+    // # Examples
+    // ```
+    // use svc_storage_client_grpc::Id;
+    // use svc_storage_client_grpc::VertiportGroupLinkClient;
+    // async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    //     let mut link_client = VertiportGroupLinkClient::connect("http://localhost:50051").await?;
+    //
+    //     let id = Id { id: "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned() };
+    //     match link_client
+    //         .unlink(tonic::Request::new(id))
+    //         .await
+    //     {
+    //         Ok(res) => {
+    //           println!("RESPONSE Vertiport Unlink={:?}", res);
+    //           Ok(())
+    //         },
+    //         Err(e) => Err(Box::new(e))
+    //     }
+    // }
+    // ```
+    rpc unlink(Id) returns (google.protobuf.Empty);
+    // Get all the group_ids that are linked to the provided vertiport `id`.
+    //
+    // # Errors
+    //
+    // Returns [`Status`](tonic::Status) with [`Code::NotFound`](tonic::Code::NotFound) if the vertiport id does not match a record in the db.
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if any error is returned from a db call.
+    //
+    // # Examples
+    // ```
+    // use svc_storage_client_grpc::Id;
+    // use svc_storage_client_grpc::VertiportGroupLinkClient;
+    // async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    //     let mut link_client = VertiportGroupLinkClient::connect("http://localhost:50051").await?;
+    //
+    //     let id = Id { id: "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned() };
+    //     match link_client
+    //         .get_linked_ids(tonic::Request::new(id))
+    //         .await
+    //     {
+    //         Ok(res) => {
+    //           println!("RESPONSE Vertiport Get Linked Ids={:?}", res);
+    //           Ok(())
+    //         },
+    //         Err(e) => Err(Box::new(e))
+    //     }
+    // }
+    // ```
+    rpc get_linked_ids(grpc.Id) returns (IdList);
+    // Get all the group_ids that are linked to the provided vertiport `id`.
+    //
+    // # Errors
+    //
+    // Returns [`Status`](tonic::Status) with [`Code::NotFound`](tonic::Code::NotFound) if the vertiport id does not match a record in the db.
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if any error is returned from a db call.
+    //
+    // # Examples
+    // ```
+    // use svc_storage_client_grpc::Id;
+    // use svc_storage_client_grpc::VertiportGroupLinkClient;
+    // async fn example () -> Result<(), Box<dyn std::error::Error>> {
+    //     let mut link_client = VertiportGroupLinkClient::connect("http://localhost:50051").await?;
+    //
+    //     let id = Id { id: "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned() };
+    //     match link_client
+    //         .get_linked(tonic::Request::new(id))
+    //         .await
+    //     {
+    //         Ok(res) => {
+    //           println!("RESPONSE Vertiport Get Linked={:?}", res);
+    //           Ok(())
+    //         },
+    //         Err(e) => Err(Box::new(e))
+    //     }
+    // }
+    // ```
+    rpc get_linked(grpc.Id) returns (grpc.group.List);
+
+    // Simple ready check to allow callers to validate the client connection status.
+    rpc is_ready (ReadyRequest) returns (ReadyResponse);
+}
 
 // Vertiport gRPC service
 service RpcService {

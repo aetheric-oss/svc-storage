@@ -40,13 +40,13 @@ macro_rules! grpc_client_mod {
                             /// In memory data used for mock client implementation
                             pub static ref MEM_DATA: Mutex<Vec<Object>> = Mutex::new(Vec::new());
                             /// In memory data used for mock link client implementation
-                            pub static ref MEM_DATA_LINKS: Mutex<HashMap<String, Vec<String>>> = Mutex::new(HashMap::new());
+                            pub static ref MEM_DATA_LINKS: Mutex<HashMap<String, HashMap<String, Vec<String>>>> = Mutex::new(HashMap::new());
                         }
                     }
                 }
 
-                /// Exposes mock data for this module
-                /// Will only be included if the `mock` feature is enabled
+                /// exposes mock data for this module
+                /// will only be included if the `mock` feature is enabled
                 #[cfg(any(feature = "mock", test))]
                 pub mod mock {
                     include!(concat!("../../includes/", stringify!($resource), "/mock.rs"));
@@ -57,7 +57,7 @@ macro_rules! grpc_client_mod {
 }
 
 #[macro_export]
-/// Generates includes for gRPC client implementations
+/// Generates includes for gRPC client implementations with a linked client service
 /// Includes a mock module if the `mock` feature is enabled
 macro_rules! grpc_client_linked_mod {
     ($($resource:tt),+) => {
@@ -90,10 +90,13 @@ macro_rules! grpc_client_linked_mod {
                     if #[cfg(feature = "stub_client")] {
                         use futures::lock::Mutex;
                         use lazy_static::lazy_static;
+                        use std::collections::HashMap;
 
                         lazy_static! {
                             /// In memory data used for mock client implementation
                             pub static ref MEM_DATA: Mutex<Vec<RowData>> = Mutex::new(Vec::new());
+                            /// In memory data used for mock link client implementation
+                            pub static ref MEM_DATA_LINKS: Mutex<HashMap<String, HashMap<String, Vec<String>>>> = Mutex::new(HashMap::new());
                         }
                     }
                 }
@@ -197,7 +200,14 @@ macro_rules! link_grpc_client {
                     grpc_debug!("(link MOCK) request: {:?}", request);
                     let id = request.id;
                     let other_ids = request.other_id_list.ok_or(tonic::Status::invalid_argument("No other_id_list found in request."))?;
-                    let mut mem_data_links = $resource::MEM_DATA_LINKS.lock().await;
+                    let mut resource_map = $resource::MEM_DATA_LINKS.lock().await;
+                    let mem_data_links: &mut HashMap<std::string::String, Vec<std::string::String>> = match resource_map.get_mut(&format!("{}_{}", stringify!($resource), stringify!($other_resource))) {
+                        Some(map) => map,
+                        None => {
+                            resource_map.insert(format!("{}_{}", stringify!($resource), stringify!($other_resource)), HashMap::new());
+                            resource_map.get_mut(&format!("{}_{}", stringify!($resource), stringify!($other_resource))).ok_or(tonic::Status::not_found("Not found"))?
+                        }
+                    };
 
                     let mut resource_list = $resource::MEM_DATA.lock().await.clone();
                     resource_list.retain(|object| id == object.id);
@@ -208,6 +218,7 @@ macro_rules! link_grpc_client {
                             id
                         );
                         grpc_error!("(link MOCK) {}", error);
+                        grpc_debug!("(link MOCK) {} found: {:?}", stringify!($resource), $resource::MEM_DATA.lock().await);
                         return Err(tonic::Status::not_found(error));
                     }
 
@@ -245,7 +256,14 @@ macro_rules! link_grpc_client {
                     grpc_debug!("(replace_linked MOCK) request: {:?}", request);
                     let id = request.id;
                     let other_ids = request.other_id_list.ok_or(tonic::Status::invalid_argument("No other_id_list found in request."))?;
-                    let mut mem_data_links = $resource::MEM_DATA_LINKS.lock().await;
+                    let mut resource_map = $resource::MEM_DATA_LINKS.lock().await;
+                    let mem_data_links: &mut HashMap<std::string::String, Vec<std::string::String>> = match resource_map.get_mut(&format!("{}_{}", stringify!($resource), stringify!($other_resource))) {
+                        Some(map) => map,
+                        None => {
+                            resource_map.insert(format!("{}_{}", stringify!($resource), stringify!($other_resource)), HashMap::new());
+                            resource_map.get_mut(&format!("{}_{}", stringify!($resource), stringify!($other_resource))).ok_or(tonic::Status::not_found("Not found"))?
+                        }
+                    };
 
                     let mut resource_list = $resource::MEM_DATA.lock().await.clone();
                     resource_list.retain(|object| id == object.id);
@@ -288,7 +306,13 @@ macro_rules! link_grpc_client {
                     grpc_warn!("(unlink MOCK) {} client.", self.get_name());
                     grpc_debug!("(unlink MOCK) request: {:?}", request);
                     let id = request.id;
-                    let mut mem_data_links = $resource::MEM_DATA_LINKS.lock().await;
+                    let mut resource_map = $resource::MEM_DATA_LINKS.lock().await;
+                    let mem_data_links: &mut HashMap<std::string::String, Vec<std::string::String>> = match resource_map.get_mut(&format!("{}_{}", stringify!($resource), stringify!($other_resource))) {
+                        Some(map) => map,
+                        None => {
+                            return Err(tonic::Status::not_found("No linked resource found for deletion."));
+                        }
+                    };
 
                     let mut resource_list = $resource::MEM_DATA.lock().await.clone();
                     resource_list.retain(|object| object.id == id);
@@ -326,7 +350,15 @@ macro_rules! link_grpc_client {
                     grpc_warn!("(get_linked_ids MOCK) {} client.", self.get_name());
                     grpc_debug!("(get_linked_ids MOCK) request: {:?}", request);
                     let id = request.id;
-                    match $resource::MEM_DATA_LINKS.lock().await.get(&id) {
+                    let resource_map = $resource::MEM_DATA_LINKS.lock().await;
+                    let mem_data_links = match resource_map.get(&format!("{}_{}", stringify!($resource), stringify!($other_resource))) {
+                        Some(map) => map,
+                        None => {
+                            return Err(tonic::Status::not_found("Not found"));
+                        }
+                    };
+
+                    match mem_data_links.get(&id) {
                         Some(object) => Ok(tonic::Response::new(IdList { ids: object.clone() })),
                         _ => Err(tonic::Status::not_found("Not found")),
                     }
@@ -352,7 +384,15 @@ macro_rules! link_grpc_client {
                         return Err(tonic::Status::not_found(error));
                     }
 
-                    match $resource::MEM_DATA_LINKS.lock().await.get(&id) {
+                    let resource_map = $resource::MEM_DATA_LINKS.lock().await;
+                    let mem_data_links = match resource_map.get(&format!("{}_{}", stringify!($resource), stringify!($other_resource))) {
+                        Some(map) => map,
+                        None => {
+                            return Err(tonic::Status::not_found("Not found"));
+                        }
+                    };
+
+                    match mem_data_links.get(&id) {
                         Some(ids) => {
                             let mut other_resource_list = $other_resource::MEM_DATA.lock().await.clone();
                             other_resource_list.retain(|object| ids.contains(&object.id));

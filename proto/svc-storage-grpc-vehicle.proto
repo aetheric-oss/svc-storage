@@ -58,9 +58,9 @@ message Data {
     optional string asset_group_id = 5;
     // optional RRULE data string to indicate the vehicle's available days and hours
     optional string schedule = 6;
-    // optional id UUID v4 of the hangar this aircraft is assigned to
+    // optional id UUID v4 of the hangar (vertiport) this aircraft is assigned to
     optional string hangar_id = 7;
-    // optional id UUID v4 of the hangar bay this aircraft is assigned to
+    // optional id UUID v4 of the hangar bay (vertipad) this aircraft is assigned to
     optional string hangar_bay_id = 8;
     // optional date of vehicle's last maintenance
     optional google.protobuf.Timestamp last_maintenance = 9;
@@ -76,4 +76,12 @@ message Data {
 message List {
     // array/vector of vehicle items
     repeated Object list = 1;
+}
+
+// Struct used to link groups to a vehicle
+message VehicleGroups {
+    // `id` [`String`] in [`Uuid`](uuid::Uuid) format. Must be a valid vehicle_id
+    string id = 1;
+    // group ids as [`Vec\<String\>`] in [`Uuid`](uuid::Uuid) format
+    IdList other_id_list = 2;
 }
