@@ -220,7 +220,7 @@ git add client-grpc/
 - client-grpc/Cargo.toml
   * Add your resource to the `all_resources` feature.
   * Create a feature for your new resource with a `any_resource` dependency.
-- client-grpc/tests/resources/\<your ne resource name\>.rs
+- client-grpc/tests/resources/\<your new resource name\>.rs
   * Update the `assert_eq` tests for the correct data fields.
 - client-grpc/tests/integration_test.rs
   * Add a scenario for the new resource, testing all service functions.

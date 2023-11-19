@@ -2,6 +2,8 @@
 
 mod resources;
 
+use std::collections::HashMap;
+
 use logtest::Logger;
 use resources::*;
 
@@ -66,21 +68,32 @@ async fn test_client_requests_and_logs() {
     let vertipads: vertipad::List =
         vertipad::scenario(&clients.vertipad, vertipads_data, &mut logger).await;
 
+    // create a map for our vertiport -> vertipads for later use
+    let mut vertiport_vertipads: HashMap<String, Vec<String>> = HashMap::new();
+    for vertipad in &vertipads.list {
+        let vertiport_id = &vertipad.data.as_ref().unwrap().vertiport_id;
+        let mut vertipads = match vertiport_vertipads.get(vertiport_id) {
+            Some(vertipads) => vertipads.clone(),
+            None => vec![],
+        };
+        vertipads.push(vertipad.id.clone());
+        vertiport_vertipads.insert(vertiport_id.clone(), vertipads);
+    }
     //----------------------------------------------------
     // Vehicles
     //----------------------------------------------------
-    // generate 5 random vehicles
+    // generate 5 random vehicles with valid hangar_id and hangar_bay_id
     let mut vehicles_data: Vec<vehicle::Data> = vec![];
     for index in 0..5 {
         let mut vehicle = vehicle::mock::get_data_obj();
         vehicle.description = Some(format!("Mock vehicle {}", index + 1));
         vehicles_data.push(vehicle);
     }
-    for vertiport in &vertiports.list {
+    for (vertiport, vertipads) in &vertiport_vertipads {
         let mut vehicle = vehicle::mock::get_data_obj();
-        vehicle.description = Some(format!("Mock vehicle vertiports {}", vertiport.id.clone()));
-        vehicle.hangar_id = Some(vertiport.id.clone());
-        vehicle.hangar_bay_id = Some(uuid::Uuid::new_v4().to_string());
+        vehicle.description = Some(format!("Mock vehicle vertiports {}", vertiport.clone()));
+        vehicle.hangar_id = Some(vertiport.clone());
+        vehicle.hangar_bay_id = Some(vertipads[0].clone());
         vehicles_data.push(vehicle);
     }
 
