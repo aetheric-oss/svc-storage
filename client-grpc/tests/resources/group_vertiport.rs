@@ -108,4 +108,13 @@ pub async fn scenario(
         .ids
         .iter()
         .any(|id| id == &vertiport_ids[vertiport_ids.len() - 4]));
+
+    // Remove all linked for group
+    let result = link_client
+        .unlink(Id {
+            id: groups.list[0].id.clone(),
+        })
+        .await;
+    println!("{:?}", result);
+    assert!(result.is_ok());
 }

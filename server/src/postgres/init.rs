@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use super::linked_resource::PsqlType as LinkedPsqlType;
 use super::simple_resource::PsqlType as SimplePsqlType;
-use super::{get_psql_pool, ArrErr, PsqlFieldType};
+use super::{get_psql_client, ArrErr, PsqlFieldType};
 use crate::grpc::server::*;
 use crate::resources::{
     base::FieldDefinition,
@@ -67,6 +67,16 @@ pub async fn recreate_db() -> Result<(), ArrErr> {
     psql_warn!("(recreate_db) Re-creating database tables.");
     drop_db().await?;
     create_db().await?;
+
+    psql_debug!("(recreate_db) Clearing caches.");
+    // Make sure to clear any cached statements
+    let pool = super::pool::DB_POOL
+        .get()
+        .ok_or(ArrErr::Error(String::from(
+            "(recreate_db) Could not get pool.",
+        )))?;
+    pool.manager().statement_caches.clear();
+
     Ok(())
 }
 
@@ -85,7 +95,7 @@ where
             return Ok(());
         }
 
-        let mut client = get_psql_pool().get().await?;
+        let mut client = get_psql_client().await?;
         let transaction = client.transaction().await?;
         for index_query in queries {
             psql_debug!("(_init_table_indices) [{}].", index_query);
@@ -103,7 +113,7 @@ where
 
     /// Create table with specified columns using the resource's `psql_definition`
     async fn init_table() -> Result<(), ArrErr> {
-        let mut client = get_psql_pool().get().await?;
+        let mut client = get_psql_client().await?;
         let transaction = client.transaction().await?;
         let create_table = Self::_get_create_table_query();
 
@@ -119,7 +129,7 @@ where
     /// Drops the entire table for the resource
     async fn drop_table() -> Result<(), ArrErr> {
         let definition = Self::get_definition();
-        let mut client = get_psql_pool().get().await?;
+        let mut client = get_psql_client().await?;
         let transaction = client.transaction().await?;
 
         let drop_query = format!(r#"DROP TABLE IF EXISTS "{}""#, definition.psql_table);

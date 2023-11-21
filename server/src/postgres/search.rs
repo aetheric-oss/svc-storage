@@ -1,4 +1,4 @@
-use super::{get_psql_pool, ArrErr, PsqlField, PsqlFieldType};
+use super::{get_psql_client, ArrErr, PsqlField, PsqlFieldType};
 use crate::grpc::server::{
     search::get_single_search_value, AdvancedSearchFilter, ComparisonOperator, PredicateOperator,
     SortOption, SortOrder,
@@ -38,7 +38,7 @@ where
     /// Generic search function based on advanced filters
     async fn advanced_search(filter: AdvancedSearchFilter) -> Result<Vec<Row>, ArrErr> {
         let definition = Self::get_definition();
-        let client = get_psql_pool().get().await?;
+        let client = get_psql_client().await?;
 
         let mut filter_params: Vec<SearchCol> = vec![];
         let mut sort_expressions: Vec<String> = vec![];

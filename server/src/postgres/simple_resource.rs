@@ -1,6 +1,6 @@
 //! Psql Simple resource Traits
 
-use super::get_psql_pool;
+use super::get_psql_client;
 use super::{util::*, ArrErr};
 use crate::grpc::server::ValidationResult;
 use crate::grpc::GrpcDataObjectType;
@@ -74,7 +74,7 @@ where
             "(create) Inserting new entry for table [{}].",
             definition.psql_table
         );
-        let client = get_psql_pool().get().await?;
+        let client = get_psql_client().await?;
         let row = client.query_one(insert_sql, &params[..]).await?;
 
         Ok((Some(row.get(&*id_col)), validation_result))
@@ -147,7 +147,7 @@ where
         psql_debug!("(update) [{}].", update_sql);
         psql_debug!("(update) [{:?}].", &params);
 
-        let client = get_psql_pool().get().await?;
+        let client = get_psql_client().await?;
         client.execute(update_sql, &params[..]).await?;
 
         //TODO(R4): flush shared memcache for this resource when memcache is implemented
@@ -216,7 +216,7 @@ where
             definition.psql_table,
             id
         );
-        let client = get_psql_pool().get().await?;
+        let client = get_psql_client().await?;
 
         let query = format!(
             r#"UPDATE "{}" SET "deleted_at" = NOW() WHERE "{}" = $1"#,
@@ -261,7 +261,7 @@ where
             definition.psql_table,
             id
         );
-        let client = get_psql_pool().get().await?;
+        let client = get_psql_client().await?;
         let query = format!(
             r#"DELETE FROM "{}" WHERE "{}" = $1"#,
             definition.psql_table, id_col
