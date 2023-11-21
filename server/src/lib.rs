@@ -38,8 +38,29 @@ pub(crate) async fn get_log_handle() -> Option<log4rs::Handle> {
                     "{d(%Y-%m-%d %H:%M:%S)} | {I} | {h({l}):5.5} | {f}:{L} | {m}{n}",
                 )))
                 .build();
+            let file = log4rs::append::file::FileAppender::builder()
+                .encoder(Box::new(log4rs::encode::json::JsonEncoder::new()))
+                .build("logs/all.log")
+                .unwrap();
+
             match log4rs::config::Config::builder()
                 .appender(log4rs::config::Appender::builder().build("stdout", Box::new(stdout)))
+                .appender(log4rs::config::Appender::builder().build("file", Box::new(file)))
+                .logger(
+                    log4rs::config::Logger::builder()
+                        .appender("file")
+                        .build("backend", log::LevelFilter::Debug),
+                )
+                .logger(
+                    log4rs::config::Logger::builder()
+                        .appender("file")
+                        .build("app", log::LevelFilter::Debug),
+                )
+                .logger(
+                    log4rs::config::Logger::builder()
+                        .appender("file")
+                        .build("test", log::LevelFilter::Debug),
+                )
                 .build(
                     log4rs::config::Root::builder()
                         .appender("stdout")

@@ -224,6 +224,15 @@ pub async fn grpc_server(config: Config, shutdown_rx: Option<tokio::sync::onesho
         .add_service(group_user::RpcUserLinkServer::new(
             group_user::GrpcServer::default(),
         ))
+        .add_service(group_vehicle::RpcVehicleLinkServer::new(
+            group_vehicle::GrpcServer::default(),
+        ))
+        .add_service(group_vertipad::RpcVertipadLinkServer::new(
+            group_vertipad::GrpcServer::default(),
+        ))
+        .add_service(group_vertiport::RpcVertiportLinkServer::new(
+            group_vertiport::GrpcServer::default(),
+        ))
         .add_service(itinerary::RpcServiceServer::new(
             itinerary::GrpcServer::default(),
         ))
@@ -283,11 +292,18 @@ mod tests {
 
         let imp = adsb::GrpcServer::default();
         let data = adsb::mock::get_data_obj();
+
+        let result = crate::postgres::get_psql_client().await;
+        ut_debug!("(test_grpc_server_is_ready) {:?}", result);
+        assert!(result.is_ok());
+
         let result = imp.generic_insert(Request::new(data)).await;
         ut_debug!("(test_grpc_server_is_ready) {:?}", result);
         assert!(result.is_ok());
+
         let adsb: adsb::Response = (result.unwrap()).into_inner();
         assert!(adsb.object.is_some());
+
         ut_info!("(test_grpc_server_is_ready) success")
     }
 }

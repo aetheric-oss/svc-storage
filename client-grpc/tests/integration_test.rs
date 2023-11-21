@@ -217,4 +217,6 @@ async fn test_client_requests_and_logs() {
         &mut logger,
     )
     .await;
+
+    ()
 }
