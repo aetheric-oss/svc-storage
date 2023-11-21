@@ -95,3 +95,5 @@ openapi
 oneshot
 timeslot
 Thomasg
+Lcov
+seccomp

@@ -1,6 +1,6 @@
 //! Psql Simple resource Traits
 
-use super::get_psql_pool;
+use super::get_psql_client;
 use super::ArrErr;
 use crate::postgres::{PsqlField, PsqlFieldSend};
 use crate::resources::base::Resource;
@@ -18,7 +18,7 @@ where
 
     let definition = V::get_definition();
     let id_col = V::try_get_id_field()?;
-    let client = get_psql_pool().get().await?;
+    let client = get_psql_client().await?;
     let query = format!(
         r#"SELECT * FROM "{}" WHERE "{}" = $1"#,
         definition.psql_table, id_col
@@ -63,7 +63,7 @@ where
         }
     }
 
-    let client = get_psql_pool().get().await?;
+    let client = get_psql_client().await?;
     let stmt = client.prepare_cached(&query).await?;
 
     psql_info!(
