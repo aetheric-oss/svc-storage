@@ -52,10 +52,7 @@ pub async fn scenario(client: &AdsbClient, data: Vec<Data>, logger: &mut Logger)
     assert!(result.is_ok());
     let messages_from_db: List = result.unwrap().into_inner();
 
-    #[cfg(any(feature = "stub_backends", feature = "stub_client"))]
     assert_eq!(messages_from_db.list.len(), messages.list.len());
-    #[cfg(not(any(feature = "stub_backends", feature = "stub_client")))]
-    assert_eq!(messages_from_db.list.len(), messages.list.len() + 2);
 
     let adsb_id = messages.list[0].id.clone();
 
@@ -236,6 +233,10 @@ pub async fn test_telemetry(client: &AdsbClient) -> Result<(), Box<dyn std::erro
             assert_eq!(data.icao_address, icao_address);
         }
     }
+
+    // clean up test data
+    client.delete(Id { id: id_1 }).await.unwrap();
+    client.delete(Id { id: id_2 }).await.unwrap();
 
     Ok(())
 }

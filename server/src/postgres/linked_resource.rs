@@ -1,6 +1,6 @@
 //! Psql Linked Resource Traits
 //!
-use super::get_psql_pool;
+use super::get_psql_client;
 use super::{ArrErr, PsqlField};
 use crate::grpc::GrpcDataObjectType;
 use crate::postgres::PsqlFieldSend;
@@ -85,7 +85,7 @@ where
                 }
             }
             None => {
-                let client = get_psql_pool().get().await?;
+                let client = get_psql_client().await?;
                 let stmt = client.prepare_cached(&query).await?;
                 match client.execute(&stmt, &ref_params[..]).await {
                     Ok(rows) => {
@@ -113,7 +113,7 @@ where
         psql_debug!("(link_ids) Start: [{:?}] replace [{:?}].", ids, replace);
         let definition = Self::get_definition();
 
-        let mut client = get_psql_pool().get().await?;
+        let mut client = get_psql_client().await?;
         let transaction = client.transaction().await?;
 
         if !replace.is_empty() {
@@ -196,7 +196,7 @@ where
         psql_debug!("(read) [{}].", query);
         psql_debug!("(read) [{:?}].", &params);
 
-        let client = get_psql_pool().get().await?;
+        let client = get_psql_client().await?;
         let stmt = client.prepare_cached(&query).await?;
 
         psql_info!(
@@ -243,7 +243,7 @@ where
         psql_debug!("(delete) [{}].", query);
         psql_debug!("(delete ) [{:?}].", &params);
 
-        let client = get_psql_pool().get().await?;
+        let client = get_psql_client().await?;
         let stmt = client.prepare_cached(&query).await?;
 
         psql_info!(

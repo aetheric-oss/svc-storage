@@ -89,15 +89,18 @@ mod tests {
 
         std::env::set_var("DOCKER_PORT_GRPC", "6789");
         std::env::set_var("LOG_CONFIG", "config_file.yaml");
-        std::env::set_var("USE_TLS", "false");
 
         let config = Config::try_from_env();
+
+        // Reset env to proper defaults
+        std::env::set_var("DOCKER_PORT_GRPC", "50051");
+        std::env::set_var("LOG_CONFIG", "log4rs.yaml");
+
         assert!(config.is_ok());
         let config = config.unwrap();
 
         assert_eq!(config.docker_port_grpc, 6789);
         assert_eq!(config.log_config, String::from("config_file.yaml"));
-        assert_eq!(config.use_tls, false);
 
         ut_info!("(test_config_from_env) Success.");
     }
