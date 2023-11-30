@@ -76,7 +76,7 @@ services:
     depends_on:
       web-server:
         condition: service_healthy
-    command: cargo tarpaulin --manifest-path "${CARGO_MANIFEST_PATH}" --workspace -l --include-tests --tests --no-fail-fast --features ${PACKAGE_IT_FEATURES} --skip-clean -t 600 --out Lcov --output-dir coverage/
+    command: cargo tarpaulin --manifest-path "${CARGO_MANIFEST_PATH}" --workspace -l --test integration_test --features ${PACKAGE_IT_FEATURES} -v -t 600 --out Lcov --output-dir coverage/
 
   ut-coverage: &ut-coverage
     <<: *coverage
