@@ -145,7 +145,7 @@ mod tests {
             ut_info!("{:?}", validation_result);
             assert_eq!(validation_result.success, true);
         }
-        ut_info!("(test_vertiport_success) start");
+        ut_info!("(test_vertiport_schema) success");
     }
 
     #[tokio::test]
