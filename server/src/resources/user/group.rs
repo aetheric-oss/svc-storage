@@ -42,14 +42,40 @@ impl TryFrom<Row> for Data {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_util::*;
 
     #[tokio::test]
     async fn test_user_group_schema() {
         crate::get_log_handle().await;
         ut_info!("(test_user_group_schema) start");
 
-        let definition = <ResourceObject<Data>>::get_definition();
-        assert_eq!(definition.get_psql_table(), "user_group");
+        let data = Data {};
+
+        // test schema definition
+        let schema = ResourceObject::<Data>::get_definition();
+        assert_eq!(schema.psql_table, "user_group");
+
+        // test invalid key for get_field_value function
+        let invalid_field = "invalid_field";
+        let invalid = data.get_field_value(invalid_field);
+        assert!(matches!(invalid, Err(ArrErr::Error(_))));
+        assert_eq!(
+            invalid.unwrap_err().to_string(),
+            format!(
+                "error: Invalid key specified [{}], no such field found",
+                invalid_field
+            )
+        );
+
+        // test validate
+        let result = validate::<ResourceObject<Data>>(&data);
+        assert!(result.is_ok());
+        if let Ok((sql_fields, validation_result)) = result {
+            ut_info!("{:?}", sql_fields);
+            ut_info!("{:?}", validation_result);
+            assert_eq!(validation_result.success, true);
+        }
+
         ut_info!("(test_user_group_schema) success");
     }
 }
