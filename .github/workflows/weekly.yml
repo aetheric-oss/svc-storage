@@ -21,6 +21,8 @@ jobs:
         with:
           ref: develop
       - name: Build
+        run: make rust-build
+      - name: Build Docker
         run: make docker-build-dev
       - name: Test
         run: |
