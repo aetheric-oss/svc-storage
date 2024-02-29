@@ -9,7 +9,6 @@ use std::fmt::Debug;
 use std::fs;
 use tokio::sync::OnceCell;
 
-pub use super::search::{PsqlSearch, SearchCol};
 pub use crate::common::ArrErr;
 
 /// Create global variable to access our database pool
