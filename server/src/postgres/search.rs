@@ -334,7 +334,7 @@ pub(crate) fn get_filter_str(
         }
         PredicateOperator::GeoIntersect => {
             filter_str = format!(
-                r#" st_intersect(st_geomfromtext(${}), "{}")"#,
+                r#" st_intersects(st_geomfromtext(${}), "{}")"#,
                 next_param_index, search_col.col_name,
             );
             search_col.set_value(get_single_search_value(&values).map_err(ArrErr::Error)?);
