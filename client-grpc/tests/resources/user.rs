@@ -35,6 +35,7 @@ pub async fn scenario(client: &UserClient, data: Vec<Data>, logger: &mut Logger)
         assert!(user.clone().data.is_some());
         let data = user.data.unwrap();
         assert_eq!(data.display_name, user_data.display_name);
+        assert_eq!(data.email, user_data.email);
         assert_eq!(data.auth_method, user_data.auth_method);
     }
     let users = List { list: user_objects };

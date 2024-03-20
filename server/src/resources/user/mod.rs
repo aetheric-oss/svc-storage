@@ -32,6 +32,10 @@ impl Resource for ResourceObject<Data> {
                     FieldDefinition::new(PsqlFieldType::TEXT, true),
                 ),
                 (
+                    "email".to_string(),
+                    FieldDefinition::new(PsqlFieldType::TEXT, true),
+                ),
+                (
                     "auth_method".to_string(),
                     FieldDefinition::new(PsqlFieldType::ANYENUM, true),
                 ),
@@ -71,6 +75,7 @@ impl GrpcDataObjectType for Data {
         match key {
             "display_name" => Ok(GrpcField::String(self.display_name.clone())),
             "auth_method" => Ok(GrpcField::I32(self.auth_method)),
+            "email" => Ok(GrpcField::String(self.email.clone())),
             _ => Err(ArrErr::Error(format!(
                 "Invalid key specified [{}], no such field found",
                 key
@@ -91,6 +96,7 @@ impl TryFrom<Row> for Data {
             auth_method: AuthMethod::from_str_name(row.get("auth_method"))
                 .context("Could not convert auth_method column to AuthMethod.")?
                 as i32,
+            email: row.get("email"),
         })
     }
 }
@@ -132,6 +138,7 @@ mod tests {
         let data = Data {
             display_name: String::from("test"),
             auth_method: -1,
+            email: String::from("test@aetheric.nl"),
         };
 
         let result = validate::<ResourceObject<Data>>(&data);
