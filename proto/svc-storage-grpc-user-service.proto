@@ -272,6 +272,7 @@ service RpcService {
     //         id,
     //         data: Some(Data {
     //             display_name: "Alice".to_owned(),
+    //             email: "alice@aetheric.nl".to_owned(),
     //             ..user
     //         }),
     //         mask: Some(FieldMask {

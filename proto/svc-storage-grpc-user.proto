@@ -52,9 +52,11 @@ message UpdateObject {
 // PI data will be stored in a separate database/ service
 message Data {
     // the User's authentication method
-    AuthMethod auth_method = 2;
+    AuthMethod auth_method = 1;
     // the User's preferred display name
-    string display_name = 3;
+    string display_name = 2;
+    // the User's email
+    string email = 3;
 }
 
 // Struct containing a `list` of user [`Vec\<Object\>`]

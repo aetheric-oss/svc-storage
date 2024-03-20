@@ -637,6 +637,7 @@ erDiagram
         uuid user_id PK
         text auth_method "ENUM (OAUTH_GOOGLE,OAUTH_FACEBOOK,OAUTH_AZURE_AD,LOCAL)"
         text display_name
+        text email
         timestamp created_at "Default NOW"
         timestamp updated_at "Default NOW"
         timestamp deleted_at "Optional Default NULL"
@@ -871,12 +872,12 @@ erDiagram
 | group_13 | Supplier Admin | Group for users with supplier admin privileges | acl      | NULL            |
 
 **users**
-| user_id | display_name |
-|---------|--------------|
-| user_1  | Thomasg      |
-| user_2  | A.M. Smith   |
-| user_3  | MissQueen    |
-| user_4  | Owlot        |
+| user_id | display_name | email |
+|---------|--------------| ----- |
+| user_1  | Thomasg      | thomasg@arrowair.com |
+| user_2  | A.M. Smith   | amsmith@aetheric.nl |
+| user_3  | MissQueen    | missqueen@aetheric.nl |
+| user_4  | Owlot        | owlot@aetheric.nl | 
 
 **vehicles**
 | vehicle_id | vehicle_model | description                |

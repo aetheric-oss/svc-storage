@@ -133,6 +133,7 @@ async fn test_client_requests_and_logs() {
     for index in 0..10 {
         let mut user = user::mock::get_data_obj();
         user.display_name = format!("User {}", index + 1);
+        user.email = format!("user{}@aetheric.nl", index + 1);
         users_data.push(user);
     }
 
