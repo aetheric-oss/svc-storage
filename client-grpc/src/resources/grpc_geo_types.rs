@@ -1,6 +1,5 @@
 //! Provide geo types and conversions
 
-pub use geo_types::{Coord, LineString, Point, Polygon};
 pub use serde::{Deserialize, Serialize};
 pub use utoipa::{IntoParams, ToSchema};
 
@@ -20,6 +19,9 @@ pub struct GeoPoint {
     /// range: -90 - 90
     #[prost(double, tag = "2")]
     pub latitude: f64,
+    /// altitude (z / height)
+    #[prost(double, tag = "3")]
+    pub altitude: f64,
 }
 /// Geo Location Line representation
 #[derive(Copy, Serialize, Deserialize, ToSchema, IntoParams)]

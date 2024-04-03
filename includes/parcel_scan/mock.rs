@@ -14,6 +14,7 @@ pub fn get_data_obj() -> Data {
         geo_location: Some(GeoPoint {
             longitude: -122.4194,
             latitude: 37.7746,
+            altitude: 0.0,
         }),
         created_at: Some(Utc::now().into()),
     }

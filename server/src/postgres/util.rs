@@ -7,12 +7,12 @@ use crate::grpc::{GrpcDataObjectType, GrpcField};
 use crate::resources::base::{Resource, ResourceDefinition};
 use crate::resources::ValidationResult;
 use chrono::{DateTime, Utc};
-use geo_types::{Coord, LineString, Point, Polygon};
 use lib_common::time::Timestamp;
+use postgis::ewkb::{LineStringZ, PointZ, PolygonZ};
 use serde_json::json;
 use tokio_postgres::types::Type as PsqlFieldType;
-
 type InsertVars<'a> = (Vec<String>, Vec<String>, Vec<&'a PsqlField>);
+use crate::DEFAULT_SRID;
 
 /// Convert a [`String`] (used by grpc) into a [`Uuid`](uuid::Uuid) (used by postgres).
 /// Creates an error entry in the errors list if a conversion was not possible.
@@ -74,15 +74,16 @@ pub fn validate_enum(
     }
 }
 
-/// Validates a [`Point`] (used by postgres).
+/// Validates a [`PointZ`] (used by postgres).
 /// Creates an error entry in the errors list if a conversion was not possible.
 /// Returns `true` on success, `false` if the conversion failed.
-pub fn validate_point(field: String, value: &Point, errors: &mut Vec<ValidationError>) -> bool {
+pub fn validate_point(field: String, value: &PointZ, errors: &mut Vec<ValidationError>) -> bool {
     let mut success = true;
-    if value.x() < -180.0 || value.x() > 180.0 {
+    psql_debug!("(validate_point) {:?}", value);
+    if value.x < -180.0 || value.x > 180.0 {
         let error = format!(
                 "Could not convert [{}] to POINT: The provided value contains an invalid Long value, [{}] is out of range.",
-                field, value.x()
+                field, value.x
             );
         psql_info!("(validate_point) {}", error);
         errors.push(ValidationError {
@@ -91,124 +92,66 @@ pub fn validate_point(field: String, value: &Point, errors: &mut Vec<ValidationE
         });
         success = false
     }
-    if value.y() < -90.0 || value.y() > 90.0 {
+
+    if value.y < -90.0 || value.y > 90.0 {
         let error = format!(
                 "Could not convert [{}] to POINT: The provided value contains an invalid Lat value, [{}] is out of range.",
-                field, value.y()
+                field, value.y
             );
         psql_info!("(validate_point) {}", error);
         errors.push(ValidationError { field, error });
         success = false
     }
+
     success
 }
 
-/// Validates a [`Polygon`] (used by postgres).
+/// Validates a [`PolygonZ`] (used by postgres).
 /// Creates an error entry in the errors list if a conversion was not possible.
 /// Returns `true` on success, `false` if the conversion failed.
-pub fn validate_polygon(field: String, value: &Polygon, errors: &mut Vec<ValidationError>) -> bool {
-    let exterior = value.exterior();
-    let interiors = value.interiors();
-    let mut success = true;
+pub fn validate_polygon(
+    field: String,
+    value: &PolygonZ,
+    errors: &mut Vec<ValidationError>,
+) -> bool {
+    psql_debug!("(validate_polygon) {:?}", value);
 
-    // A polygon should have at least 2 lines to make a closed loop
-    if exterior.lines().len() < 2 {
+    if value.rings.is_empty() {
         let error = format!(
-            "Could not convert [{}] to POLYGON: The provided exterior LineString contains less than 3 lines.", field
+            "Could not convert [{}] to POLYGON: The provided PolygonZ contains no rings.",
+            field
         );
+
         psql_error!("(validate_polygon) {}", error);
         errors.push(ValidationError {
             field: field.clone(),
             error,
         });
-        success = false;
+
+        return false;
     }
 
-    // Make sure the provided coords are in range
-    for coord in exterior.coords() {
-        success = success && validate_coord(field.clone(), coord, errors, "exterior");
-    }
-    // Make sure we end with the same coord as we start with (closed loop)
-    let start = exterior.coords().next();
-    let end = exterior.coords().last();
-    if start != end {
-        let error = format!(
-                "Could not convert [{}] to POLYGON: The provided start point does not match the end point, should be a closed loop.",
-                field,
-            );
-        psql_info!("(validate_polygon) {}", error);
-        errors.push(ValidationError {
-            field: field.clone(),
-            error,
-        });
-        success = false
-    }
-
-    // If interiors are provided, they should have at least 2 lines as well
-    for interior in interiors {
-        if interior.lines().len() < 2 {
-            let error = format!(
-                "Could not convert [{}] to POLYGON: One of the provided interior LineStrings contains less than 3 lines.",
-                field.clone(),
-            );
-            psql_info!("(validate_polygon) {}", error);
-            errors.push(ValidationError {
-                field: field.clone(),
-                error,
-            })
-        } else {
-            for coord in interior.coords() {
-                success = success && validate_coord(field.clone(), coord, errors, "interior");
-            }
-        }
+    let mut success = true;
+    for ring in value.rings.iter() {
+        success &= validate_line_string(field.clone(), ring, errors);
     }
 
     success
 }
 
-/// Validates a [`LineString`] (used by postgres).
-/// Creates an error entry in the errors list if a conversion was not possible.
-/// Returns `true` on success, `false` if the conversion failed.
+// /// Validates a [`LineStringZ`] (used by postgres).
+// /// Creates an error entry in the errors list if a conversion was not possible.
+// /// Returns `true` on success, `false` if the conversion failed.
 pub fn validate_line_string(
     field: String,
-    value: &LineString,
+    value: &LineStringZ,
     errors: &mut Vec<ValidationError>,
 ) -> bool {
-    let mut success = true;
-    for coord in value.coords() {
-        success = success && validate_coord(field.clone(), coord, errors, "path");
-    }
+    psql_debug!("(validate_line_string) {:?}", value);
 
-    success
-}
-
-fn validate_coord(
-    field: String,
-    coord: &Coord,
-    errors: &mut Vec<ValidationError>,
-    polygon_field: &str,
-) -> bool {
     let mut success = true;
-    if coord.x < -180.0 || coord.x > 180.0 {
-        let error = format!(
-                "Could not convert [{}] to POLYGON: The provided {} LineString contains 1 or more invalid Long values. [{}] is out of range.",
-                field, polygon_field, coord.x
-            );
-        psql_info!("(validate_coord) {}", error);
-        errors.push(ValidationError {
-            field: field.clone(),
-            error,
-        });
-        success = false
-    }
-    if coord.y < -90.0 || coord.y > 90.0 {
-        let error = format!(
-                "Could not convert [{}] to POLYGON: The provided {} LineString contains 1 or more invalid Lat values. [{}] is out of range.",
-                field, polygon_field, coord.y
-            );
-        psql_info!("(validate_coord) {}", error);
-        errors.push(ValidationError { field, error });
-        success = false
+    for pt in value.points.iter() {
+        success &= validate_point(field.clone(), pt, errors);
     }
 
     success
@@ -278,7 +221,7 @@ pub fn get_insert_vars<'a>(
                             };
                         } else {
                             let error = format!(
-                                "Could not convert value into a geo_types::Point for field: {}",
+                                "Could not convert value into a postgis::ewkb::PointZ for field: {}",
                                 key
                             );
                             psql_error!("(get_insert_vars) {}", error);
@@ -296,7 +239,7 @@ pub fn get_insert_vars<'a>(
                             };
                         } else {
                             let error = format!(
-                                "Could not convert value into a geo_types::Polygon for field: {}",
+                                "Could not convert value into a postgis::ewkb::PolygonZ for field: {}",
                                 key
                             );
                             psql_error!("(get_insert_vars) {}", error);
@@ -314,7 +257,7 @@ pub fn get_insert_vars<'a>(
                             };
                         } else {
                             let error = format!(
-                                "Could not convert value into a geo_types::Path for field: {}",
+                                "Could not convert value into a postgis::ewkb::LineStringZ for field: {}",
                                 key
                             );
                             psql_error!("(get_insert_vars) {}", error);
@@ -382,7 +325,7 @@ pub fn get_update_vars<'a>(
                             };
                         } else {
                             let error = format!(
-                                "Could not convert value into a geo_types::Point for field: {}",
+                                "Could not convert value into a postgis::ewkb::PointZ for field: {}",
                                 key
                             );
                             psql_error!("(get_update_vars) {}", error);
@@ -400,7 +343,7 @@ pub fn get_update_vars<'a>(
                             };
                         } else {
                             let error = format!(
-                                "Could not convert value into a geo_types::Polygon for field: {}",
+                                "Could not convert value into a postgis::ewkb::PolygonZ for field: {}",
                                 key
                             );
                             psql_error!("(get_update_vars) {}", error);
@@ -418,7 +361,7 @@ pub fn get_update_vars<'a>(
                             };
                         } else {
                             let error = format!(
-                                "Could not convert value into a geo_types::Path for field: {}",
+                                "Could not convert value into a postgis::ewkb::LineStringZ for field: {}",
                                 key
                             );
                             psql_error!("(get_update_vars) {}", error);
@@ -455,14 +398,13 @@ fn get_point_sql_val(point_option: GrpcField) -> Option<String> {
             let point: Option<GrpcField> = val.into();
             match point {
                 Some(val) => {
-                    let val: Point = val.into();
-                    // POINT expects (x y) which is (long lat)
-                    // geo_types::geometry::point::Point has a x and y which
-                    // we've aligned with the POINT(x y)/POINT(long lat)
+                    let val: PointZ = val.into();
+                    // POINT expects (x y z) which is (long lat altitude)
+                    // postgis::ewkb::PointZ has a x and y and z which
+                    // we've aligned with the POINTZ(x y z)/SRID={DEFAULT_SRID};POINTZ(long lat altitude)
                     Some(format!(
-                        "ST_GeomFromText('POINT({:.15} {:.15})')",
-                        val.x(),
-                        val.y()
+                        "ST_GeomFromText('POINTZ({:.15} {:.15} {:.15})', {DEFAULT_SRID})",
+                        val.x, val.y, val.z
                     ))
                 }
                 None => None,
@@ -478,27 +420,25 @@ fn get_polygon_sql_val(polygon_option: GrpcField) -> Option<String> {
             let polygon: Option<GrpcField> = val.into();
             match polygon {
                 Some(val) => {
-                    let val: Polygon = val.into();
+                    let val: PolygonZ = val.into();
+                    let rings_str = val
+                        .rings
+                        .into_iter()
+                        .map(|ring| {
+                            let ring_str = ring
+                                .points
+                                .into_iter()
+                                .map(|pt| format!("{:.15} {:.15} {:.15}", pt.x, pt.y, pt.z))
+                                .collect::<Vec<String>>()
+                                .join(","); // x y z, x y z, x y z
 
-                    let mut coord_str_pairs: Vec<String> = vec![];
-                    for coord in val.exterior().coords() {
-                        coord_str_pairs.push(format!("{:.15} {:.15}", coord.x, coord.y));
-                    }
-
-                    let mut line_str_pairs: Vec<String> = vec![];
-                    line_str_pairs.push(format!("({})", coord_str_pairs.join(",")));
-                    for line in val.interiors() {
-                        let mut coord_str_pairs: Vec<String> = vec![];
-                        for coord in line.coords() {
-                            coord_str_pairs.push(format!("{:.15} {:.15}", coord.x, coord.y));
-                        }
-                        let coord_str = format!("({})", coord_str_pairs.join(","));
-                        line_str_pairs.push(coord_str);
-                    }
+                            format!("({ring_str})") // (x y z, x y z, x y z)
+                        })
+                        .collect::<Vec<String>>()
+                        .join(","); // (x y z, x y z),(x y z, x y z)
 
                     Some(format!(
-                        "ST_GeomFromText('POLYGON({})')",
-                        line_str_pairs.join(",")
+                        "ST_GeomFromText('POLYGONZ({rings_str})', {DEFAULT_SRID})",
                     ))
                 }
                 None => None,
@@ -514,15 +454,16 @@ fn get_path_sql_val(path_option: GrpcField) -> Option<String> {
             let path: Option<GrpcField> = val.into();
             match path {
                 Some(val) => {
-                    let val: LineString = val.into();
-                    let mut coord_str_pairs: Vec<String> = vec![];
-                    for coord in val.coords() {
-                        coord_str_pairs.push(format!("{:.15} {:.15}", coord.x, coord.y));
-                    }
+                    let val: LineStringZ = val.into();
+                    let pts_str = val
+                        .points
+                        .into_iter()
+                        .map(|pt| format!("{:.15} {:.15} {:.15}", pt.x, pt.y, pt.z))
+                        .collect::<Vec<String>>()
+                        .join(","); // x y z, x y z, x y z
 
                     Some(format!(
-                        "ST_GeomFromText('LINESTRING({})')",
-                        coord_str_pairs.join(",")
+                        "ST_GeomFromText('LINESTRINGZ({pts_str})', {DEFAULT_SRID})",
                     ))
                 }
                 None => None,
@@ -708,6 +649,7 @@ mod tests {
     use super::*;
     use crate::resources::base::ResourceObject;
     use crate::test_util::*;
+    use crate::DEFAULT_SRID;
 
     #[tokio::test]
     async fn test_validate_uuid_valid() {
@@ -781,7 +723,12 @@ mod tests {
         ut_info!("(test_validate_point_valid) start");
 
         let mut errors: Vec<ValidationError> = vec![];
-        let point = Point::new(1.234, -1.234);
+        let point = PointZ {
+            x: 1.234,
+            y: -1.234,
+            z: 100.0,
+            srid: Some(DEFAULT_SRID),
+        };
         let result = validate_point("point".to_string(), &point, &mut errors);
         assert!(result);
         assert!(errors.is_empty());
@@ -795,7 +742,12 @@ mod tests {
         ut_info!("(test_validate_point_invalid) start");
 
         let mut errors: Vec<ValidationError> = vec![];
-        let point = Point::new(200.234, -190.234);
+        let point = PointZ {
+            x: 200.234,
+            y: -190.234,
+            z: 100.0,
+            srid: Some(DEFAULT_SRID),
+        };
         let result = validate_point("point".to_string(), &point, &mut errors);
         assert!(!result);
         assert!(!errors.is_empty());
@@ -812,10 +764,28 @@ mod tests {
         ut_info!("(test_validate_polygon_valid) start");
 
         let mut errors: Vec<ValidationError> = vec![];
-        let polygon = Polygon::new(
-            LineString::from(vec![(40.123, -40.123), (41.123, -41.123)]),
-            vec![],
-        );
+        let srid = Some(DEFAULT_SRID);
+        let polygon = PolygonZ {
+            srid: srid.clone(),
+            rings: vec![LineStringZ {
+                srid: srid.clone(),
+                points: vec![
+                    PointZ {
+                        x: 40.123,
+                        y: -40.123,
+                        z: 100.0,
+                        srid: srid.clone(),
+                    },
+                    PointZ {
+                        x: 41.123,
+                        y: -41.123,
+                        z: 100.0,
+                        srid: srid.clone(),
+                    },
+                ],
+            }],
+        };
+
         let result = validate_polygon("polygon".to_string(), &polygon, &mut errors);
         assert!(result);
         assert!(errors.is_empty());
@@ -830,7 +800,12 @@ mod tests {
 
         // Not enough lines
         let mut errors: Vec<ValidationError> = vec![];
-        let polygon = Polygon::new(LineString::from(vec![(400.123, -400.123)]), vec![]);
+        let srid = Some(DEFAULT_SRID);
+        let polygon = PolygonZ {
+            srid: srid.clone(),
+            rings: vec![],
+        };
+
         let result = validate_polygon("polygon".to_string(), &polygon, &mut errors);
         println!("errors found: {:?}", errors);
         assert!(!result);
@@ -840,17 +815,37 @@ mod tests {
 
         // Invalid points
         let mut errors: Vec<ValidationError> = vec![];
-        let polygon = Polygon::new(
-            LineString::from(vec![(400.123, -400.123), (410.123, -410.123)]),
-            vec![],
-        );
+        let srid = Some(DEFAULT_SRID);
+        let polygon = PolygonZ {
+            srid: srid.clone(),
+            rings: vec![LineStringZ {
+                srid: srid.clone(),
+                points: vec![
+                    PointZ {
+                        x: 400.123,
+                        y: -400.123,
+                        z: 100.0,
+                        srid: srid.clone(),
+                    },
+                    PointZ {
+                        x: 410.123,
+                        y: -410.123,
+                        z: 100.0,
+                        srid: srid.clone(),
+                    },
+                ],
+            }],
+        };
+
         let result = validate_polygon("polygon".to_string(), &polygon, &mut errors);
         println!("errors found: {:?}", errors);
         assert!(!result);
         assert!(!errors.is_empty());
-        assert_eq!(errors.len(), 2);
+        assert_eq!(errors.len(), 4);
         assert_eq!(errors[0].field, "polygon");
         assert_eq!(errors[1].field, "polygon");
+        assert_eq!(errors[2].field, "polygon");
+        assert_eq!(errors[3].field, "polygon");
 
         ut_info!("(test_validate_polygon_invalid) success");
     }
@@ -861,7 +856,23 @@ mod tests {
         ut_info!("(test_validate_line_string_valid) start");
 
         let mut errors: Vec<ValidationError> = vec![];
-        let line = LineString::from(vec![(40.123, -40.123), (41.123, -41.123)]);
+        let line = LineStringZ {
+            srid: Some(DEFAULT_SRID),
+            points: vec![
+                PointZ {
+                    x: 40.123,
+                    y: -40.123,
+                    z: 100.0,
+                    srid: Some(DEFAULT_SRID),
+                },
+                PointZ {
+                    x: 41.123,
+                    y: -41.123,
+                    z: 100.0,
+                    srid: Some(DEFAULT_SRID),
+                },
+            ],
+        };
         let result = validate_line_string("line".to_string(), &line, &mut errors);
         assert!(result);
         assert!(errors.is_empty());
@@ -875,7 +886,16 @@ mod tests {
         ut_info!("(test_validate_line_string_invalid) start");
 
         let mut errors: Vec<ValidationError> = vec![];
-        let line = LineString::from(vec![(400.123, -400.123)]);
+        let line = LineStringZ {
+            srid: Some(DEFAULT_SRID),
+            points: vec![PointZ {
+                x: 400.123,
+                y: -400.123,
+                z: 100.0,
+                srid: Some(DEFAULT_SRID),
+            }],
+        };
+
         let result = validate_line_string("line".to_string(), &line, &mut errors);
         assert!(!result);
         assert!(!errors.is_empty());

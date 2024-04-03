@@ -3,14 +3,15 @@ use prost_wkt_types::Timestamp;
 use crate::common::ArrErr;
 use crate::grpc::{GrpcDataObjectType, GrpcField, GrpcFieldOption};
 use crate::postgres::simple_resource;
+pub use crate::postgres::util::validate;
 use crate::resources::base::*;
 use crate::resources::ValidationResult;
+use crate::DEFAULT_SRID;
 use lib_common::log_macros;
+use postgis::ewkb::{LineStringZ, PointZ, PolygonZ};
 use std::collections::HashMap;
 use tokio_postgres::types::Type as PsqlFieldType;
 use uuid::Uuid;
-
-pub use crate::postgres::util::validate;
 
 log_macros!("ut", "test");
 
@@ -245,6 +246,7 @@ pub(crate) fn get_valid_test_data(
     timestamp: Option<Timestamp>,
     optional_timestamp: Option<Timestamp>,
 ) -> TestData {
+    let srid = Some(DEFAULT_SRID);
     TestData {
         string: String::from("test_value"),
         bool: true,
@@ -257,19 +259,129 @@ pub(crate) fn get_valid_test_data(
         i64_vec: vec![-20, 2, -3000],
         u32_vec: vec![20, 2, 3000],
 
-        geo_point: Some(geo_types::Point::new(180.0, 90.0).into()),
+        geo_point: Some(
+            PointZ {
+                x: 180.0,
+                y: 90.0,
+                z: 0.0,
+                srid: srid.clone(),
+            }
+            .into(),
+        ),
         geo_polygon: Some(
-            geo_types::Polygon::new(
-                geo_types::LineString::from(vec![(1.0, 1.0), (2.0, 2.0), (3.0, 3.0)]),
-                vec![
-                    geo_types::LineString::from(vec![(11.0, 11.0), (12.0, 12.0)]),
-                    geo_types::LineString::from(vec![(179.1, 89.1), (179.2, 89.2), (179.3, 89.3)]),
+            PolygonZ {
+                rings: vec![
+                    LineStringZ {
+                        srid: srid.clone(),
+                        points: vec![
+                            PointZ {
+                                x: 1.0,
+                                y: 1.0,
+                                z: 1.0,
+                                srid: srid.clone(),
+                            },
+                            PointZ {
+                                x: 2.0,
+                                y: 2.0,
+                                z: 2.0,
+                                srid: srid.clone(),
+                            },
+                            PointZ {
+                                x: 3.0,
+                                y: 3.0,
+                                z: 3.0,
+                                srid: srid.clone(),
+                            },
+                            PointZ {
+                                x: 1.0,
+                                y: 1.0,
+                                z: 1.0,
+                                srid: srid.clone(),
+                            },
+                        ],
+                    },
+                    LineStringZ {
+                        srid: srid.clone(),
+                        points: vec![
+                            PointZ {
+                                x: 11.0,
+                                y: 11.0,
+                                z: 11.0,
+                                srid: srid.clone(),
+                            },
+                            PointZ {
+                                x: 12.0,
+                                y: 12.0,
+                                z: 12.0,
+                                srid: srid.clone(),
+                            },
+                            PointZ {
+                                x: 11.0,
+                                y: 11.0,
+                                z: 11.0,
+                                srid: srid.clone(),
+                            },
+                        ],
+                    },
+                    LineStringZ {
+                        srid: srid.clone(),
+                        points: vec![
+                            PointZ {
+                                x: 179.1,
+                                y: 89.1,
+                                z: 23.2,
+                                srid: srid.clone(),
+                            },
+                            PointZ {
+                                x: 179.2,
+                                y: 89.2,
+                                z: 23.3,
+                                srid: srid.clone(),
+                            },
+                            PointZ {
+                                x: 179.3,
+                                y: 89.3,
+                                z: 23.4,
+                                srid: srid.clone(),
+                            },
+                            PointZ {
+                                x: 179.1,
+                                y: 89.1,
+                                z: 23.5,
+                                srid: srid.clone(),
+                            },
+                        ],
+                    },
                 ],
-            )
+                srid: srid.clone(),
+            }
             .into(),
         ),
         geo_line_string: Some(
-            geo_types::LineString::from(vec![(1.0, 1.0), (2.0, 2.0), (3.0, 3.0)]).into(),
+            LineStringZ {
+                points: vec![
+                    PointZ {
+                        x: 1.0,
+                        y: 1.0,
+                        z: 1.0,
+                        srid: srid.clone(),
+                    },
+                    PointZ {
+                        x: 2.0,
+                        y: 2.0,
+                        z: 2.0,
+                        srid: srid.clone(),
+                    },
+                    PointZ {
+                        x: 3.0,
+                        y: 3.0,
+                        z: 3.0,
+                        srid: srid.clone(),
+                    },
+                ],
+                srid: srid.clone(),
+            }
+            .into(),
         ),
 
         optional_string: Some(String::from("optional test_value")),
@@ -280,23 +392,129 @@ pub(crate) fn get_valid_test_data(
         optional_timestamp: optional_timestamp.clone(),
         optional_uuid: Some(optional_uuid.to_string()),
 
-        optional_geo_point: Some(geo_types::Point::new(-180.0, -90.0).into()),
+        optional_geo_point: Some(
+            PointZ {
+                x: -180.0,
+                y: -90.0,
+                z: 60.0,
+                srid: srid.clone(),
+            }
+            .into(),
+        ),
         optional_geo_polygon: Some(
-            geo_types::Polygon::new(
-                geo_types::LineString::from(vec![(-1.0, -1.0), (-2.0, -2.0), (-3.0, -3.0)]),
-                vec![
-                    geo_types::LineString::from(vec![(-11.0, -11.0), (-12.0, -12.0)]),
-                    geo_types::LineString::from(vec![
-                        (-179.1, -89.1),
-                        (-179.2, -89.2),
-                        (-179.3, -89.3),
-                    ]),
+            PolygonZ {
+                srid: srid.clone(),
+                rings: vec![
+                    LineStringZ {
+                        points: vec![
+                            PointZ {
+                                x: 1.0,
+                                y: 1.0,
+                                z: 1.0,
+                                srid: srid.clone(),
+                            },
+                            PointZ {
+                                x: 2.0,
+                                y: 2.0,
+                                z: 2.0,
+                                srid: srid.clone(),
+                            },
+                            PointZ {
+                                x: 3.0,
+                                y: 3.0,
+                                z: 3.0,
+                                srid: srid.clone(),
+                            },
+                            PointZ {
+                                x: 1.0,
+                                y: 1.0,
+                                z: 1.0,
+                                srid: srid.clone(),
+                            },
+                        ],
+                        srid: srid.clone(),
+                    },
+                    LineStringZ {
+                        points: vec![
+                            PointZ {
+                                x: 11.0,
+                                y: 11.0,
+                                z: 11.0,
+                                srid: srid.clone(),
+                            },
+                            PointZ {
+                                x: 12.0,
+                                y: 12.0,
+                                z: 12.0,
+                                srid: srid.clone(),
+                            },
+                            PointZ {
+                                x: 11.0,
+                                y: 11.0,
+                                z: 11.0,
+                                srid: srid.clone(),
+                            },
+                        ],
+                        srid: srid.clone(),
+                    },
+                    LineStringZ {
+                        points: vec![
+                            PointZ {
+                                x: 179.1,
+                                y: 89.1,
+                                z: 42.1,
+                                srid: srid.clone(),
+                            },
+                            PointZ {
+                                x: 179.2,
+                                y: 89.2,
+                                z: 42.2,
+                                srid: srid.clone(),
+                            },
+                            PointZ {
+                                x: 179.3,
+                                y: 89.3,
+                                z: 42.3,
+                                srid: srid.clone(),
+                            },
+                            PointZ {
+                                x: 179.1,
+                                y: 89.1,
+                                z: 42.4,
+                                srid: srid.clone(),
+                            },
+                        ],
+                        srid: srid.clone(),
+                    },
                 ],
-            )
+            }
             .into(),
         ),
         optional_geo_line_string: Some(
-            geo_types::LineString::from(vec![(-1.0, -1.0), (-2.0, -2.0), (-3.0, -3.0)]).into(),
+            LineStringZ {
+                points: vec![
+                    PointZ {
+                        x: -1.0,
+                        y: -1.0,
+                        z: -1.0,
+                        srid: srid.clone(),
+                    },
+                    PointZ {
+                        x: -2.0,
+                        y: -2.0,
+                        z: -2.0,
+                        srid: srid.clone(),
+                    },
+                    PointZ {
+                        x: -3.0,
+                        y: -3.0,
+                        z: -3.0,
+                        srid: srid.clone(),
+                    },
+                ],
+                srid: srid.clone(),
+            }
+            .into(),
         ),
         read_only: Some(String::from("read_only")),
     }
@@ -331,16 +549,19 @@ pub(crate) fn validate_test_data_sql_val(field: &str, value: &str) {
         r#""geo_point""# => {
             assert_eq!(
                 value,
-                format!("ST_GeomFromText('POINT({:.15} {:.15})')", 180.0, 90.0)
+                format!(
+                    "ST_GeomFromText('POINTZ({:.15} {:.15} {:.15})', {DEFAULT_SRID})",
+                    180.0, 90.0, 0.0
+                )
             );
         }
         r#""geo_polygon""# => {
             assert_eq!(
                 value,
-                format!("ST_GeomFromText('POLYGON(({:.15} {:.15},{:.15} {:.15},{:.15} {:.15},{:.15} {:.15}),({:.15} {:.15},{:.15} {:.15},{:.15} {:.15}),({:.15} {:.15},{:.15} {:.15},{:.15} {:.15},{:.15} {:.15}))')",
-                    1.0, 1.0, 2.0, 2.0, 3.0, 3.0, 1.0, 1.0,
-                    11.0, 11.0, 12.0, 12.0, 11.0, 11.0,
-                    179.1, 89.1, 179.2, 89.2, 179.3, 89.3, 179.1, 89.1
+                format!("ST_GeomFromText('POLYGONZ(({:.15} {:.15} {:.15},{:.15} {:.15} {:.15},{:.15} {:.15} {:.15},{:.15} {:.15} {:.15}),({:.15} {:.15} {:.15},{:.15} {:.15} {:.15},{:.15} {:.15} {:.15}),({:.15} {:.15} {:.15},{:.15} {:.15} {:.15},{:.15} {:.15} {:.15},{:.15} {:.15} {:.15}))', {DEFAULT_SRID})",
+                    1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 3.0, 3.0, 3.0, 1.0, 1.0, 1.0,
+                    11.0, 11.0, 11.0, 12.0, 12.0, 12.0, 11.0, 11.0, 11.0,
+                    179.1, 89.1, 23.2, 179.2, 89.2, 23.3, 179.3, 89.3, 23.4, 179.1, 89.1, 23.5
                 )
             );
         }
@@ -348,8 +569,8 @@ pub(crate) fn validate_test_data_sql_val(field: &str, value: &str) {
             assert_eq!(
                 value,
                 format!(
-                    "ST_GeomFromText('LINESTRING({:.15} {:.15},{:.15} {:.15},{:.15} {:.15})')",
-                    1.0, 1.0, 2.0, 2.0, 3.0, 3.0
+                    "ST_GeomFromText('LINESTRINGZ({:.15} {:.15} {:.15},{:.15} {:.15} {:.15},{:.15} {:.15} {:.15})', {DEFAULT_SRID})",
+                    1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 3.0, 3.0, 3.0
                 )
             );
         }
@@ -372,16 +593,19 @@ pub(crate) fn validate_test_data_sql_val(field: &str, value: &str) {
         r#""optional_geo_point""# => {
             assert_eq!(
                 value,
-                format!("ST_GeomFromText('POINT({:.15} {:.15})')", -180.0, -90.0)
+                format!(
+                    "ST_GeomFromText('POINTZ({:.15} {:.15} {:.15})', {DEFAULT_SRID})",
+                    -180.0, -90.0, 60.0
+                )
             );
         }
         r#""optional_geo_polygon""# => {
             assert_eq!(
                 value,
-                format!("ST_GeomFromText('POLYGON(({:.15} {:.15},{:.15} {:.15},{:.15} {:.15},{:.15} {:.15}),({:.15} {:.15},{:.15} {:.15},{:.15} {:.15}),({:.15} {:.15},{:.15} {:.15},{:.15} {:.15},{:.15} {:.15}))')",
-                    -1.0, -1.0, -2.0, -2.0, -3.0, -3.0, -1.0, -1.0,
-                    -11.0, -11.0, -12.0, -12.0, -11.0, -11.0,
-                    -179.1, -89.1, -179.2, -89.2, -179.3, -89.3, -179.1, -89.1
+                format!("ST_GeomFromText('POLYGONZ(({:.15} {:.15} {:.15},{:.15} {:.15} {:.15},{:.15} {:.15} {:.15},{:.15} {:.15} {:.15}),({:.15} {:.15} {:.15},{:.15} {:.15} {:.15},{:.15} {:.15} {:.15}),({:.15} {:.15} {:.15},{:.15} {:.15} {:.15},{:.15} {:.15} {:.15},{:.15} {:.15} {:.15}))', {DEFAULT_SRID})",
+                    1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 3.0, 3.0, 3.0, 1.0, 1.0, 1.0,
+                    11.0, 11.0, 11.0, 12.0, 12.0, 12.0, 11.0, 11.0, 11.0,
+                    179.1, 89.1, 42.1, 179.2, 89.2, 42.2, 179.3, 89.3, 42.3, 179.1, 89.1, 42.4
                 )
             );
         }
@@ -389,8 +613,8 @@ pub(crate) fn validate_test_data_sql_val(field: &str, value: &str) {
             assert_eq!(
                 value,
                 format!(
-                    "ST_GeomFromText('LINESTRING({:.15} {:.15},{:.15} {:.15},{:.15} {:.15})')",
-                    -1.0, -1.0, -2.0, -2.0, -3.0, -3.0
+                    "ST_GeomFromText('LINESTRINGZ({:.15} {:.15} {:.15},{:.15} {:.15} {:.15},{:.15} {:.15} {:.15})', {DEFAULT_SRID})",
+                    -1.0, -1.0, -1.0, -2.0, -2.0, -2.0, -3.0, -3.0, -3.0
                 )
             );
         }
@@ -401,6 +625,7 @@ pub(crate) fn validate_test_data_sql_val(field: &str, value: &str) {
 }
 
 pub(crate) fn get_invalid_test_data() -> TestData {
+    let srid = Some(DEFAULT_SRID);
     TestData {
         string: String::from("test_value"),
         bool: true,
@@ -416,16 +641,74 @@ pub(crate) fn get_invalid_test_data() -> TestData {
         i64_vec: vec![-20, 2, -3000],
         u32_vec: vec![20, 2, 3000],
 
-        geo_point: Some(geo_types::Point::new(181.0, 91.0).into()),
+        geo_point: Some(
+            PointZ {
+                x: 180.0,
+                y: 90.0,
+                z: 0.0,
+                srid: srid.clone(),
+            }
+            .into(),
+        ),
         geo_polygon: Some(
-            geo_types::Polygon::new(
-                geo_types::LineString::from(vec![(181.0, 91.0)]),
-                vec![geo_types::LineString::from(vec![(-181.0, -91.0)])],
-            )
+            PolygonZ {
+                srid: srid.clone(),
+                rings: vec![
+                    LineStringZ {
+                        points: vec![PointZ {
+                            x: 181.0,
+                            y: 91.0,
+                            z: 0.0,
+                            srid: srid.clone(),
+                        }],
+                        srid: srid.clone(),
+                    },
+                    LineStringZ {
+                        points: vec![
+                            PointZ {
+                                x: -181.0,
+                                y: -91.0,
+                                z: 0.0,
+                                srid: srid.clone(),
+                            },
+                            PointZ {
+                                x: 12.0,
+                                y: 12.0,
+                                z: 0.0,
+                                srid: srid.clone(),
+                            },
+                        ],
+                        srid: srid.clone(),
+                    },
+                ],
+            }
             .into(),
         ),
         geo_line_string: Some(
-            geo_types::LineString::from(vec![(181.0, 91.0), (-181.0, -91.0), (3.0, 3.0)]).into(),
+            LineStringZ {
+                points: vec![
+                    PointZ {
+                        x: 181.0,
+                        y: 91.0,
+                        z: 0.0,
+                        srid: srid.clone(),
+                    },
+                    PointZ {
+                        x: -181.0,
+                        y: -91.0,
+                        z: 0.0,
+                        srid: srid.clone(),
+                    },
+                    PointZ {
+                        x: 3.0,
+                        y: 3.0,
+                        z: 0.0,
+                        srid: srid.clone(),
+                    },
+                ],
+                srid: srid.clone(),
+            }
+            .into(),
         ),
 
         optional_string: None,
@@ -439,23 +722,105 @@ pub(crate) fn get_invalid_test_data() -> TestData {
         }),
         optional_uuid: Some(String::from("invalid_optional_uuid")),
 
-        optional_geo_point: Some(geo_types::Point::new(-181.0, -91.0).into()),
+        optional_geo_point: Some(
+            PointZ {
+                x: -181.0,
+                y: -91.0,
+                z: 60.0,
+                srid: srid.clone(),
+            }
+            .into(),
+        ),
         optional_geo_polygon: Some(
-            geo_types::Polygon::new(
-                geo_types::LineString::from(vec![(-181.0, -91.0), (-2.0, -2.0), (-3.0, -3.0)]),
-                vec![
-                    geo_types::LineString::from(vec![(-181.0, -91.0), (-12.0, -12.0)]),
-                    geo_types::LineString::from(vec![
-                        (-91.0, -21.0),
-                        (-22.0, -22.0),
-                        (-23.0, -23.0),
-                    ]),
+            PolygonZ {
+                srid: srid.clone(),
+                rings: vec![
+                    LineStringZ {
+                        srid: srid.clone(),
+                        points: vec![
+                            PointZ {
+                                x: -181.0,
+                                y: -91.0,
+                                z: 0.0,
+                                srid: srid.clone(),
+                            },
+                            PointZ {
+                                x: -12.0,
+                                y: -12.0,
+                                z: 0.0,
+                                srid: srid.clone(),
+                            },
+                        ],
+                    },
+                    LineStringZ {
+                        srid: srid.clone(),
+                        points: vec![
+                            PointZ {
+                                x: -181.0,
+                                y: -91.0,
+                                z: 0.0,
+                                srid: srid.clone(),
+                            },
+                            PointZ {
+                                x: -22.0,
+                                y: -22.0,
+                                z: 0.0,
+                                srid: srid.clone(),
+                            },
+                            PointZ {
+                                x: -23.0,
+                                y: -23.0,
+                                z: 0.0,
+                                srid: srid.clone(),
+                            },
+                        ],
+                    },
+                    LineStringZ {
+                        srid: srid.clone(),
+                        points: vec![
+                            PointZ {
+                                x: -181.0,
+                                y: -91.0,
+                                z: 0.0,
+                                srid: srid.clone(),
+                            },
+                            PointZ {
+                                x: -12.0,
+                                y: -12.0,
+                                z: 0.0,
+                                srid: srid.clone(),
+                            },
+                        ],
+                    },
                 ],
-            )
+            }
             .into(),
         ),
         optional_geo_line_string: Some(
-            geo_types::LineString::from(vec![(-181.0, -91.0), (-2.0, -2.0), (-3.0, -3.0)]).into(),
+            LineStringZ {
+                points: vec![
+                    PointZ {
+                        x: -181.0,
+                        y: -91.0,
+                        z: 0.0,
+                        srid: srid.clone(),
+                    },
+                    PointZ {
+                        x: -2.0,
+                        y: -2.0,
+                        z: 0.0,
+                        srid: srid.clone(),
+                    },
+                    PointZ {
+                        x: -3.0,
+                        y: -3.0,
+                        z: 0.0,
+                        srid: srid.clone(),
+                    },
+                ],
+                srid: srid.clone(),
+            }
+            .into(),
         ),
         read_only: Some(String::from("read_only")),
     }

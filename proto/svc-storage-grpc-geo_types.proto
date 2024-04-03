@@ -10,6 +10,9 @@ message GeoPoint {
     // latitude (y / vertical / north-south)
     // range: -90 - 90
     double latitude = 2;
+    // altitude (z) in meters
+    double altitude = 3;
+
 }
 
 // Geo Location Line representation
