@@ -38,7 +38,6 @@ deadpool-postgres   = { version = "0.11", features = ["serde", "rt_tokio_1"] }
 dotenv              = "0.15"
 futures             = "0.3"
 geo                 = { version = "0.26", optional = true }
-geo-types           = "0.7"
 hyper               = "0.14"
 lazy_static         = "1.4"
 log                 = "0.4"

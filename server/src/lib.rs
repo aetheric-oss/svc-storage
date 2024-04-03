@@ -15,6 +15,9 @@ pub mod resources;
 pub use crate::config::Config;
 pub use clap::Parser;
 
+/// The default SRID for the PostGIS types, WGS-84
+pub const DEFAULT_SRID: i32 = 4326;
+
 /// struct holding cli configuration options
 #[derive(Parser, Debug, Clone)]
 pub struct Cli {

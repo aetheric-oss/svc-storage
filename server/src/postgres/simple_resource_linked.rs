@@ -6,9 +6,10 @@ use crate::grpc::server::ValidationResult;
 use crate::grpc::{GrpcDataObjectType, GrpcField};
 use crate::resources::base::simple_resource::*;
 
+use crate::DEFAULT_SRID;
 use chrono::{DateTime, Utc};
 use deadpool_postgres::Transaction;
-use geo_types::{LineString, Point, Polygon};
+use postgis::ewkb::{LineStringZ, PointZ, PolygonZ};
 use std::collections::HashMap;
 use std::vec;
 use tokio_postgres::types::Type as PsqlFieldType;
@@ -390,7 +391,7 @@ where
                                 };
                             } else {
                                 let error = format!(
-                                    "Could not convert value into a geo_types::Point for field: {}",
+                                    "Could not convert value into a postgis::ewkb::PointZ for field: {}",
                                     key
                                 );
                                 psql_error!("(get_update_vars) {}", error);
@@ -408,7 +409,7 @@ where
                                 };
                             } else {
                                 let error = format!(
-                                    "Could not convert value into a geo_types::Polygon for field: {}",
+                                    "Could not convert value into a postgis::ewkb::PolygonZ for field: {}",
                                     key
                                 );
                                 psql_error!("(get_update_vars) {}", error);
@@ -426,7 +427,7 @@ where
                                 };
                             } else {
                                 let error = format!(
-                                    "Could not convert value into a geo_types::Path for field: {}",
+                                    "Could not convert value into a postgis::ewkb::PathZ for field: {}",
                                     key
                                 );
                                 psql_error!("(get_update_vars) {}", error);
@@ -464,14 +465,13 @@ fn get_point_sql_val(point_option: GrpcField) -> Option<String> {
             let point: Option<GrpcField> = val.into();
             match point {
                 Some(val) => {
-                    let val: Point = val.into();
+                    let val: PointZ = val.into();
                     // POINT expects (x y) which is (long lat)
-                    // geo_types::geometry::point::Point has a x and y which
-                    // we've aligned with the POINT(x y)/POINT(long lat)
+                    // postgis::ewkb::PointZ has a x and y and z which
+                    // we've aligned with the POINT(x y z)/POINT(long lat altitude)
                     Some(format!(
-                        "ST_GeomFromText('POINT({:.15} {:.15})')",
-                        val.x(),
-                        val.y()
+                        "ST_GeomFromText('POINTZ({:.15} {:.15} {:.15})', {DEFAULT_SRID})",
+                        val.x, val.y, val.z
                     ))
                 }
                 None => None,
@@ -487,27 +487,25 @@ fn get_polygon_sql_val(polygon_option: GrpcField) -> Option<String> {
             let polygon: Option<GrpcField> = val.into();
             match polygon {
                 Some(val) => {
-                    let val: Polygon = val.into();
+                    let val: PolygonZ = val.into();
+                    let rings_str = val
+                        .rings
+                        .into_iter()
+                        .map(|ring| {
+                            let ring_str = ring
+                                .points
+                                .into_iter()
+                                .map(|pt| format!("{:.15} {:.15} {:.15}", pt.x, pt.y, pt.z))
+                                .collect::<Vec<String>>()
+                                .join(","); // x y z, x y z, x y z
 
-                    let mut coord_str_pairs: Vec<String> = vec![];
-                    for coord in val.exterior().coords() {
-                        coord_str_pairs.push(format!("{:.15} {:.15}", coord.x, coord.y));
-                    }
-
-                    let mut line_str_pairs: Vec<String> = vec![];
-                    line_str_pairs.push(format!("({})", coord_str_pairs.join(",")));
-                    for line in val.interiors() {
-                        let mut coord_str_pairs: Vec<String> = vec![];
-                        for coord in line.coords() {
-                            coord_str_pairs.push(format!("{:.15} {:.15}", coord.x, coord.y));
-                        }
-                        let coord_str = format!("({})", coord_str_pairs.join(","));
-                        line_str_pairs.push(coord_str);
-                    }
+                            format!("({ring_str})") // (x y z, x y z, x y z)
+                        })
+                        .collect::<Vec<String>>()
+                        .join(","); // (x y z, x y z),(x y z, x y z)
 
                     Some(format!(
-                        "ST_GeomFromText('POLYGON({})')",
-                        line_str_pairs.join(",")
+                        "ST_GeomFromText('POLYGONZ({rings_str})', {DEFAULT_SRID})",
                     ))
                 }
                 None => None,
@@ -523,15 +521,16 @@ fn get_path_sql_val(path_option: GrpcField) -> Option<String> {
             let path: Option<GrpcField> = val.into();
             match path {
                 Some(val) => {
-                    let val: LineString = val.into();
-                    let mut coord_str_pairs: Vec<String> = vec![];
-                    for coord in val.coords() {
-                        coord_str_pairs.push(format!("{:.15} {:.15}", coord.x, coord.y));
-                    }
+                    let val: LineStringZ = val.into();
+                    let pts_str = val
+                        .points
+                        .into_iter()
+                        .map(|pt| format!("{:.15} {:.15} {:.15}", pt.x, pt.y, pt.z))
+                        .collect::<Vec<String>>()
+                        .join(","); // x y z, x y z, x y z
 
                     Some(format!(
-                        "ST_GeomFromText('LINESTRING({})')",
-                        coord_str_pairs.join(",")
+                        "ST_GeomFromText('LINESTRINGZ({pts_str})', {DEFAULT_SRID})",
                     ))
                 }
                 None => None,
