@@ -143,7 +143,11 @@ mod tests {
         let data = Data {
             parcel_id: String::from("INVALID"),
             scanner_id: String::from("INVALID"),
-            geo_location: Some(geo_types::Point::new(200.0, -200.0).into()),
+            geo_location: Some(GeoPoint {
+                latitude: 200.0,
+                longitude: -200.0,
+                altitude: 10.0,
+            }),
             created_at: Some(prost_wkt_types::Timestamp {
                 seconds: -1,
                 nanos: -1,

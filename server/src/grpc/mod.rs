@@ -21,7 +21,9 @@ use std::{fmt::Debug, vec};
 use tokio::runtime::{Handle, Runtime};
 use tonic::Status;
 
-use server::grpc_geo_types::*;
+use crate::DEFAULT_SRID;
+use postgis::ewkb::{LineStringZ, PointZ, PolygonZ};
+use server::grpc_geo_types::{GeoLineString, GeoPoint, GeoPolygon};
 
 /// gRPC field types
 #[derive(Debug, Clone, PartialEq)]
@@ -53,11 +55,11 @@ pub enum GrpcField {
     /// Timestamp
     Timestamp(Timestamp),
     /// Geometric Point
-    GeoPoint(Point),
+    GeoPoint(PointZ),
     /// Geometric Polygon
-    GeoPolygon(Polygon),
+    GeoPolygon(PolygonZ),
     /// Geometric Line
-    GeoLineString(LineString),
+    GeoLineString(LineStringZ),
     /// Option GrpcFieldOption
     Option(GrpcFieldOption),
 }
@@ -92,11 +94,11 @@ pub enum GrpcFieldOption {
     /// Option\<Timestamp\>
     Timestamp(Option<Timestamp>),
     /// Geo Point
-    GeoPoint(Option<Point>),
+    GeoPoint(Option<PointZ>),
     /// Geo Polygon
-    GeoPolygon(Option<Polygon>),
+    GeoPolygon(Option<PolygonZ>),
     /// Geo Line
-    GeoLineString(Option<LineString>),
+    GeoLineString(Option<LineStringZ>),
     /// [None]
     None,
 }
@@ -247,13 +249,14 @@ impl From<Option<GeoPoint>> for GrpcFieldOption {
         }
     }
 }
-impl From<GrpcField> for Point {
+impl From<GrpcField> for PointZ {
     fn from(field: GrpcField) -> Self {
         match field {
             GrpcField::GeoPoint(field) => field,
             _ => GeoPoint {
                 longitude: 0.0,
                 latitude: 0.0,
+                altitude: 0.0,
             }
             .into(),
         }
@@ -267,11 +270,14 @@ impl From<Option<GeoLineString>> for GrpcFieldOption {
         }
     }
 }
-impl From<GrpcField> for LineString {
+impl From<GrpcField> for LineStringZ {
     fn from(field: GrpcField) -> Self {
         match field {
             GrpcField::GeoLineString(field) => field,
-            _ => LineString::new(vec![]),
+            _ => LineStringZ {
+                points: vec![],
+                srid: Some(DEFAULT_SRID),
+            },
         }
     }
 }
@@ -283,11 +289,14 @@ impl From<Option<GeoPolygon>> for GrpcFieldOption {
         }
     }
 }
-impl From<GrpcField> for Polygon {
+impl From<GrpcField> for PolygonZ {
     fn from(field: GrpcField) -> Self {
         match field {
             GrpcField::GeoPolygon(field) => field,
-            _ => Polygon::new(LineString::new(vec![]), vec![]),
+            _ => PolygonZ {
+                rings: vec![],
+                srid: Some(DEFAULT_SRID),
+            },
         }
     }
 }
@@ -751,11 +760,16 @@ mod tests {
         crate::get_log_handle().await;
         ut_info!("(test_from_grpc_field_to_point) start");
 
-        let point = Point::new(120.8, 45.12);
+        let point = PointZ {
+            x: 120.8,
+            y: 45.12,
+            z: 10.0,
+            srid: Some(DEFAULT_SRID),
+        };
 
         // GrpcField into GeoPoint
         let field = GrpcField::GeoPoint(point.clone());
-        let result: Point = field.into();
+        let result: PointZ = field.into();
         assert_eq!(result, point.clone());
 
         // GrpcFieldOption into GeoPoint
@@ -775,11 +789,19 @@ mod tests {
         crate::get_log_handle().await;
         ut_info!("(test_from_grpc_field_to_linestring) start");
 
-        let line_string = LineString::from(vec![(0.12, 1.23)]);
+        let line_string = LineStringZ {
+            srid: Some(DEFAULT_SRID),
+            points: vec![PointZ {
+                x: 0.12,
+                y: 1.23,
+                z: 4.57,
+                srid: Some(DEFAULT_SRID),
+            }],
+        };
 
         // GrpcField into GeoLineString
         let field = GrpcField::GeoLineString(line_string.clone());
-        let result: LineString = field.into();
+        let result: LineStringZ = field.into();
         assert_eq!(result, line_string.clone());
 
         // GrpcFieldOption into GeoLineString
@@ -799,16 +821,43 @@ mod tests {
         crate::get_log_handle().await;
         ut_info!("(test_from_grpc_field_to_polygon) start");
 
-        let exterior = LineString::from(vec![(0.12, 1.23)]);
-        let interiors = vec![
-            LineString::from(vec![(0.11, 1.22)]),
-            LineString::from(vec![(0.11, 1.21)]),
-        ];
-        let polygon = Polygon::new(exterior, interiors);
+        let srid = Some(DEFAULT_SRID);
+        let ring_1 = LineStringZ {
+            srid: srid.clone(),
+            points: vec![PointZ {
+                x: 0.12,
+                y: 1.23,
+                z: 2.34,
+                srid: srid.clone(),
+            }],
+        };
+
+        let ring_2 = LineStringZ {
+            srid: srid.clone(),
+            points: vec![
+                PointZ {
+                    x: 0.11,
+                    y: 1.22,
+                    z: 2.35,
+                    srid: srid.clone(),
+                },
+                PointZ {
+                    x: 0.11,
+                    y: 1.21,
+                    z: 2.36,
+                    srid: srid.clone(),
+                },
+            ],
+        };
+
+        let polygon = PolygonZ {
+            srid: srid.clone(),
+            rings: vec![ring_1, ring_2],
+        };
 
         // GrpcField into Polygon
         let field = GrpcField::GeoPolygon(polygon.clone());
-        let result: Polygon = field.into();
+        let result: PolygonZ = field.into();
         assert_eq!(result, polygon.clone());
 
         // GrpcFieldOption into Polygon
