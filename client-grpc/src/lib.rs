@@ -21,6 +21,9 @@ pub mod prelude;
 use prelude::*;
 pub use resources::Clients;
 
+/// The default SRID for the PostGIS types, WGS-84
+pub const DEFAULT_SRID: i32 = 4326;
+
 #[cfg(feature = "any_resource")]
 fn timestamp_schema() -> utoipa::openapi::Object {
     utoipa::openapi::ObjectBuilder::new()

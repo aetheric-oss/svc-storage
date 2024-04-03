@@ -98,3 +98,6 @@ Thomasg
 Lcov
 seccomp
 AETH
+polygonz
+linestringz
+pointz
