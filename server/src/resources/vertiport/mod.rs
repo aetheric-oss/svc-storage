@@ -14,6 +14,7 @@ use super::base::simple_resource::*;
 use super::base::{FieldDefinition, ResourceDefinition};
 use crate::common::ArrErr;
 use crate::grpc::{GrpcDataObjectType, GrpcField, GrpcFieldOption};
+use postgis::ewkb::PolygonZ;
 
 // Generate `From` trait implementations for GenericResource into and from Grpc defined Resource
 crate::build_generic_resource_impl_from!();
@@ -99,7 +100,7 @@ impl TryFrom<Row> for Data {
     fn try_from(row: Row) -> Result<Self, ArrErr> {
         debug!("(try_from) Converting Row to vertiport::Data: {:?}", row);
         let schedule: Option<String> = row.get("schedule");
-        let geo_location = row.get::<&str, postgis::ewkb::Polygon>("geo_location");
+        let geo_location = row.get::<&str, PolygonZ>("geo_location");
 
         let created_at: Option<prost_wkt_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("created_at")
@@ -156,16 +157,36 @@ mod tests {
         let data = Data {
             name: String::from(""),
             description: String::from(""),
-            geo_location: Some(
-                geo_types::Polygon::new(
-                    geo_types::LineString::from(vec![
-                        (4.78565097, 53.01922827),
-                        (204.78650928, 253.01922827),
-                    ]),
-                    vec![],
-                )
-                .into(),
-            ),
+            geo_location: Some(GeoPolygon {
+                exterior: Some(GeoLineString {
+                    points: vec![
+                        GeoPoint {
+                            latitude: 201.0,
+                            longitude: 0.0,
+                            altitude: 0.0,
+                        },
+                        GeoPoint {
+                            latitude: 0.0,
+                            longitude: 0.0,
+                            altitude: 0.0,
+                        },
+                    ],
+                }),
+                interiors: vec![GeoLineString {
+                    points: vec![
+                        GeoPoint {
+                            latitude: 0.0,
+                            longitude: 0.0,
+                            altitude: 0.0,
+                        },
+                        GeoPoint {
+                            latitude: 0.0,
+                            longitude: -202.0, // invalid
+                            altitude: 0.0,
+                        },
+                    ],
+                }],
+            }),
             schedule: Some(String::from("")),
             // The fields below are read_only, should not be returned as invalid
             // by validation even though they are invalid

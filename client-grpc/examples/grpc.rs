@@ -4,6 +4,8 @@ use svc_storage_client_grpc::prelude::*;
 use chrono::naive::NaiveDate;
 use chrono::{Datelike, Duration, Local, Timelike, Utc};
 use lib_common::grpc::get_endpoint_from_env;
+use postgis::ewkb::{LineStringZ, PointZ, PolygonZ};
+use svc_storage_client_grpc::DEFAULT_SRID;
 use tokio::sync::OnceCell;
 use tonic::Status;
 use uuid::Uuid;
@@ -592,19 +594,38 @@ async fn generate_sample_vertiports() -> Result<vertiport::List, Status> {
     let vertiport_client = &clients.vertiport;
     println!("Vertiport Client created");
 
+    let srid = Some(DEFAULT_SRID);
     match vertiport_client
         .insert(vertiport::Data {
             name: "My favorite port".to_string(),
             description: "Open during workdays and work hours only".to_string(),
             geo_location: Some(
-                geo_types::Polygon::new(
-                    LineString::from(vec![
-                        (4.78565097, 53.01922827),
-                        (4.78650928, 53.01922827),
-                        (4.78607476, 53.01896366),
-                    ]),
-                    vec![],
-                )
+                PolygonZ {
+                    srid: srid.clone(),
+                    rings: vec![LineStringZ {
+                        srid: srid.clone(),
+                        points: vec![
+                            PointZ {
+                                x: 4.78565097,
+                                y: 53.01922827,
+                                z: 10.0,
+                                srid: srid.clone(),
+                            },
+                            PointZ {
+                                x: 4.78650928,
+                                y: 53.01922827,
+                                z: 10.0,
+                                srid: srid.clone(),
+                            },
+                            PointZ {
+                                x: 4.78607476,
+                                y: 53.01896366,
+                                z: 10.0,
+                                srid: srid.clone(),
+                            },
+                        ],
+                    }],
+                }
                 .into(),
             ),
             schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),

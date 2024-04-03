@@ -59,7 +59,6 @@ pub mod search {
 
 /// Provide geo types and conversions
 pub mod grpc_geo_types {
-    pub use geo_types::{Coord, LineString, Point, Polygon};
     use serde::{Deserialize, Serialize};
 
     /// Geo Location Point representation
@@ -75,6 +74,9 @@ pub mod grpc_geo_types {
         /// range: -90 - 90
         #[prost(double, tag = "2")]
         pub latitude: f64,
+        /// altitude (z / height)
+        #[prost(double, tag = "3")]
+        pub altitude: f64,
     }
     /// Geo Location Line representation
     #[allow(clippy::derive_partial_eq_without_eq)]

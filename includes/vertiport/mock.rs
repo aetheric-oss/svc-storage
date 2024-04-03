@@ -2,6 +2,7 @@ use super::Data;
 use chrono::{Datelike, Duration, NaiveDate, Timelike, Utc};
 use rand::seq::SliceRandom;
 use rand::Rng;
+use postgis::ewkb::{LineStringZ, PointZ, PolygonZ};
 
 const CAL_WORKDAYS_8AM_6PM: &str = "\
 DTSTART:20221020T180000Z;DURATION:PT14H
@@ -41,19 +42,40 @@ pub fn get_data_obj() -> Data {
         );
     let created_at = Some(created_at.into());
     let updated_at = created_at.clone();
+    let srid = Some(crate::DEFAULT_SRID);
 
     Data {
         name: format!("Demo vertiport {:0>8}", rng.gen_range(0..10000000)),
         description: "Open during workdays and work hours only".to_string(),
         geo_location: Some(
-            geo_types::Polygon::new(
-                geo_types::LineString::from(vec![
-                    (4.78565097, 53.01922827),
-                    (4.78650928, 53.01922827),
-                    (4.78607476, 53.01896366),
-                ]),
-                vec![],
-            )
+            PolygonZ {
+                srid: srid.clone(),
+                rings: vec![
+                    LineStringZ {
+                        srid: srid.clone(),
+                        points: vec![
+                            PointZ {
+                                x: 4.78565097,
+                                y: 53.01922827,
+                                z: 10.0,
+                                srid: srid.clone(),
+                            },
+                            PointZ {
+                                x: 4.78650928,
+                                y: 53.01922827,
+                                z: 10.0,
+                                srid: srid.clone(),
+                            },
+                            PointZ {
+                                x: 4.78607476,
+                                y: 53.01896366,
+                                z: 10.0,
+                                srid: srid.clone(),
+                            },
+                        ]
+                    }
+                ]
+            }
             .into(),
         ),
         schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),

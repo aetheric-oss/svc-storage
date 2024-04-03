@@ -170,7 +170,11 @@ mod tests {
         let data = Data {
             vertiport_id: String::from("INVALID"),
             name: String::from(""),
-            geo_location: Some(geo_types::Point::new(200.0, -200.0).into()),
+            geo_location: Some(GeoPoint {
+                latitude: 200.0,
+                longitude: -200.0,
+                altitude: 10.0,
+            }),
             enabled: true,
             occupied: false,
             schedule: Some(String::from("")),

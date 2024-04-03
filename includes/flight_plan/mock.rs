@@ -69,6 +69,7 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
     let start_point = GeoPoint {
         longitude: 4.9164,
         latitude: 52.37466,
+        altitude: 0.0,
     };
 
     // Flight straight north
@@ -76,6 +77,7 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
     let end_point = GeoPoint {
         longitude: 4.9164,
         latitude: start_point.latitude + flight_distance_meters as f64 / 111111.0,
+        altitude: 0.0,
     };
 
     let path = GeoLineString {

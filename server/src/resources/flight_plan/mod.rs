@@ -224,7 +224,7 @@ impl TryFrom<Row> for Data {
         let session_id: String = row.get("session_id");
         let pilot_id: String = row.get::<&str, Uuid>("pilot_id").to_string();
         let vehicle_id: String = row.get::<&str, Uuid>("vehicle_id").to_string();
-        let path = row.get::<&str, postgis::ewkb::LineString>("path");
+        let path = row.get::<&str, postgis::ewkb::LineStringZ>("path");
         let origin_vertipad_id: String = row.get::<&str, Uuid>("origin_vertipad_id").to_string();
         let target_vertipad_id: String = row.get::<&str, Uuid>("target_vertipad_id").to_string();
 
