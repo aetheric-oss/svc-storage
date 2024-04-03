@@ -1,8 +1,8 @@
 use super::Data;
-use crate::resources::grpc_geo_types::GeoPoint;
+use crate::resources::grpc_geo_types::{GeoPoint, GeoLineString, GeoPolygon};
 use chrono::{Datelike, Duration, NaiveDate, Timelike, Utc};
 use geo::algorithm::bounding_rect::BoundingRect;
-use geo::{Contains, Point, Polygon};
+use geo::{Contains, coord, Point, Polygon};
 use rand::seq::SliceRandom;
 use rand::Rng;
 use uuid::Uuid;
@@ -13,17 +13,39 @@ RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR
 DTSTART:20221022T000000Z;DURATION:PT24H
 RRULE:FREQ=WEEKLY;BYDAY=SA,SU";
 
-fn generate_random_point_in_polygon(polygon: &Polygon<f64>) -> Option<GeoPoint> {
+fn generate_random_point_in_polygon(polygon: &GeoPolygon) -> Option<GeoPoint> {
+    let bounding: GeoLineString = match &polygon.exterior {
+        Some(line_string) => line_string.clone(),
+        None => match polygon.interiors.first() {
+            Some(line_string) => line_string.clone(),
+            None => return None
+        }
+    };
+
+    let polygon: Polygon<f64> = Polygon::new(
+        bounding
+            .points
+            .into_iter()
+            .map(|point| (coord! { x: point.longitude, y: point.latitude }))
+            .collect(),
+        vec![]
+    );
+
     let bounding_rect = polygon.bounding_rect()?;
     let mut rng = rand::thread_rng();
 
     loop {
         let random_x = rng.gen_range(bounding_rect.min().x..bounding_rect.max().x);
         let random_y = rng.gen_range(bounding_rect.min().y..bounding_rect.max().y);
+        let z = 0.0;
         let random_point = Point::new(random_x, random_y);
 
         if polygon.contains(&random_point) {
-            return Some(random_point.into());
+            return Some(GeoPoint {
+                latitude: random_x,
+                longitude: random_y,
+                altitude: z,
+            });
         }
     }
 }
@@ -68,6 +90,7 @@ pub fn get_data_obj() -> Data {
         geo_location: Some(GeoPoint {
             longitude: -122.4194,
             latitude: 37.7746,
+            altitude: 0.0,
         }),
         enabled: true,
         occupied: false,
@@ -112,12 +135,11 @@ pub fn get_data_obj_for_vertiport(vertiport: super::super::vertiport::Object) ->
     let created_at = Some(created_at.into());
     let updated_at = created_at.clone();
 
-    let vertiport_location: geo_types::Polygon = vertiport
+    let vertiport_location: GeoPolygon = vertiport
         .data
         .expect("No data provided for vertiport, can't create vertipad mock object")
         .geo_location
-        .expect("No Geo location provided for vertiport, can't create vertipad mock object")
-        .into();
+        .expect("No Geo location provided for vertiport, can't create vertipad mock object");
 
     Data {
         vertiport_id: vertiport.id,
