@@ -64,7 +64,7 @@ tonic-health        = "0.10"
 uuid                = { version = "1.4", features = ["v4"] }
 
 [dependencies.lib-common]
-git = "https://github.com/Arrow-air/lib-common"
+git = "https://github.com/aetheric-oss/lib-common"
 tag = "latest-develop"
 
 [dependencies.log4rs]

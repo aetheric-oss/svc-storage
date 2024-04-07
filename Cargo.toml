@@ -6,7 +6,7 @@ resolver = "2"
 edition      = "2021"
 homepage     = "https://www.arrowair.com/docs/documentation/services/intro"
 license-file = "LICENSE"
-repository   = "https://github.com/Arrow-air/svc-storage"
+repository   = "https://github.com/aetheric-oss/svc-storage"
 
 categories = [
   "aerospace::drones",

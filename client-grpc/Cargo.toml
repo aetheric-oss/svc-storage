@@ -96,7 +96,7 @@ path     = "../server"
 
 [dependencies.lib-common]
 features = ["grpc"]
-git      = "https://github.com/Arrow-air/lib-common"
+git      = "https://github.com/aetheric-oss/lib-common"
 tag      = "latest-develop"
 
 [dependencies.tokio]
