@@ -69,7 +69,7 @@ impl Resource for ResourceObject<Data> {
                 ),
                 (
                     String::from("loading_type"),
-                    FieldDefinition::new(PsqlFieldType::ANYENUM, true)
+                    FieldDefinition::new(PsqlFieldType::ANYENUM, false)
                         .set_default(String::from("'LAND'")),
                 ),
                 (
@@ -282,6 +282,7 @@ mod tests {
                 "last_maintenance",
                 "vehicle_model_id",
                 "asset_group_id",
+                "loading_type",
             ];
             assert_eq!(expected_errors.len(), validation_result.errors.len());
             assert!(contains_field_errors(&validation_result, &expected_errors));
@@ -295,18 +296,18 @@ mod tests {
         ut_info!("start");
 
         assert_eq!(
-            ResourceObject::<Data>::get_enum_string_val("loading_type", ScannerType::Land.into()),
+            ResourceObject::<Data>::get_enum_string_val("loading_type", LoadingType::Land.into()),
             Some(String::from("LAND"))
         );
         assert_eq!(
             ResourceObject::<Data>::get_enum_string_val(
                 "loading_type",
-                ScannerType::Gripper.into()
+                LoadingType::Gripper.into()
             ),
             Some(String::from("GRIPPER"))
         );
         assert_eq!(
-            ResourceObject::<Data>::get_enum_string_val("loading_type", ScannerType::Winch.into()),
+            ResourceObject::<Data>::get_enum_string_val("loading_type", LoadingType::Winch.into()),
             Some(String::from("WINCH"))
         );
 
@@ -323,9 +324,9 @@ mod tests {
         assert_init_done().await;
         ut_info!("start");
 
-        assert_eq!(ScannerType::Land.as_str_name(), "LAND");
-        assert_eq!(ScannerType::Gripper.as_str_name(), "GRIPPER");
-        assert_eq!(ScannerType::Winch.as_str_name(), "WINCH");
+        assert_eq!(LoadingType::Land.as_str_name(), "LAND");
+        assert_eq!(LoadingType::Gripper.as_str_name(), "GRIPPER");
+        assert_eq!(LoadingType::Winch.as_str_name(), "WINCH");
 
         ut_info!("success");
     }
@@ -335,17 +336,17 @@ mod tests {
         assert_init_done().await;
         ut_info!("start");
 
-        assert_eq!(ScannerType::from_str_name("LAND"), Some(ScannerType::Land));
+        assert_eq!(LoadingType::from_str_name("LAND"), Some(LoadingType::Land));
         assert_eq!(
-            ScannerType::from_str_name("GRIPPER"),
-            Some(ScannerType::Gripper)
+            LoadingType::from_str_name("GRIPPER"),
+            Some(LoadingType::Gripper)
         );
         assert_eq!(
-            ScannerType::from_str_name("WINCH"),
-            Some(ScannerType::Winch)
+            LoadingType::from_str_name("WINCH"),
+            Some(LoadingType::Winch)
         );
 
-        assert_eq!(ScannerType::from_str_name("INVALID"), None);
+        assert_eq!(LoadingType::from_str_name("INVALID"), None);
 
         ut_info!("success");
     }
