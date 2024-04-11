@@ -79,7 +79,7 @@ message Data {
     optional string weather_conditions = 4;
     // origin_vertiport_id UUID v4, only listed for get results, not needed for
     // creation (known through pad_id)
-    optional string origin_vertiport_id = 5;
+    string origin_vertiport_id = 5;
     // origin_vertipad_id UUID v4
     string origin_vertipad_id = 6;
     // Start of the departure vertipad timeslot
@@ -88,7 +88,7 @@ message Data {
     google.protobuf.Timestamp origin_timeslot_end = 8;
     // target_vertiport_id UUID v4, only listed for get results, not needed
     // for creation (known through pad_id)
-    optional string target_vertiport_id = 9;
+    string target_vertiport_id = 9;
     // target_vertipad_id UUID v4
     string target_vertipad_id = 10;
     // Start of the departure vertipad timeslot
