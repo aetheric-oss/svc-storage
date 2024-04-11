@@ -402,7 +402,7 @@ fn test_field_type_matches_optional_grpc_field(field_type: PsqlFieldType, grpc_f
         PsqlFieldType::ANYENUM => {
             assert!(matches!(
                 grpc_field,
-                GrpcField::Option(GrpcFieldOption::String(_))
+                GrpcField::Option(GrpcFieldOption::I32(_))
             ))
         }
         PsqlFieldType::INT8_ARRAY => {
