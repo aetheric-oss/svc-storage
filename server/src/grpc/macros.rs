@@ -328,7 +328,7 @@ macro_rules! grpc_server_link_service_mod {
                 &self,
                 request: Request<ReadyRequest>,
             ) -> Result<tonic::Response<ReadyResponse>, Status> {
-                grpc_info!("(is_ready) {} server.", self.get_name());
+                grpc_debug!("(is_ready) {} server.", self.get_name());
                 grpc_debug!("(is_ready) request: {:?}", request);
                 self.generic_is_ready(request).await
             }
@@ -776,7 +776,7 @@ macro_rules! grpc_server_simple_service_mod {
                     &self,
                     request: Request<ReadyRequest>,
                 ) -> Result<tonic::Response<ReadyResponse>, Status> {
-                    grpc_info!("(is_ready) {} server.", self.get_name());
+                    grpc_debug!("(is_ready) {} server.", self.get_name());
                     grpc_debug!("(is_ready) request: {:?}", request);
                     self.generic_is_ready(request).await
                 }
@@ -1525,7 +1525,7 @@ macro_rules! grpc_server_simple_service_linked_mod {
                     &self,
                     request: Request<ReadyRequest>,
                 ) -> Result<tonic::Response<ReadyResponse>, Status> {
-                    grpc_info!("(is_ready) {} server.", self.get_name());
+                    grpc_debug!("(is_ready) {} server.", self.get_name());
                     grpc_debug!("(is_ready) request: {:?}", request);
                     self.generic_is_ready(request).await
                 }
