@@ -127,7 +127,7 @@ macro_rules! link_grpc_client {
                     &self,
                     request: Self::LinkObject,
                 ) -> Result<tonic::Response<()>, tonic::Status> {
-                    grpc_warn!("(link) {} client.", self.get_name());
+                    grpc_info!("(link) {} client.", self.get_name());
                     grpc_debug!("(link) request: {:?}", request);
                     self.get_client().await?.link(request).await
                 }
@@ -136,7 +136,7 @@ macro_rules! link_grpc_client {
                     &self,
                     request: Self::LinkObject,
                 ) -> Result<tonic::Response<()>, tonic::Status> {
-                    grpc_warn!("(replace_linked) {} client.", self.get_name());
+                    grpc_info!("(replace_linked) {} client.", self.get_name());
                     grpc_debug!("(replace_linked) request: {:?}", request);
                     self.get_client().await?.replace_linked(request).await
                 }
@@ -145,7 +145,7 @@ macro_rules! link_grpc_client {
                     &self,
                     request: $crate::Id,
                 ) -> Result<tonic::Response<()>, tonic::Status> {
-                    grpc_warn!("(unlink) {} client.", self.get_name());
+                    grpc_info!("(unlink) {} client.", self.get_name());
                     grpc_debug!("(unlink) request: {:?}", request);
                     self.get_client().await?.unlink(request).await
                 }
@@ -154,7 +154,7 @@ macro_rules! link_grpc_client {
                     &self,
                     request: $crate::Id,
                 ) -> Result<tonic::Response<$crate::IdList>, tonic::Status> {
-                    grpc_warn!("(get_linked_ids) {} client.", self.get_name());
+                    grpc_info!("(get_linked_ids) {} client.", self.get_name());
                     grpc_debug!("(get_linked_ids) request: {:?}", request);
                     self.get_client().await?.get_linked_ids(request).await
                 }
@@ -163,7 +163,7 @@ macro_rules! link_grpc_client {
                     &self,
                     request: $crate::Id,
                 ) -> Result<tonic::Response<Self::OtherList>, tonic::Status> {
-                    grpc_warn!("(get_linked) {} client.", self.get_name());
+                    grpc_info!("(get_linked) {} client.", self.get_name());
                     grpc_debug!("(get_linked) request: {:?}", request);
                     self.get_client().await?.get_linked(request).await
                 }
@@ -172,7 +172,8 @@ macro_rules! link_grpc_client {
                     &self,
                     request: $crate::ReadyRequest,
                 ) -> Result<tonic::Response<$crate::ReadyResponse>, tonic::Status> {
-                    grpc_warn!("(is_ready) {} client.", self.get_name());
+                    // only show is_ready calls if log level is debug. This will be called 5times per second by the health checks.
+                    grpc_debug!("(is_ready) {} client.", self.get_name());
                     grpc_debug!("(is_ready) request: {:?}", request);
                     self.get_client().await?.is_ready(request).await
                 }
@@ -487,7 +488,8 @@ macro_rules! simple_grpc_client {
                     &self,
                     request: $crate::ReadyRequest,
                 ) -> Result<tonic::Response<$crate::ReadyResponse>, tonic::Status> {
-                    grpc_warn!("(is_ready) {} client.", self.get_name());
+                    // only show is_ready calls if log level is debug. This will be called 5times per second by the health checks.
+                    grpc_debug!("(is_ready) {} client.", self.get_name());
                     grpc_debug!("(is_ready) request: {:?}", request);
                     self.get_client().await?.is_ready(request).await
                 }
@@ -775,7 +777,8 @@ macro_rules! simple_linked_grpc_client {
                     &self,
                     request: $crate::ReadyRequest,
                 ) -> Result<tonic::Response<$crate::ReadyResponse>, tonic::Status> {
-                    grpc_warn!("(is_ready) {} client.", self.get_name());
+                    // only show is_ready calls if log level is debug. This will be called 5times per second by the health checks.
+                    grpc_debug!("(is_ready) {} client.", self.get_name());
                     grpc_debug!("(is_ready) request: {:?}", request);
                     self.get_client().await?.is_ready(request).await
                 }
