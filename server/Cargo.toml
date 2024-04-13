@@ -2,7 +2,7 @@
 description = "Arrow storage service GRPC server"
 keywords    = ["vtol", "server", "storage"]       # max 5
 name        = "svc-storage"
-version     = "0.11.1-develop.13"
+version     = "0.11.1-develop.14"
 
 categories.workspace   = true
 edition.workspace      = true
