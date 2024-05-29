@@ -1,10 +1,9 @@
 use super::{Data, FlightPriority, FlightStatus};
 use crate::resources::grpc_geo_types::{GeoLineString, GeoPoint};
-use chrono::naive::NaiveDate;
-use chrono::{Datelike, Duration, Timelike, Utc};
+use lib_common::time::{NaiveDate, Datelike, Duration, Timelike, Utc};
 use rand::seq::SliceRandom;
 use rand::Rng;
-use uuid::Uuid;
+use lib_common::uuid::Uuid;
 
 /// Creates a new [Data] object with fields set with random data
 ///

@@ -1,5 +1,5 @@
 use super::Data;
-use chrono::{Datelike, Duration, NaiveDate, Timelike, Utc};
+use lib_common::time::{Datelike, Duration, NaiveDate, Timelike, Utc};
 use rand::seq::SliceRandom;
 use rand::Rng;
 use postgis::ewkb::{LineStringZ, PointZ, PolygonZ};

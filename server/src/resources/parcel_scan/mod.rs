@@ -2,17 +2,17 @@
 
 pub use crate::grpc::server::parcel_scan::*;
 
+use lib_common::uuid::Uuid;
 use log::debug;
 use std::collections::HashMap;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
-use uuid::Uuid;
 
 use super::base::simple_resource::*;
 use super::base::{FieldDefinition, ResourceDefinition};
 use crate::common::ArrErr;
 use crate::grpc::{GrpcDataObjectType, GrpcField, GrpcFieldOption};
-use chrono::{DateTime, Utc};
+use lib_common::time::{DateTime, Utc};
 
 crate::build_generic_resource_impl_from!();
 
@@ -113,7 +113,7 @@ mod tests {
     #[tokio::test]
     async fn test_parcel_scan_schema() {
         crate::get_log_handle().await;
-        ut_info!("(test_parcel_scan_schema) start");
+        ut_info!("start");
 
         let id = Uuid::new_v4().to_string();
         let data = mock::get_data_obj();
@@ -132,13 +132,13 @@ mod tests {
             assert_eq!(validation_result.success, true);
         }
 
-        ut_info!("(test_parcel_scan_schema) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_parcel_scan_invalid_data() {
         crate::get_log_handle().await;
-        ut_info!("(test_parcel_scan_invalid_data) start");
+        ut_info!("start");
 
         let data = Data {
             parcel_id: String::from("INVALID"),
@@ -172,6 +172,6 @@ mod tests {
             assert!(contains_field_errors(&validation_result, &expected_errors));
         }
 
-        ut_info!("(test_parcel_scan_invalid_data) success");
+        ut_info!("success");
     }
 }

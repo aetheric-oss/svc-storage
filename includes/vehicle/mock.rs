@@ -1,8 +1,8 @@
 use super::Data;
-use chrono::{Datelike, Duration, NaiveDate, Timelike, Utc};
+use lib_common::time::{Datelike, Duration, NaiveDate, Timelike, Utc};
 use rand::seq::SliceRandom;
 use rand::Rng;
-use uuid::Uuid;
+use lib_common::uuid::Uuid;
 
 const CAL_WORKDAYS_8AM_6PM: &str = "\
 DTSTART:20221020T180000Z;DURATION:PT14H

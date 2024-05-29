@@ -91,8 +91,8 @@ pub async fn scenario(client: &AdsbClient, data: Vec<Data>, logger: &mut Logger)
 
 #[cfg(not(any(feature = "stub_backends", feature = "stub_client")))]
 pub async fn test_telemetry(client: &AdsbClient) -> Result<(), Box<dyn std::error::Error>> {
-    use chrono::naive::NaiveDate;
-    use chrono::{Datelike, Duration, Timelike, Utc};
+    use lib_common::time::naive::NaiveDate;
+    use lib_common::time::{Datelike, Duration, Timelike, Utc};
 
     let now = Utc::now();
     let now = match NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())

@@ -1,14 +1,13 @@
 //! gRPC client implementation
 use svc_storage_client_grpc::prelude::*;
 
-use chrono::naive::NaiveDate;
-use chrono::{Datelike, Duration, Local, Timelike, Utc};
 use lib_common::grpc::get_endpoint_from_env;
+use lib_common::time::{Datelike, Duration, Local, NaiveDate, Timelike, Utc};
+use lib_common::uuid::Uuid;
 use postgis::ewkb::{LineStringZ, PointZ, PolygonZ};
 use svc_storage_client_grpc::DEFAULT_SRID;
 use tokio::sync::OnceCell;
 use tonic::Status;
-use uuid::Uuid;
 
 pub(crate) static CLIENTS: OnceCell<Clients> = OnceCell::const_new();
 

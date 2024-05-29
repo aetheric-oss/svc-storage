@@ -2,11 +2,11 @@
 
 pub use crate::common::ArrErr;
 
+use lib_common::uuid::Uuid;
 use std::collections::HashMap;
 use std::str::FromStr;
 use tokio_postgres::Row;
 use tonic::{Code, Request, Response, Status};
-use uuid::Uuid;
 
 use super::server::*;
 use super::GrpcDataObjectType;
@@ -121,7 +121,7 @@ where
                     "Could not convert provided id String [{}] into uuid: {}",
                     id, e
                 );
-                grpc_error!("(generic_link) {}", error);
+                grpc_error!("{}", error);
                 return Err(Status::new(Code::NotFound, error));
             }
         };
@@ -131,7 +131,7 @@ where
                 Self::ResourceObject::get_psql_table(),
                 id
             );
-            grpc_error!("(generic_link) {}", error);
+            grpc_error!("{}", error);
             return Err(Status::new(Code::NotFound, error));
         }
 
@@ -171,7 +171,7 @@ where
             .is_err()
         {
             let error = format!("No resource found for specified uuids: {:?}", id);
-            grpc_error!("(generic_unlink) {}", error);
+            grpc_error!("{}", error);
             return Err(Status::new(Code::NotFound, error));
         }
 
@@ -242,7 +242,7 @@ where
             .is_err()
         {
             let error = format!("No resource found for specified uuid: {}", id.id);
-            grpc_error!("(_get_linked) {}", error);
+            grpc_error!("{}", error);
             return Err(ArrErr::Error(error));
         }
 

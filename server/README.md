@@ -1,9 +1,9 @@
-![Arrow Banner](https://github.com/Arrow-air/tf-github/raw/main/src/templates/doc-banner-services.png)
+![Aetheric Banner](https://github.com/aetheric-oss/.github/raw/main/assets/readme-banner.png)
 
 # svc-storage Service
 
-![GitHub stable release (latest by date)](https://img.shields.io/github/v/release/Arrow-air/svc-storage?sort=semver&color=green) ![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/Arrow-air/svc-storage?include_prereleases) [![Coverage Status](https://coveralls.io/repos/github/Arrow-air/svc-storage/badge.svg?branch=develop)](https://coveralls.io/github/Arrow-air/svc-storage)
-![Sanity Checks](https://github.com/arrow-air/svc-storage/actions/workflows/sanity_checks.yml/badge.svg?branch=develop) ![Python PEP8](https://github.com/arrow-air/svc-storage/actions/workflows/python_ci.yml/badge.svg?branch=develop) ![Rust Checks](https://github.com/arrow-air/svc-storage/actions/workflows/rust_ci.yml/badge.svg?branch=develop)
+![GitHub stable release (latest by date)](https://img.shields.io/github/v/release/aetheric-oss/svc-storage?sort=semver&color=green) ![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/aetheric-oss/svc-storage?include_prereleases) [![Coverage Status](https://coveralls.io/repos/github/aetheric-oss/svc-storage/badge.svg?branch=develop)](https://coveralls.io/github/aetheric-oss/svc-storage)
+![Sanity Checks](https://github.com/aetheric-oss/svc-storage/actions/workflows/sanity_checks.yml/badge.svg?branch=develop) ![Python PEP8](https://github.com/aetheric-oss/svc-storage/actions/workflows/python_ci.yml/badge.svg?branch=develop) ![Rust Checks](https://github.com/aetheric-oss/svc-storage/actions/workflows/rust_ci.yml/badge.svg?branch=develop)
 ![Arrow DAO Discord](https://img.shields.io/discord/853833144037277726?style=plastic)
 
 ## Overview

@@ -7,14 +7,14 @@ use crate::grpc::{GrpcDataObjectType, GrpcField};
 use crate::resources::base::simple_resource::*;
 
 use crate::DEFAULT_SRID;
-use chrono::{DateTime, Utc};
 use deadpool_postgres::Transaction;
+use lib_common::time::{DateTime, Utc};
+use lib_common::uuid::Uuid;
 use postgis::ewkb::{LineStringZ, PointZ, PolygonZ};
 use std::collections::HashMap;
 use std::vec;
 use tokio_postgres::types::Type as PsqlFieldType;
 use tokio_postgres::Row;
-use uuid::Uuid;
 
 /// Generic PostgreSQL trait to provide wrappers for common `Resource` functions
 #[tonic::async_trait]
@@ -28,7 +28,7 @@ where
     /// The provided ids should be a combined primary key, so just one result should
     /// returned.
     async fn get_for_ids(ids: HashMap<String, Uuid>) -> Result<Row, ArrErr> {
-        psql_debug!("(get_for_ids) Start [{:?}].", ids);
+        psql_debug!("Start [{:?}].", ids);
         super::queries::get_for_ids::<Self>(&ids).await
     }
 
@@ -41,7 +41,7 @@ where
         ids: HashMap<String, Uuid>,
         transaction: Option<&Transaction>,
     ) -> Result<(), ArrErr> {
-        psql_debug!("(delete_for_ids) Start [{:?}].", ids);
+        psql_debug!("Start [{:?}].", ids);
         let definition = Self::get_definition();
 
         let mut params: Vec<Box<PsqlFieldSend>> = vec![];
@@ -61,10 +61,10 @@ where
             }
         }
 
-        psql_debug!("(delete_for_ids) [{}].", &query);
-        psql_debug!("(delete_for_ids) [{:?}].", &params);
+        psql_debug!("[{}].", &query);
+        psql_debug!("[{:?}].", &params);
         psql_info!(
-            "(delete_for_ids) Deleting rows for table [{}]. uuids: {:?}",
+            "Deleting rows for table [{}]. uuids: {:?}",
             definition.psql_table,
             ids
         );
@@ -81,7 +81,7 @@ where
                 match client.execute(&stmt, &ref_params[..]).await {
                     Ok(rows) => {
                         psql_debug!(
-                            "(delete_for_ids) Removed [{}] entries from [{}].",
+                            "Removed [{}] entries from [{}].",
                             rows,
                             definition.get_psql_table()
                         );
@@ -96,7 +96,7 @@ where
                 match client.execute(&stmt, &ref_params[..]).await {
                     Ok(rows) => {
                         psql_debug!(
-                            "(delete_for_ids) Removed [{}] entries from [{}].",
+                            "Removed [{}] entries from [{}].",
                             rows,
                             definition.get_psql_table()
                         );
@@ -116,7 +116,7 @@ where
     where
         T: GrpcDataObjectType,
     {
-        psql_debug!("(create) Start [{:?}].", row_data);
+        psql_debug!("Start [{:?}].", row_data);
         let (psql_data, validation_result) = validate::<Self>(row_data)?;
 
         if !validation_result.success {
@@ -133,12 +133,9 @@ where
             inserts.join(", "),
         );
 
-        psql_info!(
-            "(create) Inserting new entry for table [{}].",
-            definition.psql_table
-        );
-        psql_debug!("(create) [{}].", insert_sql);
-        psql_debug!("(create) [{:?}].", &params);
+        psql_info!("Inserting new entry for table [{}].", definition.psql_table);
+        psql_debug!("[{}].", insert_sql);
+        psql_debug!("[{:?}].", &params);
 
         let client = get_psql_client().await?;
         client
@@ -164,7 +161,7 @@ where
     ///
     /// returns [Row] on success
     async fn read(&self) -> Result<Row, ArrErr> {
-        psql_debug!("(read) Start [{:?}].", self.try_get_uuid());
+        psql_debug!("Start [{:?}].", self.try_get_uuid());
         //TODO(R4): implement shared memcache here to get object data if present
         let id = self.try_get_uuid()?;
         Self::get_by_id(&id).await
@@ -182,7 +179,7 @@ where
     /// Returns [`ArrErr`] from [`PoolError`](deadpool::managed::PoolError) if no client connection could be returned from the connection [`Pool`](deadpool::managed::Pool)
     /// Returns [`ArrErr`] Database Error if database query execution failed
     async fn update<'a>(&self, data: &T) -> Result<(Option<Row>, ValidationResult), ArrErr> {
-        psql_debug!("(update) Start [{:?}].", data);
+        psql_debug!("Start [{:?}].", data);
 
         let (psql_data, validation_result) = validate::<Self>(data)?;
         if !validation_result.success {
@@ -209,12 +206,12 @@ where
         params.push(&id);
 
         psql_info!(
-            "(update) Updating entry in table [{}]. uuid: {}",
+            "Updating entry in table [{}]. uuid: {}",
             definition.psql_table,
             id
         );
-        psql_debug!("(update) [{}].", update_sql);
-        psql_debug!("(update) [{:?}].", &params);
+        psql_debug!("[{}].", update_sql);
+        psql_debug!("[{:?}].", &params);
 
         let client = get_psql_client().await?;
         client.execute(update_sql, &params[..]).await?;
@@ -243,7 +240,7 @@ where
     ///
     /// Calls [delete_row](PsqlObjectType::delete_row) otherwise
     async fn delete(&self) -> Result<(), ArrErr> {
-        psql_debug!("(delete) Start.");
+        psql_debug!("Start.");
         let definition = Self::get_definition();
         if definition.fields.contains_key("deleted_at") {
             self.set_deleted_at_now().await
@@ -263,14 +260,14 @@ where
     /// Returns [`ArrErr`] "Failed to update \[deleted_at\] col" if database query execution returns zero updated rows
     /// Returns [`ArrErr`] Database Error if database query execution failed
     async fn set_deleted_at_now(&self) -> Result<(), ArrErr> {
-        psql_debug!("(set_deleted_at_now) Start [{:?}].", self.try_get_uuid());
+        psql_debug!("Start [{:?}].", self.try_get_uuid());
         let definition = Self::get_definition();
         let id_col = Self::try_get_id_field()?;
         let id = self.try_get_uuid()?;
 
         if self.is_archived().await {
             psql_info!(
-                "(set_deleted_at_now) [deleted_at] column is already set, refusing to overwrite for [{}]. uuid: {}",
+                "[deleted_at] column is already set, refusing to overwrite for [{}]. uuid: {}",
                 definition.psql_table,
                 id
             );
@@ -281,7 +278,7 @@ where
         }
 
         psql_info!(
-            "(set_deleted_at_now) Updating [deleted_at] field for [{}]. uuid: {}",
+            "Updating [deleted_at] field for [{}]. uuid: {}",
             definition.psql_table,
             id
         );
@@ -302,7 +299,7 @@ where
                         "Failed to update [deleted_at] col for [{}] with id [{}] (does not exist?).",
                         definition.psql_table, id
                     );
-                    psql_info!("(set_deleted_at_now) {}", error);
+                    psql_info!("{}", error);
                     Err(ArrErr::Error(error))
                 }
             }
@@ -320,13 +317,13 @@ where
     /// Returns [`ArrErr`] "Failed to delete entry" if database query execution returns zero updated rows
     /// Returns [`ArrErr`] Database Error if database query execution failed
     async fn delete_row(&self) -> Result<(), ArrErr> {
-        psql_debug!("(set_deleted_at_now) Start: [{:?}].", self.try_get_uuid());
+        psql_debug!("Start: [{:?}].", self.try_get_uuid());
         let definition = Self::get_definition();
         let id_col = Self::try_get_id_field()?;
 
         let id = self.try_get_uuid()?;
         psql_info!(
-            "(set_deleted_at_now) Deleting entry from table [{}]. uuid: {}",
+            "Deleting entry from table [{}]. uuid: {}",
             definition.psql_table,
             id
         );
@@ -346,7 +343,7 @@ where
                         "Failed to delete entry for [{}] with id [{}] (does not exist?).",
                         definition.psql_table, id
                     );
-                    psql_info!("(set_deleted_at_now) {}", error);
+                    psql_info!("{}", error);
                     Err(ArrErr::Error(error))
                 }
             }
@@ -369,11 +366,8 @@ where
                 Some(val) => val,
                 None => {
                     let error = format!("No field definition found for field: {}", key);
-                    psql_error!("(get_update_vars) {}", error);
-                    psql_debug!(
-                        "(get_update_vars) got definition for fields: {:?}",
-                        definition.fields
-                    );
+                    psql_error!("{}", error);
+                    psql_debug!("got definition for fields: {:?}", definition.fields);
                     return Err(ArrErr::Error(error));
                 }
             };
@@ -394,8 +388,8 @@ where
                                     "Could not convert value into a postgis::ewkb::PointZ for field: {}",
                                     key
                                 );
-                                psql_error!("(get_update_vars) {}", error);
-                                psql_debug!("(get_update_vars) field_value: {:?}", value);
+                                psql_error!("{}", error);
+                                psql_debug!("field_value: {:?}", value);
                                 return Err(ArrErr::Error(error));
                             }
                         }
@@ -412,8 +406,8 @@ where
                                     "Could not convert value into a postgis::ewkb::PolygonZ for field: {}",
                                     key
                                 );
-                                psql_error!("(get_update_vars) {}", error);
-                                psql_debug!("(get_update_vars) field_value: {:?}", value);
+                                psql_error!("{}", error);
+                                psql_debug!("field_value: {:?}", value);
                                 return Err(ArrErr::Error(error));
                             }
                         }
@@ -430,8 +424,8 @@ where
                                     "Could not convert value into a postgis::ewkb::PathZ for field: {}",
                                     key
                                 );
-                                psql_error!("(get_update_vars) {}", error);
-                                psql_debug!("(get_update_vars) field_value: {:?}", value);
+                                psql_error!("{}", error);
+                                psql_debug!("field_value: {:?}", value);
                                 return Err(ArrErr::Error(error));
                             }
                         }
@@ -447,7 +441,7 @@ where
                 }
                 None => {
                     psql_debug!(
-                        "(get_update_vars) Skipping update [{}] for [{}], no value provided.",
+                        "Skipping update [{}] for [{}], no value provided.",
                         key,
                         definition.psql_table,
                     );

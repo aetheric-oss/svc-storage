@@ -6,7 +6,7 @@ use config::ConfigError;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::task::JoinError;
 
-pub use uuid::Uuid;
+pub use lib_common::uuid::{Error as UuidError, Uuid};
 
 /// static boolean that can be used to check if we need psql connection
 pub static USE_PSQL_BACKEND: AtomicBool = AtomicBool::new(true);
@@ -47,8 +47,8 @@ pub enum ArrErr {
     IoError(#[from] std::io::Error),
 
     #[error("uuid error: {0}")]
-    /// return new [`uuid::Error`] with calling params
-    UuidError(#[from] uuid::Error),
+    /// return new [`UuidError`] with calling params
+    UuidError(#[from] UuidError),
 
     #[error("error: {0}")]
     /// return new [`anyhow::Error`] with calling params
