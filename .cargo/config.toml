@@ -16,3 +16,4 @@ rustflags = [
   "-Wunused_import_braces",
   "-Wunused_qualifications",
 ]
+jobs=1
