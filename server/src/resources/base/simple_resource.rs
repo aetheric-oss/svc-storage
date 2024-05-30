@@ -5,10 +5,10 @@ use crate::grpc::server::{Id, ValidationResult};
 use crate::grpc::GrpcDataObjectType;
 
 use core::fmt::Debug;
+use lib_common::uuid::Uuid;
 use log::error;
 use std::collections::HashMap;
 use std::marker::PhantomData;
-use uuid::Uuid;
 
 pub use super::{ObjectType, Resource, ResourceObject};
 pub use crate::postgres::init::PsqlInitResource;

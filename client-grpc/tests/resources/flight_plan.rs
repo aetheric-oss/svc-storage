@@ -1,7 +1,7 @@
 //! flight_plan test helper functions
 
 use super::utils::{check_log_string_matches, get_log_string};
-use chrono::Duration;
+use lib_common::time::{Duration, Utc};
 use logtest::Logger;
 use svc_storage_client_grpc::prelude::*;
 
@@ -133,8 +133,8 @@ pub async fn scenario(client: &FlightPlanClient, data: Vec<Data>, logger: &mut L
     // Filter based on dates
     let date_filter = not_deleted_filter.and_between(
         String::from("origin_timeslot_start"),
-        chrono::Utc::now().to_rfc3339(),
-        (chrono::Utc::now() + Duration::days(90)).to_rfc3339(),
+        Utc::now().to_rfc3339(),
+        (Utc::now() + Duration::days(90)).to_rfc3339(),
     );
     let result = client.search(date_filter.clone()).await;
     let expected = get_log_string("search", name);

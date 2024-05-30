@@ -3,11 +3,11 @@
 pub use crate::grpc::server::parcel::*;
 
 use anyhow::{Context, Result};
+use lib_common::uuid::Uuid;
 use log::debug;
 use std::collections::HashMap;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
-use uuid::Uuid;
 
 use super::base::simple_resource::*;
 use super::base::{FieldDefinition, ResourceDefinition};
@@ -119,7 +119,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_parcel_schema() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_parcel_schema) start");
 
         let id = Uuid::new_v4().to_string();
@@ -143,7 +143,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_parcel_invalid_data() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_parcel_invalid_data) start");
 
         let data = Data {
@@ -167,7 +167,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_parcel_get_enum_status_string_val() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_parcel_get_enum_status_string_val) start");
 
         assert_eq!(
@@ -208,7 +208,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_parcel_status_as_str_name() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_parcel_status_as_str_name) start");
 
         assert_eq!(ParcelStatus::Notdroppedoff.as_str_name(), "NOTDROPPEDOFF");
@@ -223,7 +223,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_parcel_status_from_str_name() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_parcel_status_from_str_name) start");
 
         assert_eq!(

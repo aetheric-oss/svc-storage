@@ -46,7 +46,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_user_group_schema() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_user_group_schema) start");
 
         let data = Data {};
