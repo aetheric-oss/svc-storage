@@ -8,10 +8,10 @@ use crate::grpc::server::{Id, IdList, Ids};
 use crate::postgres::PsqlJsonValue;
 use crate::{common::ArrErr, grpc::GrpcDataObjectType};
 use core::fmt::Debug;
+use lib_common::uuid::Uuid;
 use log::error;
 use std::collections::HashMap;
 use tokio_postgres::types::Type as PsqlFieldType;
-use uuid::Uuid;
 
 /// Generic trait providing useful functions for our resources
 pub trait Resource

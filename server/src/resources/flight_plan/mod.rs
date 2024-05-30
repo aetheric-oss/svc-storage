@@ -4,13 +4,13 @@ pub use crate::grpc::server::flight_plan::*;
 pub mod parcel;
 
 use anyhow::{Context, Result};
-use chrono::{DateTime, Utc};
+use lib_common::time::{DateTime, Utc};
+use lib_common::uuid::Uuid;
 use log::debug;
 use std::collections::HashMap;
 use tokio::task;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
-use uuid::Uuid;
 
 use super::base::simple_resource::*;
 use super::base::{FieldDefinition, ResourceDefinition};
@@ -326,7 +326,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_flight_plan_schema() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_flight_plan_schema) start");
 
         let id = Uuid::new_v4().to_string();
@@ -350,7 +350,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_flight_plan_invalid_data() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_flight_plan_invalid_data) start");
 
         let data = Data {
@@ -432,7 +432,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_flight_status_get_enum_string_val() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_flight_status_get_enum_string_val) start");
 
         assert_eq!(
@@ -481,7 +481,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_flight_status_as_str_name() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_flight_status_as_str_name) start");
 
         assert_eq!(FlightStatus::Ready.as_str_name(), "READY");
@@ -496,7 +496,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_flight_status_from_str_name() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_flight_status_from_str_name) start");
 
         assert_eq!(
@@ -531,7 +531,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_flight_priority_get_enum_string_val() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_flight_priority_get_enum_string_val) start");
 
         assert_eq!(
@@ -566,7 +566,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_flight_priority_as_str_name() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_flight_priority_as_str_name) start");
 
         assert_eq!(FlightPriority::Low.as_str_name(), "LOW");
@@ -578,7 +578,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_flight_priority_from_str_name() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_flight_priority_from_str_name) start");
 
         assert_eq!(

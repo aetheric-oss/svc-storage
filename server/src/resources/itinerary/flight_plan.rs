@@ -48,7 +48,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_itinerary_flight_plan_schema() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_itinerary_flight_plan_schema) start");
 
         let definition = <ResourceObject<Data>>::get_definition();

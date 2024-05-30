@@ -337,7 +337,7 @@ impl From<GrpcFieldOption> for Option<GrpcField> {
 /// use svc_storage::resources::base::ResourceObject;
 /// use svc_storage::resources::vertipad;
 /// async fn example() {
-///     let id = uuid::Uuid::new_v4();
+///     let id = lib_common::uuid::Uuid::new_v4();
 ///     let handle = get_runtime_handle();
 ///     // start a blocking task so we can make sure
 ///     // our function is ready before we continue our code
@@ -366,7 +366,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_arrerr_to_status() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_from_arrerr_to_status) start");
 
         // Create an ArrErr instance with an error message
@@ -382,7 +382,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_bytes() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_from_grpc_field_to_bytes) start");
 
         let bytes = vec![0x68, 0x65, 0x6c, 0x6c, 0x6f];
@@ -402,7 +402,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_string_list() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_from_grpc_field_to_string_list) start");
 
         // input vec, should return vec
@@ -425,7 +425,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_string() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_from_grpc_field_to_string) start");
 
         let string = String::from("hello");
@@ -454,7 +454,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_i64_vec() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_from_grpc_field_to_i64_vec) start");
 
         let i64_vec = vec![1, -2, 3, -4];
@@ -488,7 +488,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_i64() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_from_grpc_field_to_i64) start");
 
         let i64 = -42;
@@ -525,7 +525,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_f64() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_from_grpc_field_to_f64) start");
 
         let f64 = 42.42;
@@ -554,7 +554,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_i32() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_from_grpc_field_to_i32) start");
 
         let i32 = -42;
@@ -583,7 +583,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_u32() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_from_grpc_field_to_u32) start");
 
         let u32 = 42;
@@ -612,7 +612,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_u32_vec() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_from_grpc_field_to_u32_vec) start");
 
         let u32_vec = vec![1, 2, 3];
@@ -646,7 +646,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_f32() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_from_grpc_field_to_f32) start");
 
         let f32 = 42.42;
@@ -675,7 +675,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_i16() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_from_grpc_field_to_i16) start");
 
         let i16 = -42;
@@ -704,7 +704,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_bool() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_from_grpc_field_to_bool) start");
 
         let bool = true;
@@ -733,7 +733,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_timestamp() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_from_grpc_field_to_timestamp) start");
 
         let timestamp = Timestamp::from(SystemTime::now());
@@ -757,7 +757,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_point() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_from_grpc_field_to_point) start");
 
         let point = PointZ {
@@ -786,7 +786,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_linestring() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_from_grpc_field_to_linestring) start");
 
         let line_string = LineStringZ {
@@ -818,7 +818,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_polygon() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_from_grpc_field_to_polygon) start");
 
         let srid = Some(DEFAULT_SRID);

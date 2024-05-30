@@ -8,10 +8,10 @@ use crate::grpc::{GrpcDataObjectType, GrpcField};
 use crate::postgres::init::PsqlInitLinkedResource;
 use crate::resources::base::simple_resource_linked::*;
 use crate::resources::base::{FieldDefinition, ResourceDefinition};
+use lib_common::uuid::Uuid;
 use log::debug;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
-use uuid::Uuid;
 
 crate::build_generic_resource_linked_impl_from!();
 crate::build_grpc_simple_resource_linked_impl!(flight_plan_parcel, parcel);
@@ -128,7 +128,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_flight_plan_parcel_schema() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_flight_plan_parcel_schema) start");
 
         let definition = <ResourceObject<Data>>::get_definition();
