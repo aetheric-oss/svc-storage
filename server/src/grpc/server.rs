@@ -289,7 +289,7 @@ mod tests {
     #[cfg(not(any(feature = "stub_backends")))]
     #[tokio::test]
     async fn test_grpc_server_is_ready() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_grpc_server_is_ready) start");
 
         let imp = adsb::GrpcServer::default();

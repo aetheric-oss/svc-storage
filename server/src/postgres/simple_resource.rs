@@ -6,9 +6,9 @@ use crate::grpc::server::ValidationResult;
 use crate::grpc::GrpcDataObjectType;
 use crate::resources::base::simple_resource::*;
 
-use chrono::{DateTime, Utc};
+use lib_common::time::{DateTime, Utc};
+use lib_common::uuid::Uuid;
 use tokio_postgres::Row;
-use uuid::Uuid;
 
 /// Generic PostgreSQL trait to provide wrappers for common `Resource` functions
 #[tonic::async_trait]

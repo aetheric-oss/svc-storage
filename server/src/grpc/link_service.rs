@@ -2,11 +2,11 @@
 
 pub use crate::common::ArrErr;
 
+use lib_common::uuid::Uuid;
 use std::collections::HashMap;
 use std::str::FromStr;
 use tokio_postgres::Row;
 use tonic::{Code, Request, Response, Status};
-use uuid::Uuid;
 
 use super::server::*;
 use super::GrpcDataObjectType;
@@ -102,7 +102,7 @@ where
     /// # Errors
     ///
     /// Returns [`Status`] with [`Code::NotFound`] if no record exists for the given `id`.
-    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].  
+    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`lib_common::uuid::Uuid`].  
     /// Returns [`Status`] with [`Code::Internal`] if any error is returned from the db search result.  
     ///
     async fn generic_link(
@@ -159,7 +159,7 @@ where
     /// # Errors
     ///
     /// Returns [`Status`] with [`Code::NotFound`] if no record exists for the given `id`.
-    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to valid [`uuid::Uuid`].  
+    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to valid [`lib_common::uuid::Uuid`].  
     /// Returns [`Status`] with [`Code::Internal`] if any error is returned from the db search result.  
     ///
     async fn generic_unlink(&self, request: Request<Id>) -> Result<Response<()>, Status> {
@@ -195,7 +195,7 @@ where
     /// # Errors
     ///
     /// Returns [`Status`] with [`Code::NotFound`] if no record exists for the given `id`.
-    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].  
+    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`lib_common::uuid::Uuid`].  
     /// Returns [`Status`] with [`Code::Internal`] if any error is returned from the db search result.  
     async fn generic_get_linked_ids(&self, request: Request<Id>) -> Result<Response<IdList>, Status>
     where
@@ -213,7 +213,7 @@ where
     /// # Errors
     ///
     /// Returns [`Status`] with [`Code::NotFound`] if no record exists for the given `id`.
-    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].  
+    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`lib_common::uuid::Uuid`].  
     /// Returns [`Status`] with [`Code::Internal`] if any error is returned from the db search result.  
     async fn generic_get_linked(
         &self,

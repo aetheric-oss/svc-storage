@@ -7,10 +7,10 @@ use crate::postgres::PsqlFieldSend;
 use crate::resources::base::linked_resource::*;
 
 use deadpool_postgres::Transaction;
+use lib_common::uuid::Uuid;
 use std::collections::HashMap;
 use std::vec;
 use tokio_postgres::Row;
-use uuid::Uuid;
 
 /// Generic PostgreSQL trait to provide wrappers for common `LinkedResource` functions
 #[tonic::async_trait]

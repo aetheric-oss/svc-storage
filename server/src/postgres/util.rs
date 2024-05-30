@@ -6,22 +6,22 @@ use crate::grpc::server::ValidationError;
 use crate::grpc::{GrpcDataObjectType, GrpcField};
 use crate::resources::base::{Resource, ResourceDefinition};
 use crate::resources::ValidationResult;
-use chrono::{DateTime, Utc};
-use lib_common::time::Timestamp;
+use lib_common::time::{DateTime, Timestamp, Utc};
+use lib_common::uuid::Uuid;
 use postgis::ewkb::{LineStringZ, PointZ, PolygonZ};
 use serde_json::json;
 use tokio_postgres::types::Type as PsqlFieldType;
 type InsertVars<'a> = (Vec<String>, Vec<String>, Vec<&'a PsqlField>);
 use crate::DEFAULT_SRID;
 
-/// Convert a [`String`] (used by grpc) into a [`Uuid`](uuid::Uuid) (used by postgres).
+/// Convert a [`String`] (used by grpc) into a [`Uuid`] (used by postgres).
 /// Creates an error entry in the errors list if a conversion was not possible.
 pub fn validate_uuid(
     field: String,
     value: &str,
     errors: &mut Vec<ValidationError>,
-) -> Option<uuid::Uuid> {
-    match uuid::Uuid::try_parse(value) {
+) -> Option<Uuid> {
+    match Uuid::try_parse(value) {
         Ok(id) => Some(id),
         Err(e) => {
             let error = format!("Could not convert [{}] to UUID: {}", field, e);
@@ -32,7 +32,7 @@ pub fn validate_uuid(
     }
 }
 
-/// Convert a [`prost_wkt_types::Timestamp`] (used by grpc) into a [`chrono::DateTime::<Utc>`] (used by postgres).
+/// Convert a [`prost_wkt_types::Timestamp`] (used by grpc) into a [`DateTime::<Utc>`] (used by postgres).
 /// Creates an error entry in the errors list if a conversion was not possible.
 pub fn validate_dt(
     field: String,
@@ -644,7 +644,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use uuid::Uuid;
+    use lib_common::uuid::Uuid;
 
     use super::*;
     use crate::resources::base::ResourceObject;
@@ -653,13 +653,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_uuid_valid() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_validate_uuid_valid) start");
 
         let mut errors: Vec<ValidationError> = vec![];
         let result = validate_uuid(
             String::from("some_id"),
-            &uuid::Uuid::new_v4().to_string(),
+            &lib_common::uuid::Uuid::new_v4().to_string(),
             &mut errors,
         );
         assert!(result.is_some());
@@ -670,7 +670,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_uuid_invalid() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_validate_uuid_invalid) start");
 
         let mut errors: Vec<ValidationError> = vec![];
@@ -684,7 +684,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_dt_valid() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_validate_dt_valid) start");
 
         let mut errors: Vec<ValidationError> = vec![];
@@ -701,7 +701,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_dt_invalid() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_validate_dt_invalid) start");
 
         let mut errors: Vec<ValidationError> = vec![];
@@ -719,7 +719,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_point_valid() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_validate_point_valid) start");
 
         let mut errors: Vec<ValidationError> = vec![];
@@ -738,7 +738,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_point_invalid() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_validate_point_invalid) start");
 
         let mut errors: Vec<ValidationError> = vec![];
@@ -760,7 +760,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_polygon_valid() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_validate_polygon_valid) start");
 
         let mut errors: Vec<ValidationError> = vec![];
@@ -795,7 +795,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_polygon_invalid() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_validate_polygon_invalid) start");
 
         // Not enough lines
@@ -852,7 +852,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_line_string_valid() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_validate_line_string_valid) start");
 
         let mut errors: Vec<ValidationError> = vec![];
@@ -882,7 +882,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_line_string_invalid() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_validate_line_string_invalid) start");
 
         let mut errors: Vec<ValidationError> = vec![];
@@ -908,13 +908,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_insert_vars() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_get_insert_vars) start");
 
         let uuid = Uuid::new_v4();
         let optional_uuid = Uuid::new_v4();
-        let timestamp = Some(chrono::Utc::now().into());
-        let optional_timestamp = Some(chrono::Utc::now().into());
+        let timestamp = Some(Utc::now().into());
+        let optional_timestamp = Some(Utc::now().into());
 
         let mut valid_data = get_valid_test_data(
             uuid,
@@ -990,13 +990,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_update_vars() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_get_update_vars) start");
 
         let uuid = Uuid::new_v4();
         let optional_uuid = Uuid::new_v4();
-        let timestamp = Some(chrono::Utc::now().into());
-        let optional_timestamp = Some(chrono::Utc::now().into());
+        let timestamp = Some(Utc::now().into());
+        let optional_timestamp = Some(Utc::now().into());
 
         let mut valid_data = get_valid_test_data(
             uuid,
@@ -1071,7 +1071,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_invalid_object() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_validate_invalid_object) start");
 
         let invalid_data = get_invalid_test_data();

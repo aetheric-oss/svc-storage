@@ -1,6 +1,6 @@
 use super::{Data, ParcelStatus};
+use lib_common::uuid::Uuid;
 use rand::{thread_rng, Rng};
-use uuid::Uuid;
 
 /// Creates a new [Data] object with fields set with random data
 pub fn get_data_obj() -> Data {

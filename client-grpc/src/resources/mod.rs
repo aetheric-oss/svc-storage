@@ -493,7 +493,7 @@ cfg_if::cfg_if! {
         pub struct Clients {}
 
         impl Clients {
-            /// Provides a way to get and connect all clients at once.
+            /// Provides a way to get and use lib_common::uuid::Uuid; connect all clients at once.
             pub fn new(_host: String, _port: u16) -> Self {
                 Self {}
             }

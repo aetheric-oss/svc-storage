@@ -1,6 +1,6 @@
 use super::{Data, RowData};
+use lib_common::uuid::Uuid;
 use rand::Rng;
-use uuid::Uuid;
 
 /// Creates a new [Data] object with fields set with random data
 pub fn get_data_obj() -> Data {

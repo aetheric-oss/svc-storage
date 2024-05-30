@@ -4,10 +4,10 @@ use super::get_psql_client;
 use super::ArrErr;
 use crate::postgres::{PsqlField, PsqlFieldSend};
 use crate::resources::base::Resource;
+use lib_common::uuid::Uuid;
 use std::collections::HashMap;
 use std::vec;
 use tokio_postgres::Row;
-use uuid::Uuid;
 
 /// Generic get by id function to get a row using the UUID column
 pub async fn get_by_id<V>(id: &Uuid) -> Result<Row, ArrErr>

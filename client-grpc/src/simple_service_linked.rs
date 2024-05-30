@@ -30,7 +30,7 @@ where
     /// # Errors
     ///
     /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
-    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided ids can not be converted to a [`uuid::Uuid`].
+    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided ids can not be converted to a [`lib_common::uuid::Uuid`].
     /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if any error is returned from the db delete result.
     /// Returns [`tonic::Status`] with [`tonic::Code::Unknown`] if the server is not ready.
     ///
@@ -60,7 +60,7 @@ where
     /// # Errors
     ///
     /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
-    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].
+    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided Id can not be converted to a [`lib_common::uuid::Uuid`].
     /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if any error is returned from the db search result.
     /// Returns [`tonic::Status`] with [`tonic::Code::Unknown`] if the server is not ready.
     ///
@@ -93,7 +93,7 @@ where
     /// # Errors
     ///
     /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
-    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].
+    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided Id can not be converted to a [`lib_common::uuid::Uuid`].
     /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if any error is returned from the db search result.
     /// Returns [`tonic::Status`] with [`tonic::Code::Unknown`] if the server is not ready.
     ///
@@ -126,7 +126,7 @@ where
     /// # Errors
     ///
     /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
-    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].
+    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided Id can not be converted to a [`lib_common::uuid::Uuid`].
     /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if any error is returned from the db search result.
     /// Returns [`tonic::Status`] with [`tonic::Code::Unknown`] if the server is not ready.
     ///
@@ -215,7 +215,7 @@ where
     ///
     /// Returns [`tonic::Status`] with [`tonic::Code::Cancelled`] if the [`Request`](tonic::Request) doesn't contain any data.
     /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if any error is returned from a db call.
-    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].
+    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided Id can not be converted to a [`lib_common::uuid::Uuid`].
     /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the resulting `tokio_postgres::Row` data could not be converted into [`Data`](Self::LinkedData).
     /// Returns [`tonic::Status`] with [`tonic::Code::Unknown`] if the server is not ready.
     ///
@@ -267,7 +267,7 @@ where
     /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if no record is
     /// found in the database for the provided id field and value combination.
     /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if any error is returned from a db call.
-    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided Ids can not be converted to a [`uuid::Uuid`].
+    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided Ids can not be converted to a [`lib_common::uuid::Uuid`].
     /// Returns [`tonic::Status`] with [`tonic::Code::Unknown`] if the server is not ready.
     ///
     /// # Examples

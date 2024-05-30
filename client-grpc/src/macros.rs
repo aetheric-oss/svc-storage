@@ -223,7 +223,7 @@ macro_rules! link_grpc_client {
                         return Err(tonic::Status::not_found(error));
                     }
 
-                    match uuid::Uuid::from_str(&id) {
+                    match lib_common::uuid::Uuid::from_str(&id) {
                         Ok(uuid) => uuid,
                         Err(e) => {
                             let error = format!(
@@ -278,7 +278,7 @@ macro_rules! link_grpc_client {
                         return Err(tonic::Status::not_found(error));
                     }
 
-                    match uuid::Uuid::from_str(&id) {
+                    match lib_common::uuid::Uuid::from_str(&id) {
                         Ok(uuid) => uuid,
                         Err(e) => {
                             let error = format!(
@@ -327,7 +327,7 @@ macro_rules! link_grpc_client {
                         return Err(tonic::Status::not_found(error));
                     }
 
-                    match uuid::Uuid::from_str(&id) {
+                    match lib_common::uuid::Uuid::from_str(&id) {
                         Ok(uuid) => uuid,
                         Err(e) => {
                             let error = format!(
@@ -616,7 +616,7 @@ macro_rules! simple_grpc_client {
                     grpc_debug!("(insert MOCK) request: {:?}", request);
                     let mut mem_data = $resource::MEM_DATA.lock().await;
                     let object = Self::Object {
-                        id: uuid::Uuid::new_v4().to_string(),
+                        id: lib_common::uuid::Uuid::new_v4().to_string(),
                         data: Some(request),
                     };
                     let response = Self::Response {
