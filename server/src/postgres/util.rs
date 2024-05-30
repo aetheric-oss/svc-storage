@@ -25,7 +25,7 @@ pub fn validate_uuid(
         Ok(id) => Some(id),
         Err(e) => {
             let error = format!("Could not convert [{}] to UUID: {}", field, e);
-            psql_info!("(validate_uuid) {}", error);
+            psql_info!("{}", error);
             errors.push(ValidationError { field, error });
             None
         }
@@ -47,7 +47,7 @@ pub fn validate_dt(
             "Could not convert [{}] to DateTime::<Utc>({})",
             field, value
         );
-        psql_info!("(validate_dt) {}", error);
+        psql_info!("{}", error);
         errors.push(ValidationError { field, error });
         None
     }
@@ -67,7 +67,7 @@ pub fn validate_enum(
         Some(val) => Some(val),
         None => {
             let error = format!("Could not convert enum [{}] to i32: value not found", field);
-            psql_error!("(validate_enum) {}", error);
+            psql_error!("{}", error);
             errors.push(ValidationError { field, error });
             None
         }
@@ -79,13 +79,13 @@ pub fn validate_enum(
 /// Returns `true` on success, `false` if the conversion failed.
 pub fn validate_point(field: String, value: &PointZ, errors: &mut Vec<ValidationError>) -> bool {
     let mut success = true;
-    psql_debug!("(validate_point) {:?}", value);
+    psql_debug!("{:?}", value);
     if value.x < -180.0 || value.x > 180.0 {
         let error = format!(
                 "Could not convert [{}] to POINT: The provided value contains an invalid Long value, [{}] is out of range.",
                 field, value.x
             );
-        psql_info!("(validate_point) {}", error);
+        psql_info!("{}", error);
         errors.push(ValidationError {
             field: field.clone(),
             error,
@@ -98,7 +98,7 @@ pub fn validate_point(field: String, value: &PointZ, errors: &mut Vec<Validation
                 "Could not convert [{}] to POINT: The provided value contains an invalid Lat value, [{}] is out of range.",
                 field, value.y
             );
-        psql_info!("(validate_point) {}", error);
+        psql_info!("{}", error);
         errors.push(ValidationError { field, error });
         success = false
     }
@@ -114,7 +114,7 @@ pub fn validate_polygon(
     value: &PolygonZ,
     errors: &mut Vec<ValidationError>,
 ) -> bool {
-    psql_debug!("(validate_polygon) {:?}", value);
+    psql_debug!("{:?}", value);
 
     if value.rings.is_empty() {
         let error = format!(
@@ -122,7 +122,7 @@ pub fn validate_polygon(
             field
         );
 
-        psql_error!("(validate_polygon) {}", error);
+        psql_error!("{}", error);
         errors.push(ValidationError {
             field: field.clone(),
             error,
@@ -147,7 +147,7 @@ pub fn validate_line_string(
     value: &LineStringZ,
     errors: &mut Vec<ValidationError>,
 ) -> bool {
-    psql_debug!("(validate_line_string) {:?}", value);
+    psql_debug!("{:?}", value);
 
     let mut success = true;
     for pt in value.points.iter() {
@@ -185,7 +185,7 @@ pub fn get_insert_vars<'a>(
                         "Can't insert new entry for [{}]. Error in [{}], no value provided",
                         definition.psql_table, field,
                     );
-                    psql_error!("(get_insert_vars) {}", error);
+                    psql_error!("{}", error);
                     return Err(ArrErr::Error(error));
                 }
             }
@@ -197,11 +197,8 @@ pub fn get_insert_vars<'a>(
             Some(val) => val,
             None => {
                 let error = format!("No field definition found for field: {}", key);
-                psql_error!("(get_insert_vars) {}", error);
-                psql_debug!(
-                    "(get_insert_vars) Got definition for fields: {:?}",
-                    definition.fields
-                );
+                psql_error!("{}", error);
+                psql_debug!("Got definition for fields: {:?}", definition.fields);
                 return Err(ArrErr::Error(error));
             }
         };
@@ -224,8 +221,8 @@ pub fn get_insert_vars<'a>(
                                 "Could not convert value into a postgis::ewkb::PointZ for field: {}",
                                 key
                             );
-                            psql_error!("(get_insert_vars) {}", error);
-                            psql_debug!("(get_insert_vars) field_value: {:?}", value);
+                            psql_error!("{}", error);
+                            psql_debug!("field_value: {:?}", value);
                             return Err(ArrErr::Error(error));
                         }
                     }
@@ -242,8 +239,8 @@ pub fn get_insert_vars<'a>(
                                 "Could not convert value into a postgis::ewkb::PolygonZ for field: {}",
                                 key
                             );
-                            psql_error!("(get_insert_vars) {}", error);
-                            psql_debug!("(get_insert_vars) field_value: {:?}", value);
+                            psql_error!("{}", error);
+                            psql_debug!("field_value: {:?}", value);
                             return Err(ArrErr::Error(error));
                         }
                     }
@@ -260,8 +257,8 @@ pub fn get_insert_vars<'a>(
                                 "Could not convert value into a postgis::ewkb::LineStringZ for field: {}",
                                 key
                             );
-                            psql_error!("(get_insert_vars) {}", error);
-                            psql_debug!("(get_insert_vars) field_value: {:?}", value);
+                            psql_error!("{}", error);
+                            psql_debug!("field_value: {:?}", value);
                             return Err(ArrErr::Error(error));
                         }
                     }
@@ -277,7 +274,7 @@ pub fn get_insert_vars<'a>(
             }
             None => {
                 psql_debug!(
-                    "(get_insert_vars) Skipping insert [{}] for [{}], no value provided.",
+                    "Skipping insert [{}] for [{}], no value provided.",
                     key,
                     definition.psql_table,
                 );
@@ -303,11 +300,8 @@ pub fn get_update_vars<'a>(
             Some(val) => val,
             None => {
                 let error = format!("No field definition found for field: {}", key);
-                psql_error!("(get_update_vars) {}", error);
-                psql_debug!(
-                    "(get_update_vars) got definition for fields: {:?}",
-                    definition.fields
-                );
+                psql_error!("{}", error);
+                psql_debug!("got definition for fields: {:?}", definition.fields);
                 return Err(ArrErr::Error(error));
             }
         };
@@ -328,8 +322,8 @@ pub fn get_update_vars<'a>(
                                 "Could not convert value into a postgis::ewkb::PointZ for field: {}",
                                 key
                             );
-                            psql_error!("(get_update_vars) {}", error);
-                            psql_debug!("(get_update_vars) field_value: {:?}", value);
+                            psql_error!("{}", error);
+                            psql_debug!("field_value: {:?}", value);
                             return Err(ArrErr::Error(error));
                         }
                     }
@@ -346,8 +340,8 @@ pub fn get_update_vars<'a>(
                                 "Could not convert value into a postgis::ewkb::PolygonZ for field: {}",
                                 key
                             );
-                            psql_error!("(get_update_vars) {}", error);
-                            psql_debug!("(get_update_vars) field_value: {:?}", value);
+                            psql_error!("{}", error);
+                            psql_debug!("field_value: {:?}", value);
                             return Err(ArrErr::Error(error));
                         }
                     }
@@ -364,8 +358,8 @@ pub fn get_update_vars<'a>(
                                 "Could not convert value into a postgis::ewkb::LineStringZ for field: {}",
                                 key
                             );
-                            psql_error!("(get_update_vars) {}", error);
-                            psql_debug!("(get_update_vars) field_value: {:?}", value);
+                            psql_error!("{}", error);
+                            psql_debug!("field_value: {:?}", value);
                             return Err(ArrErr::Error(error));
                         }
                     }
@@ -381,7 +375,7 @@ pub fn get_update_vars<'a>(
             }
             None => {
                 psql_debug!(
-                    "(get_update_vars) Skipping update [{}] for [{}], no value provided.",
+                    "Skipping update [{}] for [{}], no value provided.",
                     key,
                     definition.psql_table,
                 );
@@ -477,7 +471,7 @@ pub fn validate<T>(data: &impl GrpcDataObjectType) -> Result<(PsqlData, Validati
 where
     T: Resource,
 {
-    psql_debug!("(validate) Start: [{:?}].", data);
+    psql_debug!("Start: [{:?}].", data);
     let definition = T::get_definition();
 
     let mut converted: PsqlData = PsqlData::new();
@@ -497,7 +491,7 @@ where
                 }
             }
             Err(_) => psql_debug!(
-                "(validate) skipping key field [{}] as it is not part of the object fields.",
+                "skipping key field [{}] as it is not part of the object fields.",
                 field
             ),
         }
@@ -520,7 +514,7 @@ where
                     None => {
                         if field.is_mandatory() {
                             let error = format!("Got 'GrpcField::Option' for [{}] [{:?}] while this field is not marked as optional in the definition.", key, field);
-                            psql_error!("(validate) {}", error);
+                            psql_error!("{}", error);
                             return Err(ArrErr::Error(error));
                         }
                         continue;
@@ -530,7 +524,7 @@ where
             _ => {
                 if !field.is_mandatory() {
                     let error = format!("Expected 'GrpcField::Option' for [{}] [{:?}] since this field is marked as optional in the definition.", key, field);
-                    psql_error!("(validate) {}", error);
+                    psql_error!("{}", error);
                     return Err(ArrErr::Error(error));
                 }
                 field_value
@@ -538,7 +532,7 @@ where
         };
 
         psql_debug!(
-            "(validate) Got value to validate [{:?}] with field type [{:?}].",
+            "Got value to validate [{:?}] with field type [{:?}].",
             val_to_validate,
             field.field_type
         );
@@ -622,7 +616,7 @@ where
                     definition.psql_table,
                     field.field_type.name()
                 );
-                psql_error!("(validate) {}", error);
+                psql_error!("{}", error);
                 return Err(ArrErr::Error(error));
             }
         }
@@ -630,13 +624,13 @@ where
 
     if !errors.is_empty() {
         success = false;
-        psql_debug!("(validate) Fields provided: {:?}", data);
-        psql_debug!("(validate) Errors found: {:?}", errors);
+        psql_debug!("Fields provided: {:?}", data);
+        psql_debug!("Errors found: {:?}", errors);
         let info = format!(
             "Conversion errors found in fields for table [{}], return without updating.",
             definition.psql_table
         );
-        psql_info!("(validate) {}", info);
+        psql_info!("{}", info);
     }
 
     Ok((converted, ValidationResult { errors, success }))
@@ -654,7 +648,7 @@ mod tests {
     #[tokio::test]
     async fn test_validate_uuid_valid() {
         lib_common::logger::get_log_handle().await;
-        ut_info!("(test_validate_uuid_valid) start");
+        ut_info!("start");
 
         let mut errors: Vec<ValidationError> = vec![];
         let result = validate_uuid(
@@ -665,13 +659,13 @@ mod tests {
         assert!(result.is_some());
         assert!(errors.is_empty());
 
-        ut_info!("(test_validate_uuid_valid) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_validate_uuid_invalid() {
         lib_common::logger::get_log_handle().await;
-        ut_info!("(test_validate_uuid_invalid) start");
+        ut_info!("start");
 
         let mut errors: Vec<ValidationError> = vec![];
         let result = validate_uuid(String::from("some_id"), &String::from(""), &mut errors);
@@ -679,13 +673,13 @@ mod tests {
         assert!(!errors.is_empty());
         assert_eq!(errors[0].field, "some_id");
 
-        ut_info!("(test_validate_uuid_invalid) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_validate_dt_valid() {
         lib_common::logger::get_log_handle().await;
-        ut_info!("(test_validate_dt_valid) start");
+        ut_info!("start");
 
         let mut errors: Vec<ValidationError> = vec![];
         let timestamp = Timestamp {
@@ -696,13 +690,13 @@ mod tests {
         assert!(result.is_some());
         assert!(errors.is_empty());
 
-        ut_info!("(test_validate_dt_valid) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_validate_dt_invalid() {
         lib_common::logger::get_log_handle().await;
-        ut_info!("(test_validate_dt_invalid) start");
+        ut_info!("start");
 
         let mut errors: Vec<ValidationError> = vec![];
         let timestamp = Timestamp {
@@ -714,13 +708,13 @@ mod tests {
         assert!(!errors.is_empty());
         assert_eq!(errors[0].field, "timestamp");
 
-        ut_info!("(test_validate_dt_invalid) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_validate_point_valid() {
         lib_common::logger::get_log_handle().await;
-        ut_info!("(test_validate_point_valid) start");
+        ut_info!("start");
 
         let mut errors: Vec<ValidationError> = vec![];
         let point = PointZ {
@@ -733,13 +727,13 @@ mod tests {
         assert!(result);
         assert!(errors.is_empty());
 
-        ut_info!("(test_validate_point_valid) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_validate_point_invalid() {
         lib_common::logger::get_log_handle().await;
-        ut_info!("(test_validate_point_invalid) start");
+        ut_info!("start");
 
         let mut errors: Vec<ValidationError> = vec![];
         let point = PointZ {
@@ -755,13 +749,13 @@ mod tests {
         assert_eq!(errors[0].field, "point");
         assert_eq!(errors[1].field, "point");
 
-        ut_info!("(test_validate_point_invalid) start");
+        ut_info!("start");
     }
 
     #[tokio::test]
     async fn test_validate_polygon_valid() {
         lib_common::logger::get_log_handle().await;
-        ut_info!("(test_validate_polygon_valid) start");
+        ut_info!("start");
 
         let mut errors: Vec<ValidationError> = vec![];
         let srid = Some(DEFAULT_SRID);
@@ -790,13 +784,13 @@ mod tests {
         assert!(result);
         assert!(errors.is_empty());
 
-        ut_info!("(test_validate_polygon_valid) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_validate_polygon_invalid() {
         lib_common::logger::get_log_handle().await;
-        ut_info!("(test_validate_polygon_invalid) start");
+        ut_info!("start");
 
         // Not enough lines
         let mut errors: Vec<ValidationError> = vec![];
@@ -847,13 +841,13 @@ mod tests {
         assert_eq!(errors[2].field, "polygon");
         assert_eq!(errors[3].field, "polygon");
 
-        ut_info!("(test_validate_polygon_invalid) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_validate_line_string_valid() {
         lib_common::logger::get_log_handle().await;
-        ut_info!("(test_validate_line_string_valid) start");
+        ut_info!("start");
 
         let mut errors: Vec<ValidationError> = vec![];
         let line = LineStringZ {
@@ -877,13 +871,13 @@ mod tests {
         assert!(result);
         assert!(errors.is_empty());
 
-        ut_info!("(test_validate_line_string_valid) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_validate_line_string_invalid() {
         lib_common::logger::get_log_handle().await;
-        ut_info!("(test_validate_line_string_invalid) start");
+        ut_info!("start");
 
         let mut errors: Vec<ValidationError> = vec![];
         let line = LineStringZ {
@@ -903,13 +897,13 @@ mod tests {
         assert_eq!(errors[0].field, "line");
         assert_eq!(errors[1].field, "line");
 
-        ut_info!("(test_validate_line_string_invalid) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_get_insert_vars() {
         lib_common::logger::get_log_handle().await;
-        ut_info!("(test_get_insert_vars) start");
+        ut_info!("start");
 
         let uuid = Uuid::new_v4();
         let optional_uuid = Uuid::new_v4();
@@ -985,13 +979,13 @@ mod tests {
             }
         }
 
-        ut_info!("(test_get_insert_vars) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_get_update_vars() {
         lib_common::logger::get_log_handle().await;
-        ut_info!("(test_get_update_vars) start");
+        ut_info!("start");
 
         let uuid = Uuid::new_v4();
         let optional_uuid = Uuid::new_v4();
@@ -1066,13 +1060,13 @@ mod tests {
             }
         }
 
-        ut_info!("(test_get_update_vars) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_validate_invalid_object() {
         lib_common::logger::get_log_handle().await;
-        ut_info!("(test_validate_invalid_object) start");
+        ut_info!("start");
 
         let invalid_data = get_invalid_test_data();
 
@@ -1085,6 +1079,6 @@ mod tests {
 
         assert_eq!(validation_result.success, false);
 
-        ut_info!("(test_validate_invalid_object) success");
+        ut_info!("success");
     }
 }

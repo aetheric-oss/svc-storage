@@ -87,7 +87,7 @@ mod tests {
     #[tokio::test]
     async fn test_pilot_schema() {
         lib_common::logger::get_log_handle().await;
-        ut_info!("(test_pilot_schema) start");
+        ut_info!("start");
 
         let id = Uuid::new_v4().to_string();
         let data = mock::get_data_obj();
@@ -106,6 +106,6 @@ mod tests {
             assert_eq!(validation_result.success, true);
         }
 
-        ut_info!("(test_pilot_schema) success");
+        ut_info!("success");
     }
 }
