@@ -1,4 +1,4 @@
-//! Provides implementations for Arrow Resources
+//! Provides implementations for Realm Resources
 pub use crate::grpc::server::*;
 pub mod base;
 

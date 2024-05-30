@@ -163,7 +163,7 @@ where
     }
 }
 
-/// Generic trait for the Arrow LinkedResources that are stored in the CockroachDB backend.
+/// Generic trait for the Realm LinkedResources that are stored in the CockroachDB backend.
 /// TODO Rust 1.74: use `#![feature(async_fn_in_trait)]` once available: <https://blog.rust-lang.org/inside-rust/2023/05/03/stabilizing-async-fn-in-trait.html>
 #[tonic::async_trait]
 pub trait PsqlObjectType<T>

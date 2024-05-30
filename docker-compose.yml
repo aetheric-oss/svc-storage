@@ -1,10 +1,4 @@
 ---
-## DO NOT EDIT!
-## This file was provisioned by Terraform
-## File origin: https://github.com/Arrow-air/tf-github/tree/main/src/templates/rust-svc/docker-compose.yml
-
-version: '3.8'
-
 configs:
   log4rs:
     file: log4rs.yaml
