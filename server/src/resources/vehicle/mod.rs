@@ -190,7 +190,7 @@ mod tests {
     #[tokio::test]
     async fn test_vehicle_schema() {
         lib_common::logger::get_log_handle().await;
-        ut_info!("(test_vehicle_schema) start");
+        ut_info!("start");
 
         let id = Uuid::new_v4().to_string();
         let data = mock::get_data_obj();
@@ -208,13 +208,13 @@ mod tests {
             ut_info!("{:?}", validation_result);
             assert_eq!(validation_result.success, true);
         }
-        ut_info!("(test_vehicle_schema) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_vehicle_invalid_data() {
         lib_common::logger::get_log_handle().await;
-        ut_info!("(test_vehicle_invalid_data) start");
+        ut_info!("start");
 
         let data = Data {
             vehicle_model_id: String::from("INVALID"),
@@ -249,10 +249,10 @@ mod tests {
         assert!(result.is_ok());
         if let Ok((data, validation_result)) = result {
             ut_debug!(
-                "(test_vehicle_invalid_data) validation result: {:?}",
+                "validation result: {:?}",
                 validation_result
             );
-            ut_debug!("(test_vehicle_invalid_data) data: {:?}", data);
+            ut_debug!("data: {:?}", data);
             assert_eq!(validation_result.success, false);
 
             let expected_errors = vec![
@@ -266,13 +266,13 @@ mod tests {
             assert_eq!(expected_errors.len(), validation_result.errors.len());
             assert!(contains_field_errors(&validation_result, &expected_errors));
         }
-        ut_info!("(test_vehicle_invalid_data) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_vehicle_model_type_as_str_name() {
         lib_common::logger::get_log_handle().await;
-        ut_info!("(test_vehicle_model_type_as_str_name) start");
+        ut_info!("start");
 
         assert_eq!(VehicleModelType::VtolCargo.as_str_name(), "VTOL_CARGO");
         assert_eq!(
@@ -280,13 +280,13 @@ mod tests {
             "VTOL_PASSENGER"
         );
 
-        ut_info!("(test_vehicle_model_type_as_str_name) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_vehicle_model_type_from_str_name() {
         lib_common::logger::get_log_handle().await;
-        ut_info!("(test_vehicle_model_type_from_str_name) start");
+        ut_info!("start");
 
         assert_eq!(
             VehicleModelType::from_str_name("VTOL_CARGO"),
@@ -299,6 +299,6 @@ mod tests {
 
         assert_eq!(VehicleModelType::from_str_name("INVALID"), None);
 
-        ut_info!("(test_vehicle_model_type_from_str_name) success");
+        ut_info!("success");
     }
 }

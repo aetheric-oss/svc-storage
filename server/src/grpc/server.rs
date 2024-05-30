@@ -128,14 +128,14 @@ pub mod grpc_geo_types {
 // no_coverage: Can not be tested in unittest, should be part of integration
 // tests
 pub async fn grpc_server(config: Config, shutdown_rx: Option<tokio::sync::oneshot::Receiver<()>>) {
-    grpc_debug!("(grpc_server) entry.");
+    grpc_debug!("entry.");
 
     // GRPC Server
     let grpc_port = config.docker_port_grpc;
     let full_grpc_addr: SocketAddr = match format!("[::]:{}", grpc_port).parse() {
         Ok(addr) => addr,
         Err(e) => {
-            grpc_error!("(grpc_server) Failed to parse gRPC address: {}", e);
+            grpc_error!("Failed to parse gRPC address: {}", e);
             return;
         }
     };
@@ -210,7 +210,7 @@ pub async fn grpc_server(config: Config, shutdown_rx: Option<tokio::sync::onesho
 
     //start server
     grpc_info!(
-        "(grpc_server) Starting gRPC services on: {}.",
+        "Starting gRPC services on: {}.",
         full_grpc_addr
     );
     match Server::builder()
@@ -274,9 +274,9 @@ pub async fn grpc_server(config: Config, shutdown_rx: Option<tokio::sync::onesho
         .serve_with_shutdown(full_grpc_addr, shutdown_signal("grpc", shutdown_rx))
         .await
     {
-        Ok(_) => grpc_info!("(grpc_server) gRPC server running at: {}.", full_grpc_addr),
+        Ok(_) => grpc_info!("gRPC server running at: {}.", full_grpc_addr),
         Err(e) => {
-            grpc_error!("(grpc_server) Could not start gRPC server: {}", e);
+            grpc_error!("Could not start gRPC server: {}", e);
         }
     };
 }
@@ -290,22 +290,22 @@ mod tests {
     #[tokio::test]
     async fn test_grpc_server_is_ready() {
         lib_common::logger::get_log_handle().await;
-        ut_info!("(test_grpc_server_is_ready) start");
+        ut_info!("start");
 
         let imp = adsb::GrpcServer::default();
         let data = adsb::mock::get_data_obj();
 
         let result = crate::postgres::get_psql_client().await;
-        ut_debug!("(test_grpc_server_is_ready) {:?}", result);
+        ut_debug!("{:?}", result);
         assert!(result.is_ok());
 
         let result = imp.generic_insert(Request::new(data)).await;
-        ut_debug!("(test_grpc_server_is_ready) {:?}", result);
+        ut_debug!("{:?}", result);
         assert!(result.is_ok());
 
         let adsb: adsb::Response = (result.unwrap()).into_inner();
         assert!(adsb.object.is_some());
 
-        ut_info!("(test_grpc_server_is_ready) success")
+        ut_info!("success")
     }
 }

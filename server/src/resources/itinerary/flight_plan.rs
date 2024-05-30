@@ -49,10 +49,10 @@ mod tests {
     #[tokio::test]
     async fn test_itinerary_flight_plan_schema() {
         lib_common::logger::get_log_handle().await;
-        ut_info!("(test_itinerary_flight_plan_schema) start");
+        ut_info!("start");
 
         let definition = <ResourceObject<Data>>::get_definition();
         assert_eq!(definition.get_psql_table(), "itinerary_flight_plan");
-        ut_info!("(test_itinerary_flight_plan_schema) success");
+        ut_info!("success");
     }
 }
