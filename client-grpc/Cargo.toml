@@ -1,6 +1,6 @@
 [package]
-description = "Arrow Storage service GRPC client"
-keywords    = ["vtol", "client", "storage"]       # max 5
+description = "Aetheric Storage service GRPC client"
+keywords    = ["vtol", "client", "storage"]          # max 5
 name        = "svc-storage-client-grpc"
 version     = "0.11.1-develop.15"
 
