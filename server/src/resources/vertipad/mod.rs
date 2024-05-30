@@ -141,7 +141,7 @@ mod tests {
     #[tokio::test]
     async fn test_vertipad_schema() {
         lib_common::logger::get_log_handle().await;
-        ut_info!("(test_vertipad_schema) start");
+        ut_info!("start");
 
         let id = Uuid::new_v4().to_string();
         let data = mock::get_data_obj();
@@ -159,13 +159,13 @@ mod tests {
             ut_info!("{:?}", validation_result);
             assert_eq!(validation_result.success, true);
         }
-        ut_info!("(test_vertipad_schema) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_vertipad_invalid_data() {
         lib_common::logger::get_log_handle().await;
-        ut_info!("(test_vertipad_invalid_data) start");
+        ut_info!("start");
 
         let data = Data {
             vertiport_id: String::from("INVALID"),
@@ -201,6 +201,6 @@ mod tests {
             assert_eq!(expected_errors.len(), validation_result.errors.len());
             assert!(contains_field_errors(&validation_result, &expected_errors));
         }
-        ut_info!("(test_vertipad_invalid_data) success");
+        ut_info!("success");
     }
 }

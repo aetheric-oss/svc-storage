@@ -129,7 +129,7 @@ mod tests {
     #[tokio::test]
     async fn test_flight_plan_parcel_schema() {
         lib_common::logger::get_log_handle().await;
-        ut_info!("(test_flight_plan_parcel_schema) start");
+        ut_info!("start");
 
         let definition = <ResourceObject<Data>>::get_definition();
         assert_eq!(definition.get_psql_table(), "flight_plan_parcel");
@@ -160,6 +160,6 @@ mod tests {
             ut_info!("{:?}", validation_result);
             assert_eq!(validation_result.success, true);
         }
-        ut_info!("(test_flight_plan_parcel_schema) success");
+        ut_info!("success");
     }
 }
