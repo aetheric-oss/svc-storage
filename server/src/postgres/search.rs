@@ -6,11 +6,11 @@ use crate::grpc::server::{
 use crate::postgres::PsqlFieldSend;
 use crate::resources::base::Resource;
 
-use chrono::{DateTime, Utc};
+use lib_common::time::{DateTime, Utc};
+use lib_common::uuid::Uuid;
 use postgres_types::ToSql;
 use std::collections::VecDeque;
 use tokio_postgres::Row;
-use uuid::Uuid;
 
 /// struct to save search col values while processing the [AdvancedSearchFilter](crate::resources::AdvancedSearchFilter)
 /// needed to save column information for a search value so it can be converted later
@@ -490,7 +490,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_param_from_search_col() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_get_param_from_search_col) start");
 
         // Our TestData object should have fields for each possible field_type.
@@ -498,7 +498,7 @@ mod tests {
         // value for that type.
         let definition = ResourceObject::<TestData>::get_definition();
         for field in definition.get_psql_id_cols() {
-            let val = uuid::Uuid::new_v4();
+            let val = lib_common::uuid::Uuid::new_v4();
             let search_col = SearchCol {
                 col_name: field.clone(),
                 col_type: PsqlFieldType::UUID,
@@ -513,11 +513,11 @@ mod tests {
         for (field, field_definition) in definition.fields {
             let (string_val, display_val) = match field_definition.field_type {
                 PsqlFieldType::UUID => {
-                    let val = uuid::Uuid::new_v4();
+                    let val = lib_common::uuid::Uuid::new_v4();
                     (val.to_string(), format!("{:?}", val))
                 }
                 PsqlFieldType::TIMESTAMPTZ => {
-                    let val = &chrono::Utc::now();
+                    let val = &Utc::now();
                     (val.to_string(), format!("{:?}", val))
                 }
                 PsqlFieldType::ANYENUM => {

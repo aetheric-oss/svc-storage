@@ -2,17 +2,17 @@
 
 pub use crate::grpc::server::parcel_scan::*;
 
+use lib_common::time::{DateTime, Utc};
+use lib_common::uuid::Uuid;
 use log::debug;
 use std::collections::HashMap;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
-use uuid::Uuid;
 
 use super::base::simple_resource::*;
 use super::base::{FieldDefinition, ResourceDefinition};
 use crate::common::ArrErr;
 use crate::grpc::{GrpcDataObjectType, GrpcField, GrpcFieldOption};
-use chrono::{DateTime, Utc};
 
 crate::build_generic_resource_impl_from!();
 
@@ -112,7 +112,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_parcel_scan_schema() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_parcel_scan_schema) start");
 
         let id = Uuid::new_v4().to_string();
@@ -137,7 +137,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_parcel_scan_invalid_data() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_parcel_scan_invalid_data) start");
 
         let data = Data {

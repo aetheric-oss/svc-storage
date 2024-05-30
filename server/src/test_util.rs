@@ -8,10 +8,11 @@ use crate::resources::base::*;
 use crate::resources::ValidationResult;
 use crate::DEFAULT_SRID;
 use lib_common::log_macros;
+use lib_common::time::Utc;
+use lib_common::uuid::Uuid;
 use postgis::ewkb::{LineStringZ, PointZ, PolygonZ};
 use std::collections::HashMap;
 use tokio_postgres::types::Type as PsqlFieldType;
-use uuid::Uuid;
 
 log_macros!("ut", "test");
 
@@ -1086,8 +1087,8 @@ fn test_field_type_matches_optional_grpc_field(field_type: PsqlFieldType, grpc_f
 fn test_test_data_schema() {
     let uuid = Uuid::new_v4();
     let optional_uuid = Uuid::new_v4();
-    let timestamp: Option<Timestamp> = Some(chrono::Utc::now().into());
-    let optional_timestamp: Option<Timestamp> = Some(chrono::Utc::now().into());
+    let timestamp: Option<Timestamp> = Some(Utc::now().into());
+    let optional_timestamp: Option<Timestamp> = Some(Utc::now().into());
 
     let valid_data = get_valid_test_data(
         uuid,

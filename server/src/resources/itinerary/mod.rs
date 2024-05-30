@@ -4,11 +4,11 @@ pub use crate::grpc::server::itinerary::*;
 pub mod flight_plan;
 
 use anyhow::{Context, Result};
+use lib_common::uuid::Uuid;
 use log::debug;
 use std::collections::HashMap;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
-use uuid::Uuid;
 
 use super::base::simple_resource::*;
 use super::base::{FieldDefinition, ResourceDefinition};
@@ -98,7 +98,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_itinerary_schema() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_itinerary_schema) start");
 
         let id = Uuid::new_v4().to_string();
@@ -122,7 +122,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_itinerary_invalid_data() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_itinerary_invalid_data) start");
 
         let data = Data {
@@ -145,7 +145,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_itinerary_status_get_enum_string_val() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_itinerary_status_get_enum_string_val) start");
 
         assert_eq!(
@@ -170,7 +170,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_itinerary_status_as_str_name() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_itinerary_status_as_str_name) start");
 
         assert_eq!(ItineraryStatus::Active.as_str_name(), "ACTIVE");
@@ -181,7 +181,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_itinerary_status_from_str_name() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_itinerary_status_from_str_name) start");
 
         assert_eq!(

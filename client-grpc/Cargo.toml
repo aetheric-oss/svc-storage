@@ -53,7 +53,7 @@ vehicle = ["any_resource"]
 vertipad = ["any_resource", "vertiport"]
 vertiport = ["any_resource"]
 # Will add a 'mock' module for the enabled resources, providing access to mock data generation functions
-mock = ["chrono", "rand", "geo"]
+mock = ["rand", "geo"]
 # Will use a stubbed backend connection, only use for tests!
 stub_backends = ["svc-storage/stub_server", "lib-common/grpc_mock", "tower"]
 # Pass through stub_server feature for our server code
@@ -70,7 +70,6 @@ stub_client = [
 [dependencies]
 anyhow          = "1.0"
 cfg-if          = "1.0"
-chrono          = { version = "0.4", optional = true }
 futures         = { version = "0.3", optional = true }
 geo             = { version = "0.26", optional = true }
 lazy_static     = { version = "1.4", optional = true }
@@ -88,7 +87,6 @@ serde           = { version = "1.0", features = ["derive"] }
 serde_json      = "1.0"
 tonic           = "0.10"
 tower           = { version = "0.4", optional = true }
-uuid            = { version = "1.4", features = ["v4"] }
 
 [dependencies.svc-storage]
 optional = true
@@ -97,7 +95,7 @@ path     = "../server"
 [dependencies.lib-common]
 features = ["grpc"]
 git      = "https://github.com/aetheric-oss/lib-common"
-tag      = "latest-develop"
+tag      = "v2.0.0"
 
 [dependencies.tokio]
 features = ["macros", "rt-multi-thread"]
@@ -116,7 +114,6 @@ features = [
 version = "1.2"
 
 [dev-dependencies]
-chrono      = "0.4"
 lazy_static = "1.4"
 logtest     = "2.0"
 rand        = "0.8"

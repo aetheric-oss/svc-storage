@@ -1,7 +1,7 @@
 use super::Data;
 use crate::resources::grpc_geo_types::GeoPoint;
-use chrono::Utc;
-use uuid::Uuid;
+use lib_common::time::Utc;
+use lib_common::uuid::Uuid;
 
 /// Creates a new [Data] object with fields set with random data
 pub fn get_data_obj() -> Data {

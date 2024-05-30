@@ -1,5 +1,5 @@
 use super::{Data, ScannerStatus, ScannerType};
-use uuid::Uuid;
+use lib_common::uuid::Uuid;
 
 /// Creates a new [Data] object with fields set with random data
 pub fn get_data_obj() -> Data {

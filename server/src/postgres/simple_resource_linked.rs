@@ -7,14 +7,14 @@ use crate::grpc::{GrpcDataObjectType, GrpcField};
 use crate::resources::base::simple_resource::*;
 
 use crate::DEFAULT_SRID;
-use chrono::{DateTime, Utc};
 use deadpool_postgres::Transaction;
+use lib_common::time::{DateTime, Utc};
+use lib_common::uuid::Uuid;
 use postgis::ewkb::{LineStringZ, PointZ, PolygonZ};
 use std::collections::HashMap;
 use std::vec;
 use tokio_postgres::types::Type as PsqlFieldType;
 use tokio_postgres::Row;
-use uuid::Uuid;
 
 /// Generic PostgreSQL trait to provide wrappers for common `Resource` functions
 #[tonic::async_trait]

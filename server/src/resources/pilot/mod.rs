@@ -2,11 +2,11 @@
 
 pub use crate::grpc::server::pilot::*;
 
+use lib_common::uuid::Uuid;
 use log::debug;
 use std::collections::HashMap;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
-use uuid::Uuid;
 
 use super::base::simple_resource::*;
 use super::base::{FieldDefinition, ResourceDefinition};
@@ -86,7 +86,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_pilot_schema() {
-        crate::get_log_handle().await;
+        lib_common::logger::get_log_handle().await;
         ut_info!("(test_pilot_schema) start");
 
         let id = Uuid::new_v4().to_string();
