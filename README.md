@@ -1,14 +1,14 @@
-![Arrow Banner](https://github.com/Arrow-air/tf-github/raw/main/src/templates/doc-banner-services.png)
+![Aetheric Banner](https://github.com/aetheric-oss/.github/raw/main/assets/readme-banner.png)
 
 # svc-storage Service
 
-![GitHub stable release (latest by date)](https://img.shields.io/github/v/release/Arrow-air/svc-storage?sort=semver&color=green) ![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/Arrow-air/svc-storage?include_prereleases) [![Coverage Status](https://coveralls.io/repos/github/Arrow-air/svc-storage/badge.svg?branch=develop)](https://coveralls.io/github/Arrow-air/svc-storage)
-![Sanity Checks](https://github.com/arrow-air/svc-storage/actions/workflows/sanity_checks.yml/badge.svg?branch=develop) ![Python PEP8](https://github.com/arrow-air/svc-storage/actions/workflows/python_ci.yml/badge.svg?branch=develop) ![Rust Checks](https://github.com/arrow-air/svc-storage/actions/workflows/rust_ci.yml/badge.svg?branch=develop)
+![GitHub stable release (latest by date)](https://img.shields.io/github/v/release/aetheric-oss/svc-storage?sort=semver&color=green) ![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/aetheric-oss/svc-storage?include_prereleases) [![Coverage Status](https://coveralls.io/repos/github/aetheric-oss/svc-storage/badge.svg?branch=develop)](https://coveralls.io/github/aetheric-oss/svc-storage)
+![Sanity Checks](https://github.com/aetheric-oss/svc-storage/actions/workflows/sanity_checks.yml/badge.svg?branch=develop) ![Python PEP8](https://github.com/aetheric-oss/svc-storage/actions/workflows/python_ci.yml/badge.svg?branch=develop) ![Rust Checks](https://github.com/aetheric-oss/svc-storage/actions/workflows/rust_ci.yml/badge.svg?branch=develop)
 ![Arrow DAO Discord](https://img.shields.io/discord/853833144037277726?style=plastic)
 
 ## :telescope: Overview
 
-svc-storage is responsible for storing and retrieving data from the Arrow database and other storage.
+svc-storage is responsible for storing and retrieving data from the Aetheric database and other storage.
 It's meant to be used only by other internal services via gRPC interface.
 - svc_storage gRPC server - (bin) target to run gRPC server
 - svc_storage_client_grpc gRPC client - (lib) target for other services to import and use
@@ -128,19 +128,6 @@ by this thread:
 cat server/logs/*.log | jq -c '[.] | sort_by(.time) | .[] | select(.thread_id==<insert_your_thread_id>) | .message'
 ```
 
-## :scroll: Documentation
-The following documents are relevant to this service:
-- [Concept of Operations](./docs/conops.md)
-- [Software Design Document (SDD)](./docs/sdd.md)
-- [Interface Control Document (ICD)](./docs/icd.md)
-- [Requirements](https://nocodb.arrowair.com/dashboard/#/nc/p_uyeuw6scqlnpri/table/L4/svc-storage)
-
-## :busts_in_silhouette: Arrow DAO
-Learn more about us:
-- [Website](https://www.arrowair.com/)
-- [Arrow Docs](https://www.arrowair.com/docs/intro)
-- [Discord](https://discord.com/invite/arrow)
-
 ## Adding new resources
 The storage module currently supports `simple` and `linked` resources types.
 `simple` types are resources that reflect a table with 1 or more id fields and additional data fields.
@@ -242,13 +229,16 @@ Run the example:
 make rust-example-grpc
 ```
 
+## :scroll: Documentation
+The following documents are relevant to this service:
+- [Concept of Operations](./docs/conops.md)
+- [Software Design Document](./docs/sdd.md)
+- [Interface Control Document (ICD)](./docs/icd.md)
+- [Requirements](https://nocodb.aetheric.nl/dashboard/#/nc/view/d1bb0a51-e22f-4b91-b1c5-66f11f4f861b)
+
+## :busts_in_silhouette: About Us
+Learn more about us: [Aetheric website](https://www.aetheric.nl)
+
 ## LICENSE Notice
 
-Please note that svc-storage is under BUSL license until the Change Date, currently the earlier of two years from the release date. Exceptions to the license may be specified by Arrow Governance via Additional Use Grants, which can, for example, allow svc-storage to be deployed for certain production uses. Please reach out to Arrow DAO to request a DAO vote for exceptions to the license, or to move up the Change Date.
-
-## :exclamation: Treatment of `Cargo.lock`
-If you are building a non-end product like a library, include `Cargo.lock` in `.gitignore`.
-
-If you are building an end product like a command line tool, check `Cargo.lock` to the git.
-
-Read more about it [here](https://doc.rust-lang.org/cargo/guide/cargo-toml-vs-cargo-lock.html);
+Please note that svc-storage is under BUSL license until the Change Date, currently the earlier of two years from the release date. Exceptions to the license may be specified by Aetheric Governance via Additional Use Grants, which can, for example, allow svc-storage to be deployed for certain production uses. Please reach out to Aetheric to request a vote for exceptions to the license, or to move up the Change Date.
