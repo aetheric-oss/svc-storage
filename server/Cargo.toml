@@ -91,6 +91,7 @@ version  = "0.7"
 assert_matches = "1.5"
 logtest        = "2.0"
 rand           = "0.8"
+regex          = "1.10"
 
 [dev-dependencies.cargo-husky]
 default-features = false          # Disable features which are enabled by default
