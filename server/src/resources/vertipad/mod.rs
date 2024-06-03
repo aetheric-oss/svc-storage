@@ -112,7 +112,7 @@ impl TryFrom<Row> for Data {
         debug!("(try_from) Converting Row to vertipad::Data: {:?}", row);
         let vertiport_id: Uuid = row.get("vertiport_id");
         let schedule: Option<String> = row.get("schedule");
-        let geo_location: GeoPoint = row.get::<&str, GeoPoint>("geo_location");
+        let geo_location: GeoPointZ = row.get::<&str, GeoPointZ>("geo_location");
 
         let created_at: Option<prost_wkt_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("created_at")
@@ -170,7 +170,7 @@ mod tests {
         let data = Data {
             vertiport_id: String::from("INVALID"),
             name: String::from(""),
-            geo_location: Some(GeoPoint {
+            geo_location: Some(GeoPointZ {
                 latitude: 200.0,
                 longitude: -200.0,
                 altitude: 10.0,

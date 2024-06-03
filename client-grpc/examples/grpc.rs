@@ -4,8 +4,7 @@ use svc_storage_client_grpc::prelude::*;
 use lib_common::grpc::get_endpoint_from_env;
 use lib_common::time::{Datelike, Duration, Local, NaiveDate, Timelike, Utc};
 use lib_common::uuid::Uuid;
-use postgis::ewkb::{LineStringZ, PointZ, PolygonZ};
-use svc_storage_client_grpc::DEFAULT_SRID;
+use svc_storage_client_grpc::prelude::{GeoPolygon, GeoPoint};
 use tokio::sync::OnceCell;
 use tonic::Status;
 

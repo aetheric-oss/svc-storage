@@ -157,29 +157,29 @@ mod tests {
         let data = Data {
             name: String::from(""),
             description: String::from(""),
-            geo_location: Some(GeoPolygon {
-                exterior: Some(GeoLineString {
+            geo_location: Some(GeoPolygonZ {
+                exterior: Some(GeoLineStringZ {
                     points: vec![
-                        GeoPoint {
+                        GeoPointZ {
                             latitude: 201.0,
                             longitude: 0.0,
                             altitude: 0.0,
                         },
-                        GeoPoint {
+                        GeoPointZ {
                             latitude: 0.0,
                             longitude: 0.0,
                             altitude: 0.0,
                         },
                     ],
                 }),
-                interiors: vec![GeoLineString {
+                interiors: vec![GeoLineStringZ {
                     points: vec![
-                        GeoPoint {
+                        GeoPointZ {
                             latitude: 0.0,
                             longitude: 0.0,
                             altitude: 0.0,
                         },
-                        GeoPoint {
+                        GeoPointZ {
                             latitude: 0.0,
                             longitude: -202.0, // invalid
                             altitude: 0.0,

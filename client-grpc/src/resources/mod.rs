@@ -5,7 +5,7 @@ include!("../../out/grpc/client/grpc.rs");
 
 use crate::{Deserialize, IntoParams, Serialize, ToSchema};
 
-pub mod grpc_geo_types;
+pub mod geo_types;
 
 use lib_common::log_macros;
 log_macros!("grpc", "app::client::storage");

@@ -321,7 +321,7 @@ impl TryFrom<Row> for Data {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::resources::grpc_geo_types::GeoLineString;
+    use crate::resources::geo_types::GeoLineStringZ;
     use crate::test_util::*;
 
     #[tokio::test]
@@ -357,7 +357,7 @@ mod tests {
             session_id: String::from("test"),
             pilot_id: String::from("INVALID"),
             vehicle_id: String::from("INVALID"),
-            path: Some(GeoLineString { points: vec![] }),
+            path: Some(GeoLineStringZ { points: vec![] }),
             weather_conditions: Some(String::from("")),
             origin_vertiport_id: None,
             origin_vertipad_id: String::from("INVALID"),

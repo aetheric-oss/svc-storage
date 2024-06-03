@@ -43,11 +43,11 @@ pub struct TestData {
     pub u32_vec: ::prost::alloc::vec::Vec<u32>,
 
     #[prost(message, optional, tag = "110")]
-    pub geo_point: ::core::option::Option<crate::resources::grpc_geo_types::GeoPoint>, // Always passed as an option, but will check for mandatory state
+    pub geo_point: ::core::option::Option<crate::resources::geo_types::GeoPointZ>, // Always passed as an option, but will check for mandatory state
     #[prost(message, optional, tag = "111")]
-    pub geo_polygon: ::core::option::Option<crate::resources::grpc_geo_types::GeoPolygon>, // Always passed as an option, but will check for mandatory state
+    pub geo_polygon: ::core::option::Option<crate::resources::geo_types::GeoPolygonZ>, // Always passed as an option, but will check for mandatory state
     #[prost(message, optional, tag = "112")]
-    pub geo_line_string: ::core::option::Option<crate::resources::grpc_geo_types::GeoLineString>, // Always passed as an option, but will check for mandatory state
+    pub geo_line_string: ::core::option::Option<crate::resources::geo_types::GeoLineStringZ>, // Always passed as an option, but will check for mandatory state
 
     #[prost(string, optional, tag = "21")]
     pub optional_string: ::core::option::Option<::prost::alloc::string::String>,
@@ -65,12 +65,12 @@ pub struct TestData {
     pub optional_uuid: ::core::option::Option<::prost::alloc::string::String>,
 
     #[prost(message, optional, tag = "210")]
-    pub optional_geo_point: ::core::option::Option<crate::resources::grpc_geo_types::GeoPoint>,
+    pub optional_geo_point: ::core::option::Option<crate::resources::geo_types::GeoPointZ>,
     #[prost(message, optional, tag = "211")]
-    pub optional_geo_polygon: ::core::option::Option<crate::resources::grpc_geo_types::GeoPolygon>,
+    pub optional_geo_polygon: ::core::option::Option<crate::resources::geo_types::GeoPolygonZ>,
     #[prost(message, optional, tag = "212")]
     pub optional_geo_line_string:
-        ::core::option::Option<crate::resources::grpc_geo_types::GeoLineString>,
+        ::core::option::Option<crate::resources::geo_types::GeoLineStringZ>,
 
     #[prost(string, optional, tag = "30")]
     pub read_only: ::core::option::Option<::prost::alloc::string::String>,
@@ -967,15 +967,15 @@ fn test_field_type_matches_grpc_field(field_type: PsqlFieldType, grpc_field: Grp
         )),
         PsqlFieldType::POINT => assert!(matches!(
             grpc_field,
-            GrpcField::Option(GrpcFieldOption::GeoPoint(_))
+            GrpcField::Option(GrpcFieldOption::GeoPointZ(_))
         )),
         PsqlFieldType::POLYGON => assert!(matches!(
             grpc_field,
-            GrpcField::Option(GrpcFieldOption::GeoPolygon(_))
+            GrpcField::Option(GrpcFieldOption::GeoPolygonZ(_))
         )),
         PsqlFieldType::PATH => assert!(matches!(
             grpc_field,
-            GrpcField::Option(GrpcFieldOption::GeoLineString(_))
+            GrpcField::Option(GrpcFieldOption::GeoLineStringZ(_))
         )),
         _ => {
             println!(
@@ -1063,15 +1063,15 @@ fn test_field_type_matches_optional_grpc_field(field_type: PsqlFieldType, grpc_f
         }
         PsqlFieldType::POINT => assert!(matches!(
             grpc_field,
-            GrpcField::Option(GrpcFieldOption::GeoPoint(_))
+            GrpcField::Option(GrpcFieldOption::GeoPointZ(_))
         )),
         PsqlFieldType::POLYGON => assert!(matches!(
             grpc_field,
-            GrpcField::Option(GrpcFieldOption::GeoPolygon(_))
+            GrpcField::Option(GrpcFieldOption::GeoPolygonZ(_))
         )),
         PsqlFieldType::PATH => assert!(matches!(
             grpc_field,
-            GrpcField::Option(GrpcFieldOption::GeoLineString(_))
+            GrpcField::Option(GrpcFieldOption::GeoLineStringZ(_))
         )),
         _ => {
             println!(

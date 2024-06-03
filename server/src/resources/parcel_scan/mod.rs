@@ -91,7 +91,7 @@ impl TryFrom<Row> for Data {
         debug!("(try_from) Converting Row to parcel::Data: {:?}", row);
         let scanner_id = row.get::<&str, Uuid>("scanner_id").to_string();
         let parcel_id = row.get::<&str, Uuid>("parcel_id").to_string();
-        let geo_location: GeoPoint = row.get::<&str, GeoPoint>("geo_location");
+        let geo_location: GeoPointZ = row.get::<&str, GeoPointZ>("geo_location");
         let created_at: Option<prost_wkt_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("created_at")
             .map(|val| val.into());
@@ -143,7 +143,7 @@ mod tests {
         let data = Data {
             parcel_id: String::from("INVALID"),
             scanner_id: String::from("INVALID"),
-            geo_location: Some(GeoPoint {
+            geo_location: Some(GeoPointZ {
                 latitude: 200.0,
                 longitude: -200.0,
                 altitude: 10.0,

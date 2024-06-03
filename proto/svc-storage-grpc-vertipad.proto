@@ -44,7 +44,7 @@ message Data {
     // human readable name of the vertipad
     string name = 2;
     // geographical location of the vertipad
-    grpc.geo_types.GeoPoint geo_location = 3;
+    grpc.geo_types.GeoPointZ geo_location = 3;
     // indicates if the vertipad is in business
     bool enabled = 4;
     // indicates if the vertipad is currently occupied

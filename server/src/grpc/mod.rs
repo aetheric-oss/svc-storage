@@ -23,7 +23,7 @@ use tonic::Status;
 
 use crate::DEFAULT_SRID;
 use postgis::ewkb::{LineStringZ, PointZ, PolygonZ};
-use server::grpc_geo_types::{GeoLineString, GeoPoint, GeoPolygon};
+use server::geo_types::{GeoLineStringZ, GeoPointZ, GeoPolygonZ};
 
 /// gRPC field types
 #[derive(Debug, Clone, PartialEq)]
@@ -55,11 +55,11 @@ pub enum GrpcField {
     /// Timestamp
     Timestamp(Timestamp),
     /// Geometric Point
-    GeoPoint(PointZ),
+    GeoPointZ(PointZ),
     /// Geometric Polygon
-    GeoPolygon(PolygonZ),
+    GeoPolygonZ(PolygonZ),
     /// Geometric Line
-    GeoLineString(LineStringZ),
+    GeoLineStringZ(LineStringZ),
     /// Option GrpcFieldOption
     Option(GrpcFieldOption),
 }
@@ -94,11 +94,11 @@ pub enum GrpcFieldOption {
     /// Option\<Timestamp\>
     Timestamp(Option<Timestamp>),
     /// Geo Point
-    GeoPoint(Option<PointZ>),
+    GeoPointZ(Option<PointZ>),
     /// Geo Polygon
-    GeoPolygon(Option<PolygonZ>),
+    GeoPolygonZ(Option<PolygonZ>),
     /// Geo Line
-    GeoLineString(Option<LineStringZ>),
+    GeoLineStringZ(Option<LineStringZ>),
     /// [None]
     None,
 }
@@ -121,7 +121,7 @@ impl From<ArrErr> for Status {
         let err: Error = err.into();
         grpc_warn!("{:#}", err);
 
-        tonic::Status::internal("error".to_string())
+        Status::internal("error".to_string())
     }
 }
 
@@ -241,39 +241,39 @@ impl From<GrpcField> for Timestamp {
         }
     }
 }
-impl From<Option<GeoPoint>> for GrpcFieldOption {
-    fn from(field: Option<GeoPoint>) -> Self {
+impl From<Option<GeoPointZ>> for GrpcFieldOption {
+    fn from(field: Option<GeoPointZ>) -> Self {
         match field {
-            Some(field) => GrpcFieldOption::GeoPoint(Some(field.into())),
-            _ => GrpcFieldOption::GeoPoint(None),
+            Some(field) => GrpcFieldOption::GeoPointZ(Some(field.into())),
+            _ => GrpcFieldOption::GeoPointZ(None),
         }
     }
 }
 impl From<GrpcField> for PointZ {
     fn from(field: GrpcField) -> Self {
         match field {
-            GrpcField::GeoPoint(field) => field,
-            _ => GeoPoint {
-                longitude: 0.0,
-                latitude: 0.0,
-                altitude: 0.0,
+            GrpcField::GeoPointZ(field) => field,
+            _ => GeoPointZ {
+                x: 0.0,
+                y: 0.0,
+                z: 0.0,
             }
             .into(),
         }
     }
 }
-impl From<Option<GeoLineString>> for GrpcFieldOption {
-    fn from(field: Option<GeoLineString>) -> Self {
+impl From<Option<GeoLineStringZ>> for GrpcFieldOption {
+    fn from(field: Option<GeoLineStringZ>) -> Self {
         match field {
-            Some(field) => GrpcFieldOption::GeoLineString(Some(field.into())),
-            _ => GrpcFieldOption::GeoLineString(None),
+            Some(field) => GrpcFieldOption::GeoLineStringZ(Some(field.into())),
+            _ => GrpcFieldOption::GeoLineStringZ(None),
         }
     }
 }
 impl From<GrpcField> for LineStringZ {
     fn from(field: GrpcField) -> Self {
         match field {
-            GrpcField::GeoLineString(field) => field,
+            GrpcField::GeoLineStringZ(field) => field,
             _ => LineStringZ {
                 points: vec![],
                 srid: Some(DEFAULT_SRID),
@@ -281,18 +281,18 @@ impl From<GrpcField> for LineStringZ {
         }
     }
 }
-impl From<Option<GeoPolygon>> for GrpcFieldOption {
-    fn from(field: Option<GeoPolygon>) -> Self {
+impl From<Option<GeoPolygonZ>> for GrpcFieldOption {
+    fn from(field: Option<GeoPolygonZ>) -> Self {
         match field {
-            Some(field) => GrpcFieldOption::GeoPolygon(Some(field.into())),
-            _ => GrpcFieldOption::GeoPolygon(None),
+            Some(field) => GrpcFieldOption::GeoPolygonZ(Some(field.into())),
+            _ => GrpcFieldOption::GeoPolygonZ(None),
         }
     }
 }
 impl From<GrpcField> for PolygonZ {
     fn from(field: GrpcField) -> Self {
         match field {
-            GrpcField::GeoPolygon(field) => field,
+            GrpcField::GeoPolygonZ(field) => field,
             _ => PolygonZ {
                 rings: vec![],
                 srid: Some(DEFAULT_SRID),
@@ -317,9 +317,9 @@ impl From<GrpcFieldOption> for Option<GrpcField> {
             GrpcFieldOption::I16(field) => field.map(GrpcField::I16),
             GrpcFieldOption::Bool(field) => field.map(GrpcField::Bool),
             GrpcFieldOption::Timestamp(field) => field.map(GrpcField::Timestamp),
-            GrpcFieldOption::GeoPoint(field) => field.map(GrpcField::GeoPoint),
-            GrpcFieldOption::GeoLineString(field) => field.map(GrpcField::GeoLineString),
-            GrpcFieldOption::GeoPolygon(field) => field.map(GrpcField::GeoPolygon),
+            GrpcFieldOption::GeoPointZ(field) => field.map(GrpcField::GeoPointZ),
+            GrpcFieldOption::GeoLineStringZ(field) => field.map(GrpcField::GeoLineStringZ),
+            GrpcFieldOption::GeoPolygonZ(field) => field.map(GrpcField::GeoPolygonZ),
             GrpcFieldOption::None => None,
         }
     }
@@ -767,17 +767,17 @@ mod tests {
             srid: Some(DEFAULT_SRID),
         };
 
-        // GrpcField into GeoPoint
-        let field = GrpcField::GeoPoint(point.clone());
+        // GrpcField into GeoPointZ
+        let field = GrpcField::GeoPointZ(point.clone());
         let result: PointZ = field.into();
         assert_eq!(result, point.clone());
 
-        // GrpcFieldOption into GeoPoint
-        let field_option = GrpcFieldOption::GeoPoint(Some(point.clone()));
+        // GrpcFieldOption into GeoPointZ
+        let field_option = GrpcFieldOption::GeoPointZ(Some(point.clone()));
         let result: Option<GrpcField> = field_option.into();
-        assert_eq!(result, Some(GrpcField::GeoPoint(point.clone())));
+        assert_eq!(result, Some(GrpcField::GeoPointZ(point.clone())));
 
-        let field = GrpcFieldOption::GeoPoint(None);
+        let field = GrpcFieldOption::GeoPointZ(None);
         let result: Option<GrpcField> = field.into();
         assert_eq!(result, None);
 
@@ -799,17 +799,17 @@ mod tests {
             }],
         };
 
-        // GrpcField into GeoLineString
-        let field = GrpcField::GeoLineString(line_string.clone());
+        // GrpcField into GeoLineStringZ
+        let field = GrpcField::GeoLineStringZ(line_string.clone());
         let result: LineStringZ = field.into();
         assert_eq!(result, line_string.clone());
 
-        // GrpcFieldOption into GeoLineString
-        let field_option = GrpcFieldOption::GeoLineString(Some(line_string.clone()));
+        // GrpcFieldOption into GeoLineStringZ
+        let field_option = GrpcFieldOption::GeoLineStringZ(Some(line_string.clone()));
         let result: Option<GrpcField> = field_option.into();
-        assert_eq!(result, Some(GrpcField::GeoLineString(line_string.clone())));
+        assert_eq!(result, Some(GrpcField::GeoLineStringZ(line_string.clone())));
 
-        let field = GrpcFieldOption::GeoLineString(None);
+        let field = GrpcFieldOption::GeoLineStringZ(None);
         let result: Option<GrpcField> = field.into();
         assert_eq!(result, None);
 
@@ -856,16 +856,16 @@ mod tests {
         };
 
         // GrpcField into Polygon
-        let field = GrpcField::GeoPolygon(polygon.clone());
+        let field = GrpcField::GeoPolygonZ(polygon.clone());
         let result: PolygonZ = field.into();
         assert_eq!(result, polygon.clone());
 
         // GrpcFieldOption into Polygon
-        let field_option = GrpcFieldOption::GeoPolygon(Some(polygon.clone()));
+        let field_option = GrpcFieldOption::GeoPolygonZ(Some(polygon.clone()));
         let result: Option<GrpcField> = field_option.into();
-        assert_eq!(result, Some(GrpcField::GeoPolygon(polygon.clone())));
+        assert_eq!(result, Some(GrpcField::GeoPolygonZ(polygon.clone())));
 
-        let field = GrpcFieldOption::GeoPolygon(None);
+        let field = GrpcFieldOption::GeoPolygonZ(None);
         let result: Option<GrpcField> = field.into();
         assert_eq!(result, None);
 
