@@ -83,10 +83,6 @@ fn get_grpc_builder_config(out_path: &str) -> tonic_build::Builder {
         .emit_rerun_if_changed(true)
         .out_dir(out_path)
         .extern_path(".google.protobuf.Timestamp", "::prost_wkt_types::Timestamp")
-        .extern_path(".grpc.geo_types.GeoPoint", "GeoPoint")
-        .extern_path(".grpc.geo_types.GeoPolygon", "GeoPolygon")
-        .extern_path(".grpc.geo_types.GeoLineString", "GeoLineString")
-        .extern_path(".grpc.geo_types.GeoLine", "GeoLine")
         .type_attribute("ReadyRequest", "#[derive(Eq, Copy)]")
         .type_attribute("ReadyResponse", "#[derive(Eq, Copy)]")
         .type_attribute("Id", "#[derive(Eq)]")
@@ -116,6 +112,9 @@ fn get_grpc_builder_config(out_path: &str) -> tonic_build::Builder {
         .type_attribute("RowData", "#[derive(Serialize, Deserialize)]")
         .type_attribute("Response", "#[derive(Serialize, Deserialize)]")
         .type_attribute("FieldValue", "#[derive(Serialize, Deserialize)]")
+        .type_attribute("GeoPointZ", "#[derive(Serialize, Deserialize, Copy)]")
+        .type_attribute("GeoPolygonZ", "#[derive(Serialize, Deserialize)]")
+        .type_attribute("GeoLineStringZ", "#[derive(Serialize, Deserialize)]")
 }
 
 fn add_utoipa_attributes(
@@ -212,4 +211,7 @@ fn add_utoipa_attributes(
             "Response",
             format!("#[schema(as = {}::Response)]", resource_type),
         )
+        .type_attribute("GeoPointZ", "#[derive(ToSchema, IntoParams)]")
+        .type_attribute("GeoPolygonZ", "#[derive(ToSchema, IntoParams)]")
+        .type_attribute("GeoLineStringZ", "#[derive(ToSchema, IntoParams)]")
 }

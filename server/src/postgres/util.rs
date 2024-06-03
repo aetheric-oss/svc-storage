@@ -2,17 +2,16 @@
 
 use super::{PsqlData, PsqlField, PsqlFieldSend};
 use crate::common::ArrErr;
+use crate::grpc::server::geo_types::{GeoLineStringZ, GeoPointZ, GeoPolygonZ};
 use crate::grpc::server::ValidationError;
 use crate::grpc::{GrpcDataObjectType, GrpcField};
 use crate::resources::base::{Resource, ResourceDefinition};
 use crate::resources::ValidationResult;
 use lib_common::time::{DateTime, Timestamp, Utc};
 use lib_common::uuid::Uuid;
-use postgis::ewkb::{LineStringZ, PointZ, PolygonZ};
 use serde_json::json;
 use tokio_postgres::types::Type as PsqlFieldType;
 type InsertVars<'a> = (Vec<String>, Vec<String>, Vec<&'a PsqlField>);
-use crate::DEFAULT_SRID;
 
 /// Convert a [`String`] (used by grpc) into a [`Uuid`] (used by postgres).
 /// Creates an error entry in the errors list if a conversion was not possible.
@@ -25,7 +24,7 @@ pub fn validate_uuid(
         Ok(id) => Some(id),
         Err(e) => {
             let error = format!("Could not convert [{}] to UUID: {}", field, e);
-            psql_info!("{}", error);
+            psql_warn!("{}", error);
             errors.push(ValidationError { field, error });
             None
         }
@@ -47,7 +46,7 @@ pub fn validate_dt(
             "Could not convert [{}] to DateTime::<Utc>({})",
             field, value
         );
-        psql_info!("{}", error);
+        psql_warn!("{}", error);
         errors.push(ValidationError { field, error });
         None
     }
@@ -67,7 +66,7 @@ pub fn validate_enum(
         Some(val) => Some(val),
         None => {
             let error = format!("Could not convert enum [{}] to i32: value not found", field);
-            psql_error!("{}", error);
+            psql_warn!("{}", error);
             errors.push(ValidationError { field, error });
             None
         }
@@ -77,7 +76,7 @@ pub fn validate_enum(
 /// Validates a [`PointZ`] (used by postgres).
 /// Creates an error entry in the errors list if a conversion was not possible.
 /// Returns `true` on success, `false` if the conversion failed.
-pub fn validate_point(field: String, value: &PointZ, errors: &mut Vec<ValidationError>) -> bool {
+pub fn validate_point(field: String, value: &GeoPointZ, errors: &mut Vec<ValidationError>) -> bool {
     let mut success = true;
     psql_debug!("{:?}", value);
     if value.x < -180.0 || value.x > 180.0 {
@@ -85,7 +84,7 @@ pub fn validate_point(field: String, value: &PointZ, errors: &mut Vec<Validation
                 "Could not convert [{}] to POINT: The provided value contains an invalid Long value, [{}] is out of range.",
                 field, value.x
             );
-        psql_info!("{}", error);
+        psql_warn!("{}", error);
         errors.push(ValidationError {
             field: field.clone(),
             error,
@@ -98,7 +97,7 @@ pub fn validate_point(field: String, value: &PointZ, errors: &mut Vec<Validation
                 "Could not convert [{}] to POINT: The provided value contains an invalid Lat value, [{}] is out of range.",
                 field, value.y
             );
-        psql_info!("{}", error);
+        psql_warn!("{}", error);
         errors.push(ValidationError { field, error });
         success = false
     }
@@ -111,10 +110,11 @@ pub fn validate_point(field: String, value: &PointZ, errors: &mut Vec<Validation
 /// Returns `true` on success, `false` if the conversion failed.
 pub fn validate_polygon(
     field: String,
-    value: &PolygonZ,
+    value: &GeoPolygonZ,
     errors: &mut Vec<ValidationError>,
 ) -> bool {
     psql_debug!("{:?}", value);
+    let mut success = true;
 
     if value.rings.is_empty() {
         let error = format!(
@@ -122,17 +122,32 @@ pub fn validate_polygon(
             field
         );
 
-        psql_error!("{}", error);
+        psql_warn!("{}", error);
         errors.push(ValidationError {
             field: field.clone(),
             error,
         });
 
-        return false;
+        success = false;
     }
 
-    let mut success = true;
     for ring in value.rings.iter() {
+        if ring.points.len() < 4 {
+            let error = format!(
+                "Could not convert [{}] to POLYGON: A provided LineStringZ ring does not have enough PointZ values (should be at least 4 but found only {}).",
+                field, ring.points.len()
+            );
+
+            psql_warn!("{}", error);
+            psql_debug!("LineStringZ: {}", ring);
+            errors.push(ValidationError {
+                field: field.clone(),
+                error,
+            });
+
+            success = false;
+        }
+
         success &= validate_line_string(field.clone(), ring, errors);
     }
 
@@ -144,7 +159,7 @@ pub fn validate_polygon(
 // /// Returns `true` on success, `false` if the conversion failed.
 pub fn validate_line_string(
     field: String,
-    value: &LineStringZ,
+    value: &GeoLineStringZ,
     errors: &mut Vec<ValidationError>,
 ) -> bool {
     psql_debug!("{:?}", value);
@@ -386,20 +401,14 @@ pub fn get_update_vars<'a>(
     Ok((updates, params))
 }
 
-fn get_point_sql_val(point_option: GrpcField) -> Option<String> {
+pub fn get_point_sql_val(point_option: GrpcField) -> Option<String> {
     match point_option {
         GrpcField::Option(val) => {
             let point: Option<GrpcField> = val.into();
             match point {
                 Some(val) => {
-                    let val: PointZ = val.into();
-                    // POINT expects (x y z) which is (long lat altitude)
-                    // postgis::ewkb::PointZ has a x and y and z which
-                    // we've aligned with the POINTZ(x y z)/SRID={DEFAULT_SRID};POINTZ(long lat altitude)
-                    Some(format!(
-                        "ST_GeomFromText('POINTZ({:.15} {:.15} {:.15})', {DEFAULT_SRID})",
-                        val.x, val.y, val.z
-                    ))
+                    let val: GeoPointZ = val.into();
+                    Some(format!("ST_GeomFromText('{}')", val))
                 }
                 None => None,
             }
@@ -408,32 +417,14 @@ fn get_point_sql_val(point_option: GrpcField) -> Option<String> {
     }
 }
 
-fn get_polygon_sql_val(polygon_option: GrpcField) -> Option<String> {
+pub fn get_polygon_sql_val(polygon_option: GrpcField) -> Option<String> {
     match polygon_option {
         GrpcField::Option(val) => {
             let polygon: Option<GrpcField> = val.into();
             match polygon {
                 Some(val) => {
-                    let val: PolygonZ = val.into();
-                    let rings_str = val
-                        .rings
-                        .into_iter()
-                        .map(|ring| {
-                            let ring_str = ring
-                                .points
-                                .into_iter()
-                                .map(|pt| format!("{:.15} {:.15} {:.15}", pt.x, pt.y, pt.z))
-                                .collect::<Vec<String>>()
-                                .join(","); // x y z, x y z, x y z
-
-                            format!("({ring_str})") // (x y z, x y z, x y z)
-                        })
-                        .collect::<Vec<String>>()
-                        .join(","); // (x y z, x y z),(x y z, x y z)
-
-                    Some(format!(
-                        "ST_GeomFromText('POLYGONZ({rings_str})', {DEFAULT_SRID})",
-                    ))
+                    let val: GeoPolygonZ = val.into();
+                    Some(format!("ST_GeomFromText('{}')", val))
                 }
                 None => None,
             }
@@ -442,23 +433,14 @@ fn get_polygon_sql_val(polygon_option: GrpcField) -> Option<String> {
     }
 }
 
-fn get_path_sql_val(path_option: GrpcField) -> Option<String> {
+pub fn get_path_sql_val(path_option: GrpcField) -> Option<String> {
     match path_option {
         GrpcField::Option(val) => {
             let path: Option<GrpcField> = val.into();
             match path {
                 Some(val) => {
-                    let val: LineStringZ = val.into();
-                    let pts_str = val
-                        .points
-                        .into_iter()
-                        .map(|pt| format!("{:.15} {:.15} {:.15}", pt.x, pt.y, pt.z))
-                        .collect::<Vec<String>>()
-                        .join(","); // x y z, x y z, x y z
-
-                    Some(format!(
-                        "ST_GeomFromText('LINESTRINGZ({pts_str})', {DEFAULT_SRID})",
-                    ))
+                    let val: GeoLineStringZ = val.into();
+                    Some(format!("ST_GeomFromText('{}')", val))
                 }
                 None => None,
             }
@@ -643,7 +625,7 @@ mod tests {
     use super::*;
     use crate::resources::base::ResourceObject;
     use crate::test_util::*;
-    use crate::DEFAULT_SRID;
+    use regex::Regex;
 
     #[tokio::test]
     async fn test_validate_uuid_valid() {
@@ -717,11 +699,10 @@ mod tests {
         ut_info!("start");
 
         let mut errors: Vec<ValidationError> = vec![];
-        let point = PointZ {
+        let point = GeoPointZ {
             x: 1.234,
             y: -1.234,
             z: 100.0,
-            srid: Some(DEFAULT_SRID),
         };
         let result = validate_point("point".to_string(), &point, &mut errors);
         assert!(result);
@@ -736,11 +717,10 @@ mod tests {
         ut_info!("start");
 
         let mut errors: Vec<ValidationError> = vec![];
-        let point = PointZ {
+        let point = GeoPointZ {
             x: 200.234,
             y: -190.234,
             z: 100.0,
-            srid: Some(DEFAULT_SRID),
         };
         let result = validate_point("point".to_string(), &point, &mut errors);
         assert!(!result);
@@ -758,23 +738,28 @@ mod tests {
         ut_info!("start");
 
         let mut errors: Vec<ValidationError> = vec![];
-        let srid = Some(DEFAULT_SRID);
-        let polygon = PolygonZ {
-            srid: srid.clone(),
-            rings: vec![LineStringZ {
-                srid: srid.clone(),
+        let polygon = GeoPolygonZ {
+            rings: vec![GeoLineStringZ {
                 points: vec![
-                    PointZ {
+                    GeoPointZ {
                         x: 40.123,
                         y: -40.123,
                         z: 100.0,
-                        srid: srid.clone(),
                     },
-                    PointZ {
+                    GeoPointZ {
                         x: 41.123,
                         y: -41.123,
                         z: 100.0,
-                        srid: srid.clone(),
+                    },
+                    GeoPointZ {
+                        x: 42.123,
+                        y: -42.123,
+                        z: 90.0,
+                    },
+                    GeoPointZ {
+                        x: 40.123,
+                        y: -40.123,
+                        z: 100.0,
                     },
                 ],
             }],
@@ -792,13 +777,9 @@ mod tests {
         lib_common::logger::get_log_handle().await;
         ut_info!("start");
 
-        // Not enough lines
+        // Not enough lines, should return just 1 error
         let mut errors: Vec<ValidationError> = vec![];
-        let srid = Some(DEFAULT_SRID);
-        let polygon = PolygonZ {
-            srid: srid.clone(),
-            rings: vec![],
-        };
+        let polygon = GeoPolygonZ { rings: vec![] };
 
         let result = validate_polygon("polygon".to_string(), &polygon, &mut errors);
         println!("errors found: {:?}", errors);
@@ -807,25 +788,20 @@ mod tests {
         assert_eq!(errors.len(), 1);
         assert_eq!(errors[0].field, "polygon");
 
-        // Invalid points
+        // Invalid points and not enough points in the ring (must be at least 4)
         let mut errors: Vec<ValidationError> = vec![];
-        let srid = Some(DEFAULT_SRID);
-        let polygon = PolygonZ {
-            srid: srid.clone(),
-            rings: vec![LineStringZ {
-                srid: srid.clone(),
+        let polygon = GeoPolygonZ {
+            rings: vec![GeoLineStringZ {
                 points: vec![
-                    PointZ {
+                    GeoPointZ {
                         x: 400.123,
                         y: -400.123,
                         z: 100.0,
-                        srid: srid.clone(),
                     },
-                    PointZ {
+                    GeoPointZ {
                         x: 410.123,
                         y: -410.123,
                         z: 100.0,
-                        srid: srid.clone(),
                     },
                 ],
             }],
@@ -835,11 +811,12 @@ mod tests {
         println!("errors found: {:?}", errors);
         assert!(!result);
         assert!(!errors.is_empty());
-        assert_eq!(errors.len(), 4);
+        assert_eq!(errors.len(), 5);
         assert_eq!(errors[0].field, "polygon");
         assert_eq!(errors[1].field, "polygon");
         assert_eq!(errors[2].field, "polygon");
         assert_eq!(errors[3].field, "polygon");
+        assert_eq!(errors[4].field, "polygon");
 
         ut_info!("success");
     }
@@ -850,20 +827,17 @@ mod tests {
         ut_info!("start");
 
         let mut errors: Vec<ValidationError> = vec![];
-        let line = LineStringZ {
-            srid: Some(DEFAULT_SRID),
+        let line = GeoLineStringZ {
             points: vec![
-                PointZ {
+                GeoPointZ {
                     x: 40.123,
                     y: -40.123,
                     z: 100.0,
-                    srid: Some(DEFAULT_SRID),
                 },
-                PointZ {
+                GeoPointZ {
                     x: 41.123,
                     y: -41.123,
                     z: 100.0,
-                    srid: Some(DEFAULT_SRID),
                 },
             ],
         };
@@ -880,13 +854,11 @@ mod tests {
         ut_info!("start");
 
         let mut errors: Vec<ValidationError> = vec![];
-        let line = LineStringZ {
-            srid: Some(DEFAULT_SRID),
-            points: vec![PointZ {
+        let line = GeoLineStringZ {
+            points: vec![GeoPointZ {
                 x: 400.123,
                 y: -400.123,
                 z: 100.0,
-                srid: Some(DEFAULT_SRID),
             }],
         };
 
@@ -931,6 +903,8 @@ mod tests {
         println!("Validation result: {:?}", validation_result);
         assert_eq!(validation_result.success, true);
         let definition = <ResourceObject<TestData>>::get_definition();
+        let insert_re = Regex::new(r"(\$|ST_GeomFromText\()(\d+|'.*')\)?$")
+            .unwrap_or_else(|e| panic!("Could not create regex: {}", e));
         match get_insert_vars(&valid_data, &psql_data, &definition, false) {
             Ok((inserts, fields, params)) => {
                 println!("Insert Statements: {:?}", inserts);
@@ -940,12 +914,17 @@ mod tests {
                 assert_eq!(params.len(), 17);
                 let field_params = fields.iter().zip(inserts.iter());
                 for (field, insert) in field_params {
-                    let value = match insert.strip_prefix("$") {
-                        Some(i) => {
-                            let index = i
-                                .parse::<usize>()
-                                .expect("Could not parse param index as i32");
-                            format!("{:?}", params[index - 1])
+                    let value = match insert_re.captures(&insert) {
+                        Some(capture) => {
+                            println!("Captures: {:?}", capture);
+                            if &capture[1] == "$" {
+                                let index = capture[2]
+                                    .parse::<usize>()
+                                    .expect("Could not parse param index as i32");
+                                format!("{:?}", params[index - 1])
+                            } else {
+                                capture[2].to_string()
+                            }
                         }
                         None => format!("{}", insert),
                     };
@@ -1012,6 +991,8 @@ mod tests {
         assert_eq!(validation_result.success, true);
 
         let definition = <ResourceObject<TestData>>::get_definition();
+        let update_re = Regex::new(r"(.*) = (\$|ST_GeomFromText\()(\d+|'.*')\)?$")
+            .unwrap_or_else(|e| panic!("Could not create regex: {}", e));
         match get_update_vars(&valid_data, &psql_data, &definition) {
             Ok((updates, params)) => {
                 println!("Update Statements: {:?}", updates);
@@ -1019,22 +1000,40 @@ mod tests {
                 assert_eq!(updates.len(), 23);
                 assert_eq!(params.len(), 17);
                 for update in updates {
-                    let update_split = update.split('=').collect::<Vec<&str>>();
-                    let field: &str = update_split[0].trim();
-                    let value = match update_split[1].trim().strip_prefix("$") {
-                        Some(i) => {
-                            let index = i
-                                .parse::<usize>()
-                                .expect("Could not parse param index as i32");
-                            format!("{:?}", params[index - 1])
+                    let field: String;
+                    let value: String;
+                    match update_re.captures(&update) {
+                        Some(capture) => {
+                            println!("Captures: {:?}", capture);
+                            field = capture[1].to_string();
+                            if &capture[2] == "$" {
+                                let index = capture[3]
+                                    .parse::<usize>()
+                                    .expect("Could not parse param index as i32");
+                                value = format!("{:?}", params[index - 1])
+                            } else {
+                                value = capture[3].to_string()
+                            }
                         }
-                        None => format!("{}", update_split[1].trim()),
-                    };
+                        None => {
+                            let update_split = update.split('=').collect::<Vec<&str>>();
+                            field = update_split[0].trim().to_string();
+                            value = match update_split[1].trim().strip_prefix("$") {
+                                Some(i) => {
+                                    let index = i
+                                        .parse::<usize>()
+                                        .expect("Could not parse param index as i32");
+                                    format!("{:?}", params[index - 1])
+                                }
+                                None => format!("{}", update_split[1].trim()),
+                            };
+                        }
+                    }
 
                     println!("Update Statement: {}", update);
                     println!("Update Field: {}", field);
                     println!("Update Param: {}", value);
-                    match field {
+                    match field.as_str() {
                         r#""timestamp""# => {
                             assert_eq!(value, timestamp.as_ref().unwrap().to_string());
                         }
@@ -1050,7 +1049,7 @@ mod tests {
                         r#""read_only""# => {
                             panic!("This field is read_only and should not have been returned!");
                         }
-                        _ => validate_test_data_sql_val(field, &value),
+                        _ => validate_test_data_sql_val(&field, &value),
                     }
                 }
             }

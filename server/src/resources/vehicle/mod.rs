@@ -248,10 +248,7 @@ mod tests {
         let result = validate::<ResourceObject<Data>>(&data);
         assert!(result.is_ok());
         if let Ok((data, validation_result)) = result {
-            ut_debug!(
-                "validation result: {:?}",
-                validation_result
-            );
+            ut_debug!("validation result: {:?}", validation_result);
             ut_debug!("data: {:?}", data);
             assert_eq!(validation_result.success, false);
 
