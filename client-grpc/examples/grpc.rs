@@ -1,11 +1,11 @@
 //! gRPC client implementation
+use svc_storage::DEFAULT_SRID;
 use svc_storage_client_grpc::prelude::*;
 
 use lib_common::grpc::get_endpoint_from_env;
 use lib_common::time::{Datelike, Duration, Local, NaiveDate, Timelike, Utc};
 use lib_common::uuid::Uuid;
-use postgis::ewkb::{LineStringZ, PointZ, PolygonZ};
-use svc_storage_client_grpc::DEFAULT_SRID;
+use svc_storage_client_grpc::prelude::{GeoPointZ, GeoPolygonZ};
 use tokio::sync::OnceCell;
 use tonic::Status;
 
@@ -593,40 +593,36 @@ async fn generate_sample_vertiports() -> Result<vertiport::List, Status> {
     let vertiport_client = &clients.vertiport;
     println!("Vertiport Client created");
 
-    let srid = Some(DEFAULT_SRID);
     match vertiport_client
         .insert(vertiport::Data {
             name: "My favorite port".to_string(),
             description: "Open during workdays and work hours only".to_string(),
-            geo_location: Some(
-                PolygonZ {
-                    srid: srid.clone(),
-                    rings: vec![LineStringZ {
-                        srid: srid.clone(),
-                        points: vec![
-                            PointZ {
-                                x: 4.78565097,
-                                y: 53.01922827,
-                                z: 10.0,
-                                srid: srid.clone(),
-                            },
-                            PointZ {
-                                x: 4.78650928,
-                                y: 53.01922827,
-                                z: 10.0,
-                                srid: srid.clone(),
-                            },
-                            PointZ {
-                                x: 4.78607476,
-                                y: 53.01896366,
-                                z: 10.0,
-                                srid: srid.clone(),
-                            },
-                        ],
-                    }],
-                }
-                .into(),
-            ),
+            geo_location: Some(GeoPolygonZ {
+                rings: vec![GeoLineStringZ {
+                    points: vec![
+                        GeoPointZ {
+                            x: 4.78565097,
+                            y: 53.01922827,
+                            z: 10.0,
+                        },
+                        GeoPointZ {
+                            x: 4.78650928,
+                            y: 53.01922827,
+                            z: 10.0,
+                        },
+                        GeoPointZ {
+                            x: 4.78607476,
+                            y: 53.01896366,
+                            z: 10.0,
+                        },
+                        GeoPointZ {
+                            x: 4.78565097,
+                            y: 53.01922827,
+                            z: 10.0,
+                        },
+                    ],
+                }],
+            }),
             schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
             created_at: None,
             updated_at: None,
@@ -656,7 +652,7 @@ async fn generate_sample_vertiports() -> Result<vertiport::List, Status> {
     */
     let filter = AdvancedSearchFilter::search_geo_within(
         "geo_location".to_owned(),
-        "POINT(4.7862 53.0191)".to_string(),
+        format!("SRID={};POINT(4.7862 53.0191 10.0)", DEFAULT_SRID),
     )
     .page_number(1)
     .results_per_page(50);
@@ -789,10 +785,8 @@ async fn flight_plan_scenario(
         };
     }
 
-    let origin_timeslot_min =
-        prost_wkt_types::Timestamp::date_time(2022, 10, 12, 23, 00, 00).unwrap();
-    let origin_timeslot_max =
-        prost_wkt_types::Timestamp::date_time(2024, 10, 13, 23, 00, 00).unwrap();
+    let origin_timeslot_min = Timestamp::date_time(2022, 10, 12, 23, 00, 00).unwrap();
+    let origin_timeslot_max = Timestamp::date_time(2024, 10, 13, 23, 00, 00).unwrap();
     let time_filter = AdvancedSearchFilter::search_equals("pilot_id".to_string(), pilot_id.clone())
         .and_between(
             "origin_timeslot_start".to_owned(),

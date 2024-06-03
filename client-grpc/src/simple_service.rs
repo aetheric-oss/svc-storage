@@ -85,7 +85,7 @@ where
     ///         vehicle_id,
     ///         session_id,
     ///         pilot_id,
-    ///         path: Some(GeoLineString { points: vec![] }),
+    ///         path: Some(GeoLineStringZ{ points: vec![] }),
     ///         weather_conditions: Some("Cloudy, low wind".to_owned()),
     ///         origin_vertipad_id,
     ///         origin_vertiport_id: None,

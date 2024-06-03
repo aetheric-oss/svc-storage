@@ -147,7 +147,7 @@ service RpcServiceLinked {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{Id, FlightPlanParcelClient, simple_service_linked::Client, GeoLineString, Timestamp};
+    // use svc_storage_client_grpc::{Id, FlightPlanParcelClient, simple_service_linked::Client, GeoLineStringZ Timestamp};
     // use svc_storage_client_grpc::flight_plan::{RowData, FlightStatus, FlightPriority};
     // use std::time::SystemTime;
     //

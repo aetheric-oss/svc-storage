@@ -1,5 +1,5 @@
 use super::Data;
-use crate::resources::grpc_geo_types::GeoPoint;
+use crate::resources::geo_types::GeoPointZ;
 use lib_common::time::Utc;
 use lib_common::uuid::Uuid;
 
@@ -11,10 +11,10 @@ pub fn get_data_obj() -> Data {
     Data {
         parcel_id,
         scanner_id,
-        geo_location: Some(GeoPoint {
-            longitude: -122.4194,
-            latitude: 37.7746,
-            altitude: 0.0,
+        geo_location: Some(GeoPointZ{
+            x: -122.4194,
+            y: 37.7746,
+            z: 0.0,
         }),
         created_at: Some(Utc::now().into()),
     }

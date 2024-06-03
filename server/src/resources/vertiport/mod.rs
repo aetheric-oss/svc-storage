@@ -157,35 +157,48 @@ mod tests {
         let data = Data {
             name: String::from(""),
             description: String::from(""),
-            geo_location: Some(GeoPolygon {
-                exterior: Some(GeoLineString {
-                    points: vec![
-                        GeoPoint {
-                            latitude: 201.0,
-                            longitude: 0.0,
-                            altitude: 0.0,
-                        },
-                        GeoPoint {
-                            latitude: 0.0,
-                            longitude: 0.0,
-                            altitude: 0.0,
-                        },
-                    ],
-                }),
-                interiors: vec![GeoLineString {
-                    points: vec![
-                        GeoPoint {
-                            latitude: 0.0,
-                            longitude: 0.0,
-                            altitude: 0.0,
-                        },
-                        GeoPoint {
-                            latitude: 0.0,
-                            longitude: -202.0, // invalid
-                            altitude: 0.0,
-                        },
-                    ],
-                }],
+            geo_location: Some(GeoPolygonZ {
+                rings: vec![
+                    GeoLineStringZ {
+                        points: vec![
+                            GeoPointZ {
+                                x: 0.0,
+                                y: 0.0,
+                                z: 0.0,
+                            },
+                            GeoPointZ {
+                                x: -202.0, // invalid
+                                y: 0.0,
+                                z: 0.0,
+                            },
+                            GeoPointZ {
+                                x: 0.0,
+                                y: 0.0,
+                                z: 0.0,
+                            },
+                            GeoPointZ {
+                                x: 180.0,
+                                y: 90.0,
+                                z: 0.0,
+                            },
+                        ],
+                    },
+                    GeoLineStringZ {
+                        // invalid
+                        points: vec![
+                            GeoPointZ {
+                                x: 180.0,
+                                y: 90.0,
+                                z: 0.0,
+                            },
+                            GeoPointZ {
+                                x: -180.0,
+                                y: -90.0,
+                                z: 0.0,
+                            },
+                        ],
+                    },
+                ],
             }),
             schedule: Some(String::from("")),
             // The fields below are read_only, should not be returned as invalid

@@ -74,7 +74,7 @@ message Data {
     // vehicle_id UUID v4
     string vehicle_id = 2;
     // the path of the flight
-    grpc.geo_types.GeoLineString path = 3;
+    grpc.geo_types.GeoLineStringZ path = 3;
     // weather_conditions
     optional string weather_conditions = 4;
     // origin_vertiport_id UUID v4, only listed for get results, not needed for

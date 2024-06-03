@@ -47,7 +47,7 @@ message Data {
     string scanner_id = 2;
 
     // geographical location of the vertiport
-    grpc.geo_types.GeoPoint geo_location = 3;
+    grpc.geo_types.GeoPointZ geo_location = 3;
 
     // the time the parcel was scanned
     google.protobuf.Timestamp created_at = 4;

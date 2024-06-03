@@ -117,10 +117,7 @@ where
     ) -> Result<Response<Self::Response>, Status> {
         let data = request.into_inner();
         let mut resource: Self::ResourceObject = data.into();
-        grpc_debug!(
-            "Inserting with data [{:?}].",
-            resource.try_get_data()?
-        );
+        grpc_debug!("Inserting with data [{:?}].", resource.try_get_data()?);
         let (id, validation_result) =
             Self::ResourceObject::create(&resource.try_get_data()?).await?;
         if let Some(id) = id {

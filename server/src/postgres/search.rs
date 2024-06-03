@@ -483,7 +483,7 @@ pub(super) fn param_from_search_col(
 mod tests {
     use super::*;
     use crate::resources::base::ResourceObject;
-    use crate::test_util::*;
+    use crate::{test_util::*, DEFAULT_SRID};
 
     #[tokio::test]
     async fn test_get_param_from_search_col() {
@@ -495,7 +495,7 @@ mod tests {
         // value for that type.
         let definition = ResourceObject::<TestData>::get_definition();
         for field in definition.get_psql_id_cols() {
-            let val = lib_common::uuid::Uuid::new_v4();
+            let val = Uuid::new_v4();
             let search_col = SearchCol {
                 col_name: field.clone(),
                 col_type: PsqlFieldType::UUID,
@@ -510,7 +510,7 @@ mod tests {
         for (field, field_definition) in definition.fields {
             let (string_val, display_val) = match field_definition.field_type {
                 PsqlFieldType::UUID => {
-                    let val = lib_common::uuid::Uuid::new_v4();
+                    let val = Uuid::new_v4();
                     (val.to_string(), format!("{:?}", val))
                 }
                 PsqlFieldType::TIMESTAMPTZ => {
@@ -522,15 +522,18 @@ mod tests {
                     (val.to_string(), format!("{:?}", val))
                 }
                 PsqlFieldType::POINT => {
-                    let val = "Point(1.0 2.0)";
+                    let val = format!("SRID={};POINT X(1.0 2.0 10.0)", DEFAULT_SRID);
                     (val.to_string(), format!("{:?}", val))
                 }
                 PsqlFieldType::POLYGON => {
-                    let val = "Polygon((1.1 1.1, 2.1 2.2), (3.1 3.2, 4.1 4.2))";
+                    let val = format!("SRID={};POLYGON X((1.1 1.1 10,0, 2.1 2.2 10.0), (3.1 3.2 10.0, 4.1 4.2 10.0))", DEFAULT_SRID);
                     (val.to_string(), format!("{:?}", val))
                 }
                 PsqlFieldType::PATH => {
-                    let val = "LineString(1.1 1.1, 2.1 2.2)";
+                    let val = format!(
+                        "SRID={};LineString(1.1 1.1 10.0, 2.1 2.2 10.0)",
+                        DEFAULT_SRID
+                    );
                     (val.to_string(), format!("{:?}", val))
                 }
                 PsqlFieldType::TEXT => {

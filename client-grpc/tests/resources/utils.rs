@@ -15,7 +15,7 @@ pub async fn get_clients() -> &'static Clients {
     CLIENTS
         .get_or_init(|| async move {
             let (host, port) = get_endpoint_from_env("SERVER_HOSTNAME", "SERVER_PORT_GRPC");
-            svc_storage_client_grpc::Clients::new(host, port)
+            Clients::new(host, port)
         })
         .await
 }

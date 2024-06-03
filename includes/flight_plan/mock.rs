@@ -1,5 +1,5 @@
 use super::{Data, FlightPriority, FlightStatus};
-use crate::resources::grpc_geo_types::{GeoLineString, GeoPoint};
+use crate::resources::geo_types::{GeoLineStringZ, GeoPointZ};
 use lib_common::time::{Datelike, Duration, NaiveDate, Timelike, Utc};
 use lib_common::uuid::Uuid;
 use rand::seq::SliceRandom;
@@ -65,21 +65,21 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
     // let's have a minimum of 500 meters and a maximum range of about 200km
     let flight_distance_meters: u32 = rng.gen_range(500..200000);
 
-    let start_point = GeoPoint {
-        longitude: 4.9164,
-        latitude: 52.37466,
-        altitude: 0.0,
+    let start_point = GeoPointZ {
+        x: 4.9164,
+        y: 52.37466,
+        z: 0.0,
     };
 
     // Flight straight north
     // Quick and dirty conversion - 111,111 meters ~= 1 degree latitude
-    let end_point = GeoPoint {
-        longitude: 4.9164,
-        latitude: start_point.latitude + flight_distance_meters as f64 / 111111.0,
-        altitude: 0.0,
+    let end_point = GeoPointZ {
+        x: 4.9164,
+        y: start_point.y + flight_distance_meters as f64 / 111111.0,
+        z: 0.0,
     };
 
-    let path = GeoLineString {
+    let path = GeoLineStringZ {
         points: vec![start_point, end_point],
     };
 
@@ -165,7 +165,8 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
         );
 
         // arrival was in the past, set actual arrival +/- 6 min
-        actual_arrival_time = Some((arrival_date + Duration::seconds(rng.gen_range(-360..360))).into());
+        actual_arrival_time =
+            Some((arrival_date + Duration::seconds(rng.gen_range(-360..360))).into());
         // we've arrived
         flight_status = FlightStatus::Finished as i32;
     }

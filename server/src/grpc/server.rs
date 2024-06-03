@@ -58,57 +58,10 @@ pub mod search {
 }
 
 /// Provide geo types and conversions
-pub mod grpc_geo_types {
+pub mod geo_types {
     use serde::{Deserialize, Serialize};
 
-    /// Geo Location Point representation
-    /// <https://mapscaping.com/latitude-x-or-y/>
-    #[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, Copy, PartialEq, ::prost::Message, Serialize, Deserialize)]
-    pub struct GeoPoint {
-        /// longitude (x / horizontal / east-west)
-        /// range: -180 - 180
-        #[prost(double, tag = "1")]
-        pub longitude: f64,
-        /// latitude (y / vertical / north-south)
-        /// range: -90 - 90
-        #[prost(double, tag = "2")]
-        pub latitude: f64,
-        /// altitude (z / height)
-        #[prost(double, tag = "3")]
-        pub altitude: f64,
-    }
-    /// Geo Location Line representation
-    #[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, Copy, PartialEq, ::prost::Message, Serialize, Deserialize)]
-    pub struct GeoLine {
-        /// line start point as long/lat
-        #[prost(message, optional, tag = "1")]
-        pub start: ::core::option::Option<GeoPoint>,
-        /// line end point as long/lat
-        #[prost(message, optional, tag = "2")]
-        pub end: ::core::option::Option<GeoPoint>,
-    }
-    /// Geo Location Shape representation
-    #[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message, Serialize, Deserialize)]
-    pub struct GeoLineString {
-        /// list of points
-        #[prost(message, repeated, tag = "1")]
-        pub points: ::prost::alloc::vec::Vec<GeoPoint>,
-    }
-    /// Geo Location Polygon representation
-    #[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message, Serialize, Deserialize)]
-    pub struct GeoPolygon {
-        /// exterior
-        #[prost(message, optional, tag = "1")]
-        pub exterior: ::core::option::Option<GeoLineString>,
-        /// interiors
-        #[prost(message, repeated, tag = "2")]
-        pub interiors: ::prost::alloc::vec::Vec<GeoLineString>,
-    }
-
+    include!("../../../out/grpc/grpc.geo_types.rs");
     include!("../../../includes/geo_types.rs");
 }
 
@@ -209,10 +162,7 @@ pub async fn grpc_server(config: Config, shutdown_rx: Option<tokio::sync::onesho
         .await;
 
     //start server
-    grpc_info!(
-        "Starting gRPC services on: {}.",
-        full_grpc_addr
-    );
+    grpc_info!("Starting gRPC services on: {}.", full_grpc_addr);
     match Server::builder()
         .add_service(health_service)
         .add_service(adsb::RpcServiceServer::new(adsb::GrpcServer::default()))

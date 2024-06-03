@@ -137,11 +137,7 @@ where
 
         psql_info!("Dropping table [{}].", definition.psql_table);
         if let Err(e) = transaction.execute(&drop_query, &[]).await {
-            psql_error!(
-                "Failed to drop table [{}]: {}",
-                e,
-                definition.psql_table
-            );
+            psql_error!("Failed to drop table [{}]: {}", e, definition.psql_table);
             return transaction.rollback().await.map_err(ArrErr::from);
         }
         transaction.commit().await.map_err(ArrErr::from)

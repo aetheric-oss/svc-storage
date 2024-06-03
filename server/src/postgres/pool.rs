@@ -89,18 +89,12 @@ impl PostgresPool {
         settings.pg.manager = Some(ManagerConfig {
             recycling_method: RecyclingMethod::Fast,
         });
-        psql_debug!(
-            "Creating PostgresPool with configuration: {:?}",
-            settings
-        );
+        psql_debug!("Creating PostgresPool with configuration: {:?}", settings);
 
         let pool = if settings.use_tls {
             psql_info!("Initializing connection with TLS settings.");
             psql_debug!("[{:?}].", settings);
-            psql_info!(
-                "Try read root cert file: {}",
-                settings.db_ca_cert
-            );
+            psql_info!("Try read root cert file: {}", settings.db_ca_cert);
             let root_cert_file = match fs::read(settings.db_ca_cert.clone()) {
                 Ok(root_cert_file) => root_cert_file,
                 Err(e) => {

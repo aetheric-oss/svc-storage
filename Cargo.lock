@@ -2155,6 +2155,7 @@ dependencies = [
  "prost-types",
  "prost-wkt-types",
  "rand",
+ "regex",
  "serde",
  "serde_json",
  "serde_yaml",
