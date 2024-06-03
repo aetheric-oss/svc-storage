@@ -201,7 +201,7 @@ where
         )
         .await
         {
-            Ok(_) => Ok(tonic::Response::new(())),
+            Ok(_) => Ok(Response::new(())),
             Err(e) => Err(Status::new(Code::Internal, e.to_string())),
         }
     }
@@ -224,7 +224,7 @@ where
     {
         let id: Id = request.into_inner();
         let ids = Self::_get_linked(id).await?;
-        Ok(tonic::Response::new(IdList { ids }))
+        Ok(Response::new(IdList { ids }))
     }
 
     /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type [`Self::OtherList`].
@@ -253,7 +253,7 @@ where
         let filter = AdvancedSearchFilter::search_in(other_id_field, ids);
 
         match Self::OtherResourceObject::advanced_search(filter).await {
-            Ok(rows) => Ok(tonic::Response::new(rows.try_into()?)),
+            Ok(rows) => Ok(Response::new(rows.try_into()?)),
             Err(e) => Err(Status::new(Code::Internal, e.to_string())),
         }
     }

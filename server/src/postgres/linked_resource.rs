@@ -145,10 +145,7 @@ where
             psql_debug!("{}", insert_sql);
             psql_debug!("{:?}", &params);
 
-            psql_info!(
-                "Update/Insert entry for table [{}].",
-                definition.psql_table
-            );
+            psql_info!("Update/Insert entry for table [{}].", definition.psql_table);
 
             let mut ref_params: Vec<&PsqlField> = vec![];
             for field in params.iter() {

@@ -72,6 +72,12 @@ pub fn get_data_obj() -> Data {
                                 z: 10.0,
                                 srid: srid.clone(),
                             },
+                            PointZ {
+                                x: 4.78565097,
+                                y: 53.01922827,
+                                z: 10.0,
+                                srid: srid.clone(),
+                            },
                         ]
                     }
                 ]

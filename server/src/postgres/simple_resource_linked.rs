@@ -3,14 +3,12 @@
 use super::get_psql_client;
 use super::{util::*, ArrErr, PsqlData, PsqlField, PsqlFieldSend};
 use crate::grpc::server::ValidationResult;
-use crate::grpc::{GrpcDataObjectType, GrpcField};
+use crate::grpc::GrpcDataObjectType;
 use crate::resources::base::simple_resource::*;
 
-use crate::DEFAULT_SRID;
 use deadpool_postgres::Transaction;
 use lib_common::time::{DateTime, Utc};
 use lib_common::uuid::Uuid;
-use postgis::ewkb::{LineStringZ, PointZ, PolygonZ};
 use std::collections::HashMap;
 use std::vec;
 use tokio_postgres::types::Type as PsqlFieldType;
@@ -450,86 +448,5 @@ where
         }
 
         Ok((updates, params))
-    }
-}
-
-fn get_point_sql_val(point_option: GrpcField) -> Option<String> {
-    match point_option {
-        GrpcField::Option(val) => {
-            let point: Option<GrpcField> = val.into();
-            match point {
-                Some(val) => {
-                    let val: PointZ = val.into();
-                    // POINT expects (x y) which is (long lat)
-                    // postgis::ewkb::PointZ has a x and y and z which
-                    // we've aligned with the POINT(x y z)/POINT(long lat altitude)
-                    Some(format!(
-                        "ST_GeomFromText('POINTZ({:.15} {:.15} {:.15})', {DEFAULT_SRID})",
-                        val.x, val.y, val.z
-                    ))
-                }
-                None => None,
-            }
-        }
-        _ => None,
-    }
-}
-
-fn get_polygon_sql_val(polygon_option: GrpcField) -> Option<String> {
-    match polygon_option {
-        GrpcField::Option(val) => {
-            let polygon: Option<GrpcField> = val.into();
-            match polygon {
-                Some(val) => {
-                    let val: PolygonZ = val.into();
-                    let rings_str = val
-                        .rings
-                        .into_iter()
-                        .map(|ring| {
-                            let ring_str = ring
-                                .points
-                                .into_iter()
-                                .map(|pt| format!("{:.15} {:.15} {:.15}", pt.x, pt.y, pt.z))
-                                .collect::<Vec<String>>()
-                                .join(","); // x y z, x y z, x y z
-
-                            format!("({ring_str})") // (x y z, x y z, x y z)
-                        })
-                        .collect::<Vec<String>>()
-                        .join(","); // (x y z, x y z),(x y z, x y z)
-
-                    Some(format!(
-                        "ST_GeomFromText('POLYGONZ({rings_str})', {DEFAULT_SRID})",
-                    ))
-                }
-                None => None,
-            }
-        }
-        _ => None,
-    }
-}
-
-fn get_path_sql_val(path_option: GrpcField) -> Option<String> {
-    match path_option {
-        GrpcField::Option(val) => {
-            let path: Option<GrpcField> = val.into();
-            match path {
-                Some(val) => {
-                    let val: LineStringZ = val.into();
-                    let pts_str = val
-                        .points
-                        .into_iter()
-                        .map(|pt| format!("{:.15} {:.15} {:.15}", pt.x, pt.y, pt.z))
-                        .collect::<Vec<String>>()
-                        .join(","); // x y z, x y z, x y z
-
-                    Some(format!(
-                        "ST_GeomFromText('LINESTRINGZ({pts_str})', {DEFAULT_SRID})",
-                    ))
-                }
-                None => None,
-            }
-        }
-        _ => None,
     }
 }

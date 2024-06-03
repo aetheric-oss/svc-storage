@@ -26,14 +26,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         if rebuild_psql {
             info!("(main) Found argument [rebuild_psql]. Rebuilding now...");
             #[cfg(not(feature = "stub_backends"))]
-            svc_storage::postgres::init::recreate_db().await?;
+            postgres::init::recreate_db().await?;
             info!("(main) PSQL Rebuild completed.");
         }
     } else if let Some(init_psql) = args.init_psql {
         if init_psql {
             info!("(main) Found argument [init_psql]. Creating database schema now...");
             #[cfg(not(feature = "stub_backends"))]
-            svc_storage::postgres::init::create_db().await?;
+            postgres::init::create_db().await?;
             info!("(main) PSQL Database creation completed.");
         }
     }

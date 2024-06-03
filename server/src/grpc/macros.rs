@@ -385,7 +385,7 @@ macro_rules! grpc_server_simple_service_mod {
                 ".service.rs"
             ));
             pub use rpc_service_server::*;
-            pub use $crate::grpc::server::grpc_geo_types::*;
+            pub use $crate::grpc::server::geo_types::*;
 
             #[doc = concat!(stringify!($resource), "module including mock file")]
 
@@ -836,7 +836,7 @@ macro_rules! grpc_server_simple_service_linked_mod {
                 ".service.rs"
             ));
             pub use rpc_service_linked_server::*;
-            pub use $crate::grpc::server::grpc_geo_types::*;
+            pub use $crate::grpc::server::geo_types::*;
 
             #[doc = concat!(stringify!($linked_resource), "module including mock file")]
 

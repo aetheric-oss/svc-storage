@@ -1,6 +1,6 @@
 //! Implement Postgis Traits for our own Structs
 
-use crate::grpc::server::grpc_geo_types::{GeoLineString, GeoPoint};
+use crate::grpc::server::geo_types::{GeoLineStringZ, GeoPointZ};
 use crate::DEFAULT_SRID;
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 use bytes::{BufMut, BytesMut};
@@ -28,18 +28,18 @@ fn read_f64<R: Read>(raw: &mut R, is_be: bool) -> Result<f64, postgis::error::Er
     })
 }
 
-impl postgis::Point for GeoPoint {
+impl postgis::Point for GeoPointZ {
     fn x(&self) -> f64 {
-        self.longitude
+        self.x
     }
     fn y(&self) -> f64 {
-        self.latitude
+        self.y
     }
     fn opt_z(&self) -> Option<f64> {
-        Some(self.altitude)
+        Some(self.x)
     }
 }
-impl EwkbRead for GeoPoint {
+impl EwkbRead for GeoPointZ {
     fn point_type() -> PointType {
         PointType::PointZ
     }
@@ -49,17 +49,13 @@ impl EwkbRead for GeoPoint {
         _type_id: u32,
         _srid: Option<i32>,
     ) -> Result<Self, postgis::error::Error> {
-        let longitude = read_f64(raw, is_be)?;
-        let latitude = read_f64(raw, is_be)?;
-        let altitude = read_f64(raw, is_be)?;
-        Ok(GeoPoint {
-            longitude,
-            latitude,
-            altitude,
-        })
+        let x = read_f64(raw, is_be)?;
+        let y = read_f64(raw, is_be)?;
+        let z = read_f64(raw, is_be)?;
+        Ok(GeoPointZ { x, y, z })
     }
 }
-impl<'a> AsEwkbPoint<'a> for GeoPoint {
+impl<'a> AsEwkbPoint<'a> for GeoPointZ {
     fn as_ewkb(&'a self) -> EwkbPoint<'a> {
         EwkbPoint {
             geom: self,
@@ -68,16 +64,16 @@ impl<'a> AsEwkbPoint<'a> for GeoPoint {
         }
     }
 }
-impl<'a> FromSql<'a> for GeoPoint {
+impl<'a> FromSql<'a> for GeoPointZ {
     fn from_sql(ty: &Type, raw: &[u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
         let mut rdr = Cursor::new(raw);
-        GeoPoint::read_ewkb(&mut rdr)
+        GeoPointZ::read_ewkb(&mut rdr)
             .map_err(|_| format!("cannot convert {} to {}", ty, stringify!($ptype)).into())
     }
 
     accepts_geography!();
 }
-impl ToSql for GeoPoint {
+impl ToSql for GeoPointZ {
     fn to_sql(&self, _: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
         self.as_ewkb().write_ewkb(&mut out.writer())?;
         Ok(IsNull::No)
@@ -87,9 +83,9 @@ impl ToSql for GeoPoint {
     accepts_geography!();
 }
 
-impl<'a> postgis::LineString<'a> for GeoLineString {
-    type ItemType = GeoPoint;
-    type Iter = std::slice::Iter<'a, GeoPoint>;
+impl<'a> postgis::LineString<'a> for GeoLineStringZ {
+    type ItemType = GeoPointZ;
+    type Iter = std::slice::Iter<'a, GeoPointZ>;
 
     fn points(&'a self) -> Self::Iter {
         self.points.iter()

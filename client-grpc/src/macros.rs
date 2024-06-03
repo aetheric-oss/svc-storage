@@ -11,15 +11,17 @@ macro_rules! grpc_client_mod {
             ///
             /// Provides basic insert/ update/ get / delete functionality and a more advanced search function.
             pub mod $resource {
+                pub use $crate::geo_types::*;
+                pub (crate) use rpc_service_client::RpcServiceClient;
+                use tonic::transport::Channel;
+
                 include!(concat!("../../out/grpc/client/grpc.", stringify!($resource), ".rs"));
                 include!(concat!(
                     "../../out/grpc/client/grpc.",
                     stringify!($resource),
                     ".service.rs"
                 ));
-                pub use $crate::grpc_geo_types::*;
-                pub (crate) use rpc_service_client::RpcServiceClient;
-                use tonic::transport::Channel;
+
                 cfg_if::cfg_if! {
                     if #[cfg(feature = "stub_backends")] {
                         use svc_storage::grpc::server::$resource::{GrpcServer, RpcServiceServer};
@@ -67,15 +69,17 @@ macro_rules! grpc_client_linked_mod {
             ///
             /// Provides basic insert/ update/ get / delete functionality and a more advanced search function.
             pub mod $resource {
+                pub use $crate::geo_types::*;
+                pub (crate) use rpc_service_linked_client::RpcServiceLinkedClient;
+                use tonic::transport::Channel;
+
                 include!(concat!("../../out/grpc/client/grpc.", stringify!($resource), ".rs"));
                 include!(concat!(
                     "../../out/grpc/client/grpc.",
                     stringify!($resource),
                     ".service.rs"
                 ));
-                pub use $crate::grpc_geo_types::*;
-                pub (crate) use rpc_service_linked_client::RpcServiceLinkedClient;
-                use tonic::transport::Channel;
+
                 cfg_if::cfg_if! {
                     if #[cfg(feature = "stub_backends")] {
                         use svc_storage::grpc::server::$resource::{GrpcServer, RpcServiceLinkedServer};
