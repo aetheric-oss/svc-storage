@@ -885,7 +885,7 @@ pub(crate) fn filter_for_operator(
                     }
                 } else if let Ok(date_val) = lib_common::time::DateTime::parse_from_rfc3339(
                     val.as_str()
-                        .ok_or("Could not convert provided value to string.")?,
+                    .ok_or("Could not convert provided value to string.")?,
                 ) {
                     println!(
                         "(filter_for_operator) (MOCK) Can convert val to date, got [{}].",
@@ -994,7 +994,7 @@ pub(crate) fn filter_for_operator(
                     }
                 } else if let Ok(date_val) = lib_common::time::DateTime::parse_from_rfc3339(
                     val.as_str()
-                        .ok_or("Could not convert provided value to string.")?,
+                    .ok_or("Could not convert provided value to string.")?,
                 ) {
                     println!(
                         "(filter_for_operator) (MOCK) Can convert val to date, got [{}].",
@@ -1002,11 +1002,11 @@ pub(crate) fn filter_for_operator(
                     );
                     let search_date = lib_common::time::DateTime::parse_from_rfc3339(&search_val)
                         .map_err(|e| {
-                        format!(
-                            "Could not convert search_value [{}] to date: {}",
-                            search_val, e
-                        )
-                    })?;
+                            format!(
+                                "Could not convert search_value [{}] to date: {}",
+                                search_val, e
+                            )
+                        })?;
                     if date_val > search_date {
                         println!("(filter_for_operator) (MOCK) Greater found!");
                         filtered.push(object.clone())
@@ -1042,7 +1042,7 @@ pub(crate) fn filter_for_operator(
                     }
                 } else if let Ok(date_val) = lib_common::time::DateTime::parse_from_rfc3339(
                     val.as_str()
-                        .ok_or("Could not convert provided value to string.")?,
+                    .ok_or("Could not convert provided value to string.")?,
                 ) {
                     println!(
                         "(filter_for_operator) (MOCK) Can convert val to date, got [{}].",
@@ -1050,11 +1050,11 @@ pub(crate) fn filter_for_operator(
                     );
                     let search_date = lib_common::time::DateTime::parse_from_rfc3339(&search_val)
                         .map_err(|e| {
-                        format!(
-                            "Could not convert search_value [{}] to date: {}",
-                            search_val, e
-                        )
-                    })?;
+                            format!(
+                                "Could not convert search_value [{}] to date: {}",
+                                search_val, e
+                            )
+                        })?;
                     if date_val >= search_date {
                         println!("(filter_for_operator) (MOCK) GreaterOrEqual found!");
                         filtered.push(object.clone())
@@ -1089,7 +1089,7 @@ pub(crate) fn filter_for_operator(
                     }
                 } else if let Ok(date_val) = lib_common::time::DateTime::parse_from_rfc3339(
                     val.as_str()
-                        .ok_or("Could not convert provided value to string.")?,
+                    .ok_or("Could not convert provided value to string.")?,
                 ) {
                     println!(
                         "(filter_for_operator) (MOCK) Can convert val to date, got [{}].",
@@ -1097,11 +1097,11 @@ pub(crate) fn filter_for_operator(
                     );
                     let search_date = lib_common::time::DateTime::parse_from_rfc3339(&search_val)
                         .map_err(|e| {
-                        format!(
-                            "Could not convert search_value [{}] to date: {}",
-                            search_val, e
-                        )
-                    })?;
+                            format!(
+                                "Could not convert search_value [{}] to date: {}",
+                                search_val, e
+                            )
+                        })?;
                     if date_val < search_date {
                         println!("(filter_for_operator) (MOCK) Less found!");
                         filtered.push(object.clone())
@@ -1137,7 +1137,7 @@ pub(crate) fn filter_for_operator(
                     }
                 } else if let Ok(date_val) = lib_common::time::DateTime::parse_from_rfc3339(
                     val.as_str()
-                        .ok_or("Could not convert provided value to string.")?,
+                    .ok_or("Could not convert provided value to string.")?,
                 ) {
                     println!(
                         "(filter_for_operator) (MOCK) Can convert val to date, got [{}].",
@@ -1145,11 +1145,11 @@ pub(crate) fn filter_for_operator(
                     );
                     let search_date = lib_common::time::DateTime::parse_from_rfc3339(&search_val)
                         .map_err(|e| {
-                        format!(
-                            "Could not convert search_value [{}] to date: {}",
-                            search_val, e
-                        )
-                    })?;
+                            format!(
+                                "Could not convert search_value [{}] to date: {}",
+                                search_val, e
+                            )
+                        })?;
                     if date_val <= search_date {
                         println!("(filter_for_operator) (MOCK) LessOrEqual found!");
                         filtered.push(object.clone())
