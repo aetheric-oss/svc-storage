@@ -7,9 +7,6 @@ use crate::{Deserialize, IntoParams, Serialize, ToSchema};
 
 pub mod geo_types;
 
-use lib_common::log_macros;
-log_macros!("grpc", "app::client::storage");
-
 cfg_if::cfg_if! {
     if #[cfg(any(feature = "all_resources", feature = "any_resource"))] {
         use tonic::transport::Channel;

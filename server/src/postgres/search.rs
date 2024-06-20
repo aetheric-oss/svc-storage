@@ -140,7 +140,14 @@ where
         let rows = client
             .query(search_sql, &ref_params[..])
             .await
-            .map_err(ArrErr::from)?;
+            .map_err(|e| {
+                let error = format!(
+                    "Failed to search table [{}], an error returned from the database.",
+                    definition.psql_table
+                );
+                psql_error!("{}: [{}]", error, e);
+                ArrErr::Error(error)
+            })?;
 
         Ok(rows)
     }
@@ -288,7 +295,10 @@ pub(crate) fn get_filter_str(
                 r#" "{}"::text ILIKE ${}"#,
                 search_col.col_name, next_param_index
             );
-            search_col.set_value(get_single_search_value(&values).map_err(ArrErr::Error)?);
+            search_col.set_value(format!(
+                "%{}%",
+                get_single_search_value(&values).map_err(ArrErr::Error)?
+            ));
             params.push(search_col.clone());
             next_param_index += 1;
         }
@@ -297,7 +307,10 @@ pub(crate) fn get_filter_str(
                 r#" "{}"::text LIKE ${}"#,
                 search_col.col_name, next_param_index
             );
-            search_col.set_value(get_single_search_value(&values).map_err(ArrErr::Error)?);
+            search_col.set_value(format!(
+                "%{}%",
+                get_single_search_value(&values).map_err(ArrErr::Error)?
+            ));
             params.push(search_col.clone());
             next_param_index += 1;
         }
@@ -331,7 +344,7 @@ pub(crate) fn get_filter_str(
         }
         PredicateOperator::GeoIntersect => {
             filter_str = format!(
-                r#" st_intersects(st_force2d(st_geomfromtext(${})), "{}")"#,
+                r#" st_intersects("{}", st_force2d(st_geomfromtext(${})))"#,
                 next_param_index, search_col.col_name,
             );
             search_col.set_value(get_single_search_value(&values).map_err(ArrErr::Error)?);
@@ -340,7 +353,7 @@ pub(crate) fn get_filter_str(
         }
         PredicateOperator::GeoWithin => {
             filter_str = format!(
-                r#" st_within(st_force2d(st_geomfromtext(${})), "{}")"#,
+                r#" st_within("{}", st_force2d(st_geomfromtext(${})))"#,
                 next_param_index, search_col.col_name,
             );
             search_col.set_value(get_single_search_value(&values).map_err(ArrErr::Error)?);
@@ -349,7 +362,7 @@ pub(crate) fn get_filter_str(
         }
         PredicateOperator::GeoDisjoint => {
             filter_str = format!(
-                r#" st_disjoint(st_geomfromtext(${}), "{}")"#,
+                r#" st_disjoint("{}", st_force2d(st_geomfromtext(${})))"#,
                 next_param_index, search_col.col_name,
             );
             search_col.set_value(get_single_search_value(&values).map_err(ArrErr::Error)?);
@@ -522,16 +535,16 @@ mod tests {
                     (val.to_string(), format!("{:?}", val))
                 }
                 PsqlFieldType::POINT => {
-                    let val = format!("SRID={};POINT X(1.0 2.0 10.0)", DEFAULT_SRID);
+                    let val = format!("SRID={};POINT Z(1.0 2.0 10.0)", DEFAULT_SRID);
                     (val.to_string(), format!("{:?}", val))
                 }
                 PsqlFieldType::POLYGON => {
-                    let val = format!("SRID={};POLYGON X((1.1 1.1 10,0, 2.1 2.2 10.0), (3.1 3.2 10.0, 4.1 4.2 10.0))", DEFAULT_SRID);
+                    let val = format!("SRID={};POLYGON Z((1.1 1.1 10.0, 2.1 2.2 10.0), (3.1 3.2 10.0, 4.1 4.2 10.0))", DEFAULT_SRID);
                     (val.to_string(), format!("{:?}", val))
                 }
                 PsqlFieldType::PATH => {
                     let val = format!(
-                        "SRID={};LineString(1.1 1.1 10.0, 2.1 2.2 10.0)",
+                        "SRID={};LineString Z(1.1 1.1 10.0, 2.1 2.2 10.0)",
                         DEFAULT_SRID
                     );
                     (val.to_string(), format!("{:?}", val))

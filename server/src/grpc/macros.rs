@@ -550,7 +550,6 @@ macro_rules! grpc_server_simple_service_mod {
                                 }
                             };
 
-
                         match filter.comparison_operator {
                             Some(comparison_operator) => match super::ComparisonOperator::try_from(comparison_operator) {
                                 Ok(comparison_operator) => match comparison_operator {
@@ -1173,14 +1172,24 @@ macro_rules! grpc_server_simple_service_linked_mod {
                         let mut object = serde_json::Map::new();
                         let mut data_serialized = serde_json::to_value(val.clone())
                             .map_err(|e| Status::internal(format!("Could not convert [{:?}] to json value: {}", val, e)))?;
-                        let ids = serde_json::json!([{
-                            "field": id_field.clone(),
-                            "value": data_serialized.as_object()
-                                .ok_or(Status::internal("Could not convert json data to object."))?
-                                .get(other_id_field)
-                                .ok_or(Status::internal(format!("Could not get value for other id field [{}]", other_id_field)))?
-                                .clone()
-                        }]);
+                        let ids = serde_json::json!([
+                            {
+                                "field": id_field.clone(),
+                                "value": data_serialized.as_object()
+                                    .ok_or(tonic::Status::internal("Could not convert json data to object."))?
+                                    .get(id_field)
+                                    .ok_or(tonic::Status::internal(format!("Could not get value for id field [{}]", id_field)))?
+                                    .clone()
+                            },
+                            {
+                                "field": other_id_field.clone(),
+                                "value": data_serialized.as_object()
+                                    .ok_or(tonic::Status::internal("Could not convert json data to object."))?
+                                    .get(other_id_field)
+                                    .ok_or(tonic::Status::internal(format!("Could not get value for other id field [{}]", other_id_field)))?
+                                    .clone()
+                            }
+                        ]);
                         data_serialized.as_object_mut()
                             .ok_or(Status::internal("Could not convert json data to mutable object."))?
                             .retain(|key, _| key != id_field && key != other_id_field);
@@ -1237,9 +1246,9 @@ macro_rules! grpc_server_simple_service_linked_mod {
                             .as_object()
                             .ok_or(Status::internal("Could not convert json to object."))?
                             .clone();
-                        let ids: Ids = serde_json::from_value(val.get("ids").ok_or(Status::internal("No [ids] key found."))?.clone())
+                        let ids: Vec<super::FieldValue> = serde_json::from_value(val.get("ids").ok_or(tonic::Status::internal("No [ids] key found."))?.clone())
                             .map_err(|e| Status::internal(format!("Could not convert [{:?}] to Ids from json value: {}", val.get("ids"), e)))?;
-                        for id in ids.ids {
+                        for id in ids {
                             row_data_serialized.insert(id.field.clone(), serde_json::Value::String(id.value.clone()));
                         }
                         let row_data: RowData = serde_json::from_value(serde_json::Value::Object(row_data_serialized.clone()))

@@ -1,4 +1,7 @@
-//! log macro's for gRPC logging
+//! client-grpc macro's
+
+use lib_common::log_macros;
+log_macros!("grpc", "app::client::storage");
 
 #[macro_export]
 /// Generates includes for gRPC client implementations
@@ -573,7 +576,6 @@ macro_rules! simple_grpc_client {
                                 }
                             };
 
-
                         match filter.comparison_operator {
                             Some(comparison_operator) => match ComparisonOperator::try_from(comparison_operator) {
                                 Ok(comparison_operator) => match comparison_operator {
@@ -970,14 +972,24 @@ macro_rules! simple_linked_grpc_client {
                         let mut object = serde_json::Map::new();
                         let mut data_serialized = serde_json::to_value(val.clone())
                             .map_err(|e| tonic::Status::internal(format!("Could not convert [{:?}] to json value: {}", val, e)))?;
-                        let ids = serde_json::json!([{
-                            "field": id_field.clone(),
-                            "value": data_serialized.as_object()
-                                .ok_or(tonic::Status::internal("Could not convert json data to object."))?
-                                .get(other_id_field)
-                                .ok_or(tonic::Status::internal(format!("Could not get value for other id field [{}]", other_id_field)))?
-                                .clone()
-                        }]);
+                        let ids = serde_json::json!([
+                            {
+                                "field": id_field.clone(),
+                                "value": data_serialized.as_object()
+                                    .ok_or(tonic::Status::internal("Could not convert json data to object."))?
+                                    .get(id_field)
+                                    .ok_or(tonic::Status::internal(format!("Could not get value for id field [{}]", id_field)))?
+                                    .clone()
+                            },
+                            {
+                                "field": other_id_field.clone(),
+                                "value": data_serialized.as_object()
+                                    .ok_or(tonic::Status::internal("Could not convert json data to object."))?
+                                    .get(other_id_field)
+                                    .ok_or(tonic::Status::internal(format!("Could not get value for other id field [{}]", other_id_field)))?
+                                    .clone()
+                            }
+                        ]);
                         data_serialized.as_object_mut()
                             .ok_or(tonic::Status::internal("Could not convert json data to mutable object."))?
                             .retain(|key, _| key != id_field && key != other_id_field);
@@ -999,7 +1011,6 @@ macro_rules! simple_linked_grpc_client {
                                     )));
                                 }
                             };
-
 
                         match filter.comparison_operator {
                             Some(comparison_operator) => match ComparisonOperator::try_from(comparison_operator) {
@@ -1034,9 +1045,12 @@ macro_rules! simple_linked_grpc_client {
                             .as_object()
                             .ok_or(tonic::Status::internal("Could not convert json to object."))?
                             .clone();
-                        let ids: Ids = serde_json::from_value(val.get("ids").ok_or(tonic::Status::internal("No [ids] key found."))?.clone())
+                        grpc_debug!("row_data_serialized: {:?}", row_data_serialized);
+
+                        let ids: Vec<FieldValue> = serde_json::from_value(val.get("ids").ok_or(tonic::Status::internal("No [ids] key found."))?.clone())
                             .map_err(|e| tonic::Status::internal(format!("Could not convert [{:?}] to Ids from json value: {}", val.get("ids"), e)))?;
-                        for id in ids.ids {
+                        grpc_debug!("search ids after convert: {:?}", ids);
+                        for id in ids {
                             row_data_serialized.insert(id.field.clone(), serde_json::Value::String(id.value.clone()));
                         }
                         let row_data: Self::LinkedRowData = serde_json::from_value(serde_json::Value::Object(row_data_serialized.clone()))

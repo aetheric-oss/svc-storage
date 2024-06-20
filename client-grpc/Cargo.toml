@@ -20,8 +20,9 @@ include = [
 ]
 
 [features]
-dev       = ["mock", "all_resources", "svc-storage"]
-test_util = ["mock", "stub_backends", "all_resources"]
+dev              = ["mock", "all_resources", "svc-storage"]
+test_util        = ["mock", "stub_backends", "all_resources"]
+vendored-openssl = ["openssl/vendored"]
 # Supported resources
 adsb = ["any_resource"]
 all_resources = [
@@ -31,27 +32,29 @@ all_resources = [
   "group",
   "itinerary",
   "parcel",
+  "parcel_scan",
   "pilot",
   "scanner",
-  "parcel_scan",
   "user",
   "vehicle",
   "vertipad",
   "vertiport",
 ]
+# Indicates that at least 1 resource has been enabled
 any_resource = []
-flight_plan = ["any_resource"]
+# Available resources
+flight_plan        = ["any_resource"]
 flight_plan_parcel = ["any_resource", "flight_plan", "parcel"]
-group = ["any_resource", "user", "vehicle", "vertipad", "vertiport"]
-itinerary = ["any_resource", "flight_plan"]
-parcel = ["any_resource"]
-parcel_scan = ["any_resource", "scanner", "parcel"]
-pilot = ["any_resource"]
-scanner = ["any_resource"]
-user = ["any_resource", "group"]
-vehicle = ["any_resource"]
-vertipad = ["any_resource", "vertiport"]
-vertiport = ["any_resource"]
+group              = ["any_resource", "user", "vehicle", "vertipad", "vertiport"]
+itinerary          = ["any_resource", "flight_plan"]
+parcel             = ["any_resource"]
+parcel_scan        = ["any_resource", "scanner", "parcel"]
+pilot              = ["any_resource"]
+scanner            = ["any_resource"]
+user               = ["any_resource", "group"]
+vehicle            = ["any_resource"]
+vertipad           = ["any_resource", "vertiport"]
+vertiport          = ["any_resource"]
 # Will add a 'mock' module for the enabled resources, providing access to mock data generation functions
 mock = ["rand", "geo"]
 # Will use a stubbed backend connection, only use for tests!
@@ -114,8 +117,11 @@ features = [
 version = "1.2"
 
 [dev-dependencies]
+ctor        = "0.2"
+futures     = "0.3"
 lazy_static = "1.4"
 logtest     = "2.0"
+openssl     = "0.10"
 rand        = "0.8"
 
 # Make sure we enable the required modules and have access to all resources when running tests
