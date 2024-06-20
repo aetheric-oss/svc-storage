@@ -195,7 +195,7 @@ where
         }
 
         let update_sql = &format!(
-            "UPDATE {} SET {} WHERE {} = ${}",
+            r#"UPDATE "{}" SET {} WHERE "{}" = ${}"#,
             definition.psql_table,
             updates.join(", "),
             id_col,
