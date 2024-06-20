@@ -120,4 +120,27 @@ mod tests {
 
         ut_info!("success");
     }
+
+    #[tokio::test]
+    async fn test_server_shutdown() {
+        assert_init_done().await;
+        ut_info!("start");
+
+        let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
+        let (_, health_service) = tonic_health::server::health_reporter();
+        tokio::spawn(async move {
+            let _ = tonic::transport::Server::builder()
+                .add_service(health_service)
+                .serve_with_shutdown(
+                    "0.0.0.0:50051".parse().unwrap(),
+                    shutdown_signal("grpc", Some(shutdown_rx)),
+                )
+                .await;
+        });
+
+        // Send server the shutdown request
+        assert!(shutdown_tx.send(()).is_ok());
+
+        ut_info!("success");
+    }
 }
