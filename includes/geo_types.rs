@@ -14,6 +14,8 @@ impl From<PointZ> for GeoPointZ {
 impl fmt::Display for GeoPointZ {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let point: PointZ = (*self).into();
+        #[cfg(not(tarpaulin_include))]
+        // no_coverage: (Rnever) It's impossible to get None, as GeoPointZ into PointZ will always add the default srid
         let srid = match point.srid {
             Some(srid) => srid,
             None => DEFAULT_SRID,
@@ -45,6 +47,8 @@ impl From<LineStringZ> for GeoLineStringZ {
 impl fmt::Display for GeoLineStringZ {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let line_string: LineStringZ = (*self).clone().into();
+        #[cfg(not(tarpaulin_include))]
+        // no_coverage: (Rnever) It's impossible to get None, as GeoPointZ into PointZ will always add the default srid
         let srid = match line_string.srid {
             Some(srid) => srid,
             None => DEFAULT_SRID,
@@ -77,16 +81,12 @@ impl From<PolygonZ> for GeoPolygonZ {
         }
     }
 }
-impl From<Vec<LineStringZ>> for GeoPolygonZ {
-    fn from(field: Vec<LineStringZ>) -> Self {
-        Self {
-            rings: field.into_iter().map(|line| line.into()).collect(),
-        }
-    }
-}
+
 impl fmt::Display for GeoPolygonZ {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let polygon: PolygonZ = (*self).clone().into();
+        #[cfg(not(tarpaulin_include))]
+        // no_coverage: (Rnever) It's impossible to get None, as GeoPolygonZ into PolygonZ will always add the default srid
         let srid = match polygon.srid {
             Some(srid) => srid,
             None => DEFAULT_SRID,
@@ -165,7 +165,10 @@ mod tests {
         let z = 23.6;
         let from = GeoPointZ { x, y, z };
 
-        let expected = format!("SRID={};POINT Z({:.15} {:.15} {:.15})", DEFAULT_SRID, x, y, z);
+        let expected = format!(
+            "SRID={};POINT Z({:.15} {:.15} {:.15})",
+            DEFAULT_SRID, x, y, z
+        );
 
         let result = from.to_string();
         assert_eq!(result, expected);
