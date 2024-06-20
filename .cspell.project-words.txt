@@ -101,3 +101,10 @@ AETH
 polygonz
 linestringz
 pointz
+Helder
+Hoorn
+Katwoude
+Kaufungen
+Noord
+profraw
+Wijdenes
