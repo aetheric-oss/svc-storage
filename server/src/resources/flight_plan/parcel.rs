@@ -9,7 +9,6 @@ use crate::postgres::init::PsqlInitLinkedResource;
 use crate::resources::base::simple_resource_linked::*;
 use crate::resources::base::{FieldDefinition, ResourceDefinition};
 use lib_common::uuid::Uuid;
-use log::debug;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
 
@@ -49,7 +48,7 @@ impl GrpcDataObjectType for Data {
 }
 
 #[cfg(not(tarpaulin_include))]
-// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
+// no_coverage: (Rwaiting) Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
 impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
@@ -57,7 +56,7 @@ impl TryFrom<Row> for Data {
         let acquire: bool = row.get::<&str, bool>("acquire");
         let deliver: bool = row.get::<&str, bool>("deliver");
 
-        debug!(
+        resources_debug!(
             "(try_from) Converting Row to flight_plan_parcel::Data: {:?}",
             row
         );
@@ -81,7 +80,7 @@ impl GrpcDataObjectType for RowData {
 }
 
 #[cfg(not(tarpaulin_include))]
-// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
+// no_coverage: (Rwaiting) Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
 impl TryFrom<Row> for RowData {
     type Error = ArrErr;
 
@@ -91,7 +90,7 @@ impl TryFrom<Row> for RowData {
         let acquire: bool = row.get::<&str, bool>("acquire");
         let deliver: bool = row.get::<&str, bool>("deliver");
 
-        debug!(
+        resources_debug!(
             "(try_from) Converting Row to flight_plan_parcel::Data: {:?}",
             row
         );
@@ -128,7 +127,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_flight_plan_parcel_schema() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let definition = <ResourceObject<Data>>::get_definition();
@@ -148,7 +147,7 @@ mod tests {
         let data = mock::get_data_obj();
         let object: ResourceObject<Data> = Object {
             ids,
-            data: Some(data.clone()),
+            data: Some(data),
         }
         .into();
         test_schema::<ResourceObject<Data>, Data>(object);
@@ -158,8 +157,80 @@ mod tests {
         if let Ok((sql_fields, validation_result)) = result {
             ut_info!("{:?}", sql_fields);
             ut_info!("{:?}", validation_result);
-            assert_eq!(validation_result.success, true);
+            assert!(validation_result.success);
         }
+        ut_info!("success");
+    }
+
+    #[tokio::test]
+    async fn test_flight_plan_parcel_from_row_data() {
+        assert_init_done().await;
+        ut_info!("start");
+
+        let flight_plan_id = Uuid::new_v4().to_string();
+        let parcel_id = Uuid::new_v4().to_string();
+        let ids = vec![
+            FieldValue {
+                field: String::from("flight_plan_id"),
+                value: flight_plan_id.clone(),
+            },
+            FieldValue {
+                field: String::from("parcel_id"),
+                value: parcel_id.clone(),
+            },
+        ];
+
+        let object: ResourceObject<Data> = Object {
+            ids,
+            data: Some(Data {
+                acquire: true,
+                deliver: true,
+            }),
+        }
+        .into();
+
+        let row_data = RowData {
+            flight_plan_id: flight_plan_id.clone(),
+            parcel_id: parcel_id.clone(),
+            acquire: true,
+            deliver: true,
+        };
+
+        let converted_object: ResourceObject<Data> = row_data.into();
+
+        assert_eq!(converted_object, object);
+
+        ut_info!("success");
+    }
+
+    #[tokio::test]
+    async fn test_flight_plan_parcel_row_data_get_field_value() {
+        assert_init_done().await;
+        ut_info!("start");
+
+        let flight_plan_id = Uuid::new_v4().to_string();
+        let parcel_id = Uuid::new_v4().to_string();
+        let row_data = RowData {
+            flight_plan_id: flight_plan_id.clone(),
+            parcel_id: parcel_id.clone(),
+            acquire: true,
+            deliver: true,
+        };
+
+        let flight_plan_id_returned: String =
+            row_data.get_field_value("flight_plan_id").unwrap().into();
+        let parcel_id_returned: String = row_data.get_field_value("parcel_id").unwrap().into();
+        let acquire_returned: bool = row_data.get_field_value("acquire").unwrap().into();
+        let deliver_returned: bool = row_data.get_field_value("deliver").unwrap().into();
+
+        assert_eq!(flight_plan_id_returned, flight_plan_id);
+        assert_eq!(parcel_id_returned, parcel_id);
+        assert_eq!(acquire_returned, true);
+        assert_eq!(deliver_returned, true);
+
+        let invalid_key = row_data.get_field_value("INVALID");
+        assert!(invalid_key.is_err());
+
         ut_info!("success");
     }
 }

@@ -1,3 +1,5 @@
+//! Table search implementations
+
 use super::{get_psql_client, ArrErr, PsqlField, PsqlFieldType};
 use crate::grpc::server::{
     search::get_single_search_value, AdvancedSearchFilter, ComparisonOperator, PredicateOperator,
@@ -345,7 +347,7 @@ pub(crate) fn get_filter_str(
         PredicateOperator::GeoIntersect => {
             filter_str = format!(
                 r#" st_intersects("{}", st_force2d(st_geomfromtext(${})))"#,
-                next_param_index, search_col.col_name,
+                search_col.col_name, next_param_index
             );
             search_col.set_value(get_single_search_value(&values).map_err(ArrErr::Error)?);
             params.push(search_col.clone());
@@ -354,7 +356,7 @@ pub(crate) fn get_filter_str(
         PredicateOperator::GeoWithin => {
             filter_str = format!(
                 r#" st_within("{}", st_force2d(st_geomfromtext(${})))"#,
-                next_param_index, search_col.col_name,
+                search_col.col_name, next_param_index
             );
             search_col.set_value(get_single_search_value(&values).map_err(ArrErr::Error)?);
             params.push(search_col.clone());
@@ -363,7 +365,7 @@ pub(crate) fn get_filter_str(
         PredicateOperator::GeoDisjoint => {
             filter_str = format!(
                 r#" st_disjoint("{}", st_force2d(st_geomfromtext(${})))"#,
-                next_param_index, search_col.col_name,
+                search_col.col_name, next_param_index
             );
             search_col.set_value(get_single_search_value(&values).map_err(ArrErr::Error)?);
             params.push(search_col.clone());
@@ -418,33 +420,22 @@ pub(super) fn param_from_search_col(
                 Err(ArrErr::Error(err))
             }
         },
-        PsqlFieldType::NUMERIC => match col_val.parse::<f64>() {
+        PsqlFieldType::FLOAT4 => match col_val.parse::<f32>() {
+            Ok(val) => Ok(Box::new(val)),
+            Err(e) => {
+                let err = format!(
+                    "Can't convert search col [{}] with value [{}] to f32: {}",
+                    col.col_name, col_val, e
+                );
+                psql_error!("{}", err);
+                Err(ArrErr::Error(err))
+            }
+        },
+        PsqlFieldType::FLOAT8 => match col_val.parse::<f64>() {
             Ok(val) => Ok(Box::new(val)),
             Err(e) => {
                 let err = format!(
                     "Can't convert search col [{}] with value [{}] to f64: {}",
-                    col.col_name, col_val, e
-                );
-                psql_error!("{}", err);
-                Err(ArrErr::Error(err))
-            }
-        },
-        PsqlFieldType::INT2 => match col_val.parse::<i16>() {
-            Ok(val) => Ok(Box::new(val)),
-            Err(e) => {
-                let err = format!(
-                    "Can't convert search col [{}] with value [{}] to i16: {}",
-                    col.col_name, col_val, e
-                );
-                psql_error!("{}", err);
-                Err(ArrErr::Error(err))
-            }
-        },
-        PsqlFieldType::INT4 => match col_val.parse::<i32>() {
-            Ok(val) => Ok(Box::new(val)),
-            Err(e) => {
-                let err = format!(
-                    "Can't convert search col [{}] with value [{}] to i32: {}",
                     col.col_name, col_val, e
                 );
                 psql_error!("{}", err);
@@ -456,6 +447,17 @@ pub(super) fn param_from_search_col(
             Err(e) => {
                 let err = format!(
                     "Can't convert search col [{}] with value [{}] to i64: {}",
+                    col.col_name, col_val, e
+                );
+                psql_error!("{}", err);
+                Err(ArrErr::Error(err))
+            }
+        },
+        PsqlFieldType::INT8_ARRAY => match col_val.parse::<i64>() {
+            Ok(val) => Ok(Box::new(vec![val])),
+            Err(e) => {
+                let err = format!(
+                    "Can't convert search col [{}] with value [{}] to Vec<i64>: {}",
                     col.col_name, col_val, e
                 );
                 psql_error!("{}", err);
@@ -496,17 +498,423 @@ pub(super) fn param_from_search_col(
 mod tests {
     use super::*;
     use crate::resources::base::ResourceObject;
-    use crate::{test_util::*, DEFAULT_SRID};
+    use crate::{test_util::simple_resource::*, test_util::*, DEFAULT_SRID};
+
+    #[tokio::test]
+    async fn test_get_filter_str_for_equals() {
+        let mut filter_params: Vec<SearchCol> = vec![];
+        let next_param_index: i32 = 1;
+
+        let result = get_filter_str(
+            SearchCol {
+                col_name: String::from("test_text_col"),
+                col_type: PsqlFieldType::TEXT,
+                value: None,
+            },
+            vec![String::from("test_text_value")],
+            &mut filter_params,
+            next_param_index,
+            PredicateOperator::Equals,
+        );
+        assert!(result.is_ok());
+        let (filter_str, next_param_index) = result.unwrap();
+        assert_eq!(next_param_index, 2);
+        assert_eq!(filter_str, String::from(r#" "test_text_col" = $1"#));
+    }
+
+    #[tokio::test]
+    async fn test_get_filter_str_for_not_equals() {
+        let mut filter_params: Vec<SearchCol> = vec![];
+        let next_param_index: i32 = 1;
+
+        let result = get_filter_str(
+            SearchCol {
+                col_name: String::from("test_text_col"),
+                col_type: PsqlFieldType::TEXT,
+                value: None,
+            },
+            vec![String::from("test_text_value")],
+            &mut filter_params,
+            next_param_index,
+            PredicateOperator::NotEquals,
+        );
+        assert!(result.is_ok());
+        let (filter_str, next_param_index) = result.unwrap();
+        assert_eq!(next_param_index, 2);
+        assert_eq!(filter_str, String::from(r#" "test_text_col" <> $1"#));
+    }
+
+    #[tokio::test]
+    async fn test_get_filter_str_for_in() {
+        let mut filter_params: Vec<SearchCol> = vec![];
+        let next_param_index: i32 = 1;
+
+        let result = get_filter_str(
+            SearchCol {
+                col_name: String::from("test_text_col"),
+                col_type: PsqlFieldType::TEXT,
+                value: None,
+            },
+            vec![String::from("test_text_value")],
+            &mut filter_params,
+            next_param_index,
+            PredicateOperator::In,
+        );
+        assert!(result.is_ok());
+        let (filter_str, next_param_index) = result.unwrap();
+        assert_eq!(next_param_index, 2);
+        assert_eq!(filter_str, String::from(r#" "test_text_col" IN ($1)"#));
+    }
+
+    #[tokio::test]
+    async fn test_get_filter_str_for_not_in() {
+        let mut filter_params: Vec<SearchCol> = vec![];
+        let next_param_index: i32 = 1;
+
+        let result = get_filter_str(
+            SearchCol {
+                col_name: String::from("test_text_col"),
+                col_type: PsqlFieldType::TEXT,
+                value: None,
+            },
+            vec![String::from("test_text_value")],
+            &mut filter_params,
+            next_param_index,
+            PredicateOperator::NotIn,
+        );
+        assert!(result.is_ok());
+        let (filter_str, next_param_index) = result.unwrap();
+        assert_eq!(next_param_index, 2);
+        assert_eq!(filter_str, String::from(r#" "test_text_col" NOT IN ($1)"#));
+    }
+
+    #[tokio::test]
+    async fn test_get_filter_int_for_between() {
+        let mut filter_params: Vec<SearchCol> = vec![];
+        let next_param_index: i32 = 1;
+
+        let result = get_filter_str(
+            SearchCol {
+                col_name: String::from("test_int_col"),
+                col_type: PsqlFieldType::INT8,
+                value: None,
+            },
+            vec![format!("{}", 2), format!("{}", 5)],
+            &mut filter_params,
+            next_param_index,
+            PredicateOperator::Between,
+        );
+        assert!(result.is_ok());
+        let (filter_str, next_param_index) = result.unwrap();
+        assert_eq!(next_param_index, 3);
+        assert_eq!(
+            filter_str,
+            String::from(r#" "test_int_col" BETWEEN $1 AND $2"#)
+        );
+    }
+
+    #[tokio::test]
+    async fn test_get_filter_for_between_error() {
+        let mut filter_params: Vec<SearchCol> = vec![];
+        let next_param_index: i32 = 1;
+
+        // Get error from providing zero values
+        let result = get_filter_str(
+            SearchCol {
+                col_name: String::from("test_int_col"),
+                col_type: PsqlFieldType::INT8,
+                value: None,
+            },
+            vec![],
+            &mut filter_params,
+            next_param_index,
+            PredicateOperator::Between,
+        );
+        assert!(result.is_err());
+        assert_eq!(next_param_index, 1);
+
+        // Get error from providing 1 value (should be 2)
+        let result = get_filter_str(
+            SearchCol {
+                col_name: String::from("test_int_col"),
+                col_type: PsqlFieldType::INT8,
+                value: None,
+            },
+            vec![format!("{}", 1)],
+            &mut filter_params,
+            next_param_index,
+            PredicateOperator::Between,
+        );
+        assert!(result.is_err());
+        assert_eq!(next_param_index, 1);
+    }
+
+    #[tokio::test]
+    async fn test_get_filter_str_for_is_null() {
+        let mut filter_params: Vec<SearchCol> = vec![];
+        let next_param_index: i32 = 1;
+
+        let result = get_filter_str(
+            SearchCol {
+                col_name: String::from("test_text_col"),
+                col_type: PsqlFieldType::TEXT,
+                value: None,
+            },
+            vec![],
+            &mut filter_params,
+            next_param_index,
+            PredicateOperator::IsNull,
+        );
+        assert!(result.is_ok());
+        let (filter_str, next_param_index) = result.unwrap();
+        assert_eq!(next_param_index, 1);
+        assert_eq!(filter_str, String::from(r#" "test_text_col" IS NULL"#));
+    }
+
+    #[tokio::test]
+    async fn test_get_filter_str_for_is_not_null() {
+        let mut filter_params: Vec<SearchCol> = vec![];
+        let next_param_index: i32 = 1;
+
+        let result = get_filter_str(
+            SearchCol {
+                col_name: String::from("test_text_col"),
+                col_type: PsqlFieldType::TEXT,
+                value: None,
+            },
+            vec![],
+            &mut filter_params,
+            next_param_index,
+            PredicateOperator::IsNotNull,
+        );
+        assert!(result.is_ok());
+        let (filter_str, next_param_index) = result.unwrap();
+        assert_eq!(next_param_index, 1);
+        assert_eq!(filter_str, String::from(r#" "test_text_col" IS NOT NULL"#));
+    }
+
+    #[tokio::test]
+    async fn test_get_filter_str_for_ilike() {
+        let mut filter_params: Vec<SearchCol> = vec![];
+        let next_param_index: i32 = 1;
+
+        let result = get_filter_str(
+            SearchCol {
+                col_name: String::from("test_text_col"),
+                col_type: PsqlFieldType::TEXT,
+                value: None,
+            },
+            vec![String::from("test_text_value")],
+            &mut filter_params,
+            next_param_index,
+            PredicateOperator::Ilike,
+        );
+        assert!(result.is_ok());
+        let (filter_str, next_param_index) = result.unwrap();
+        assert_eq!(next_param_index, 2);
+        assert_eq!(
+            filter_str,
+            String::from(r#" "test_text_col"::text ILIKE $1"#)
+        );
+    }
+
+    #[tokio::test]
+    async fn test_get_filter_str_for_like() {
+        let mut filter_params: Vec<SearchCol> = vec![];
+        let next_param_index: i32 = 1;
+
+        let result = get_filter_str(
+            SearchCol {
+                col_name: String::from("test_text_col"),
+                col_type: PsqlFieldType::INT8,
+                value: None,
+            },
+            vec![String::from("test_text_value")],
+            &mut filter_params,
+            next_param_index,
+            PredicateOperator::Like,
+        );
+        assert!(result.is_ok());
+        let (filter_str, next_param_index) = result.unwrap();
+        assert_eq!(next_param_index, 2);
+        assert_eq!(
+            filter_str,
+            String::from(r#" "test_text_col"::text LIKE $1"#)
+        );
+    }
+
+    #[tokio::test]
+    async fn test_get_filter_int_for_greater() {
+        let mut filter_params: Vec<SearchCol> = vec![];
+        let next_param_index: i32 = 1;
+
+        let result = get_filter_str(
+            SearchCol {
+                col_name: String::from("test_int_col"),
+                col_type: PsqlFieldType::INT8,
+                value: None,
+            },
+            vec![format!("{}", 1)],
+            &mut filter_params,
+            next_param_index,
+            PredicateOperator::Greater,
+        );
+        assert!(result.is_ok());
+        let (filter_str, next_param_index) = result.unwrap();
+        assert_eq!(next_param_index, 2);
+        assert_eq!(filter_str, String::from(r#" "test_int_col" > $1"#));
+    }
+
+    #[tokio::test]
+    async fn test_get_filter_int_for_greater_or_equal() {
+        let mut filter_params: Vec<SearchCol> = vec![];
+        let next_param_index: i32 = 1;
+
+        let result = get_filter_str(
+            SearchCol {
+                col_name: String::from("test_int_col"),
+                col_type: PsqlFieldType::INT8,
+                value: None,
+            },
+            vec![format!("{}", 1)],
+            &mut filter_params,
+            next_param_index,
+            PredicateOperator::GreaterOrEqual,
+        );
+        assert!(result.is_ok());
+        let (filter_str, next_param_index) = result.unwrap();
+        assert_eq!(next_param_index, 2);
+        assert_eq!(filter_str, String::from(r#" "test_int_col" >= $1"#));
+    }
+
+    #[tokio::test]
+    async fn test_get_filter_int_for_less() {
+        let mut filter_params: Vec<SearchCol> = vec![];
+        let next_param_index: i32 = 1;
+
+        let result = get_filter_str(
+            SearchCol {
+                col_name: String::from("test_int_col"),
+                col_type: PsqlFieldType::INT8,
+                value: None,
+            },
+            vec![format!("{}", 1)],
+            &mut filter_params,
+            next_param_index,
+            PredicateOperator::Less,
+        );
+        assert!(result.is_ok());
+        let (filter_str, next_param_index) = result.unwrap();
+        assert_eq!(next_param_index, 2);
+        assert_eq!(filter_str, String::from(r#" "test_int_col" < $1"#));
+    }
+
+    #[tokio::test]
+    async fn test_get_filter_int_for_less_or_equal() {
+        let mut filter_params: Vec<SearchCol> = vec![];
+        let next_param_index: i32 = 1;
+
+        let result = get_filter_str(
+            SearchCol {
+                col_name: String::from("test_int_col"),
+                col_type: PsqlFieldType::INT8,
+                value: None,
+            },
+            vec![format!("{}", 1)],
+            &mut filter_params,
+            next_param_index,
+            PredicateOperator::LessOrEqual,
+        );
+        assert!(result.is_ok());
+        let (filter_str, next_param_index) = result.unwrap();
+        assert_eq!(next_param_index, 2);
+        assert_eq!(filter_str, String::from(r#" "test_int_col" <= $1"#));
+    }
+
+    #[tokio::test]
+    async fn test_get_filter_for_geo_intersect() {
+        let mut filter_params: Vec<SearchCol> = vec![];
+        let next_param_index: i32 = 1;
+
+        let result = get_filter_str(
+            SearchCol {
+                col_name: String::from("test_polygon_col"),
+                col_type: PsqlFieldType::POLYGON,
+                value: None,
+            },
+            vec![format!("{}", 1)],
+            &mut filter_params,
+            next_param_index,
+            PredicateOperator::GeoIntersect,
+        );
+        assert!(result.is_ok());
+        let (filter_str, next_param_index) = result.unwrap();
+        assert_eq!(next_param_index, 2);
+        assert_eq!(
+            filter_str,
+            String::from(r#" st_intersects("test_polygon_col", st_force2d(st_geomfromtext($1)))"#)
+        );
+    }
+
+    #[tokio::test]
+    async fn test_get_filter_for_geo_within() {
+        let mut filter_params: Vec<SearchCol> = vec![];
+        let next_param_index: i32 = 1;
+
+        let result = get_filter_str(
+            SearchCol {
+                col_name: String::from("test_polygon_col"),
+                col_type: PsqlFieldType::POLYGON,
+                value: None,
+            },
+            vec![format!("{}", 1)],
+            &mut filter_params,
+            next_param_index,
+            PredicateOperator::GeoWithin,
+        );
+        assert!(result.is_ok());
+        let (filter_str, next_param_index) = result.unwrap();
+        assert_eq!(next_param_index, 2);
+        assert_eq!(
+            filter_str,
+            String::from(r#" st_within("test_polygon_col", st_force2d(st_geomfromtext($1)))"#)
+        );
+    }
+
+    #[tokio::test]
+    async fn test_get_filter_for_geo_disjoint() {
+        let mut filter_params: Vec<SearchCol> = vec![];
+        let next_param_index: i32 = 1;
+
+        let result = get_filter_str(
+            SearchCol {
+                col_name: String::from("test_polygon_col"),
+                col_type: PsqlFieldType::POLYGON,
+                value: None,
+            },
+            vec![format!("{}", 1)],
+            &mut filter_params,
+            next_param_index,
+            PredicateOperator::GeoDisjoint,
+        );
+        assert!(result.is_ok());
+        let (filter_str, next_param_index) = result.unwrap();
+        assert_eq!(next_param_index, 2);
+        assert_eq!(
+            filter_str,
+            String::from(r#" st_disjoint("test_polygon_col", st_force2d(st_geomfromtext($1)))"#)
+        );
+    }
 
     #[tokio::test]
     async fn test_get_param_from_search_col() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
-        // Our TestData object should have fields for each possible field_type.
+        // Our Data object should have fields for each possible field_type.
         // We'll use it to loop over all the fields and test the expected return
         // value for that type.
-        let definition = ResourceObject::<TestData>::get_definition();
+        let definition = ResourceObject::<Data>::get_definition();
         for field in definition.get_psql_id_cols() {
             let val = Uuid::new_v4();
             let search_col = SearchCol {
@@ -553,16 +961,16 @@ mod tests {
                     let val: String = String::from("search text");
                     (val.to_string(), format!("{:?}", val))
                 }
-                PsqlFieldType::INT2 => {
-                    let val: i16 = 16;
-                    (val.to_string(), format!("{:?}", val))
-                }
-                PsqlFieldType::INT4 => {
-                    let val: i32 = 32;
-                    (val.to_string(), format!("{:?}", val))
-                }
                 PsqlFieldType::INT8 => {
                     let val: i64 = 64;
+                    (val.to_string(), format!("{:?}", val))
+                }
+                PsqlFieldType::INT8_ARRAY => {
+                    let val: i64 = 64;
+                    (val.to_string(), format!("[{:?}]", val))
+                }
+                PsqlFieldType::FLOAT4 => {
+                    let val: f32 = 32.0;
                     (val.to_string(), format!("{:?}", val))
                 }
                 PsqlFieldType::FLOAT8 => {
@@ -602,5 +1010,126 @@ mod tests {
             assert_eq!(display_val, format!("{:?}", value))
         }
         ut_info!("success");
+    }
+
+    #[tokio::test]
+    async fn test_get_param_from_search_col_invalid_bool() {
+        assert_init_done().await;
+        ut_info!("start");
+
+        let search_col = SearchCol {
+            col_name: String::from("invalid_bool"),
+            col_type: PsqlFieldType::BOOL,
+            value: Some(String::from("invalid")),
+        };
+        let result = param_from_search_col(&search_col);
+        assert!(result.is_err());
+
+        ut_info!("success");
+    }
+    #[tokio::test]
+    async fn test_get_param_from_search_col_invalid_float4() {
+        assert_init_done().await;
+        ut_info!("start");
+
+        let search_col = SearchCol {
+            col_name: String::from("invalid_float4"),
+            col_type: PsqlFieldType::FLOAT4,
+            value: Some(String::from("invalid")),
+        };
+        let result = param_from_search_col(&search_col);
+        assert!(result.is_err());
+
+        ut_info!("success");
+    }
+    #[tokio::test]
+    async fn test_get_param_from_search_col_invalid_float8() {
+        assert_init_done().await;
+        ut_info!("start");
+
+        let search_col = SearchCol {
+            col_name: String::from("invalid_float8"),
+            col_type: PsqlFieldType::FLOAT8,
+            value: Some(String::from("invalid")),
+        };
+        let result = param_from_search_col(&search_col);
+        assert!(result.is_err());
+
+        ut_info!("success");
+    }
+    #[tokio::test]
+    async fn test_get_param_from_search_col_invalid_int8() {
+        assert_init_done().await;
+        ut_info!("start");
+
+        let search_col = SearchCol {
+            col_name: String::from("invalid_int8"),
+            col_type: PsqlFieldType::INT8,
+            value: Some(String::from("invalid")),
+        };
+        let result = param_from_search_col(&search_col);
+        assert!(result.is_err());
+
+        ut_info!("success");
+    }
+    #[tokio::test]
+    async fn test_get_param_from_search_col_invalid_uuid() {
+        assert_init_done().await;
+        ut_info!("start");
+
+        let search_col = SearchCol {
+            col_name: String::from("invalid_uuid"),
+            col_type: PsqlFieldType::UUID,
+            value: Some(String::from("invalid")),
+        };
+        let result = param_from_search_col(&search_col);
+        assert!(result.is_err());
+
+        ut_info!("success");
+    }
+    #[tokio::test]
+    async fn test_get_param_from_search_col_invalid_timestamptz() {
+        assert_init_done().await;
+        ut_info!("start");
+
+        let search_col = SearchCol {
+            col_name: String::from("invalid_timestamptz"),
+            col_type: PsqlFieldType::TIMESTAMPTZ,
+            value: Some(String::from("invalid")),
+        };
+        let result = param_from_search_col(&search_col);
+        assert!(result.is_err());
+
+        ut_info!("success");
+    }
+
+    #[tokio::test]
+    async fn test_try_get_sort_str() {
+        assert_init_done().await;
+        ut_info!("start");
+
+        // check returned string for ASC
+        let mut sort_option = SortOption {
+            sort_field: String::from("test"),
+            sort_order: 0, // ASC
+        };
+        let result = try_get_sort_str(&sort_option);
+        assert!(result.is_ok());
+
+        let search_str = result.unwrap();
+        assert_eq!(r#""test" ASC"#, search_str);
+
+        // check returning string for DESC
+        sort_option.sort_order = 1;
+        let result = try_get_sort_str(&sort_option);
+        assert!(result.is_ok());
+
+        let search_str = result.unwrap();
+        assert_eq!(r#""test" DESC"#, search_str);
+
+        // invalid sort_order
+        sort_option.sort_order = 10;
+        let result = try_get_sort_str(&sort_option);
+        assert!(result.is_err());
     }
 }

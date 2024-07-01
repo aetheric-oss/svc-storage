@@ -136,7 +136,7 @@ impl GrpcDataObjectType for Data {
 }
 
 #[cfg(not(tarpaulin_include))]
-// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
+// no_coverage: (Rwaiting) Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
 impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
@@ -189,7 +189,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_vehicle_schema() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let id = Uuid::new_v4().to_string();
@@ -213,7 +213,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_vehicle_invalid_data() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let data = Data {
@@ -268,7 +268,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_vehicle_model_type_as_str_name() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         assert_eq!(VehicleModelType::VtolCargo.as_str_name(), "VTOL_CARGO");
@@ -282,7 +282,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_vehicle_model_type_from_str_name() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         assert_eq!(

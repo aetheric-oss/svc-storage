@@ -96,7 +96,7 @@ impl GrpcDataObjectType for Data {
 }
 
 #[cfg(not(tarpaulin_include))]
-// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
+// no_coverage: (Rwaiting) Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
 impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
@@ -124,7 +124,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_group_schema() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let id = Uuid::new_v4().to_string();
@@ -148,7 +148,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_group_invalid_data() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let data = Data {
@@ -173,7 +173,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_group_type_get_enum_string_val() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         assert_eq!(
@@ -199,7 +199,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_group_type_as_str_name() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         assert_eq!(GroupType::Display.as_str_name(), "DISPLAY");
@@ -211,7 +211,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_group_type_from_str_name() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         assert_eq!(
