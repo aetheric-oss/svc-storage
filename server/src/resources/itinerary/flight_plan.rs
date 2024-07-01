@@ -55,4 +55,16 @@ mod tests {
         assert_eq!(definition.get_psql_table(), "itinerary_flight_plan");
         ut_info!("success");
     }
+
+    #[tokio::test]
+    async fn test_itinerary_flight_plan_invalid_field() {
+        lib_common::logger::get_log_handle().await;
+        ut_info!("start");
+
+        let data = Data {};
+
+        let result = data.get_field_value("invalid");
+        assert!(result.is_err());
+        ut_info!("success");
+    }
 }

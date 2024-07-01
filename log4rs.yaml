@@ -76,7 +76,11 @@ loggers:
     level: info
     appenders:
       - grpc_requests
-  app::client::storage:
+  app::grpc::clients::grpc:
+    level: debug
+    appenders:
+      - client_requests
+  app::client::storage::grpc:
     level: debug
     appenders:
       - client_requests

@@ -41,6 +41,10 @@ pub struct TestData {
     pub i64_vec: ::prost::alloc::vec::Vec<i64>,
     #[prost(uint32, repeated, tag = "10")]
     pub u32_vec: ::prost::alloc::vec::Vec<u32>,
+    #[prost(double, tag = "11")]
+    pub f64: f64,
+    #[prost(float, tag = "12")]
+    pub f32: f32,
 
     #[prost(message, optional, tag = "110")]
     pub geo_point: ::core::option::Option<GeoPointZ>, // Always passed as an option, but will check for mandatory state
@@ -63,6 +67,10 @@ pub struct TestData {
     pub optional_timestamp: ::core::option::Option<::prost_wkt_types::Timestamp>,
     #[prost(string, optional, tag = "27")]
     pub optional_uuid: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(double, optional, tag = "28")]
+    pub optional_f64: ::core::option::Option<f64>,
+    #[prost(float, optional, tag = "29")]
+    pub optional_f32: ::core::option::Option<f32>,
 
     #[prost(message, optional, tag = "210")]
     pub optional_geo_point: ::core::option::Option<GeoPointZ>,
@@ -119,6 +127,14 @@ impl Resource for ResourceObject<TestData> {
                     FieldDefinition::new(PsqlFieldType::JSON, true),
                 ),
                 (
+                    "f64".to_string(),
+                    FieldDefinition::new(PsqlFieldType::FLOAT8, true),
+                ),
+                (
+                    "f32".to_string(),
+                    FieldDefinition::new(PsqlFieldType::FLOAT4, true),
+                ),
+                (
                     "uuid".to_string(),
                     FieldDefinition::new(PsqlFieldType::UUID, true),
                 ),
@@ -164,6 +180,14 @@ impl Resource for ResourceObject<TestData> {
                     FieldDefinition::new(PsqlFieldType::UUID, false),
                 ),
                 (
+                    "optional_f64".to_string(),
+                    FieldDefinition::new(PsqlFieldType::FLOAT8, false),
+                ),
+                (
+                    "optional_f32".to_string(),
+                    FieldDefinition::new(PsqlFieldType::FLOAT4, false),
+                ),
+                (
                     "optional_geo_point".to_string(),
                     FieldDefinition::new(PsqlFieldType::POINT, false),
                 ),
@@ -203,6 +227,8 @@ impl GrpcDataObjectType for TestData {
             "u8_vec" => Ok(GrpcField::Bytes(self.u8_vec.clone())),
             "i64_vec" => Ok(GrpcField::I64List(self.i64_vec.clone())),
             "u32_vec" => Ok(GrpcField::U32List(self.u32_vec.clone())),
+            "f64" => Ok(GrpcField::F64(self.f64)),
+            "f32" => Ok(GrpcField::F32(self.f32)),
             "geo_point" => Ok(GrpcField::Option(self.geo_point.clone().into())),
             "geo_polygon" => Ok(GrpcField::Option(self.geo_polygon.clone().into())),
             "geo_line_string" => Ok(GrpcField::Option(self.geo_line_string.clone().into())),
@@ -220,6 +246,8 @@ impl GrpcDataObjectType for TestData {
             "optional_uuid" => Ok(GrpcField::Option(GrpcFieldOption::String(
                 self.optional_uuid.clone(),
             ))),
+            "optional_f64" => Ok(GrpcField::Option(GrpcFieldOption::F64(self.optional_f64))),
+            "optional_f32" => Ok(GrpcField::Option(GrpcFieldOption::F32(self.optional_f32))),
             "optional_geo_point" => Ok(GrpcField::Option(self.optional_geo_point.clone().into())),
             "optional_geo_polygon" => {
                 Ok(GrpcField::Option(self.optional_geo_polygon.clone().into()))
@@ -336,6 +364,8 @@ pub(crate) fn get_valid_test_data(
         u8_vec: vec![1, 2],
         i64_vec: vec![-20, 2, -3000],
         u32_vec: vec![20, 2, 3000],
+        f64: 1234567890.12345,
+        f32: 0.123456,
 
         geo_point: Some(GeoPointZ {
             x: 180.0,
@@ -370,6 +400,8 @@ pub(crate) fn get_valid_test_data(
         optional_u32: Some(232),
         optional_timestamp: optional_timestamp.clone(),
         optional_uuid: Some(optional_uuid.to_string()),
+        optional_f64: Some(1234567890.12345),
+        optional_f32: Some(0.123456),
 
         optional_geo_point: Some(GeoPointZ {
             x: -180.0,
@@ -426,6 +458,12 @@ pub(crate) fn validate_test_data_sql_val(field: &str, value: &str) {
         r#""u32_vec""# => {
             assert_eq!(value, "Array [Number(20), Number(2), Number(3000)]");
         }
+        r#""f64""# => {
+            assert_eq!(value, "1234567890.12345");
+        }
+        r#""f32""# => {
+            assert_eq!(value, "0.123456");
+        }
         r#""geo_point""# => {
             assert_eq!(
                 value,
@@ -469,6 +507,12 @@ pub(crate) fn validate_test_data_sql_val(field: &str, value: &str) {
         }
         r#""optional_u32""# => {
             assert_eq!(value, "232");
+        }
+        r#""optional_f64""# => {
+            assert_eq!(value, "1234567890.12345");
+        }
+        r#""optional_f32""# => {
+            assert_eq!(value, "0.123456");
         }
         r#""optional_geo_point""# => {
             assert_eq!(
@@ -519,6 +563,8 @@ pub(crate) fn get_invalid_test_data() -> TestData {
         u8_vec: vec![1, 2],
         i64_vec: vec![-20, 2, -3000],
         u32_vec: vec![20, 2, 3000],
+        f64: 0.0987654321012345,
+        f32: 0.1234567,
 
         geo_point: Some(GeoPointZ {
             x: 180.0,
@@ -580,6 +626,8 @@ pub(crate) fn get_invalid_test_data() -> TestData {
             nanos: -1,
         }),
         optional_uuid: Some(String::from("invalid_optional_uuid")),
+        optional_f64: None,
+        optional_f32: None,
 
         optional_geo_point: Some(GeoPointZ {
             x: -181.0,
@@ -792,7 +840,6 @@ fn test_field_type_matches_grpc_field(field_type: PsqlFieldType, grpc_field: Grp
         PsqlFieldType::INT4 => assert!(
             matches!(grpc_field, GrpcField::I32(_)) || matches!(grpc_field, GrpcField::U32(_))
         ),
-        PsqlFieldType::INT2 => assert!(matches!(grpc_field, GrpcField::I16(_))),
         PsqlFieldType::FLOAT4 => assert!(matches!(grpc_field, GrpcField::F32(_))),
         PsqlFieldType::BOOL => assert!(matches!(grpc_field, GrpcField::Bool(_))),
         PsqlFieldType::TIMESTAMPTZ => assert!(matches!(
@@ -869,12 +916,6 @@ fn test_field_type_matches_optional_grpc_field(field_type: PsqlFieldType, grpc_f
             assert!(matches!(
                 grpc_field,
                 GrpcField::Option(GrpcFieldOption::I32(_))
-            ))
-        }
-        PsqlFieldType::INT2 => {
-            assert!(matches!(
-                grpc_field,
-                GrpcField::Option(GrpcFieldOption::I16(_))
             ))
         }
         PsqlFieldType::FLOAT4 => {

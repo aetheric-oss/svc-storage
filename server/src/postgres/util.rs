@@ -207,17 +207,8 @@ pub fn get_insert_vars<'a>(
         }
     }
 
-    for key in definition.fields.keys() {
-        let field_definition = match definition.fields.get(key) {
-            Some(val) => val,
-            None => {
-                let error = format!("No field definition found for field: {}", key);
-                psql_error!("{}", error);
-                psql_debug!("Got definition for fields: {:?}", definition.fields);
-                return Err(ArrErr::Error(error));
-            }
-        };
-
+    psql_debug!("Resource Definition: {:?}", definition);
+    for (key, field_definition) in &definition.fields {
         match psql_data.get(&*key.to_string()) {
             Some(value) => {
                 fields.push(format!(r#""{}""#, key));
@@ -226,6 +217,10 @@ pub fn get_insert_vars<'a>(
                     // Since we're using CockroachDB, we can't directly pass
                     // the POINT type. We need to converted into a GEOMETRY
                     PsqlFieldType::POINT => {
+                        psql_debug!(
+                            "POINT found for field_value: {:?}",
+                            data.get_field_value(key)
+                        );
                         if let Ok(point_option) = data.get_field_value(key) {
                             match get_point_sql_val(point_option) {
                                 Some(val) => inserts.push(val),
@@ -244,6 +239,10 @@ pub fn get_insert_vars<'a>(
                     // Since we're using CockroachDB, we can't directly pass
                     // the POLYGON type. We need to converted into a GEOMETRY
                     PsqlFieldType::POLYGON => {
+                        psql_debug!(
+                            "POLYGON found for field_value: {:?}",
+                            data.get_field_value(key)
+                        );
                         if let Ok(polygon_option) = data.get_field_value(key) {
                             match get_polygon_sql_val(polygon_option) {
                                 Some(val) => inserts.push(val),
@@ -262,6 +261,10 @@ pub fn get_insert_vars<'a>(
                     // Since we're using CockroachDB, we can't directly pass
                     // the PATH type. We need to converted into a GEOMETRY
                     PsqlFieldType::PATH => {
+                        psql_debug!(
+                            "PATH found for field_value: {:?}",
+                            data.get_field_value(key)
+                        );
                         if let Ok(path_option) = data.get_field_value(key) {
                             match get_path_sql_val(path_option) {
                                 Some(val) => inserts.push(val),
@@ -460,7 +463,7 @@ where
     let mut success = true;
     let mut errors: Vec<ValidationError> = vec![];
 
-    // Check if we have any id_fields as part of ar data object.
+    // Check if we have any id_fields as part of our data object.
     // They will need to be inserted as well.
     let id_fields = definition.get_psql_id_cols();
     for field in id_fields {
@@ -564,16 +567,16 @@ where
                 let val: String = val_to_validate.into();
                 converted.insert(key, Box::new(val));
             }
-            PsqlFieldType::INT2 => {
-                let val: i16 = val_to_validate.into();
-                converted.insert(key, Box::new(val));
-            }
             PsqlFieldType::INT4 => {
                 let val: i32 = val_to_validate.into();
                 converted.insert(key, Box::new(val));
             }
             PsqlFieldType::INT8 => {
                 let val: i64 = val_to_validate.into();
+                converted.insert(key, Box::new(val));
+            }
+            PsqlFieldType::FLOAT4 => {
+                let val: f32 = val_to_validate.into();
                 converted.insert(key, Box::new(val));
             }
             PsqlFieldType::FLOAT8 => {
@@ -782,7 +785,7 @@ mod tests {
         let polygon = GeoPolygonZ { rings: vec![] };
 
         let result = validate_polygon("polygon".to_string(), &polygon, &mut errors);
-        println!("errors found: {:?}", errors);
+        ut_debug!("errors found: {:?}", errors);
         assert!(!result);
         assert!(!errors.is_empty());
         assert_eq!(errors.len(), 1);
@@ -808,7 +811,7 @@ mod tests {
         };
 
         let result = validate_polygon("polygon".to_string(), &polygon, &mut errors);
-        println!("errors found: {:?}", errors);
+        ut_debug!("errors found: {:?}", errors);
         assert!(!result);
         assert!(!errors.is_empty());
         assert_eq!(errors.len(), 5);
@@ -900,23 +903,23 @@ mod tests {
             }
         };
 
-        println!("Validation result: {:?}", validation_result);
+        ut_debug!("Validation result: {:?}", validation_result);
         assert_eq!(validation_result.success, true);
         let definition = <ResourceObject<TestData>>::get_definition();
         let insert_re = Regex::new(r"(\$|ST_GeomFromText\()(\d+|'.*')\)?$")
             .unwrap_or_else(|e| panic!("Could not create regex: {}", e));
         match get_insert_vars(&valid_data, &psql_data, &definition, false) {
             Ok((inserts, fields, params)) => {
-                println!("Insert Statements: {:?}", inserts);
-                println!("Insert Fields: {:?}", fields);
-                println!("Insert Params: {:?}", params);
-                assert_eq!(inserts.len(), 23);
-                assert_eq!(params.len(), 17);
+                ut_debug!("Insert Statements: {:?}", inserts);
+                ut_debug!("Insert Fields: {:?}", fields);
+                ut_debug!("Insert Params: {:?}", params);
+                assert_eq!(inserts.len(), 27);
+                assert_eq!(params.len(), 21);
                 let field_params = fields.iter().zip(inserts.iter());
                 for (field, insert) in field_params {
                     let value = match insert_re.captures(&insert) {
                         Some(capture) => {
-                            println!("Captures: {:?}", capture);
+                            ut_debug!("Captures: {:?}", capture);
                             if &capture[1] == "$" {
                                 let index = capture[2]
                                     .parse::<usize>()
@@ -929,9 +932,9 @@ mod tests {
                         None => format!("{}", insert),
                     };
 
-                    println!("Insert Statement: {}", insert);
-                    println!("Insert Field: {}", field);
-                    println!("Insert Param: {}", value);
+                    ut_debug!("Insert Statement: {}", insert);
+                    ut_debug!("Insert Field: {}", field);
+                    ut_debug!("Insert Param: {}", value);
                     match field.as_str() {
                         r#""timestamp""# => {
                             assert_eq!(value, timestamp.as_ref().unwrap().to_string());
@@ -953,7 +956,77 @@ mod tests {
                 }
             }
             Err(e) => {
-                println!("Conversion errors found but not expected: {}", e);
+                ut_error!("Conversion errors found but not expected: {}", e);
+                return;
+            }
+        }
+
+        ut_info!("success");
+    }
+
+    #[tokio::test]
+    async fn test_get_insert_vars_with_keys() {
+        lib_common::logger::get_log_handle().await;
+        ut_info!("start");
+
+        let uuid = Uuid::new_v4();
+        let optional_uuid = Uuid::new_v4();
+        let timestamp = Some(Utc::now().into());
+        let optional_timestamp = Some(Utc::now().into());
+
+        let mut valid_data = get_valid_test_data(
+            uuid,
+            optional_uuid,
+            timestamp.clone(),
+            optional_timestamp.clone(),
+        );
+        valid_data.read_only = Some(String::from(
+            "This is read_only, should not be part of update vars.",
+        ));
+
+        let (mut psql_data, validation_result) =
+            match validate::<ResourceObject<TestData>>(&valid_data) {
+                Ok(result) => result,
+                Err(e) => {
+                    panic!("Validation errors found but not expected: {}", e);
+                }
+            };
+
+        ut_debug!("Validation result: {:?}", validation_result);
+        assert!(validation_result.success);
+
+        let definition = <ResourceObject<TestData>>::get_definition();
+        match get_insert_vars(&valid_data, &psql_data, &definition, true) {
+            Ok((inserts, fields, params)) => {
+                ut_debug!("Insert Statements: {:?}", inserts);
+                ut_debug!("Insert Fields: {:?}", fields);
+                ut_debug!("Insert Params: {:?}", params);
+                assert_eq!(inserts.len(), 27);
+                assert_eq!(params.len(), 21);
+            }
+            Err(e) => {
+                ut_error!("Conversion errors found but not expected: {}", e);
+                return;
+            }
+        }
+
+        // Add key field to our psql_data to test the path where a key_field is found and added
+        psql_data.insert(
+            String::from("test_id"),
+            Box::new(String::from("uuid_for_test_id")),
+        );
+
+        let definition = <ResourceObject<TestData>>::get_definition();
+        match get_insert_vars(&valid_data, &psql_data, &definition, true) {
+            Ok((inserts, fields, params)) => {
+                ut_debug!("Insert Statements: {:?}", inserts);
+                ut_debug!("Insert Fields: {:?}", fields);
+                ut_debug!("Insert Params: {:?}", params);
+                assert_eq!(inserts.len(), 28);
+                assert_eq!(params.len(), 22);
+            }
+            Err(e) => {
+                ut_error!("Conversion errors found but not expected: {}", e);
                 return;
             }
         }
@@ -988,23 +1061,23 @@ mod tests {
                 panic!("Validation errors found but not expected: {}", e);
             }
         };
-        assert_eq!(validation_result.success, true);
+        assert!(validation_result.success);
 
         let definition = <ResourceObject<TestData>>::get_definition();
         let update_re = Regex::new(r"(.*) = (\$|ST_GeomFromText\()(\d+|'.*')\)?$")
             .unwrap_or_else(|e| panic!("Could not create regex: {}", e));
         match get_update_vars(&valid_data, &psql_data, &definition) {
             Ok((updates, params)) => {
-                println!("Update Statements: {:?}", updates);
-                println!("Update Params: {:?}", params);
-                assert_eq!(updates.len(), 23);
-                assert_eq!(params.len(), 17);
+                ut_debug!("Update Statements: {:?}", updates);
+                ut_debug!("Update Params: {:?}", params);
+                assert_eq!(updates.len(), 27);
+                assert_eq!(params.len(), 21);
                 for update in updates {
                     let field: String;
                     let value: String;
                     match update_re.captures(&update) {
                         Some(capture) => {
-                            println!("Captures: {:?}", capture);
+                            ut_debug!("Captures: {:?}", capture);
                             field = capture[1].to_string();
                             if &capture[2] == "$" {
                                 let index = capture[3]
@@ -1030,9 +1103,9 @@ mod tests {
                         }
                     }
 
-                    println!("Update Statement: {}", update);
-                    println!("Update Field: {}", field);
-                    println!("Update Param: {}", value);
+                    ut_debug!("Update Statement: {}", update);
+                    ut_debug!("Update Field: {}", field);
+                    ut_debug!("Update Param: {}", value);
                     match field.as_str() {
                         r#""timestamp""# => {
                             assert_eq!(value, timestamp.as_ref().unwrap().to_string());
@@ -1054,7 +1127,7 @@ mod tests {
                 }
             }
             Err(e) => {
-                println!("Conversion errors found but not expected: {}", e);
+                ut_error!("Conversion errors found but not expected: {}", e);
                 return;
             }
         }
@@ -1076,7 +1149,7 @@ mod tests {
             }
         };
 
-        assert_eq!(validation_result.success, false);
+        assert!(!validation_result.success);
 
         ut_info!("success");
     }
