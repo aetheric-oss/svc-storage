@@ -48,8 +48,6 @@ pub enum GrpcField {
     F32(f32),
     /// bool
     Bool(bool),
-    /// i16
-    I16(i16),
     /// Timestamp
     Timestamp(Timestamp),
     /// Geometric Point
@@ -87,8 +85,6 @@ pub enum GrpcFieldOption {
     F32(Option<f32>),
     /// Option\<bool\>
     Bool(Option<bool>),
-    /// Option\<i16\>
-    I16(Option<i16>),
     /// Option\<Timestamp\>
     Timestamp(Option<Timestamp>),
     /// Geo Point
@@ -215,14 +211,6 @@ impl From<GrpcField> for f32 {
         }
     }
 }
-impl From<GrpcField> for i16 {
-    fn from(field: GrpcField) -> Self {
-        match field {
-            GrpcField::I16(field) => field,
-            _ => 0,
-        }
-    }
-}
 impl From<GrpcField> for bool {
     fn from(field: GrpcField) -> Self {
         match field {
@@ -305,7 +293,6 @@ impl From<GrpcFieldOption> for Option<GrpcField> {
             GrpcFieldOption::U32(field) => field.map(GrpcField::U32),
             GrpcFieldOption::U32List(field) => field.map(GrpcField::U32List),
             GrpcFieldOption::F32(field) => field.map(GrpcField::F32),
-            GrpcFieldOption::I16(field) => field.map(GrpcField::I16),
             GrpcFieldOption::Bool(field) => field.map(GrpcField::Bool),
             GrpcFieldOption::Timestamp(field) => field.map(GrpcField::Timestamp),
             GrpcFieldOption::GeoPointZ(field) => field.map(GrpcField::GeoPointZ),
@@ -352,12 +339,13 @@ pub fn get_runtime_handle() -> Result<Handle, ArrErr> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_util::assert_init_done;
     use prost_wkt_types::Timestamp;
     use tonic::Status;
 
     #[tokio::test]
     async fn test_from_arrerr_to_status() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         // Create an ArrErr instance with an error message
@@ -373,7 +361,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_bytes() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let bytes = vec![0x68, 0x65, 0x6c, 0x6c, 0x6f];
@@ -393,7 +381,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_string_list() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         // input vec, should return vec
@@ -416,7 +404,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_string() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let string = String::from("hello");
@@ -445,7 +433,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_i64_vec() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let i64_vec = vec![1, -2, 3, -4];
@@ -479,7 +467,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_i64() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let i64 = -42;
@@ -516,7 +504,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_f64() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let f64 = 42.42;
@@ -545,7 +533,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_i32() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let i32 = -42;
@@ -574,7 +562,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_u32() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let u32 = 42;
@@ -603,7 +591,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_u32_vec() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let u32_vec = vec![1, 2, 3];
@@ -637,7 +625,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_f32() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let f32 = 42.42;
@@ -665,37 +653,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_from_grpc_field_to_i16() {
-        lib_common::logger::get_log_handle().await;
-        ut_info!("start");
-
-        let i16 = -42;
-
-        // GrpcField into i16
-        let field = GrpcField::I16(i16);
-        let result: i16 = field.into();
-        assert_eq!(result, i16);
-
-        // GrpcFieldOption into i16
-        let field = GrpcFieldOption::I16(Some(i16));
-        let result: Option<GrpcField> = field.into();
-        assert_eq!(result, Some(GrpcField::I16(i16)));
-
-        let field = GrpcFieldOption::I16(None);
-        let result: Option<GrpcField> = field.into();
-        assert_eq!(result, None);
-
-        // Non GrpcField::I16 into i16
-        let field = GrpcField::Bool(false);
-        let result: i16 = field.into();
-        assert_eq!(result, 0);
-
-        ut_info!("success");
-    }
-
-    #[tokio::test]
     async fn test_from_grpc_field_to_bool() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let bool = true;
@@ -724,7 +683,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_timestamp() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let timestamp = Timestamp::from(SystemTime::now());
@@ -748,7 +707,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_point() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let point = GeoPointZ {
@@ -776,7 +735,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_linestring() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let line_string = GeoLineStringZ {
@@ -806,7 +765,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_from_grpc_field_to_polygon() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let ring_1 = GeoLineStringZ {

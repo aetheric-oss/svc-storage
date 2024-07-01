@@ -80,10 +80,11 @@ pub async fn shutdown_signal(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_util::assert_init_done;
 
     #[tokio::test]
     async fn test_load_logger_config_from_file() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("Start.");
 
         let result =

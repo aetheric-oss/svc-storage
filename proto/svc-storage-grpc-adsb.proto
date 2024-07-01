@@ -24,11 +24,11 @@ message Object {
 }
 
 // UpdateObject struct with `id`, `data` and `mask` fields
-// * `id` [`String`] in [`Uuid](lib_common::uuid::Uuid) format
+// * `id` [`String`] in [`Uuid`](lib_common::uuid::Uuid) format
 // * `data` [`Data`] struct with adsb data which should be used for update
 // * `mask` [`FieldMask`] struct with adsb fields that should be updated
 message UpdateObject {
-    // `id` [`String`] in [`Uuid](lib_common::uuid::Uuid) format
+    // `id` [`String`] in [`Uuid`](lib_common::uuid::Uuid) format
     string id = 1;
     // struct with adsb data which should be used for update
     Data data = 2;

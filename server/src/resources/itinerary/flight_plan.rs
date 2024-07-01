@@ -29,7 +29,7 @@ impl GrpcDataObjectType for Data {
 }
 
 #[cfg(not(tarpaulin_include))]
-// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
+// no_coverage: (Rwaiting) Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
 impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
@@ -45,14 +45,27 @@ impl TryFrom<Row> for Data {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_util::*;
 
     #[tokio::test]
     async fn test_itinerary_flight_plan_schema() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let definition = <ResourceObject<Data>>::get_definition();
         assert_eq!(definition.get_psql_table(), "itinerary_flight_plan");
+        ut_info!("success");
+    }
+
+    #[tokio::test]
+    async fn test_itinerary_flight_plan_invalid_field() {
+        assert_init_done().await;
+        ut_info!("start");
+
+        let data = Data {};
+
+        let result = data.get_field_value("invalid");
+        assert!(result.is_err());
         ut_info!("success");
     }
 }

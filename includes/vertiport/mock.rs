@@ -302,8 +302,8 @@ pub fn get_locations() -> Vec<GeoPolygonZ> {
 fn test_get_data_obj() {
     let data: Data = get_data_obj();
 
-    assert!(data.name.len() > 0);
-    assert!(data.description.len() > 0);
+    assert!(!data.name.is_empty());
+    assert!(!data.description.is_empty());
     assert!(data.geo_location.is_some());
     assert!(data.schedule.is_some());
     assert!(data.created_at.is_some());

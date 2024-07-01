@@ -4,8 +4,9 @@ use log::info;
 use svc_storage::*;
 
 /// Main entry point: starts gRPC Server on specified address and port
-#[tokio::main]
 #[cfg(not(tarpaulin_include))]
+// no_coverage: (R5) Will be part of integration tests, coverage report will need to be merged to show.
+#[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Will use default config settings if no environment vars are found.
     let config = Config::try_from_env()

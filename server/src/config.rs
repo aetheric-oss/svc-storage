@@ -67,10 +67,11 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::Config;
+    use crate::test_util::assert_init_done;
 
     #[tokio::test]
     async fn test_config_from_default() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("Start.");
 
         let config = Config::default();
@@ -84,7 +85,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_config_from_env() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("Start.");
 
         std::env::set_var("DOCKER_PORT_GRPC", "6789");
