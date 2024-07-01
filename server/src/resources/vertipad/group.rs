@@ -29,7 +29,7 @@ impl GrpcDataObjectType for Data {
 }
 
 #[cfg(not(tarpaulin_include))]
-// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
+// no_coverage: (Rwaiting) Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
 impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
@@ -49,7 +49,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_vertipad_group_schema() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let data = Data {};

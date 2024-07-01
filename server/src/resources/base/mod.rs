@@ -158,7 +158,7 @@ impl ResourceDefinition {
 }
 
 /// Generic resource wrapper struct used to implement our generic traits
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ResourceObject<T>
 where
     T: GrpcDataObjectType + prost::Message,

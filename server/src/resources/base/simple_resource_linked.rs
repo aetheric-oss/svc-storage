@@ -2,7 +2,6 @@
 
 use crate::grpc::server::{Ids, ValidationResult};
 use crate::grpc::GrpcDataObjectType;
-use crate::postgres::simple_resource_linked::PsqlObjectType;
 
 use std::collections::HashMap;
 use std::marker::PhantomData;
@@ -10,7 +9,7 @@ use std::marker::PhantomData;
 pub use super::{ObjectType, Resource, ResourceObject};
 pub use crate::postgres::init::PsqlInitResource;
 pub use crate::postgres::init::PsqlInitSimpleResource;
-pub use crate::postgres::simple_resource_linked::PsqlType;
+pub use crate::postgres::simple_resource_linked::*;
 pub use crate::postgres::PsqlSearch;
 
 /// Generic trait providing specific functions for our `simple` resources
@@ -19,6 +18,7 @@ where
     T: GrpcDataObjectType,
 {
 }
+impl<T: GrpcDataObjectType> PsqlType for ResourceObject<T> where Self: ObjectType<T> + Resource {}
 impl<T: GrpcDataObjectType + prost::Message> SimpleResourceLinked<T> for ResourceObject<T> where
     Self: PsqlType
 {
@@ -27,7 +27,6 @@ impl<T: GrpcDataObjectType> PsqlObjectType<T> for ResourceObject<T> where
     Self: ObjectType<T> + Resource
 {
 }
-impl<T: GrpcDataObjectType> PsqlType for ResourceObject<T> where Self: ObjectType<T> + Resource {}
 
 /// Generic resource result wrapper struct used to implement our generic traits
 #[derive(Debug)]
@@ -78,7 +77,7 @@ macro_rules! build_grpc_simple_resource_linked_impl {
             type Error = ArrErr;
 
             fn try_from(rows: Vec<Row>) -> Result<Self, ArrErr> {
-                debug!("(try_from) Converting Vec<Row> to List: {:?}", rows);
+                resources_debug!("(try_from) Converting Vec<Row> to List: {:?}", rows);
                 let mut res: Vec<Object> = Vec::with_capacity(rows.len());
 
                 for row in rows.into_iter() {
@@ -104,7 +103,7 @@ macro_rules! build_grpc_simple_resource_linked_impl {
             type Error = ArrErr;
 
             fn try_from(rows: Vec<Row>) -> Result<Self, ArrErr> {
-                debug!("(try_from) Converting Vec<Row> to RowDataList: {:?}", rows);
+                resources_debug!("(try_from) Converting Vec<Row> to RowDataList: {:?}", rows);
                 let mut res: Vec<RowData> = Vec::with_capacity(rows.len());
 
                 for row in rows.into_iter() {
@@ -143,7 +142,7 @@ macro_rules! build_generic_resource_linked_impl_from {
                         }
                     }
                     None => {
-                        debug!(
+                        resources_debug!(
                             "(from) No ids found when converting ResourceObject<Data> to Object."
                         );
                     }

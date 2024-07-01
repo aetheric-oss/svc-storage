@@ -95,8 +95,9 @@ appenders:
         level: debug
 
 root:
-  level: info
+  level: debug
   appenders:
+    - debug_file
     - stdout
 
 loggers:

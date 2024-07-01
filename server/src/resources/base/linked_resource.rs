@@ -1,8 +1,10 @@
 //! Linked Resource
-pub use super::{ObjectType, Resource, ResourceObject};
+
 use crate::grpc::server::IdList;
 use crate::grpc::GrpcDataObjectType;
-use crate::postgres::linked_resource::*;
+
+pub use super::{ObjectType, Resource, ResourceObject};
+pub use crate::postgres::linked_resource::*;
 
 /// Generic trait providing specific functions for our id linking struct
 pub trait LinkOtherResource {
@@ -15,17 +17,16 @@ where
     T: GrpcDataObjectType,
 {
 }
+impl<T: GrpcDataObjectType> PsqlType for ResourceObject<T> where Self: ObjectType<T> + Resource {}
 
 impl<T: GrpcDataObjectType + prost::Message> LinkedResource<T> for ResourceObject<T> where
     Self: PsqlType
 {
 }
-
 impl<T: GrpcDataObjectType> PsqlObjectType<T> for ResourceObject<T> where
     Self: ObjectType<T> + Resource
 {
 }
-impl<T: GrpcDataObjectType> PsqlType for ResourceObject<T> where Self: ObjectType<T> + Resource {}
 
 /// Generates gRPC server implementations
 #[macro_export]

@@ -6,7 +6,6 @@ use crate::grpc::GrpcDataObjectType;
 
 use core::fmt::Debug;
 use lib_common::uuid::Uuid;
-use log::error;
 use std::collections::HashMap;
 use std::marker::PhantomData;
 
@@ -49,8 +48,8 @@ where
                 }
             },
             Err(_) => {
-                error!(
-                    "(set_id) Could not set id for Resource Object [{}].",
+                resources_error!(
+                    "Could not set id for Resource Object [{}].",
                     Self::get_psql_table()
                 );
             }
@@ -66,7 +65,7 @@ where
             Some(id) => Ok(id),
             None => {
                 let error = "No id provided for GenericResource.".to_string();
-                error!("(try_get_id) {}", error);
+                resources_error!("{}", error);
                 Err(ArrErr::Error(error))
             }
         }
@@ -81,13 +80,14 @@ where
         Uuid::try_parse(&self.try_get_id()?).map_err(ArrErr::from)
     }
 }
+impl<T: GrpcDataObjectType> PsqlType for ResourceObject<T> where Self: ObjectType<T> + Resource {}
+
 impl<T: GrpcDataObjectType + prost::Message> SimpleResource<T> for ResourceObject<T> where
     Self: PsqlType
 {
 }
 
 impl<T: GrpcDataObjectType> PsqlObjectType<T> for ResourceObject<T> where Self: ObjectType<T> {}
-impl<T: GrpcDataObjectType> PsqlType for ResourceObject<T> where Self: ObjectType<T> + Resource {}
 
 /// Generic resource result wrapper struct used to implement our generic traits
 #[derive(Debug)]
@@ -157,7 +157,7 @@ macro_rules! build_grpc_simple_resource_impl {
             type Error = ArrErr;
 
             fn try_from(rows: Vec<Row>) -> Result<Self, ArrErr> {
-                debug!("(try_from) Converting Vec<Row> to List: {:?}", rows);
+                resources_debug!("Converting Vec<Row> to List: {:?}", rows);
                 let mut res: Vec<Object> = Vec::with_capacity(rows.len());
 
                 for row in rows.into_iter() {

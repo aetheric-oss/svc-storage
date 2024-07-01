@@ -108,3 +108,7 @@ Kaufungen
 Noord
 profraw
 Wijdenes
+Linkeds
+hexstr
+Rnever
+Rwaiting

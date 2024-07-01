@@ -73,7 +73,7 @@ impl Resource for ResourceObject<Data> {
 
     fn get_table_indices() -> Vec<String> {
         [
-            // TODO(R4) After groups are implemented, add organization_id index
+            // TODO(R5) After groups are implemented, add organization_id index
             // r#"ALTER TABLE scanner ADD CONSTRAINT fk_organization_id FOREIGN KEY(organization_id) REFERENCES itinerary_flight_plan(organization_id)"#.to_owned(),
         ]
         .to_vec()
@@ -95,7 +95,7 @@ impl GrpcDataObjectType for Data {
 }
 
 #[cfg(not(tarpaulin_include))]
-// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
+// no_coverage: (Rwaiting) Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
 impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
@@ -125,7 +125,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_scanner_schema() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let id = Uuid::new_v4().to_string();
@@ -149,7 +149,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_scanner_invalid_data() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let data = Data {
@@ -173,7 +173,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_scanner_type_get_enum_string_val() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         assert_eq!(
@@ -209,7 +209,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_scanner_type_as_str_name() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         assert_eq!(ScannerType::Mobile.as_str_name(), "MOBILE");
@@ -222,7 +222,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_scanner_type_from_str_name() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         assert_eq!(
@@ -248,7 +248,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_scanner_status_get_enum_string_val() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         assert_eq!(
@@ -276,7 +276,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_scanner_status_as_str_name() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         assert_eq!(ScannerStatus::Active.as_str_name(), "ACTIVE");
@@ -287,7 +287,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_scanner_status_from_str_name() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         assert_eq!(

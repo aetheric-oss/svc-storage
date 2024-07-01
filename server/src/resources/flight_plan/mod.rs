@@ -215,7 +215,7 @@ impl GrpcDataObjectType for Data {
 }
 
 #[cfg(not(tarpaulin_include))]
-// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
+// no_coverage: (Rwaiting) Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
 impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
@@ -326,7 +326,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_flight_plan_schema() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let id = Uuid::new_v4().to_string();
@@ -343,14 +343,14 @@ mod tests {
         if let Ok((sql_fields, validation_result)) = result {
             ut_info!("{:?}", sql_fields);
             ut_info!("{:?}", validation_result);
-            assert_eq!(validation_result.success, true);
+            assert!(validation_result.success);
         }
         ut_debug!("success");
     }
 
     #[tokio::test]
     async fn test_flight_plan_invalid_data() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let data = Data {
@@ -405,7 +405,7 @@ mod tests {
         assert!(result.is_ok());
         if let Ok((_, validation_result)) = result {
             ut_info!("{:?}", validation_result);
-            assert_eq!(validation_result.success, false);
+            assert!(!validation_result.success);
 
             let expected_errors = vec![
                 "pilot_id",
@@ -432,7 +432,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_flight_status_get_enum_string_val() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         assert_eq!(
@@ -481,7 +481,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_flight_status_as_str_name() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         assert_eq!(FlightStatus::Ready.as_str_name(), "READY");
@@ -496,7 +496,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_flight_status_from_str_name() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         assert_eq!(
@@ -531,7 +531,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_flight_priority_get_enum_string_val() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         assert_eq!(
@@ -566,7 +566,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_flight_priority_as_str_name() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         assert_eq!(FlightPriority::Low.as_str_name(), "LOW");
@@ -578,7 +578,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_flight_priority_from_str_name() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         assert_eq!(

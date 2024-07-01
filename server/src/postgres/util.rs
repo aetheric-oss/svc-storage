@@ -154,9 +154,9 @@ pub fn validate_polygon(
     success
 }
 
-// /// Validates a [`LineStringZ`] (used by postgres).
-// /// Creates an error entry in the errors list if a conversion was not possible.
-// /// Returns `true` on success, `false` if the conversion failed.
+/// Validates a [`LineStringZ`] (used by postgres).
+/// Creates an error entry in the errors list if a conversion was not possible.
+/// Returns `true` on success, `false` if the conversion failed.
 pub fn validate_line_string(
     field: String,
     value: &GeoLineStringZ,
@@ -207,18 +207,9 @@ pub fn get_insert_vars<'a>(
         }
     }
 
-    for key in definition.fields.keys() {
-        let field_definition = match definition.fields.get(key) {
-            Some(val) => val,
-            None => {
-                let error = format!("No field definition found for field: {}", key);
-                psql_error!("{}", error);
-                psql_debug!("Got definition for fields: {:?}", definition.fields);
-                return Err(ArrErr::Error(error));
-            }
-        };
-
-        match psql_data.get(&*key.to_string()) {
+    psql_debug!("Resource Definition: {:?}", definition);
+    for (key, field_definition) in &definition.fields {
+        match psql_data.get(&(*key.to_string())) {
             Some(value) => {
                 fields.push(format!(r#""{}""#, key));
 
@@ -226,6 +217,10 @@ pub fn get_insert_vars<'a>(
                     // Since we're using CockroachDB, we can't directly pass
                     // the POINT type. We need to converted into a GEOMETRY
                     PsqlFieldType::POINT => {
+                        psql_debug!(
+                            "POINT found for field_value: {:?}",
+                            data.get_field_value(key)
+                        );
                         if let Ok(point_option) = data.get_field_value(key) {
                             match get_point_sql_val(point_option) {
                                 Some(val) => inserts.push(val),
@@ -244,6 +239,10 @@ pub fn get_insert_vars<'a>(
                     // Since we're using CockroachDB, we can't directly pass
                     // the POLYGON type. We need to converted into a GEOMETRY
                     PsqlFieldType::POLYGON => {
+                        psql_debug!(
+                            "POLYGON found for field_value: {:?}",
+                            data.get_field_value(key)
+                        );
                         if let Ok(polygon_option) = data.get_field_value(key) {
                             match get_polygon_sql_val(polygon_option) {
                                 Some(val) => inserts.push(val),
@@ -262,6 +261,10 @@ pub fn get_insert_vars<'a>(
                     // Since we're using CockroachDB, we can't directly pass
                     // the PATH type. We need to converted into a GEOMETRY
                     PsqlFieldType::PATH => {
+                        psql_debug!(
+                            "PATH found for field_value: {:?}",
+                            data.get_field_value(key)
+                        );
                         if let Ok(path_option) = data.get_field_value(key) {
                             match get_path_sql_val(path_option) {
                                 Some(val) => inserts.push(val),
@@ -276,6 +279,12 @@ pub fn get_insert_vars<'a>(
                             psql_debug!("field_value: {:?}", value);
                             return Err(ArrErr::Error(error));
                         }
+                    }
+                    PsqlFieldType::INT8 => {
+                        let val: &PsqlField = <&Box<PsqlFieldSend>>::clone(&value).as_ref();
+                        inserts.push(format!("${}::BIGINT", index));
+                        params.push(val);
+                        index += 1;
                     }
                     // In any other case, we can just allow tokio_postgres
                     // to handle the conversion
@@ -330,7 +339,7 @@ pub fn get_update_vars<'a>(
                         if let Ok(point_option) = data.get_field_value(key) {
                             match get_point_sql_val(point_option) {
                                 Some(val) => updates.push(format!(r#""{}" = {}"#, key, val)),
-                                None => continue,
+                                None => updates.push(format!(r#""{}" = NULL"#, key)),
                             };
                         } else {
                             let error = format!(
@@ -348,7 +357,7 @@ pub fn get_update_vars<'a>(
                         if let Ok(polygon_option) = data.get_field_value(key) {
                             match get_polygon_sql_val(polygon_option) {
                                 Some(val) => updates.push(format!(r#""{}" = {}"#, key, val)),
-                                None => continue,
+                                None => updates.push(format!(r#""{}" = NULL"#, key)),
                             };
                         } else {
                             let error = format!(
@@ -366,7 +375,7 @@ pub fn get_update_vars<'a>(
                         if let Ok(path_option) = data.get_field_value(key) {
                             match get_path_sql_val(path_option) {
                                 Some(val) => updates.push(format!(r#""{}" = {}"#, key, val)),
-                                None => continue,
+                                None => updates.push(format!(r#""{}" = NULL"#, key)),
                             };
                         } else {
                             let error = format!(
@@ -449,6 +458,8 @@ pub fn get_path_sql_val(path_option: GrpcField) -> Option<String> {
     }
 }
 
+/// Generic validation function making sure provided data is valid before calling database inserts/
+/// updates
 pub fn validate<T>(data: &impl GrpcDataObjectType) -> Result<(PsqlData, ValidationResult), ArrErr>
 where
     T: Resource,
@@ -460,7 +471,7 @@ where
     let mut success = true;
     let mut errors: Vec<ValidationError> = vec![];
 
-    // Check if we have any id_fields as part of ar data object.
+    // Check if we have any id_fields as part of our data object.
     // They will need to be inserted as well.
     let id_fields = definition.get_psql_id_cols();
     for field in id_fields {
@@ -498,6 +509,60 @@ where
                             let error = format!("Got 'GrpcField::Option' for [{}] [{:?}] while this field is not marked as optional in the definition.", key, field);
                             psql_error!("{}", error);
                             return Err(ArrErr::Error(error));
+                        }
+                        // The optional field will be set to 'NULL' in the database
+                        match field.field_type {
+                            PsqlFieldType::UUID => {
+                                converted.insert(key, Box::new(None::<Uuid>));
+                            }
+                            PsqlFieldType::TIMESTAMPTZ => {
+                                converted.insert(key, Box::new(None::<DateTime<Utc>>));
+                            }
+                            PsqlFieldType::ANYENUM => {
+                                converted.insert(key, Box::new(None::<i32>));
+                            }
+                            PsqlFieldType::POINT => {
+                                // Will use the raw type for insert/update statements
+                                converted.insert(key, Box::new(true));
+                            }
+                            PsqlFieldType::POLYGON => {
+                                // Will use the raw type for insert/update statements
+                                converted.insert(key, Box::new(true));
+                            }
+                            PsqlFieldType::PATH => {
+                                // Will use the raw type for insert/update statements
+                                converted.insert(key, Box::new(true));
+                            }
+                            PsqlFieldType::TEXT => {
+                                converted.insert(key, Box::new(None::<String>));
+                            }
+                            PsqlFieldType::INT8 => {
+                                converted.insert(key, Box::new(None::<i64>));
+                            }
+                            PsqlFieldType::INT8_ARRAY => {
+                                converted.insert(key, Box::new(None::<Vec<i64>>));
+                            }
+                            PsqlFieldType::FLOAT4 => {
+                                converted.insert(key, Box::new(None::<f32>));
+                            }
+                            PsqlFieldType::FLOAT8 => {
+                                converted.insert(key, Box::new(None::<f64>));
+                            }
+                            PsqlFieldType::BOOL => {
+                                converted.insert(key, Box::new(None::<bool>));
+                            }
+                            PsqlFieldType::BYTEA => {
+                                converted.insert(key, Box::new(None::<Vec<u8>>));
+                            }
+                            _ => {
+                                let error = format!(
+                                    "Conversion errors found in fields for table [{}], unknown field type [{}].",
+                                    definition.psql_table,
+                                    field.field_type.name()
+                                );
+                                psql_error!("{}", error);
+                                return Err(ArrErr::Error(error));
+                            }
                         }
                         continue;
                     }
@@ -564,16 +629,16 @@ where
                 let val: String = val_to_validate.into();
                 converted.insert(key, Box::new(val));
             }
-            PsqlFieldType::INT2 => {
-                let val: i16 = val_to_validate.into();
-                converted.insert(key, Box::new(val));
-            }
-            PsqlFieldType::INT4 => {
-                let val: i32 = val_to_validate.into();
-                converted.insert(key, Box::new(val));
-            }
             PsqlFieldType::INT8 => {
                 let val: i64 = val_to_validate.into();
+                converted.insert(key, Box::new(val));
+            }
+            PsqlFieldType::INT8_ARRAY => {
+                let val: Vec<i64> = val_to_validate.into();
+                converted.insert(key, Box::new(val));
+            }
+            PsqlFieldType::FLOAT4 => {
+                let val: f32 = val_to_validate.into();
                 converted.insert(key, Box::new(val));
             }
             PsqlFieldType::FLOAT8 => {
@@ -624,12 +689,13 @@ mod tests {
 
     use super::*;
     use crate::resources::base::ResourceObject;
+    use crate::test_util::simple_resource::*;
     use crate::test_util::*;
     use regex::Regex;
 
     #[tokio::test]
     async fn test_validate_uuid_valid() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let mut errors: Vec<ValidationError> = vec![];
@@ -646,11 +712,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_uuid_invalid() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let mut errors: Vec<ValidationError> = vec![];
-        let result = validate_uuid(String::from("some_id"), &String::from(""), &mut errors);
+        let result = validate_uuid(String::from("some_id"), "", &mut errors);
         assert!(result.is_none());
         assert!(!errors.is_empty());
         assert_eq!(errors[0].field, "some_id");
@@ -660,7 +726,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_dt_valid() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let mut errors: Vec<ValidationError> = vec![];
@@ -677,7 +743,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_dt_invalid() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let mut errors: Vec<ValidationError> = vec![];
@@ -695,7 +761,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_point_valid() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let mut errors: Vec<ValidationError> = vec![];
@@ -713,7 +779,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_point_invalid() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let mut errors: Vec<ValidationError> = vec![];
@@ -734,7 +800,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_polygon_valid() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let mut errors: Vec<ValidationError> = vec![];
@@ -774,7 +840,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_polygon_invalid() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         // Not enough lines, should return just 1 error
@@ -782,7 +848,7 @@ mod tests {
         let polygon = GeoPolygonZ { rings: vec![] };
 
         let result = validate_polygon("polygon".to_string(), &polygon, &mut errors);
-        println!("errors found: {:?}", errors);
+        ut_debug!("errors found: {:?}", errors);
         assert!(!result);
         assert!(!errors.is_empty());
         assert_eq!(errors.len(), 1);
@@ -808,7 +874,7 @@ mod tests {
         };
 
         let result = validate_polygon("polygon".to_string(), &polygon, &mut errors);
-        println!("errors found: {:?}", errors);
+        ut_debug!("errors found: {:?}", errors);
         assert!(!result);
         assert!(!errors.is_empty());
         assert_eq!(errors.len(), 5);
@@ -823,7 +889,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_line_string_valid() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let mut errors: Vec<ValidationError> = vec![];
@@ -850,7 +916,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_line_string_invalid() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let mut errors: Vec<ValidationError> = vec![];
@@ -874,7 +940,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_insert_vars() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
         let uuid = Uuid::new_v4();
@@ -882,7 +948,7 @@ mod tests {
         let timestamp = Some(Utc::now().into());
         let optional_timestamp = Some(Utc::now().into());
 
-        let mut valid_data = get_valid_test_data(
+        let mut valid_data = get_valid_data(
             uuid,
             optional_uuid,
             timestamp.clone(),
@@ -892,46 +958,54 @@ mod tests {
             "This is read_only, should not be part of update vars.",
         ));
 
-        let (psql_data, validation_result) = match validate::<ResourceObject<TestData>>(&valid_data)
-        {
+        let (psql_data, validation_result) = match validate::<ResourceObject<Data>>(&valid_data) {
             Ok(result) => result,
             Err(e) => {
                 panic!("Validation errors found but not expected: {}", e);
             }
         };
+        ut_debug!("Validation result: {:?}", validation_result);
+        assert!(validation_result.success);
 
-        println!("Validation result: {:?}", validation_result);
-        assert_eq!(validation_result.success, true);
-        let definition = <ResourceObject<TestData>>::get_definition();
-        let insert_re = Regex::new(r"(\$|ST_GeomFromText\()(\d+|'.*')\)?$")
-            .unwrap_or_else(|e| panic!("Could not create regex: {}", e));
+        let definition = <ResourceObject<Data>>::get_definition();
         match get_insert_vars(&valid_data, &psql_data, &definition, false) {
             Ok((inserts, fields, params)) => {
-                println!("Insert Statements: {:?}", inserts);
-                println!("Insert Fields: {:?}", fields);
-                println!("Insert Params: {:?}", params);
-                assert_eq!(inserts.len(), 23);
-                assert_eq!(params.len(), 17);
+                // Our insert statements can be a string:
+                // `ST_GeomFromText(<EKW geometry definition>)`
+                // `$<index>`
+                // `$<index>::<field type>`
+                // This regular expression will capture the index or the geo definition which can be used
+                // to validate if the correct values have been parsed
+                let insert_re = Regex::new(
+                    r"(\$|ST_GeomFromText\()((?<index>\d+)(::[A-Z0-9]+)?|(?<geo>'.*'))\)?$",
+                )
+                .unwrap_or_else(|e| panic!("Could not create regex: {}", e));
+
+                ut_debug!("Insert Statements: {:?}", inserts);
+                ut_debug!("Insert Fields: {:?}", fields);
+                ut_debug!("Insert Params: {:?}", params);
+                assert_eq!(inserts.len(), 25);
+                assert_eq!(params.len(), 19);
                 let field_params = fields.iter().zip(inserts.iter());
                 for (field, insert) in field_params {
                     let value = match insert_re.captures(&insert) {
                         Some(capture) => {
-                            println!("Captures: {:?}", capture);
+                            ut_debug!("Captures: {:?}", capture);
                             if &capture[1] == "$" {
-                                let index = capture[2]
+                                let index = capture["index"]
                                     .parse::<usize>()
                                     .expect("Could not parse param index as i32");
                                 format!("{:?}", params[index - 1])
                             } else {
-                                capture[2].to_string()
+                                capture["geo"].to_string()
                             }
                         }
-                        None => format!("{}", insert),
+                        None => insert.to_string(),
                     };
 
-                    println!("Insert Statement: {}", insert);
-                    println!("Insert Field: {}", field);
-                    println!("Insert Param: {}", value);
+                    ut_debug!("Insert Statement: {}", insert);
+                    ut_debug!("Insert Field: {}", field);
+                    ut_debug!("Insert Param: {}", value);
                     match field.as_str() {
                         r#""timestamp""# => {
                             assert_eq!(value, timestamp.as_ref().unwrap().to_string());
@@ -953,8 +1027,7 @@ mod tests {
                 }
             }
             Err(e) => {
-                println!("Conversion errors found but not expected: {}", e);
-                return;
+                panic!("Conversion errors found but not expected: {}", e);
             }
         }
 
@@ -962,8 +1035,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_update_vars() {
-        lib_common::logger::get_log_handle().await;
+    async fn test_get_insert_vars_with_keys() {
+        assert_init_done().await;
         ut_info!("start");
 
         let uuid = Uuid::new_v4();
@@ -971,7 +1044,7 @@ mod tests {
         let timestamp = Some(Utc::now().into());
         let optional_timestamp = Some(Utc::now().into());
 
-        let mut valid_data = get_valid_test_data(
+        let mut valid_data = get_valid_data(
             uuid,
             optional_uuid,
             timestamp.clone(),
@@ -981,30 +1054,86 @@ mod tests {
             "This is read_only, should not be part of update vars.",
         ));
 
-        let (psql_data, validation_result) = match validate::<ResourceObject<TestData>>(&valid_data)
+        let (mut psql_data, validation_result) = match validate::<ResourceObject<Data>>(&valid_data)
         {
             Ok(result) => result,
             Err(e) => {
                 panic!("Validation errors found but not expected: {}", e);
             }
         };
-        assert_eq!(validation_result.success, true);
 
-        let definition = <ResourceObject<TestData>>::get_definition();
+        ut_debug!("Validation result: {:?}", validation_result);
+        assert!(validation_result.success);
+
+        let definition = <ResourceObject<Data>>::get_definition();
+        // Should result in error as this Object does not have key data
+        let result = get_insert_vars(&valid_data, &psql_data, &definition, true);
+        assert!(result.is_err());
+
+        // Add key field to our psql_data to test the path where a key_field is found and added
+        psql_data.insert(
+            String::from("simple_resource_id"),
+            Box::new(String::from("uuid_for_test_id")),
+        );
+        match get_insert_vars(&valid_data, &psql_data, &definition, true) {
+            Ok((inserts, fields, params)) => {
+                ut_debug!("Insert Statements: {:?}", inserts);
+                ut_debug!("Insert Fields: {:?}", fields);
+                ut_debug!("Insert Params: {:?}", params);
+                assert_eq!(inserts.len(), 26);
+                assert_eq!(params.len(), 20);
+            }
+            Err(e) => {
+                panic!("Conversion errors found but not expected: {}", e);
+            }
+        }
+
+        ut_info!("success");
+    }
+
+    #[tokio::test]
+    async fn test_get_update_vars() {
+        assert_init_done().await;
+        ut_info!("start");
+
+        let uuid = Uuid::new_v4();
+        let optional_uuid = Uuid::new_v4();
+        let timestamp = Some(Utc::now().into());
+        let optional_timestamp = Some(Utc::now().into());
+
+        let mut valid_data = get_valid_data(
+            uuid,
+            optional_uuid,
+            timestamp.clone(),
+            optional_timestamp.clone(),
+        );
+        valid_data.read_only = Some(String::from(
+            "This is read_only, should not be part of update vars.",
+        ));
+
+        let (psql_data, validation_result) = match validate::<ResourceObject<Data>>(&valid_data) {
+            Ok(result) => result,
+            Err(e) => {
+                panic!("Validation errors found but not expected: {}", e);
+            }
+        };
+        assert!(validation_result.success);
+
+        let definition = <ResourceObject<Data>>::get_definition();
         let update_re = Regex::new(r"(.*) = (\$|ST_GeomFromText\()(\d+|'.*')\)?$")
             .unwrap_or_else(|e| panic!("Could not create regex: {}", e));
         match get_update_vars(&valid_data, &psql_data, &definition) {
             Ok((updates, params)) => {
                 println!("Update Statements: {:?}", updates);
                 println!("Update Params: {:?}", params);
-                assert_eq!(updates.len(), 23);
-                assert_eq!(params.len(), 17);
+                assert_eq!(updates.len(), 25);
+                assert_eq!(params.len(), 19);
                 for update in updates {
                     let field: String;
                     let value: String;
                     match update_re.captures(&update) {
                         Some(capture) => {
-                            println!("Captures: {:?}", capture);
+                            ut_debug!("Captures: {:?}", capture);
                             field = capture[1].to_string();
                             if &capture[2] == "$" {
                                 let index = capture[3]
@@ -1018,14 +1147,14 @@ mod tests {
                         None => {
                             let update_split = update.split('=').collect::<Vec<&str>>();
                             field = update_split[0].trim().to_string();
-                            value = match update_split[1].trim().strip_prefix("$") {
+                            value = match update_split[1].trim().strip_prefix('$') {
                                 Some(i) => {
                                     let index = i
                                         .parse::<usize>()
                                         .expect("Could not parse param index as i32");
                                     format!("{:?}", params[index - 1])
                                 }
-                                None => format!("{}", update_split[1].trim()),
+                                None => update_split[1].trim().to_string(),
                             };
                         }
                     }
@@ -1054,8 +1183,7 @@ mod tests {
                 }
             }
             Err(e) => {
-                println!("Conversion errors found but not expected: {}", e);
-                return;
+                panic!("Conversion errors found but not expected: {}", e);
             }
         }
 
@@ -1064,19 +1192,35 @@ mod tests {
 
     #[tokio::test]
     async fn test_validate_invalid_object() {
-        lib_common::logger::get_log_handle().await;
+        assert_init_done().await;
         ut_info!("start");
 
-        let invalid_data = get_invalid_test_data();
+        let invalid_data = get_invalid_data();
 
-        let (_, validation_result) = match validate::<ResourceObject<TestData>>(&invalid_data) {
+        let (_, validation_result) = match validate::<ResourceObject<Data>>(&invalid_data) {
             Ok(result) => result,
-            Err(e) => {
-                panic!("Validation errors found but not expected: {}", e);
-            }
+            Err(e) => panic!("Validation errors found but not expected: {}", e),
         };
 
-        assert_eq!(validation_result.success, false);
+        assert!(!validation_result.success);
+
+        ut_info!("success");
+    }
+
+    #[tokio::test]
+    async fn test_validate_invalid_schema() {
+        assert_init_done().await;
+        ut_info!("start");
+
+        let invalid_schema_data = TestDataInvalidSchema {
+            string: Some(String::from("invalid schema string")),
+            optional_string: String::from("invalid schema optional string"),
+        };
+
+        match validate::<ResourceObject<TestDataInvalidSchema>>(&invalid_schema_data) {
+            Ok(_) => panic!("Validation errors expected, but not found"),
+            Err(e) => assert_eq!(e.to_string(), "error: Expected 'GrpcField::Option' for [optional_string] [FieldDefinition { field_type: Text, mandatory: false, internal: false, read_only: false, default: None }] since this field is marked as optional in the definition.".to_string())
+        };
 
         ut_info!("success");
     }
