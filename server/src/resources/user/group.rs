@@ -46,8 +46,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_user_group_schema() {
-        crate::get_log_handle().await;
-        ut_info!("(test_user_group_schema) start");
+        lib_common::logger::get_log_handle().await;
+        ut_info!("start");
 
         let data = Data {};
 
@@ -76,6 +76,6 @@ mod tests {
             assert_eq!(validation_result.success, true);
         }
 
-        ut_info!("(test_user_group_schema) success");
+        ut_info!("success");
     }
 }

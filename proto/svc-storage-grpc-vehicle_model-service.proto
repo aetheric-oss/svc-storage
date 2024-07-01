@@ -62,7 +62,7 @@ service RpcService {
     // async fn example () -> Result<(), Box<dyn std::error::Error>> {
     //     let mut vehicle_client = VehicleModelClient::connect("http://localhost:50051").await?;
     //
-    //     let model_id = uuid::Uuid::new_v4().to_string();
+    //     let model_id = lib_common::uuid::Uuid::new_v4().to_string();
     //     let last_maintenance = prost_types::Timestamp::date_time(2022, 10, 12, 09, 00, 00).unwrap();
     //     let next_maintenance = prost_types::Timestamp::date_time(2023, 10, 12, 13, 30, 00).unwrap();
     //
@@ -75,8 +75,8 @@ service RpcService {
     //         description: Some("Demo vehicle filled with Mock data".to_owned()),
     //         asset_group_id: None,
     //         schedule: Some(CAL_WORKDAYS_8AM_6PM.to_owned()),
-    //         hangar_id: Some(uuid::Uuid::new_v4().to_string()),
-    //         hangar_bay_id: Some(uuid::Uuid::new_v4().to_string()),
+    //         hangar_id: Some(lib_common::uuid::Uuid::new_v4().to_string()),
+    //         hangar_bay_id: Some(lib_common::uuid::Uuid::new_v4().to_string()),
     //         last_maintenance: Some(last_maintenance),
     //         next_maintenance: Some(next_maintenance),
     //     }))
@@ -103,7 +103,7 @@ service RpcService {
     //
     // Returns [`Status`](tonic::Status) with [`Code::Cancelled`](tonic::Code::Cancelled) if the [`Request`](tonic::Request) doesn't contain any data.
     // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if any error is returned from a db call.
-    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if the provided Id can not be converted to a [`uuid::Uuid`].
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if the provided Id can not be converted to a [`lib_common::uuid::Uuid`].
     // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if the resulting Vec<tokio_postgres::Row> data could not be converted into [`List`](super::List).
     //
     // # Examples

@@ -58,7 +58,7 @@ where
     /// # Errors
     ///
     /// Returns [`Status`] with [`Code::NotFound`] if no record is returned from the database.  
-    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].  
+    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`lib_common::uuid::Uuid`].  
     /// Returns [`Status`] with [`Code::Internal`] if the resulting [`Row`] data could not be converted into [`Self::Object`].  
     async fn generic_get_by_id(
         &self,
@@ -73,7 +73,7 @@ where
             Ok(Response::new(resource.into()))
         } else {
             let error = format!("No resource found for specified uuid: {}", id.id);
-            grpc_error!("(generic_get_by_id) {}", error);
+            grpc_error!("{}", error);
             Err(Status::new(Code::NotFound, error))
         }
     }
@@ -117,10 +117,7 @@ where
     ) -> Result<Response<Self::Response>, Status> {
         let data = request.into_inner();
         let mut resource: Self::ResourceObject = data.into();
-        grpc_debug!(
-            "(generic_insert) Inserting with data [{:?}].",
-            resource.try_get_data()?
-        );
+        grpc_debug!("Inserting with data [{:?}].", resource.try_get_data()?);
         let (id, validation_result) =
             Self::ResourceObject::create(&resource.try_get_data()?).await?;
         if let Some(id) = id {
@@ -134,9 +131,9 @@ where
             Ok(Response::new(result.into()))
         } else {
             let error = "Error calling insert function.";
-            grpc_error!("(generic_insert) {}", error);
-            grpc_debug!("(generic_insert) [{:?}].", resource.try_get_data()?);
-            grpc_debug!("(generic_insert) [{:?}].", validation_result);
+            grpc_error!("{}", error);
+            grpc_debug!("[{:?}].", resource.try_get_data()?);
+            grpc_debug!("[{:?}].", validation_result);
             let result = GenericResourceResult {
                 phantom: PhantomData,
                 validation_result,
@@ -157,7 +154,7 @@ where
     ///
     /// Returns [`Status`] with [`Code::Cancelled`] if the [`Request`] doesn't contain any data.  
     /// Returns [`Status`] with [`Code::Internal`] if any error is returned from a db call.  
-    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].  
+    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`lib_common::uuid::Uuid`].  
     /// Returns [`Status`] with [`Code::Internal`] if the resulting [`Row`] data could not be converted into [`Self::Data`].  
     ///
     async fn generic_update(
@@ -174,7 +171,7 @@ where
             Some(data) => data,
             None => {
                 let err = format!("No data provided for update with id: {}", req.try_get_id()?);
-                grpc_error!("(generic_update) {}", err);
+                grpc_error!("{}", err);
                 return Err(Status::cancelled(err));
             }
         };
@@ -190,9 +187,9 @@ where
             Ok(Response::new(result.into()))
         } else {
             let error = "Error calling update function.";
-            grpc_error!("(generic_update) {}", error);
-            grpc_debug!("(generic_update) [{:?}].", data);
-            grpc_debug!("(generic_update) [{:?}].", validation_result);
+            grpc_error!("{}", error);
+            grpc_debug!("[{:?}].", data);
+            grpc_debug!("[{:?}].", validation_result);
             let result = GenericResourceResult {
                 phantom: PhantomData,
                 validation_result,

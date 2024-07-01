@@ -1,4 +1,4 @@
-![Arrow Banner](https://github.com/Arrow-air/tf-github/raw/main/src/templates/doc-banner-services.png)
+![Aetheric Banner](https://github.com/aetheric-oss/.github/raw/main/assets/doc-banner.png)
 
 # Software Design Document (SDD) - `svc-storage`
 
@@ -8,29 +8,29 @@ This document details the software implementation of `svc-storage`.
 
 This process is responsible for handling interactions with clients for data storage and retrieval.
 
-*Note: This module is intended to be used by other Arrow micro-services via gRPC.*
+*Note: This module is intended to be used by other Aetheric micro-services via gRPC.*
 
-*This document is under development as Arrow operates on a pre-revenue and
+*This document is under development as Aetheric operates on a pre-revenue and
 pre-commercial stage. Storage requirements may evolve as per business needs,
 which may result in architectural/implementation changes to the storage module.*
 
 ### Metadata
 
-| Attribute     | Description                                                       |
-| ------------- |-------------------------------------------------------------------|
-| Maintainer(s) | [Services Team](https://github.com/orgs/Arrow-air/teams/services) |
-| Stuckee       | Lotte ([@owlot](https://github.com/owlot))                        |
-| Status        | Development                                                       |
+| Attribute     | Description                                                                    |
+| ------------- |--------------------------------------------------------------------------------|
+| Maintainer(s) | [@aetheric-oss/dev-realm](https://github.com/orgs/aetheric-oss/teams/dev-realm)|
+| Stuckee       | Lotte ([@owlot](https://github.com/owlot))                                     |
+| Status        | Development                                                                    |
 
 ## :books: Related Documents
 
-| Document                                                                                                          | Description
-| ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| [High-Level Concept of Operations (CONOPS)](https://github.com/Arrow-air/se-services/blob/develop/docs/conops.md) | Overview of Arrow microservices. |
-| [High-Level Interface Control Document (ICD)](https://github.com/Arrow-air/se-services/blob/develop/docs/icd.md)  | Interfaces and frameworks common to all Arrow microservices. |
-| [Requirements - `svc-storage`](https://nocodb.arrowair.com/dashboard/#/nc/p_uyeuw6scqlnpri/table/L4/svc-storage)  | Requirements and user stories for this microservice. |
-| [Concept of Operations - `svc-storage`](./conops.md)                                                              | Defines the motivation and duties of this microservice. |
-| [Interface Control Document (ICD) - `svc-storage`](./icd.md)                                                      | Defines the inputs and outputs of this microservice. |
+| Document                                                                                                             | Description
+| -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| [High-Level Concept of Operations (CONOPS)](https://github.com/aetheric-oss/se-services/blob/develop/docs/conops.md) | Overview of Realm microservices.                             |
+| [High-Level Interface Control Document (ICD)](https://github.com/aetheric-oss/se-services/blob/develop/docs/icd.md)  | Interfaces and frameworks common to all Realm microservices. |
+| [Requirements - `svc-storage`](https://nocodb.aetheric.nl/dashboard/#/nc/p_uyeuw6scqlnpri/table/L4/svc-storage)      | Requirements and user stories for this microservice.         |
+| [Concept of Operations - `svc-storage`](./conops.md)                                                                 | Defines the motivation and duties of this microservice.      |
+| [Interface Control Document (ICD) - `svc-storage`](./icd.md)                                                         | Defines the inputs and outputs of this microservice.         |
 
 ## :dna: Module Attributes
 
@@ -888,6 +888,7 @@ erDiagram
 | supplier_id | name  |
 |-------------------|-------|
 | supplier_1  | Arrow |
+| supplier_2  | Aetheric |
 
 **acl**
 | acl_id  | code            | description                |
@@ -986,7 +987,7 @@ flowchart TB
 
 ### Field schema for settings
 
-Certain resources may possess settings that are not classified as properties defining the resource itself; instead, they are settings that can undergo frequent changes, possibly on a daily or even faster basis. These settings will be stored in a separate table to enhance caching mechanisms. This optimization will be applied at both the database engine level as within the Arrow services responsible for offering and accessing these settings. A generic data model facilitates the straightforward management of these fields within both the code and the database itself.
+Certain resources may possess settings that are not classified as properties defining the resource itself; instead, they are settings that can undergo frequent changes, possibly on a daily or even faster basis. These settings will be stored in a separate table to enhance caching mechanisms. This optimization will be applied at both the database engine level as within the Realm services responsible for offering and accessing these settings. A generic data model facilitates the straightforward management of these fields within both the code and the database itself.
 
 The `field` table provides information about the type of field. This allows for proper input validation. If a field is of the `integer` type, a min and or max value can be configured. In addition, regular expressions can be defined to allow for specific input validation (eg; `email` or `postal codes` inputs). The `value_length_min` and `value_length_max` columns can be used to provide a minimum or maximum length of the input text.
 

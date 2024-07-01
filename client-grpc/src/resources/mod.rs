@@ -5,10 +5,7 @@ include!("../../out/grpc/client/grpc.rs");
 
 use crate::{Deserialize, IntoParams, Serialize, ToSchema};
 
-pub mod grpc_geo_types;
-
-use lib_common::log_macros;
-log_macros!("grpc", "app::client::storage");
+pub mod geo_types;
 
 cfg_if::cfg_if! {
     if #[cfg(any(feature = "all_resources", feature = "any_resource"))] {
@@ -493,7 +490,7 @@ cfg_if::cfg_if! {
         pub struct Clients {}
 
         impl Clients {
-            /// Provides a way to get and connect all clients at once.
+            /// Provides a way to get and use lib_common::uuid::Uuid; connect all clients at once.
             pub fn new(_host: String, _port: u16) -> Self {
                 Self {}
             }

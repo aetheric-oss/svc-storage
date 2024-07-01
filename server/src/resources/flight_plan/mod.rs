@@ -4,13 +4,13 @@ pub use crate::grpc::server::flight_plan::*;
 pub mod parcel;
 
 use anyhow::{Context, Result};
-use chrono::{DateTime, Utc};
+use lib_common::time::{DateTime, Utc};
+use lib_common::uuid::Uuid;
 use log::debug;
 use std::collections::HashMap;
 use tokio::task;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
-use uuid::Uuid;
 
 use super::base::simple_resource::*;
 use super::base::{FieldDefinition, ResourceDefinition};
@@ -321,13 +321,13 @@ impl TryFrom<Row> for Data {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::resources::grpc_geo_types::GeoLineString;
+    use crate::resources::geo_types::GeoLineStringZ;
     use crate::test_util::*;
 
     #[tokio::test]
     async fn test_flight_plan_schema() {
-        crate::get_log_handle().await;
-        ut_info!("(test_flight_plan_schema) start");
+        lib_common::logger::get_log_handle().await;
+        ut_info!("start");
 
         let id = Uuid::new_v4().to_string();
         let data = mock::get_data_obj();
@@ -345,19 +345,19 @@ mod tests {
             ut_info!("{:?}", validation_result);
             assert_eq!(validation_result.success, true);
         }
-        ut_debug!("(test_flight_plan_schema) success");
+        ut_debug!("success");
     }
 
     #[tokio::test]
     async fn test_flight_plan_invalid_data() {
-        crate::get_log_handle().await;
-        ut_info!("(test_flight_plan_invalid_data) start");
+        lib_common::logger::get_log_handle().await;
+        ut_info!("start");
 
         let data = Data {
             session_id: String::from("test"),
             pilot_id: String::from("INVALID"),
             vehicle_id: String::from("INVALID"),
-            path: Some(GeoLineString { points: vec![] }),
+            path: Some(GeoLineStringZ { points: vec![] }),
             weather_conditions: Some(String::from("")),
             origin_vertiport_id: None,
             origin_vertipad_id: String::from("INVALID"),
@@ -427,13 +427,13 @@ mod tests {
             assert!(contains_field_errors(&validation_result, &expected_errors));
             assert_eq!(expected_errors.len(), validation_result.errors.len());
         }
-        ut_info!("(test_flight_plan_invalid_data) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_flight_status_get_enum_string_val() {
-        crate::get_log_handle().await;
-        ut_info!("(test_flight_status_get_enum_string_val) start");
+        lib_common::logger::get_log_handle().await;
+        ut_info!("start");
 
         assert_eq!(
             ResourceObject::<Data>::get_enum_string_val(
@@ -476,13 +476,13 @@ mod tests {
             None
         );
 
-        ut_info!("(test_flight_status_get_enum_string_val) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_flight_status_as_str_name() {
-        crate::get_log_handle().await;
-        ut_info!("(test_flight_status_as_str_name) start");
+        lib_common::logger::get_log_handle().await;
+        ut_info!("start");
 
         assert_eq!(FlightStatus::Ready.as_str_name(), "READY");
         assert_eq!(FlightStatus::Boarding.as_str_name(), "BOARDING");
@@ -491,13 +491,13 @@ mod tests {
         assert_eq!(FlightStatus::Cancelled.as_str_name(), "CANCELLED");
         assert_eq!(FlightStatus::Draft.as_str_name(), "DRAFT");
 
-        ut_info!("(test_flight_status_as_str_name) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_flight_status_from_str_name() {
-        crate::get_log_handle().await;
-        ut_info!("(test_flight_status_from_str_name) start");
+        lib_common::logger::get_log_handle().await;
+        ut_info!("start");
 
         assert_eq!(
             FlightStatus::from_str_name("READY"),
@@ -526,13 +526,13 @@ mod tests {
 
         assert_eq!(FlightPriority::from_str_name("INVALID"), None);
 
-        ut_info!("(test_flight_status_from_str_name) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_flight_priority_get_enum_string_val() {
-        crate::get_log_handle().await;
-        ut_info!("(test_flight_priority_get_enum_string_val) start");
+        lib_common::logger::get_log_handle().await;
+        ut_info!("start");
 
         assert_eq!(
             ResourceObject::<Data>::get_enum_string_val(
@@ -561,25 +561,25 @@ mod tests {
             None
         );
 
-        ut_info!("(test_flight_priority_get_enum_string_val) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_flight_priority_as_str_name() {
-        crate::get_log_handle().await;
-        ut_info!("(test_flight_priority_as_str_name) start");
+        lib_common::logger::get_log_handle().await;
+        ut_info!("start");
 
         assert_eq!(FlightPriority::Low.as_str_name(), "LOW");
         assert_eq!(FlightPriority::High.as_str_name(), "HIGH");
         assert_eq!(FlightPriority::Emergency.as_str_name(), "EMERGENCY");
 
-        ut_info!("(test_flight_priority_as_str_name) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_flight_priority_from_str_name() {
-        crate::get_log_handle().await;
-        ut_info!("(test_flight_priority_from_str_name) start");
+        lib_common::logger::get_log_handle().await;
+        ut_info!("start");
 
         assert_eq!(
             FlightPriority::from_str_name("LOW"),
@@ -595,6 +595,6 @@ mod tests {
         );
         assert_eq!(FlightPriority::from_str_name("INVALID"), None);
 
-        ut_info!("(test_flight_priority_from_str_name) success");
+        ut_info!("success");
     }
 }

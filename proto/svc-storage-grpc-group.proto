@@ -19,12 +19,12 @@ enum GroupType {
 message Response {
     // struct with field -> error pairs to provide feedback about invalid fields
     grpc.ValidationResult validation_result = 1;
-    // Object struct with id [`String`] in [`Uuid`](uuid::Uuid) format and [`Data`] struct with group data
+    // Object struct with id [`String`] in [`Uuid`](lib_common::uuid::Uuid) format and [`Data`] struct with group data
     optional Object object = 2;
 }
 
 // Object struct with `id` and `data` field
-// * `id` [`String`] in [`Uuid`](uuid::Uuid) format
+// * `id` [`String`] in [`Uuid`](lib_common::uuid::Uuid) format
 // * `data` [`Data`] struct with group data
 message Object {
     //id UUID v4
@@ -34,11 +34,11 @@ message Object {
 }
 
 // UpdateObject struct with `id`, `data` and `mask` fields
-// * `id` [`String`] in [`Uuid`](uuid::Uuid) format
+// * `id` [`String`] in [`Uuid`](lib_common::uuid::Uuid) format
 // * `data` [`Data`] struct with group data which should be used for update
 // * `mask` [`FieldMask`] struct with group fields that should be updated
 message UpdateObject {
-    // `id` [`String`] in [`Uuid`](uuid::Uuid) format
+    // `id` [`String`] in [`Uuid`](lib_common::uuid::Uuid) format
     string id = 1;
     // struct with group data which should be used for update
     Data data = 2;
@@ -66,32 +66,32 @@ message List {
 
 // Struct used to link users to a group
 message GroupUsers {
-    // `id` [`String`] in [`Uuid`](uuid::Uuid) format. Must be a valid group_id
+    // `id` [`String`] in [`Uuid`](lib_common::uuid::Uuid) format. Must be a valid group_id
     string id = 1;
-    // user ids as [`Vec\<String\>``] in [`Uuid`](uuid::Uuid) format
+    // user ids as [`Vec\<String\>``] in [`Uuid`](lib_common::uuid::Uuid) format
     IdList other_id_list = 2;
 }
 
 // Struct used to link vehicles to a group
 message GroupVehicles {
-    // `id` [`String`] in [`Uuid`](uuid::Uuid) format. Must be a valid group_id
+    // `id` [`String`] in [`Uuid`](lib_common::uuid::Uuid) format. Must be a valid group_id
     string id = 1;
-    // vehicle ids as [`Vec\<String\>``] in [`Uuid`](uuid::Uuid) format
+    // vehicle ids as [`Vec\<String\>``] in [`Uuid`](lib_common::uuid::Uuid) format
     IdList other_id_list = 2;
 }
 
 // Struct used to link vertiports to a group
 message GroupVertiports {
-    // `id` [`String`] in [`Uuid`](uuid::Uuid) format. Must be a valid group_id
+    // `id` [`String`] in [`Uuid`](lib_common::uuid::Uuid) format. Must be a valid group_id
     string id = 1;
-    // vertiport ids as [`Vec\<String\>``] in [`Uuid`](uuid::Uuid) format
+    // vertiport ids as [`Vec\<String\>``] in [`Uuid`](lib_common::uuid::Uuid) format
     IdList other_id_list = 2;
 }
 
 // Struct used to link vertipads to a group
 message GroupVertipads {
-    // `id` [`String`] in [`Uuid`](uuid::Uuid) format. Must be a valid group_id
+    // `id` [`String`] in [`Uuid`](lib_common::uuid::Uuid) format. Must be a valid group_id
     string id = 1;
-    // vertipad ids as [`Vec\<String\>``] in [`Uuid`](uuid::Uuid) format
+    // vertipad ids as [`Vec\<String\>``] in [`Uuid`](lib_common::uuid::Uuid) format
     IdList other_id_list = 2;
 }

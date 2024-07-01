@@ -65,8 +65,8 @@ macro_rules! grpc_server_link_service_mod {
                 &self,
                 request: Request<$link_other_resource>,
             ) -> Result<tonic::Response<()>, Status> {
-                grpc_info!("(link) {} server.", self.get_name());
-                grpc_debug!("(link) request: {:?}", request);
+                grpc_info!("{} server.", self.get_name());
+                grpc_debug!("request: {:?}", request);
                 let data: $link_other_resource = request.into_inner();
                 self.generic_link(data.id.clone(), data.get_other_ids().try_into()?, false)
                     .await
@@ -77,8 +77,8 @@ macro_rules! grpc_server_link_service_mod {
                 &self,
                 request: Request<$link_other_resource>,
             ) -> Result<tonic::Response<()>, Status> {
-                grpc_warn!("(link MOCK) {} server.", self.get_name());
-                grpc_debug!("(link MOCK) request: {:?}", request);
+                grpc_warn!("(MOCK) {} server.", self.get_name());
+                grpc_debug!("(MOCK) request: {:?}", request);
                 let request = request.into_inner();
                 let id = request.id;
                 let other_ids = request.other_id_list.ok_or(Status::invalid_argument("No other_id_list found in request."))?;
@@ -92,18 +92,18 @@ macro_rules! grpc_server_link_service_mod {
                         stringify!($link_service),
                         id
                     );
-                    grpc_error!("(link MOCK) {}", error);
+                    grpc_error!("(MOCK) {}", error);
                     return Err(tonic::Status::not_found(error));
                 }
 
-                match uuid::Uuid::from_str(&id) {
+                match lib_common::uuid::Uuid::from_str(&id) {
                     Ok(uuid) => uuid,
                     Err(e) => {
                         let error = format!(
                             "Could not convert provided id String [{}] into uuid: {}",
                             id, e
                         );
-                        grpc_error!("(link MOCK) {}", error);
+                        grpc_error!("(MOCK) {}", error);
                         return Err(tonic::Status::not_found(error));
                     }
                 };
@@ -132,8 +132,8 @@ macro_rules! grpc_server_link_service_mod {
                 &self,
                 request: Request<$link_other_resource>,
             ) -> Result<tonic::Response<()>, Status> {
-                grpc_info!("(replace_linked) {} server.", self.get_name());
-                grpc_debug!("(replace_linked) request: {:?}", request);
+                grpc_info!("{} server.", self.get_name());
+                grpc_debug!("request: {:?}", request);
                 let data: $link_other_resource = request.into_inner();
                 self.generic_link(data.id.clone(), data.get_other_ids().try_into()?, true)
                     .await
@@ -144,8 +144,8 @@ macro_rules! grpc_server_link_service_mod {
                 &self,
                 request: Request<$link_other_resource>,
             ) -> Result<tonic::Response<()>, Status> {
-                grpc_warn!("(replace_linked MOCK) {} server.", self.get_name());
-                grpc_debug!("(replace_linked MOCK) request: {:?}", request);
+                grpc_warn!("(MOCK) {} server.", self.get_name());
+                grpc_debug!("(MOCK) request: {:?}", request);
                 let request = request.into_inner();
                 let id = request.id;
                 let other_ids = request.other_id_list.ok_or(Status::invalid_argument("No other_id_list found in request."))?;
@@ -159,18 +159,18 @@ macro_rules! grpc_server_link_service_mod {
                         stringify!($link_service),
                         id
                     );
-                    grpc_error!("(replace_linked MOCK) {}", error);
+                    grpc_error!("(MOCK) {}", error);
                     return Err(tonic::Status::not_found(error));
                 }
 
-                match uuid::Uuid::from_str(&id) {
+                match lib_common::uuid::Uuid::from_str(&id) {
                     Ok(uuid) => uuid,
                     Err(e) => {
                         let error = format!(
                             "Could not convert provided id String [{}] into uuid: {}",
                             id, e
                         );
-                        grpc_error!("(replace_linked MOCK) {}", error);
+                        grpc_error!("(MOCK) {}", error);
                         return Err(tonic::Status::not_found(error));
                     }
                 };
@@ -192,15 +192,15 @@ macro_rules! grpc_server_link_service_mod {
             /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
             #[cfg(not(feature = "stub_server"))]
             async fn unlink(&self, request: Request<Id>) -> Result<tonic::Response<()>, Status> {
-                grpc_info!("(unlink) {} server.", self.get_name());
-                grpc_debug!("(unlink) request: {:?}", request);
+                grpc_info!("{} server.", self.get_name());
+                grpc_debug!("request: {:?}", request);
                 self.generic_unlink(request).await
             }
             // MOCK implementation
             #[cfg(feature = "stub_server")]
             async fn unlink(&self, request: Request<Id>) -> Result<tonic::Response<()>, Status> {
-                grpc_warn!("(unlink MOCK) {} server.", self.get_name());
-                grpc_debug!("(unlink MOCK) request: {:?}", request);
+                grpc_warn!("(MOCK) {} server.", self.get_name());
+                grpc_debug!("(MOCK) request: {:?}", request);
                 let request = request.into_inner();
                 let id = request.id;
                 let mut mem_data_links = MEM_DATA_LINKS.lock().await;
@@ -213,18 +213,18 @@ macro_rules! grpc_server_link_service_mod {
                         stringify!($link_service),
                         id
                     );
-                    grpc_error!("(unlink MOCK) {}", error);
+                    grpc_error!("(MOCK) {}", error);
                     return Err(tonic::Status::not_found(error));
                 }
 
-                match uuid::Uuid::from_str(&id) {
+                match lib_common::uuid::Uuid::from_str(&id) {
                     Ok(uuid) => uuid,
                     Err(e) => {
                         let error = format!(
                             "Could not convert provided id String [{}] into uuid: {}",
                             id, e
                         );
-                        grpc_error!("(unlink MOCK) {}", error);
+                        grpc_error!("(MOCK) {}", error);
                         return Err(tonic::Status::not_found(error));
                     }
                 };
@@ -244,8 +244,8 @@ macro_rules! grpc_server_link_service_mod {
                 &self,
                 request: Request<Id>,
             ) -> Result<tonic::Response<IdList>, Status> {
-                grpc_info!("(get_linked_ids) {} server.", self.get_name());
-                grpc_debug!("(get_linked_ids) request: {:?}", request);
+                grpc_info!("{} server.", self.get_name());
+                grpc_debug!("request: {:?}", request);
                 self.generic_get_linked_ids(request)
                     .await
             }
@@ -255,8 +255,8 @@ macro_rules! grpc_server_link_service_mod {
                 &self,
                 request: Request<Id>,
             ) -> Result<tonic::Response<IdList>, Status> {
-                grpc_warn!("(get_linked_ids MOCK) {} server.", self.get_name());
-                grpc_debug!("(get_linked_ids MOCK) request: {:?}", request);
+                grpc_warn!("(MOCK) {} server.", self.get_name());
+                grpc_debug!("(MOCK) request: {:?}", request);
                 let id = request.into_inner().id;
                 match MEM_DATA_LINKS.lock().await.get(&id) {
                     Some(object) => Ok(tonic::Response::new(IdList { ids: object.clone() })),
@@ -274,8 +274,8 @@ macro_rules! grpc_server_link_service_mod {
                 &self,
                 request: Request<Id>,
             ) -> Result<tonic::Response<$other_resource::List>, Status> {
-                grpc_info!("(get_linked) {} server.", self.get_name());
-                grpc_debug!("(get_linked) request: {:?}", request);
+                grpc_info!("{} server.", self.get_name());
+                grpc_debug!("request: {:?}", request);
                 self.generic_get_linked(
                     request,
                 )
@@ -287,8 +287,8 @@ macro_rules! grpc_server_link_service_mod {
                 &self,
                 request: Request<Id>,
             ) -> Result<tonic::Response<$other_resource::List>, Status> {
-                grpc_warn!("(get_linked MOCK) {} server.", self.get_name());
-                grpc_debug!("(get_linked MOCK) request: {:?}", request);
+                grpc_warn!("(MOCK) {} server.", self.get_name());
+                grpc_debug!("(MOCK) request: {:?}", request);
                 let id = request.into_inner().id;
 
                 let mut resource_list: Vec<$resource::Object> = $resource::MEM_DATA.lock().await.clone();
@@ -299,7 +299,7 @@ macro_rules! grpc_server_link_service_mod {
                         stringify!($link_service),
                         id
                     );
-                    grpc_error!("(get_linked MOCK) {}", error);
+                    grpc_error!("(MOCK) {}", error);
                     return Err(tonic::Status::not_found(error));
                 }
 
@@ -313,7 +313,7 @@ macro_rules! grpc_server_link_service_mod {
                                 stringify!($link_service),
                                 id
                             );
-                            grpc_error!("(get_linked MOCK) {}", error);
+                            grpc_error!("(MOCK) {}", error);
                             return Err(tonic::Status::not_found(error));
                         }
                         Ok(tonic::Response::new($other_resource::List { list: other_resource_list }))
@@ -328,8 +328,8 @@ macro_rules! grpc_server_link_service_mod {
                 &self,
                 request: Request<ReadyRequest>,
             ) -> Result<tonic::Response<ReadyResponse>, Status> {
-                grpc_debug!("(is_ready) {} server.", self.get_name());
-                grpc_debug!("(is_ready) request: {:?}", request);
+                grpc_debug!("{} server.", self.get_name());
+                grpc_debug!("request: {:?}", request);
                 self.generic_is_ready(request).await
             }
             #[cfg(feature = "stub_server")]
@@ -337,8 +337,8 @@ macro_rules! grpc_server_link_service_mod {
                 &self,
                 request: Request<ReadyRequest>,
             ) -> Result<tonic::Response<ReadyResponse>, Status> {
-                grpc_info!("(is_ready MOCK) {} server.", self.get_name());
-                grpc_debug!("(is_ready MOCK) request: {:?}", request);
+                grpc_info!("(MOCK) {} server.", self.get_name());
+                grpc_debug!("(MOCK) request: {:?}", request);
                 let response = ReadyResponse { ready: true };
                 Ok(tonic::Response::new(response))
             }
@@ -385,7 +385,7 @@ macro_rules! grpc_server_simple_service_mod {
                 ".service.rs"
             ));
             pub use rpc_service_server::*;
-            pub use $crate::grpc::server::grpc_geo_types::*;
+            pub use $crate::grpc::server::geo_types::*;
 
             #[doc = concat!(stringify!($resource), "module including mock file")]
 
@@ -443,8 +443,8 @@ macro_rules! grpc_server_simple_service_mod {
                     &self,
                     request: Request<Id>,
                 ) -> Result<tonic::Response<Object>, Status> {
-                    grpc_info!("(get_by_id) {} server.", self.get_name());
-                    grpc_debug!("(get_by_id) request: {:?}", request);
+                    grpc_info!("{} server.", self.get_name());
+                    grpc_debug!("request: {:?}", request);
                     self.generic_get_by_id(request).await
                 }
                 // MOCK implementation
@@ -453,8 +453,8 @@ macro_rules! grpc_server_simple_service_mod {
                     &self,
                     request: Request<Id>,
                 ) -> Result<tonic::Response<Object>, Status> {
-                    grpc_warn!("(get_by_id MOCK) {} server.", self.get_name());
-                    grpc_debug!("(get_by_id MOCK) request: {:?}", request);
+                    grpc_warn!("(MOCK) {} server.", self.get_name());
+                    grpc_debug!("(MOCK) request: {:?}", request);
                     let id = request.into_inner().id;
                     let mut resource_list: Vec<Object> = $crate::resources::$resource::MEM_DATA.lock().await.clone();
                     resource_list.retain(|object| object.id == id);
@@ -464,7 +464,7 @@ macro_rules! grpc_server_simple_service_mod {
                             stringify!($resource),
                             id
                         );
-                        grpc_error!("(get_by_id MOCK) {}", error);
+                        grpc_error!("(MOCK) {}", error);
                         return Err(tonic::Status::not_found(error));
                     }
 
@@ -509,8 +509,8 @@ macro_rules! grpc_server_simple_service_mod {
                     &self,
                     request: Request<AdvancedSearchFilter>,
                 ) -> Result<tonic::Response<List>, Status> {
-                    grpc_info!("(search) {} server.", self.get_name());
-                    grpc_debug!("(search) request: {:?}", request);
+                    grpc_info!("{} server.", self.get_name());
+                    grpc_debug!("request: {:?}", request);
                     self.generic_search(request).await
                 }
                 // MOCK implementation
@@ -519,13 +519,13 @@ macro_rules! grpc_server_simple_service_mod {
                     &self,
                     request: Request<AdvancedSearchFilter>,
                 ) -> Result<tonic::Response<List>, Status> {
-                    grpc_warn!("(search MOCK) {} server.", self.get_name());
-                    grpc_debug!("(search MOCK) request: {:?}", request);
+                    grpc_warn!("(MOCK) {} server.", self.get_name());
+                    grpc_debug!("(MOCK) request: {:?}", request);
                     let filters = request.into_inner().filters;
                     let list: Vec<Object> = $crate::resources::$resource::MEM_DATA.lock().await.clone();
 
                     if filters.len() == 0 {
-                        grpc_debug!("(search MOCK) no filters provided, returning all.");
+                        grpc_debug!("(MOCK) no filters provided, returning all.");
                         return Ok(tonic::Response::new(List {
                             list
                         }));
@@ -535,7 +535,7 @@ macro_rules! grpc_server_simple_service_mod {
                     for val in list.iter() {
                         unfiltered.push(serde_json::to_value(val).map_err(|e| Status::internal(format!("Could not convert [{:?}] to json value: {}", val, e)))?);
                     }
-                    grpc_debug!("(search MOCK) unfiltered serialized objects: {:?}", unfiltered);
+                    grpc_debug!("(MOCK) unfiltered serialized objects: {:?}", unfiltered);
 
                     let mut collected: Vec<serde_json::Value> = vec![];
                     for filter in filters {
@@ -549,7 +549,6 @@ macro_rules! grpc_server_simple_service_mod {
                                     )));
                                 }
                             };
-
 
                         match filter.comparison_operator {
                             Some(comparison_operator) => match super::ComparisonOperator::try_from(comparison_operator) {
@@ -592,7 +591,7 @@ macro_rules! grpc_server_simple_service_mod {
 
                 #[doc = concat!("Takes a ", stringify!($resource), " [`Data`] object to create a new ", stringify!($resource), " with the provided data.")]
                 ///
-                /// A new [`Uuid`](uuid::Uuid) will be generated by the database and returned as `id` as part of the returned [`Object`].
+                /// A new [`Uuid`](lib_common::uuid::Uuid) will be generated by the database and returned as `id` as part of the returned [`Object`].
                 ///
                 /// # Examples
                 /// ```
@@ -626,8 +625,8 @@ macro_rules! grpc_server_simple_service_mod {
                     &self,
                     request: Request<Data>,
                 ) -> Result<tonic::Response<Response>, Status> {
-                    grpc_info!("(insert) {} server.", self.get_name());
-                    grpc_debug!("(insert) request: {:?}", request);
+                    grpc_info!("{} server.", self.get_name());
+                    grpc_debug!("request: {:?}", request);
                     self.generic_insert(request).await
                 }
                 // MOCK implementation
@@ -636,12 +635,12 @@ macro_rules! grpc_server_simple_service_mod {
                     &self,
                     request: tonic::Request<Data>,
                 ) -> Result<tonic::Response<Response>, tonic::Status> {
-                    grpc_warn!("(insert MOCK) {} server.", self.get_name());
-                    grpc_debug!("(insert MOCK) request: {:?}", request);
+                    grpc_warn!("(MOCK) {} server.", self.get_name());
+                    grpc_debug!("(MOCK) request: {:?}", request);
                     let mut mem_data = $crate::resources::$resource::MEM_DATA.lock().await;
                     let data = request.into_inner();
                     let object = Object {
-                        id: uuid::Uuid::new_v4().to_string(),
+                        id: lib_common::uuid::Uuid::new_v4().to_string(),
                         data: Some(data),
                     };
                     let response = Response {
@@ -690,8 +689,8 @@ macro_rules! grpc_server_simple_service_mod {
                     &self,
                     request: Request<UpdateObject>,
                 ) -> Result<tonic::Response<Response>, Status> {
-                    grpc_info!("(update) {} server.", self.get_name());
-                    grpc_debug!("(update) request: {:?}", request);
+                    grpc_info!("{} server.", self.get_name());
+                    grpc_debug!("request: {:?}", request);
                     self.generic_update(request).await
                 }
                 // MOCK implementation
@@ -700,8 +699,8 @@ macro_rules! grpc_server_simple_service_mod {
                     &self,
                     request: tonic::Request<UpdateObject>,
                 ) -> Result<tonic::Response<Response>, tonic::Status> {
-                    grpc_warn!("(update MOCK) {} server.", self.get_name());
-                    grpc_debug!("(update MOCK) request: {:?}", request);
+                    grpc_warn!("(MOCK) {} server.", self.get_name());
+                    grpc_debug!("(MOCK) request: {:?}", request);
                     let update = request.into_inner();
                     let id = update.id;
                     let mut list = $crate::resources::$resource::MEM_DATA.lock().await;
@@ -752,8 +751,8 @@ macro_rules! grpc_server_simple_service_mod {
                 /// ```
                 #[cfg(not(feature = "stub_server"))]
                 async fn delete(&self, request: Request<Id>) -> Result<tonic::Response<()>, Status> {
-                    grpc_info!("(delete) {} server.", self.get_name());
-                    grpc_debug!("(delete) request: {:?}", request);
+                    grpc_info!("{} server.", self.get_name());
+                    grpc_debug!("request: {:?}", request);
                     self.generic_delete(request).await
                 }
                 #[cfg(feature = "stub_server")]
@@ -761,8 +760,8 @@ macro_rules! grpc_server_simple_service_mod {
                     &self,
                     request: tonic::Request<Id>,
                 ) -> Result<tonic::Response<()>, tonic::Status> {
-                    grpc_warn!("(delete MOCK) {} server.", self.get_name());
-                    grpc_debug!("(delete MOCK) request: {:?}", request);
+                    grpc_warn!("(MOCK) {} server.", self.get_name());
+                    grpc_debug!("(MOCK) request: {:?}", request);
                     let delete = request.into_inner();
                     let id = delete.id;
                     let mut list = $crate::resources::$resource::MEM_DATA.lock().await;
@@ -776,8 +775,8 @@ macro_rules! grpc_server_simple_service_mod {
                     &self,
                     request: Request<ReadyRequest>,
                 ) -> Result<tonic::Response<ReadyResponse>, Status> {
-                    grpc_debug!("(is_ready) {} server.", self.get_name());
-                    grpc_debug!("(is_ready) request: {:?}", request);
+                    grpc_debug!("{} server.", self.get_name());
+                    grpc_debug!("request: {:?}", request);
                     self.generic_is_ready(request).await
                 }
                 #[cfg(feature = "stub_server")]
@@ -785,8 +784,8 @@ macro_rules! grpc_server_simple_service_mod {
                     &self,
                     request: Request<ReadyRequest>,
                 ) -> Result<tonic::Response<ReadyResponse>, Status> {
-                    grpc_info!("(is_ready MOCK) {} server.", self.get_name());
-                    grpc_debug!("(is_ready MOCK) request: {:?}", request);
+                    grpc_info!("(MOCK) {} server.", self.get_name());
+                    grpc_debug!("(MOCK) request: {:?}", request);
                     let response = ReadyResponse { ready: true };
                     Ok(tonic::Response::new(response))
                 }
@@ -836,7 +835,7 @@ macro_rules! grpc_server_simple_service_linked_mod {
                 ".service.rs"
             ));
             pub use rpc_service_linked_server::*;
-            pub use $crate::grpc::server::grpc_geo_types::*;
+            pub use $crate::grpc::server::geo_types::*;
 
             #[doc = concat!(stringify!($linked_resource), "module including mock file")]
 
@@ -876,15 +875,15 @@ macro_rules! grpc_server_simple_service_linked_mod {
                 /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
                 #[cfg(not(feature = "stub_server"))]
                 async fn unlink(&self, request: Request<Id>) -> Result<tonic::Response<()>, Status> {
-                    grpc_info!("(unlink) {} server.", self.get_name());
-                    grpc_debug!("(unlink) request: {:?}", request);
+                    grpc_info!("{} server.", self.get_name());
+                    grpc_debug!("request: {:?}", request);
                     self.generic_unlink(request).await
                 }
                 // MOCK implementation
                 #[cfg(feature = "stub_server")]
                 async fn unlink(&self, request: Request<Id>) -> Result<tonic::Response<()>, Status> {
-                    grpc_warn!("(unlink MOCK) {} server.", self.get_name());
-                    grpc_debug!("(unlink MOCK) request: {:?}", request);
+                    grpc_warn!("(MOCK) {} server.", self.get_name());
+                    grpc_debug!("(MOCK) request: {:?}", request);
                     let request = request.into_inner();
                     let id = request.id;
                     let mut linked_resource_list = MEM_DATA.lock().await;
@@ -905,8 +904,8 @@ macro_rules! grpc_server_simple_service_linked_mod {
                     &self,
                     request: Request<Id>,
                 ) -> Result<tonic::Response<IdList>, Status> {
-                    grpc_info!("(get_linked_ids) {} server.", self.get_name());
-                    grpc_debug!("(get_linked_ids) request: {:?}", request);
+                    grpc_info!("{} server.", self.get_name());
+                    grpc_debug!("request: {:?}", request);
                     self.generic_get_linked_ids(request)
                         .await
                 }
@@ -916,8 +915,8 @@ macro_rules! grpc_server_simple_service_linked_mod {
                     &self,
                     request: Request<Id>,
                 ) -> Result<tonic::Response<IdList>, Status> {
-                    grpc_warn!("(get_linked_ids MOCK) {} server.", self.get_name());
-                    grpc_debug!("(get_linked_ids MOCK) request: {:?}", request);
+                    grpc_warn!("(MOCK) {} server.", self.get_name());
+                    grpc_debug!("(MOCK) request: {:?}", request);
                     let id = request.into_inner().id;
                     let mut ids = vec![];
                     let linked_resource_list = MEM_DATA.lock().await;
@@ -945,8 +944,8 @@ macro_rules! grpc_server_simple_service_linked_mod {
                     &self,
                     request: Request<Id>,
                 ) -> Result<tonic::Response<$other_resource::List>, Status> {
-                    grpc_info!("(get_linked) {} server.", self.get_name());
-                    grpc_debug!("(get_linked) request: {:?}", request);
+                    grpc_info!("{} server.", self.get_name());
+                    grpc_debug!("request: {:?}", request);
                     self.generic_get_linked(request).await
                 }
                 // MOCK implementation
@@ -955,8 +954,8 @@ macro_rules! grpc_server_simple_service_linked_mod {
                     &self,
                     request: Request<Id>,
                 ) -> Result<tonic::Response<$other_resource::List>, Status> {
-                    grpc_warn!("(get_linked MOCK) {} server.", self.get_name());
-                    grpc_debug!("(get_linked MOCK) request: {:?}", request);
+                    grpc_warn!("(MOCK) {} server.", self.get_name());
+                    grpc_debug!("(MOCK) request: {:?}", request);
                     let request = request.into_inner();
                     let id = request.id.clone();
 
@@ -968,7 +967,7 @@ macro_rules! grpc_server_simple_service_linked_mod {
                             stringify!($linked_resource),
                             id
                         );
-                        grpc_error!("(get_linked MOCK) {}", error);
+                        grpc_error!("(MOCK) {}", error);
                         return Err(tonic::Status::not_found(error));
                     }
 
@@ -982,7 +981,7 @@ macro_rules! grpc_server_simple_service_linked_mod {
                             stringify!($other_resource),
                             id
                         );
-                        grpc_error!("(get_linked MOCK) {}", error);
+                        grpc_error!("(MOCK) {}", error);
                         return Err(tonic::Status::not_found(error));
                     }
                     Ok(tonic::Response::new($other_resource::List { list: other_resource_list }))
@@ -1033,8 +1032,8 @@ macro_rules! grpc_server_simple_service_linked_mod {
                     &self,
                     request: Request<Ids>,
                 ) -> Result<tonic::Response<Object>, Status> {
-                    grpc_info!("(get_by_id) {} server.", self.get_name());
-                    grpc_debug!("(get_by_id) request: {:?}", request);
+                    grpc_info!("{} server.", self.get_name());
+                    grpc_debug!("request: {:?}", request);
                     self.generic_get_by_id(request).await
                 }
                 // MOCK implementation
@@ -1043,8 +1042,8 @@ macro_rules! grpc_server_simple_service_linked_mod {
                     &self,
                     request: Request<Ids>,
                 ) -> Result<tonic::Response<Object>, Status> {
-                    grpc_warn!("(get_by_id MOCK) {} server.", self.get_name());
-                    grpc_debug!("(get_by_id MOCK) request: {:?}", request);
+                    grpc_warn!("(MOCK) {} server.", self.get_name());
+                    grpc_debug!("(MOCK) request: {:?}", request);
                     let ids = request.into_inner().ids;
                     let id_field = concat!(stringify!($resource), "_id");
                     let other_id_field = concat!(stringify!($other_resource), "_id");
@@ -1068,7 +1067,7 @@ macro_rules! grpc_server_simple_service_linked_mod {
                             stringify!($linked_resource),
                             ids
                         );
-                        grpc_error!("(get_by_id MOCK) {}", error);
+                        grpc_error!("(MOCK) {}", error);
                         return Err(tonic::Status::not_found(error));
                     }
 
@@ -1144,8 +1143,8 @@ macro_rules! grpc_server_simple_service_linked_mod {
                     &self,
                     request: Request<AdvancedSearchFilter>,
                 ) -> Result<tonic::Response<RowDataList>, Status> {
-                    grpc_info!("(search) {} server.", self.get_name());
-                    grpc_debug!("(search) request: {:?}", request);
+                    grpc_info!("{} server.", self.get_name());
+                    grpc_debug!("request: {:?}", request);
                     self.generic_search(request).await
                 }
                 // MOCK implementation
@@ -1154,13 +1153,13 @@ macro_rules! grpc_server_simple_service_linked_mod {
                     &self,
                     request: Request<AdvancedSearchFilter>,
                 ) -> Result<tonic::Response<RowDataList>, Status> {
-                    grpc_warn!("(search MOCK) {} server.", self.get_name());
-                    grpc_debug!("(search MOCK) request: {:?}", request);
+                    grpc_warn!("(MOCK) {} server.", self.get_name());
+                    grpc_debug!("(MOCK) request: {:?}", request);
                     let filters = request.into_inner().filters;
                     let list: Vec<RowData> = MEM_DATA.lock().await.clone();
 
                     if filters.len() == 0 {
-                        grpc_debug!("(search MOCK) no filters provided, returning all.");
+                        grpc_debug!("(MOCK) no filters provided, returning all.");
                         return Ok(tonic::Response::new(RowDataList {
                             list
                         }));
@@ -1173,14 +1172,24 @@ macro_rules! grpc_server_simple_service_linked_mod {
                         let mut object = serde_json::Map::new();
                         let mut data_serialized = serde_json::to_value(val.clone())
                             .map_err(|e| Status::internal(format!("Could not convert [{:?}] to json value: {}", val, e)))?;
-                        let ids = serde_json::json!([{
-                            "field": id_field.clone(),
-                            "value": data_serialized.as_object()
-                                .ok_or(Status::internal("Could not convert json data to object."))?
-                                .get(other_id_field)
-                                .ok_or(Status::internal(format!("Could not get value for other id field [{}]", other_id_field)))?
-                                .clone()
-                        }]);
+                        let ids = serde_json::json!([
+                            {
+                                "field": id_field.clone(),
+                                "value": data_serialized.as_object()
+                                    .ok_or(tonic::Status::internal("Could not convert json data to object."))?
+                                    .get(id_field)
+                                    .ok_or(tonic::Status::internal(format!("Could not get value for id field [{}]", id_field)))?
+                                    .clone()
+                            },
+                            {
+                                "field": other_id_field.clone(),
+                                "value": data_serialized.as_object()
+                                    .ok_or(tonic::Status::internal("Could not convert json data to object."))?
+                                    .get(other_id_field)
+                                    .ok_or(tonic::Status::internal(format!("Could not get value for other id field [{}]", other_id_field)))?
+                                    .clone()
+                            }
+                        ]);
                         data_serialized.as_object_mut()
                             .ok_or(Status::internal("Could not convert json data to mutable object."))?
                             .retain(|key, _| key != id_field && key != other_id_field);
@@ -1188,7 +1197,7 @@ macro_rules! grpc_server_simple_service_linked_mod {
                         object.insert(String::from("data"), data_serialized.clone());
                         unfiltered.push(serde_json::Value::Object(object));
                     }
-                    grpc_debug!("(search MOCK) unfiltered serialized objects: {:?}", unfiltered);
+                    grpc_debug!("(MOCK) unfiltered serialized objects: {:?}", unfiltered);
 
                     let mut collected: Vec<serde_json::Value> = vec![];
                     for filter in filters {
@@ -1237,9 +1246,9 @@ macro_rules! grpc_server_simple_service_linked_mod {
                             .as_object()
                             .ok_or(Status::internal("Could not convert json to object."))?
                             .clone();
-                        let ids: Ids = serde_json::from_value(val.get("ids").ok_or(Status::internal("No [ids] key found."))?.clone())
+                        let ids: Vec<super::FieldValue> = serde_json::from_value(val.get("ids").ok_or(tonic::Status::internal("No [ids] key found."))?.clone())
                             .map_err(|e| Status::internal(format!("Could not convert [{:?}] to Ids from json value: {}", val.get("ids"), e)))?;
-                        for id in ids.ids {
+                        for id in ids {
                             row_data_serialized.insert(id.field.clone(), serde_json::Value::String(id.value.clone()));
                         }
                         let row_data: RowData = serde_json::from_value(serde_json::Value::Object(row_data_serialized.clone()))
@@ -1254,7 +1263,7 @@ macro_rules! grpc_server_simple_service_linked_mod {
 
                 #[doc = concat!("Takes a ", stringify!($linked_resource), " [`Data`] object to create a new ", stringify!($linked_resource), " with the provided data.")]
                 ///
-                /// A new [`Uuid`](uuid::Uuid) will be generated by the database and returned as `id` as part of the returned [`Object`].
+                /// A new [`Uuid`](lib_common::uuid::Uuid) will be generated by the database and returned as `id` as part of the returned [`Object`].
                 ///
                 /// # Examples
                 /// ```
@@ -1288,8 +1297,8 @@ macro_rules! grpc_server_simple_service_linked_mod {
                     &self,
                     request: Request<RowData>,
                 ) -> Result<tonic::Response<Response>, Status> {
-                    grpc_info!("(insert) {} server.", self.get_name());
-                    grpc_debug!("(insert) request: {:?}", request);
+                    grpc_info!("{} server.", self.get_name());
+                    grpc_debug!("request: {:?}", request);
                     self.generic_insert(request).await
                 }
                 // MOCK implementation
@@ -1298,8 +1307,8 @@ macro_rules! grpc_server_simple_service_linked_mod {
                     &self,
                     request: tonic::Request<RowData>,
                 ) -> Result<tonic::Response<Response>, tonic::Status> {
-                    grpc_warn!("(insert MOCK) {} server.", self.get_name());
-                    grpc_debug!("(insert MOCK) request: {:?}", request);
+                    grpc_warn!("(MOCK) {} server.", self.get_name());
+                    grpc_debug!("(MOCK) request: {:?}", request);
                     let request = request.into_inner();
                     let mut linked_resource_list = MEM_DATA.lock().await;
                     let id_field = concat!(stringify!($resource), "_id");
@@ -1391,8 +1400,8 @@ macro_rules! grpc_server_simple_service_linked_mod {
                     &self,
                     request: Request<UpdateObject>,
                 ) -> Result<tonic::Response<Response>, Status> {
-                    grpc_info!("(update) {} server.", self.get_name());
-                    grpc_debug!("(update) request: {:?}", request);
+                    grpc_info!("{} server.", self.get_name());
+                    grpc_debug!("request: {:?}", request);
                     self.generic_update(request).await
                 }
                 // MOCK implementation
@@ -1401,8 +1410,8 @@ macro_rules! grpc_server_simple_service_linked_mod {
                     &self,
                     request: tonic::Request<UpdateObject>,
                 ) -> Result<tonic::Response<Response>, tonic::Status> {
-                    grpc_warn!("(update MOCK) {} server.", self.get_name());
-                    grpc_debug!("(update MOCK) request: {:?}", request);
+                    grpc_warn!("(MOCK) {} server.", self.get_name());
+                    grpc_debug!("(MOCK) request: {:?}", request);
                     let request = request.into_inner();
                     let ids = request.ids;
                     let id_field = concat!(stringify!($resource), "_id");
@@ -1487,8 +1496,8 @@ macro_rules! grpc_server_simple_service_linked_mod {
                 /// ```
                 #[cfg(not(feature = "stub_server"))]
                 async fn delete(&self, request: Request<Ids>) -> Result<tonic::Response<()>, Status> {
-                    grpc_info!("(delete) {} server.", self.get_name());
-                    grpc_debug!("(delete) request: {:?}", request);
+                    grpc_info!("{} server.", self.get_name());
+                    grpc_debug!("request: {:?}", request);
                     self.generic_delete(request).await
                 }
                 #[cfg(feature = "stub_server")]
@@ -1496,8 +1505,8 @@ macro_rules! grpc_server_simple_service_linked_mod {
                     &self,
                     request: tonic::Request<Ids>,
                 ) -> Result<tonic::Response<()>, tonic::Status> {
-                    grpc_warn!("(delete MOCK) {} server.", self.get_name());
-                    grpc_debug!("(delete MOCK) request: {:?}", request);
+                    grpc_warn!("(MOCK) {} server.", self.get_name());
+                    grpc_debug!("(MOCK) request: {:?}", request);
                     let delete = request.into_inner();
                     let ids = delete.ids;
                     let id_field = concat!(stringify!($resource), "_id");
@@ -1525,8 +1534,8 @@ macro_rules! grpc_server_simple_service_linked_mod {
                     &self,
                     request: Request<ReadyRequest>,
                 ) -> Result<tonic::Response<ReadyResponse>, Status> {
-                    grpc_debug!("(is_ready) {} server.", self.get_name());
-                    grpc_debug!("(is_ready) request: {:?}", request);
+                    grpc_debug!("{} server.", self.get_name());
+                    grpc_debug!("request: {:?}", request);
                     self.generic_is_ready(request).await
                 }
                 #[cfg(feature = "stub_server")]
@@ -1534,8 +1543,8 @@ macro_rules! grpc_server_simple_service_linked_mod {
                     &self,
                     request: Request<ReadyRequest>,
                 ) -> Result<tonic::Response<ReadyResponse>, Status> {
-                    grpc_info!("(is_ready MOCK) {} server.", self.get_name());
-                    grpc_debug!("(is_ready MOCK) request: {:?}", request);
+                    grpc_info!("(MOCK) {} server.", self.get_name());
+                    grpc_debug!("(MOCK) request: {:?}", request);
                     let response = ReadyResponse { ready: true };
                     Ok(tonic::Response::new(response))
                 }

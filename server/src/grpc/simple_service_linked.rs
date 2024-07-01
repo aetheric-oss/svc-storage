@@ -3,9 +3,9 @@
 use std::collections::HashMap;
 use std::marker::PhantomData;
 
+use lib_common::uuid::Uuid;
 use tokio_postgres::Row;
 use tonic::{Code, Request, Response, Status};
-use uuid::Uuid;
 
 use super::server::*;
 use super::GrpcDataObjectType;
@@ -128,7 +128,7 @@ where
     ///
     /// Returns [`Status`] with [`Code::NotFound`] if no record is returned from the database.  
     /// Returns [`Status`] with [`Code::Internal`] if the provided Ids can not
-    /// be converted to valid [`uuid::Uuid`]s.  
+    /// be converted to valid [`lib_common::uuid::Uuid`]s.  
     /// Returns [`Status`] with [`Code::Internal`] if the resulting [`Row`] data could not be converted into [`Self::LinkedObject`].
     async fn generic_get_by_id(
         &self,
@@ -142,7 +142,7 @@ where
             Ok(Response::new(resource.into()))
         } else {
             let error = format!("No resource found for specified uuids: {:?}", id);
-            grpc_error!("(generic_get_by_id) {}", error);
+            grpc_error!("{}", error);
             Err(Status::new(Code::NotFound, error))
         }
     }
@@ -176,7 +176,7 @@ where
     /// # Errors
     ///
     /// Returns [`Status`] with [`Code::NotFound`] if no record exists for the given `id`.
-    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to valid [`uuid::Uuid`].  
+    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to valid [`lib_common::uuid::Uuid`].  
     /// Returns [`Status`] with [`Code::Internal`] if any error is returned from the db search result.  
     ///
     async fn generic_unlink(&self, request: Request<Id>) -> Result<Response<()>, Status> {
@@ -188,7 +188,7 @@ where
             .is_err()
         {
             let error = format!("No resource found for specified uuids: {:?}", id);
-            grpc_error!("(generic_unlink) {}", error);
+            grpc_error!("{}", error);
             return Err(Status::new(Code::NotFound, error));
         }
 
@@ -201,7 +201,7 @@ where
         )
         .await
         {
-            Ok(_) => Ok(tonic::Response::new(())),
+            Ok(_) => Ok(Response::new(())),
             Err(e) => Err(Status::new(Code::Internal, e.to_string())),
         }
     }
@@ -216,7 +216,7 @@ where
     /// # Errors
     ///
     /// Returns [`Status`] with [`Code::NotFound`] if no record exists for the given `id`.
-    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].  
+    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`lib_common::uuid::Uuid`].  
     /// Returns [`Status`] with [`Code::Internal`] if any error is returned from the db search result.  
     async fn generic_get_linked_ids(&self, request: Request<Id>) -> Result<Response<IdList>, Status>
     where
@@ -224,7 +224,7 @@ where
     {
         let id: Id = request.into_inner();
         let ids = Self::_get_linked(id).await?;
-        Ok(tonic::Response::new(IdList { ids }))
+        Ok(Response::new(IdList { ids }))
     }
 
     /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type [`Self::OtherList`].
@@ -238,7 +238,7 @@ where
     /// # Errors
     ///
     /// Returns [`Status`] with [`Code::NotFound`] if no record exists for the given `id`.
-    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].  
+    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`lib_common::uuid::Uuid`].  
     /// Returns [`Status`] with [`Code::Internal`] if any error is returned from the db search result.  
     async fn generic_get_linked(
         &self,
@@ -253,7 +253,7 @@ where
         let filter = AdvancedSearchFilter::search_in(other_id_field, ids);
 
         match Self::OtherResourceObject::advanced_search(filter).await {
-            Ok(rows) => Ok(tonic::Response::new(rows.try_into()?)),
+            Ok(rows) => Ok(Response::new(rows.try_into()?)),
             Err(e) => Err(Status::new(Code::Internal, e.to_string())),
         }
     }
@@ -267,7 +267,7 @@ where
             .is_err()
         {
             let error = format!("No resource found for specified uuid: {}", id.id);
-            grpc_error!("(_get_linked) {}", error);
+            grpc_error!("{}", error);
             return Err(ArrErr::Error(error));
         }
 
@@ -302,7 +302,7 @@ where
         request: Request<Self::LinkedRowData>,
     ) -> Result<Response<Self::LinkedResponse>, Status> {
         let data = request.into_inner();
-        grpc_debug!("(generic_insert) Inserting with data {:?}", data);
+        grpc_debug!("Inserting with data {:?}", data);
         let validation_result =
             <<Self as GrpcSimpleServiceLinked>::LinkedResourceObject as PsqlType>::create(&data)
                 .await?;
@@ -316,9 +316,9 @@ where
             Ok(Response::new(result.into()))
         } else {
             let error = "Error calling insert function.";
-            grpc_error!("(generic_insert) {}", error);
-            grpc_debug!("(generic_insert) [{:?}].", data);
-            grpc_debug!("(generic_insert) [{:?}].", validation_result);
+            grpc_error!("{}", error);
+            grpc_debug!("[{:?}].", data);
+            grpc_debug!("[{:?}].", validation_result);
             let result = GenericResourceResult {
                 phantom: PhantomData,
                 validation_result,
@@ -339,7 +339,7 @@ where
     ///
     /// Returns [`Status`] with [`Code::Cancelled`] if the [`Request`] doesn't contain any data.  
     /// Returns [`Status`] with [`Code::Internal`] if any error is returned from a db call.  
-    /// Returns [`Status`] with [`Code::Internal`] if the provided Ids can not be converted to valid [`uuid::Uuid`]s.  
+    /// Returns [`Status`] with [`Code::Internal`] if the provided Ids can not be converted to valid [`lib_common::uuid::Uuid`]s.  
     /// Returns [`Status`] with [`Code::Internal`] if the resulting [`Row`] data could not be converted into [`Self::Data`].  
     ///
     async fn generic_update(
@@ -355,7 +355,7 @@ where
                     "No data provided for update with ids: {:?}",
                     resource.get_ids()
                 );
-                grpc_error!("(generic_update) {}", err);
+                grpc_error!("{}", err);
                 return Err(Status::cancelled(err));
             }
         };
@@ -371,9 +371,9 @@ where
             Ok(Response::new(result.into()))
         } else {
             let error = "Error calling update function.";
-            grpc_error!("(generic_update) {}", error);
-            grpc_debug!("(generic_update) [{:?}].", data);
-            grpc_debug!("(generic_update) [{:?}].", validation_result);
+            grpc_error!("{}", error);
+            grpc_debug!("[{:?}].", data);
+            grpc_debug!("[{:?}].", validation_result);
             let result = GenericResourceResult {
                 phantom: PhantomData,
                 validation_result,

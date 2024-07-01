@@ -22,7 +22,7 @@ where
     /// # Errors
     ///
     /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
-    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided ids can not be converted to a [`uuid::Uuid`].
+    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided ids can not be converted to a [`lib_common::uuid::Uuid`].
     /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if any error is returned from the db insert result.
     /// Returns [`tonic::Status`] with [`tonic::Code::Unknown`] if the server is not ready.
     ///
@@ -60,7 +60,7 @@ where
     /// # Errors
     ///
     /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
-    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided ids can not be converted to a [`uuid::Uuid`].
+    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided ids can not be converted to a [`lib_common::uuid::Uuid`].
     /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if any error is returned from any of the db results.
     /// Returns [`tonic::Status`] with [`tonic::Code::Unknown`] if the server is not ready.
     ///
@@ -98,7 +98,7 @@ where
     /// # Errors
     ///
     /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
-    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided ids can not be converted to a [`uuid::Uuid`].
+    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided ids can not be converted to a [`lib_common::uuid::Uuid`].
     /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if any error is returned from the db delete result.
     /// Returns [`tonic::Status`] with [`tonic::Code::Unknown`] if the server is not ready.
     ///
@@ -132,7 +132,7 @@ where
     /// # Errors
     ///
     /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
-    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].
+    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided Id can not be converted to a [`lib_common::uuid::Uuid`].
     /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if any error is returned from the db search result.
     /// Returns [`tonic::Status`] with [`tonic::Code::Unknown`] if the server is not ready.
     ///
@@ -169,7 +169,7 @@ where
     /// # Errors
     ///
     /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
-    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].
+    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided Id can not be converted to a [`lib_common::uuid::Uuid`].
     /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if any error is returned from the db search result.
     /// Returns [`tonic::Status`] with [`tonic::Code::Unknown`] if the server is not ready.
     ///

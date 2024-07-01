@@ -1,6 +1,6 @@
 //! Re-export of used objects
 
-pub use crate::resources::grpc_geo_types::*;
+pub use crate::resources::geo_types::*;
 pub use crate::resources::*;
 pub use crate::Clients;
 

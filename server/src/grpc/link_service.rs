@@ -2,11 +2,11 @@
 
 pub use crate::common::ArrErr;
 
+use lib_common::uuid::Uuid;
 use std::collections::HashMap;
 use std::str::FromStr;
 use tokio_postgres::Row;
 use tonic::{Code, Request, Response, Status};
-use uuid::Uuid;
 
 use super::server::*;
 use super::GrpcDataObjectType;
@@ -102,7 +102,7 @@ where
     /// # Errors
     ///
     /// Returns [`Status`] with [`Code::NotFound`] if no record exists for the given `id`.
-    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].  
+    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`lib_common::uuid::Uuid`].  
     /// Returns [`Status`] with [`Code::Internal`] if any error is returned from the db search result.  
     ///
     async fn generic_link(
@@ -121,7 +121,7 @@ where
                     "Could not convert provided id String [{}] into uuid: {}",
                     id, e
                 );
-                grpc_error!("(generic_link) {}", error);
+                grpc_error!("{}", error);
                 return Err(Status::new(Code::NotFound, error));
             }
         };
@@ -131,7 +131,7 @@ where
                 Self::ResourceObject::get_psql_table(),
                 id
             );
-            grpc_error!("(generic_link) {}", error);
+            grpc_error!("{}", error);
             return Err(Status::new(Code::NotFound, error));
         }
 
@@ -148,7 +148,7 @@ where
         }
         Self::LinkedResourceObject::link_ids(ids, replace_id_fields).await?;
 
-        Ok(tonic::Response::new(()))
+        Ok(Response::new(()))
     }
 
     /// Returns an empty [`tonic`] gRCP [`Response`] on success
@@ -159,7 +159,7 @@ where
     /// # Errors
     ///
     /// Returns [`Status`] with [`Code::NotFound`] if no record exists for the given `id`.
-    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to valid [`uuid::Uuid`].  
+    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to valid [`lib_common::uuid::Uuid`].  
     /// Returns [`Status`] with [`Code::Internal`] if any error is returned from the db search result.  
     ///
     async fn generic_unlink(&self, request: Request<Id>) -> Result<Response<()>, Status> {
@@ -171,7 +171,7 @@ where
             .is_err()
         {
             let error = format!("No resource found for specified uuids: {:?}", id);
-            grpc_error!("(generic_unlink) {}", error);
+            grpc_error!("{}", error);
             return Err(Status::new(Code::NotFound, error));
         }
 
@@ -184,7 +184,7 @@ where
         )
         .await
         {
-            Ok(_) => Ok(tonic::Response::new(())),
+            Ok(_) => Ok(Response::new(())),
             Err(e) => Err(Status::new(Code::Internal, e.to_string())),
         }
     }
@@ -195,7 +195,7 @@ where
     /// # Errors
     ///
     /// Returns [`Status`] with [`Code::NotFound`] if no record exists for the given `id`.
-    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].  
+    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`lib_common::uuid::Uuid`].  
     /// Returns [`Status`] with [`Code::Internal`] if any error is returned from the db search result.  
     async fn generic_get_linked_ids(&self, request: Request<Id>) -> Result<Response<IdList>, Status>
     where
@@ -203,7 +203,7 @@ where
     {
         let id: Id = request.into_inner();
         let ids = Self::_get_linked(id).await?;
-        Ok(tonic::Response::new(IdList { ids }))
+        Ok(Response::new(IdList { ids }))
     }
 
     /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type `[Self::OtherList]`.
@@ -213,7 +213,7 @@ where
     /// # Errors
     ///
     /// Returns [`Status`] with [`Code::NotFound`] if no record exists for the given `id`.
-    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].  
+    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`lib_common::uuid::Uuid`].  
     /// Returns [`Status`] with [`Code::Internal`] if any error is returned from the db search result.  
     async fn generic_get_linked(
         &self,
@@ -228,7 +228,7 @@ where
         let filter = AdvancedSearchFilter::search_in(other_id_field, ids);
 
         match Self::OtherResourceObject::advanced_search(filter).await {
-            Ok(rows) => Ok(tonic::Response::new(rows.try_into()?)),
+            Ok(rows) => Ok(Response::new(rows.try_into()?)),
             Err(e) => Err(Status::new(Code::Internal, e.to_string())),
         }
     }
@@ -242,7 +242,7 @@ where
             .is_err()
         {
             let error = format!("No resource found for specified uuid: {}", id.id);
-            grpc_error!("(_get_linked) {}", error);
+            grpc_error!("{}", error);
             return Err(ArrErr::Error(error));
         }
 

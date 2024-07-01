@@ -32,11 +32,11 @@ fn test_get_data_obj() {
 
 #[test]
 fn test_get_data_obj_for_parent_group() {
-    let parent_group_id = uuid::Uuid::new_v4().to_string();
+    let parent_group_id = lib_common::uuid::Uuid::new_v4().to_string();
     let data: Data = get_data_obj_for_parent_group(&parent_group_id);
 
     assert!(data.name.len() > 0);
     assert!(data.description.len() > 0);
     assert!(data.parent_group_id.is_some());
-    assert!(uuid::Uuid::parse_str(&data.parent_group_id.unwrap()).is_ok());
+    assert!(lib_common::uuid::Uuid::parse_str(&data.parent_group_id.unwrap()).is_ok());
 }
