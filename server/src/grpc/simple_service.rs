@@ -13,6 +13,9 @@ use crate::postgres::PsqlSearch;
 use crate::resources::base::simple_resource::{GenericResourceResult, ObjectType, SimpleResource};
 
 /// Generic gRPC object traits to provide wrappers for common `Resource` functions
+#[cfg(not(tarpaulin_include))]
+// no_coverage: (R5) is part of integration tests, coverage report will need to be merged to show
+// these lines as covered.
 #[tonic::async_trait]
 pub trait GrpcSimpleService
 where
