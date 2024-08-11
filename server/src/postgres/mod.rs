@@ -3,6 +3,15 @@
 
 #[macro_use]
 pub mod macros;
+
+#[cfg(not(tarpaulin_include))]
+// no_coverage: (Rnever) Test utilities, don't need to be part of our test coverage report
+#[cfg(all(
+    test,
+    any(not(feature = "stub_backends"), feature = "vendored-openssl")
+))]
+pub mod tests;
+
 pub mod init;
 pub mod linked_resource;
 pub mod simple_resource;

@@ -91,3 +91,52 @@ impl<'a> postgis::LineString<'a> for GeoLineStringZ {
         self.points.iter()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[rustfmt::skip]
+    #[cfg(test)]
+    fn hex_to_vec(hexstr: &str) -> Vec<u8> {
+        hexstr.as_bytes().chunks(2).map(|chars| {
+            let hb = if chars[0] <= 57 { chars[0] - 48 } else { chars[0] - 55 };
+            let lb = if chars[1] <= 57 { chars[1] - 48 } else { chars[1] - 55 };
+            hb * 16 + lb
+        }).collect::<Vec<_>>()
+    }
+
+    #[rustfmt::skip]
+    #[test]
+    fn test_ewkb_read_for_geo_point_z() {
+        // SELECT 'POINT(10 -20 100)'::geometry
+        let ewkb = hex_to_vec("0101000080000000000000244000000000000034C00000000000005940");
+        let point = GeoPointZ::read_ewkb(&mut ewkb.as_slice()).unwrap();
+        assert_eq!(point, GeoPointZ { x: 10.0, y: -20.0, z: 100.0, });
+
+        assert_eq!(GeoPointZ::point_type(), PointType::PointZ);
+    }
+
+    #[rustfmt::skip]
+    #[test]
+    fn test_line_string_impl_for_geo_line_string() {
+        use postgis::LineString;
+        ut_info!("Start.");
+        let points = vec![
+            GeoPointZ { x: 40.123, y: -40.123, z: 100.0, },
+            GeoPointZ { x: 41.123, y: -41.123, z: 100.0, },
+            GeoPointZ { x: 42.123, y: -42.123, z: 90.0, },
+            GeoPointZ { x: 40.123, y: -40.123, z: 100.0, },
+        ];
+
+        let line_string = GeoLineStringZ {
+            points: points.clone(),
+        };
+
+        for (index, point) in line_string.points().enumerate() {
+            assert_eq!(point, &points[index]);
+        }
+
+        ut_info!("Success.");
+    }
+}
