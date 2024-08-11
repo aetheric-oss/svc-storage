@@ -14,7 +14,7 @@ pub use crate::common::ArrErr;
 /// Create global variable to access our database pool
 pub(crate) static DB_POOL: OnceCell<Pool> = OnceCell::const_new();
 /// Shorthand function to get the database connection pool
-#[cfg(not(feature = "stub_backends"))]
+#[cfg(any(not(feature = "stub_backends"), feature = "vendored-openssl"))]
 async fn get_psql_pool() -> &'static Pool {
     DB_POOL
         .get_or_init(|| async move {
@@ -31,7 +31,8 @@ async fn get_psql_pool() -> &'static Pool {
         })
         .await
 }
-#[cfg(feature = "stub_backends")]
+
+#[cfg(all(feature = "stub_backends", not(feature = "vendored-openssl")))]
 async fn get_psql_pool() -> &'static Pool {
     DB_POOL
         .get_or_init(|| async move {
