@@ -7,7 +7,6 @@ use crate::shutdown_signal;
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use tonic::transport::Server;
-use tonic::{Request, Status};
 
 // include gRPC generic structs
 include!("../../../out/grpc/grpc.rs");
@@ -78,7 +77,7 @@ pub mod geo_types {
 /// }
 /// ```
 #[cfg(not(tarpaulin_include))]
-// no_coverage: Can not be tested in unittest, should be part of integration
+// no_coverage: (R5) Can not be tested in unittest, should be part of integration
 // tests
 pub async fn grpc_server(config: Config, shutdown_rx: Option<tokio::sync::oneshot::Receiver<()>>) {
     grpc_debug!("entry.");
@@ -249,7 +248,7 @@ mod tests {
         ut_debug!("{:?}", result);
         assert!(result.is_ok());
 
-        let result = imp.generic_insert(Request::new(data)).await;
+        let result = imp.generic_insert(tonic::Request::new(data)).await;
         ut_debug!("{:?}", result);
         assert!(result.is_ok());
 

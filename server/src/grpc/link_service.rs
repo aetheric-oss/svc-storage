@@ -23,6 +23,9 @@ use crate::resources::base::Resource;
 /// U: `super::Data` Data type of 'super' resource being linked
 /// V: `ResourceObject<Data>` combined resource Resource type
 /// W: `Data` combined resource Data type
+#[cfg(not(tarpaulin_include))]
+// no_coverage: (R5) is part of integration tests, coverage report will need to be merged to show
+// these lines as covered.
 #[tonic::async_trait]
 pub trait GrpcLinkService
 where
