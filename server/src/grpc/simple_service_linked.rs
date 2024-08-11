@@ -23,6 +23,9 @@ use crate::resources::base::ObjectType;
 /// U: `Data` combined resource Data type
 /// V: `ResourceObject<super::Data>` Resource type of 'super' resource being linked
 /// W: `super::Data` Data type of 'super' resource being linked
+#[cfg(not(tarpaulin_include))]
+// no_coverage: (R5) is part of integration tests, coverage report will need to be merged to show
+// these lines as covered.
 #[tonic::async_trait]
 pub trait GrpcSimpleServiceLinked
 where
@@ -46,17 +49,17 @@ where
     <Self as GrpcSimpleServiceLinked>::LinkedUpdateObject: Send,
     <Self as GrpcSimpleServiceLinked>::LinkedResponse:
         From<GenericResourceResult<Self::LinkedResourceObject, Self::LinkedData>>,
-    <Self as GrpcSimpleServiceLinked>::ResourceObject: ObjectType<Self::Data>
+    <Self as GrpcSimpleServiceLinked>::ResourceObject: ObjectType<Self::ResourceData>
         + PsqlType
         + PsqlSearch
-        + SimpleResource<Self::Data>
-        + PsqlObjectType<Self::Data>
+        + SimpleResource<Self::ResourceData>
+        + PsqlObjectType<Self::ResourceData>
         + From<Id>
-        + From<Self::Data>
+        + From<Self::ResourceData>
         + Clone
         + Sync
         + Send,
-    <Self as GrpcSimpleServiceLinked>::Data: GrpcDataObjectType + TryFrom<Row>,
+    <Self as GrpcSimpleServiceLinked>::ResourceData: GrpcDataObjectType + TryFrom<Row>,
     <Self as GrpcSimpleServiceLinked>::OtherResourceObject: ObjectType<Self::OtherData>
         + PsqlType
         + PsqlSearch
@@ -107,7 +110,7 @@ where
     type ResourceObject;
     /// The type expected for the Data struct of the 'main' resource.
     /// Must implement; [`GrpcDataObjectType`], `TryFrom<[Row]>`
-    type Data;
+    type ResourceData;
 
     /// The type expected for the [`Self::ResourceObject<Self::Data>`] type of the 'other' resource.
     /// Must implement; [`ObjectType<Self::Data>`], [`PsqlType`], [`PsqlSearch`],
@@ -136,7 +139,7 @@ where
     ) -> Result<Response<Self::LinkedObject>, Status> {
         let id: Ids = request.into_inner();
         let mut resource: Self::LinkedResourceObject = id.clone().into();
-        let obj = Self::LinkedResourceObject::get_for_ids(id.clone().try_into()?).await;
+        let obj = Self::LinkedResourceObject::get_for_ids(&id.clone().try_into()?).await;
         if let Ok(obj) = obj {
             resource.set_data(obj.try_into()?);
             Ok(Response::new(resource.into()))
@@ -287,7 +290,7 @@ where
     }
 
     /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type [`Self::LinkedResponse`].
-    /// `Self::Response(From<GenericResourceResult<Self::LinkedResourceObject, Self::Data>>)` will contain the inserted record after saving the provided data [`Self::LinkedRowData`].
+    /// `Self::Response(From<GenericResourceResult<Self::LinkedResourceObject, Self::ResourceData>>)` will contain the inserted record after saving the provided data [`Self::LinkedRowData`].
     ///
     /// The given data will be validated before insert.  
     /// Any errors found during validation will be added to the [`ValidationResult`](crate::resources::ValidationResult).  
@@ -329,7 +332,7 @@ where
     }
 
     /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type [`Self::LinkedResourceObject`].
-    /// `Self::Response(From<GenericResourceResult<Self::LinkedResourceObject, Self::Data>>)` will contain the updated record after saving the provided data [`Self::LinkedUpdateObject`].
+    /// `Self::Response(From<GenericResourceResult<Self::LinkedResourceObject, Self::ResourceData>>)` will contain the updated record after saving the provided data [`Self::LinkedUpdateObject`].
     ///
     /// The given data will be validated before insert.
     /// Any errors found during validation will be added to the [`ValidationResult`](crate::resources::ValidationResult).
@@ -340,7 +343,7 @@ where
     /// Returns [`Status`] with [`Code::Cancelled`] if the [`Request`] doesn't contain any data.  
     /// Returns [`Status`] with [`Code::Internal`] if any error is returned from a db call.  
     /// Returns [`Status`] with [`Code::Internal`] if the provided Ids can not be converted to valid [`lib_common::uuid::Uuid`]s.  
-    /// Returns [`Status`] with [`Code::Internal`] if the resulting [`Row`] data could not be converted into [`Self::Data`].  
+    /// Returns [`Status`] with [`Code::Internal`] if the resulting [`Row`] data could not be converted into [`Self::ResourceData`].  
     ///
     async fn generic_update(
         &self,
