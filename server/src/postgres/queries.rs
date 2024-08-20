@@ -34,10 +34,8 @@ where
         id
     );
     psql_debug!("[{}].", &query);
-    match client.query_one(&stmt, &[&id]).await {
-        Ok(row) => Ok(row),
-        Err(e) => Err(e.into()),
-    }
+
+    client.query_one(&stmt, &[&id]).await.map_err(|e| e.into())
 }
 /// Generic get for id function to get rows for the provided key fields
 /// Since this is a linked resource, the id is expected to be given as a [Vec\<FieldValuePair\>]
@@ -83,10 +81,11 @@ where
     for field in params.iter() {
         ref_params.push(field.as_ref());
     }
-    match client.query_one(&stmt, &ref_params[..]).await {
-        Ok(row) => Ok(row),
-        Err(e) => Err(e.into()),
-    }
+
+    client
+        .query_one(&stmt, &ref_params[..])
+        .await
+        .map_err(|e| e.into())
 }
 
 /// Update the Object's database record using provided data
@@ -196,13 +195,12 @@ where
 
     let client = get_psql_client().await?;
     let stmt = client.prepare_cached(delete_sql).await?;
-    match client.execute(&stmt, &params).await {
-        Ok(_) => {
-            //TODO(R5): flush shared memcache for this resource when memcache is implemented
-            Ok(())
-        }
-        Err(e) => Err(e.into()),
-    }
+
+    client
+        .execute(&stmt, &params)
+        .await
+        .map_err(|e| e.into())
+        .map(|_| ())
 }
 
 #[cfg(not(tarpaulin_include))]

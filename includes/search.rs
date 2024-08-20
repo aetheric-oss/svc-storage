@@ -747,25 +747,25 @@ pub(crate) fn filter_for_operator(
         };
 
         let ids = &object["ids"];
-        println!(
-            "(filter_for_operator) (MOCK) test ids field [{}].",
-            ids,
-        );
-        if val == serde_json::json!(null) && *ids != serde_json::json!(null) {
-            println!(
-                "(filter_for_operator) (MOCK) found ids [{}].",
-                ids,
-            );
-            let ids: Vec<super::FieldValue> = serde_json::from_value(ids.clone()).map_err(|e| format!("Could not convert [{:?}] to Ids from json value: {}", ids, e))?;
-            println!("search ids after convert: {:?}", ids);
-            for id in ids {
-                if id.field == search_field {
-                    val = serde_json::json!(id.value)
-                }
-            }
+        println!("(filter_for_operator) (MOCK) test ids field [{}].", ids,);
+        if val == serde_json::Value::Null && *ids != serde_json::Value::Null {
+            println!("(filter_for_operator) (MOCK) found ids [{}].", ids,);
+            serde_json::from_value::<Vec<super::FieldValue>>(ids.clone())
+                .map_err(|e| {
+                    format!(
+                        "Could not convert [{:?}] to Ids from json value: {}",
+                        ids, e
+                    )
+                })?
+                .iter()
+                .find(|id| id.field == search_field)
+                .map(|id| val = serde_json::Value::String(id.value.clone()));
         }
 
-        println!("(filter_for_operator) (MOCK) got value [{}] for object [{}].", val, object);
+        println!(
+            "(filter_for_operator) (MOCK) got value [{}] for object [{}].",
+            val, object
+        );
         match operator {
             PredicateOperator::Equals => {
                 let search_val: String = get_single_search_value(search_values)?;
@@ -777,8 +777,7 @@ pub(crate) fn filter_for_operator(
                 }
                 println!(
                     "(filter_for_operator) (MOCK) Equals filter with value [{}] for val [{}].",
-                    search_val,
-                    cmp_val
+                    search_val, cmp_val
                 );
                 if cmp_val == *search_val {
                     println!("(filter_for_operator) (MOCK) Equals found!");
@@ -795,8 +794,7 @@ pub(crate) fn filter_for_operator(
                 }
                 println!(
                     "(filter_for_operator) (MOCK) NotEquals filter with value [{}] for val [{}].",
-                    search_val,
-                    val
+                    search_val, val
                 );
                 if cmp_val != *search_val {
                     println!("(filter_for_operator) (MOCK) NotEquals found!");
@@ -810,17 +808,19 @@ pub(crate) fn filter_for_operator(
                 } else {
                     cmp_val = format!("{}", val);
                 }
+
                 println!(
                     "(filter_for_operator) (MOCK) In filter with values [{:?}] for val [{}].",
-                    search_values,
-                    cmp_val
+                    search_values, cmp_val
                 );
-                for search_val in search_values {
-                    if cmp_val == *search_val {
+
+                let _ = search_values
+                    .iter()
+                    .find(|&search_val| search_val == &cmp_val)
+                    .map(|_| {
                         println!("(filter_for_operator) (MOCK) In found!");
                         filtered.push(object.clone())
-                    }
-                }
+                    });
             }
             PredicateOperator::NotIn => {
                 let cmp_val: String;
@@ -829,33 +829,24 @@ pub(crate) fn filter_for_operator(
                 } else {
                     cmp_val = format!("{}", val);
                 }
+
                 println!(
                     "(filter_for_operator) (MOCK) NotIn filter with values [{:?}] for val [{}].",
-                    search_values,
-                    cmp_val
-                );
-                println!(
-                    "(filter_for_operator) (MOCK) NotIn filter with values [{:?}] for val [{}].",
-                    search_values,
-                    cmp_val
+                    search_values, cmp_val
                 );
 
-                let mut found = false;
-                for search_val in search_values {
-                    if cmp_val == *search_val {
-                        found = true
-                    }
-                }
-                if !found {
-                    println!("(filter_for_operator) (MOCK) NotIn found!");
-                    filtered.push(object.clone())
-                }
+                let _ = search_values
+                    .iter()
+                    .find(|&search_val| search_val == &cmp_val)
+                    .ok_or_else(|| {
+                        println!("(filter_for_operator) (MOCK) NotIn found!");
+                        filtered.push(object.clone());
+                    });
             }
             PredicateOperator::Between => {
                 println!(
                     "(filter_for_operator) (MOCK) Between filter with values [{:?}] for val [{}].",
-                    search_values,
-                    val
+                    search_values, val
                 );
                 let mut values: std::collections::VecDeque<String> = search_values.clone().into();
 
@@ -894,7 +885,7 @@ pub(crate) fn filter_for_operator(
                     }
                 } else if let Ok(date_val) = lib_common::time::DateTime::parse_from_rfc3339(
                     val.as_str()
-                    .ok_or("Could not convert provided value to string.")?,
+                        .ok_or("Could not convert provided value to string.")?,
                 ) {
                     println!(
                         "(filter_for_operator) (MOCK) Can convert val to date, got [{}].",
@@ -956,8 +947,7 @@ pub(crate) fn filter_for_operator(
                 }
                 println!(
                     "(filter_for_operator) (MOCK) Ilike filter with value [{}] for val [{}].",
-                    search_val,
-                    cmp_val
+                    search_val, cmp_val
                 );
                 if cmp_val.to_lowercase().contains(&search_val.to_lowercase()) {
                     println!("(filter_for_operator) (MOCK) Ilike found!");
@@ -974,8 +964,7 @@ pub(crate) fn filter_for_operator(
                 }
                 println!(
                     "(filter_for_operator) (MOCK) Like filter with value [{}] for val [{}].",
-                    search_val,
-                    cmp_val
+                    search_val, cmp_val
                 );
                 if cmp_val.contains(&search_val) {
                     println!("(filter_for_operator) (MOCK) Like found!");
@@ -986,8 +975,7 @@ pub(crate) fn filter_for_operator(
                 let search_val: String = get_single_search_value(search_values)?;
                 println!(
                     "(filter_for_operator) (MOCK) Greater filter with value [{:?}] for val [{}].",
-                    search_val,
-                    val
+                    search_val, val
                 );
                 if let Some(num_val) = val.as_f64() {
                     println!(
@@ -1006,7 +994,7 @@ pub(crate) fn filter_for_operator(
                     }
                 } else if let Ok(date_val) = lib_common::time::DateTime::parse_from_rfc3339(
                     val.as_str()
-                    .ok_or("Could not convert provided value to string.")?,
+                        .ok_or("Could not convert provided value to string.")?,
                 ) {
                     println!(
                         "(filter_for_operator) (MOCK) Can convert val to date, got [{}].",
@@ -1014,11 +1002,11 @@ pub(crate) fn filter_for_operator(
                     );
                     let search_date = lib_common::time::DateTime::parse_from_rfc3339(&search_val)
                         .map_err(|e| {
-                            format!(
-                                "Could not convert search_value [{}] to date: {}",
-                                search_val, e
-                            )
-                        })?;
+                        format!(
+                            "Could not convert search_value [{}] to date: {}",
+                            search_val, e
+                        )
+                    })?;
                     if date_val > search_date {
                         println!("(filter_for_operator) (MOCK) Greater found!");
                         filtered.push(object.clone())
@@ -1054,7 +1042,7 @@ pub(crate) fn filter_for_operator(
                     }
                 } else if let Ok(date_val) = lib_common::time::DateTime::parse_from_rfc3339(
                     val.as_str()
-                    .ok_or("Could not convert provided value to string.")?,
+                        .ok_or("Could not convert provided value to string.")?,
                 ) {
                     println!(
                         "(filter_for_operator) (MOCK) Can convert val to date, got [{}].",
@@ -1062,11 +1050,11 @@ pub(crate) fn filter_for_operator(
                     );
                     let search_date = lib_common::time::DateTime::parse_from_rfc3339(&search_val)
                         .map_err(|e| {
-                            format!(
-                                "Could not convert search_value [{}] to date: {}",
-                                search_val, e
-                            )
-                        })?;
+                        format!(
+                            "Could not convert search_value [{}] to date: {}",
+                            search_val, e
+                        )
+                    })?;
                     if date_val >= search_date {
                         println!("(filter_for_operator) (MOCK) GreaterOrEqual found!");
                         filtered.push(object.clone())
@@ -1082,8 +1070,7 @@ pub(crate) fn filter_for_operator(
                 let search_val: String = get_single_search_value(search_values)?;
                 println!(
                     "(filter_for_operator) (MOCK) Less filter with value [{:?}] for val [{}].",
-                    search_val,
-                    val
+                    search_val, val
                 );
                 if let Some(num_val) = val.as_f64() {
                     println!(
@@ -1102,7 +1089,7 @@ pub(crate) fn filter_for_operator(
                     }
                 } else if let Ok(date_val) = lib_common::time::DateTime::parse_from_rfc3339(
                     val.as_str()
-                    .ok_or("Could not convert provided value to string.")?,
+                        .ok_or("Could not convert provided value to string.")?,
                 ) {
                     println!(
                         "(filter_for_operator) (MOCK) Can convert val to date, got [{}].",
@@ -1110,11 +1097,11 @@ pub(crate) fn filter_for_operator(
                     );
                     let search_date = lib_common::time::DateTime::parse_from_rfc3339(&search_val)
                         .map_err(|e| {
-                            format!(
-                                "Could not convert search_value [{}] to date: {}",
-                                search_val, e
-                            )
-                        })?;
+                        format!(
+                            "Could not convert search_value [{}] to date: {}",
+                            search_val, e
+                        )
+                    })?;
                     if date_val < search_date {
                         println!("(filter_for_operator) (MOCK) Less found!");
                         filtered.push(object.clone())
@@ -1150,7 +1137,7 @@ pub(crate) fn filter_for_operator(
                     }
                 } else if let Ok(date_val) = lib_common::time::DateTime::parse_from_rfc3339(
                     val.as_str()
-                    .ok_or("Could not convert provided value to string.")?,
+                        .ok_or("Could not convert provided value to string.")?,
                 ) {
                     println!(
                         "(filter_for_operator) (MOCK) Can convert val to date, got [{}].",
@@ -1158,11 +1145,11 @@ pub(crate) fn filter_for_operator(
                     );
                     let search_date = lib_common::time::DateTime::parse_from_rfc3339(&search_val)
                         .map_err(|e| {
-                            format!(
-                                "Could not convert search_value [{}] to date: {}",
-                                search_val, e
-                            )
-                        })?;
+                        format!(
+                            "Could not convert search_value [{}] to date: {}",
+                            search_val, e
+                        )
+                    })?;
                     if date_val <= search_date {
                         println!("(filter_for_operator) (MOCK) LessOrEqual found!");
                         filtered.push(object.clone())
@@ -1176,36 +1163,36 @@ pub(crate) fn filter_for_operator(
             }
             PredicateOperator::GeoIntersect => {
                 /*
-                    filter_str = format!(
-                    r#" st_intersect(st_geomfromtext(${}), "{}")"#,
-                    next_param_index, search_col.col_name,
-                    );
-                    search_col.set_value(get_single_search_value(values)?);
-                    params.push(search_col.clone());
-                    next_param_index += 1;
-                    */
+                filter_str = format!(
+                r#" st_intersect(st_geomfromtext(${}), "{}")"#,
+                next_param_index, search_col.col_name,
+                );
+                search_col.set_value(get_single_search_value(values)?);
+                params.push(search_col.clone());
+                next_param_index += 1;
+                */
             }
             PredicateOperator::GeoWithin => {
                 /*
-                    filter_str = format!(
-                    r#" st_within(st_geomfromtext(${}), "{}")"#,
-                    next_param_index, search_col.col_name,
-                    );
-                    search_col.set_value(get_single_search_value(values)?);
-                    params.push(search_col.clone());
-                    next_param_index += 1;
-                    */
+                filter_str = format!(
+                r#" st_within(st_geomfromtext(${}), "{}")"#,
+                next_param_index, search_col.col_name,
+                );
+                search_col.set_value(get_single_search_value(values)?);
+                params.push(search_col.clone());
+                next_param_index += 1;
+                */
             }
             PredicateOperator::GeoDisjoint => {
                 /*
-                    filter_str = format!(
-                    r#" st_disjoint(st_geomfromtext(${}), "{}")"#,
-                    next_param_index, search_col.col_name,
-                    );
-                    search_col.set_value(get_single_search_value(values)?);
-                    params.push(search_col.clone());
-                    next_param_index += 1;
-                    */
+                filter_str = format!(
+                r#" st_disjoint(st_geomfromtext(${}), "{}")"#,
+                next_param_index, search_col.col_name,
+                );
+                search_col.set_value(get_single_search_value(values)?);
+                params.push(search_col.clone());
+                next_param_index += 1;
+                */
             }
         }
     }
