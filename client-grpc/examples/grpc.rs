@@ -1,5 +1,4 @@
 //! gRPC client implementation
-use svc_storage::DEFAULT_SRID;
 use svc_storage_client_grpc::prelude::*;
 
 use lib_common::grpc::get_endpoint_from_env;
