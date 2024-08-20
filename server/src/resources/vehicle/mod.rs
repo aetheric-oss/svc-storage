@@ -6,7 +6,6 @@ pub mod group;
 use anyhow::Result;
 use lib_common::time::{DateTime, Utc};
 use lib_common::uuid::Uuid;
-use log::debug;
 use std::collections::HashMap;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
@@ -141,7 +140,7 @@ impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("(try_from) Converting Row to vehicle::Data: {:?}", row);
+        resources_debug!("Converting Row to vehicle::Data: {:?}", row);
 
         let last_maintenance: Option<prost_wkt_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("last_maintenance")

@@ -1,7 +1,5 @@
 //! Grpc Simple resource Traits
 
-pub use crate::common::ArrErr;
-
 use std::marker::PhantomData;
 use tokio_postgres::Row;
 use tonic::{Code, Request, Response, Status};
@@ -11,6 +9,7 @@ use super::GrpcDataObjectType;
 use crate::postgres::simple_resource::{PsqlObjectType, PsqlType};
 use crate::postgres::PsqlSearch;
 use crate::resources::base::simple_resource::{GenericResourceResult, ObjectType, SimpleResource};
+use crate::resources::base::Resource;
 
 /// Generic gRPC object traits to provide wrappers for common `Resource` functions
 #[cfg(not(tarpaulin_include))]
@@ -69,18 +68,27 @@ where
     ) -> Result<Response<Self::Object>, Status> {
         let id: Id = request.into_inner();
         let mut resource: Self::ResourceObject = id.clone().into();
-        let obj: Result<Row, ArrErr> =
-            Self::ResourceObject::get_by_id(&resource.try_get_uuid()?).await;
-        if let Ok(obj) = obj {
-            resource.set_data(obj.try_into()?);
-            Ok(Response::new(resource.into()))
-        } else {
-            let error = format!("No resource found for specified uuid: {}", id.id);
-            grpc_error!("{}", error);
-            Err(Status::new(Code::NotFound, error))
-        }
-    }
 
+        let data: Self::Data = Self::ResourceObject::get_by_id(&resource.try_get_uuid()?)
+            .await
+            .map_err(|e| {
+                grpc_error!(
+                    "No [{}] found for specified uuid [{:?}]: {}",
+                    Self::ResourceObject::get_psql_table(),
+                    id.id,
+                    e
+                );
+                Status::new(
+                    Code::NotFound,
+                    "Could not find any resource for the provided id",
+                )
+            })?
+            .try_into()?;
+
+        resource.set_data(data);
+
+        Ok(Response::new(resource.into()))
+    }
     /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type [`Self::Object`].
     /// `Self::Object`(TryFrom\<Vec\<Row\>\>) will contain all records found in the database using the the provided [`AdvancedSearchFilter`].
     ///
@@ -96,10 +104,20 @@ where
         request: Request<AdvancedSearchFilter>,
     ) -> Result<Response<Self::List>, Status> {
         let filter: AdvancedSearchFilter = request.into_inner();
-        match Self::ResourceObject::advanced_search(filter).await {
-            Ok(rows) => Ok(Response::new(rows.try_into()?)),
-            Err(e) => Err(Status::new(Code::Internal, e.to_string())),
-        }
+        let rows = Self::ResourceObject::advanced_search(filter)
+            .await
+            .map_err(|e| {
+                let error = "Something went wrong trying to retrieve values from the database";
+                grpc_error!(
+                    "{} for [{}]: {}",
+                    error,
+                    Self::ResourceObject::get_psql_table(),
+                    e
+                );
+                Status::new(Code::Internal, error)
+            })?;
+
+        Ok(Response::new(rows.try_into()?))
     }
 
     /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type [`Self::Object`].
@@ -119,23 +137,42 @@ where
         request: Request<Self::Data>,
     ) -> Result<Response<Self::Response>, Status> {
         let data = request.into_inner();
-        let mut resource: Self::ResourceObject = data.into();
-        grpc_debug!("Inserting with data [{:?}].", resource.try_get_data()?);
-        let (id, validation_result) =
-            Self::ResourceObject::create(&resource.try_get_data()?).await?;
-        if let Some(id) = id {
-            resource.set_id(id.to_string());
-            let obj: Self::ResourceObject = resource;
+        grpc_debug!("Inserting with data {:?}", data);
+
+        let mut resource: Self::ResourceObject = data.clone().into();
+        let (id, validation_result) = Self::ResourceObject::create(&resource.try_get_data()?)
+            .await
+            .map_err(|e| {
+                let error = "Insert failed, we got an error from the database";
+                grpc_error!(
+                    "{} for [{}]: {}",
+                    error,
+                    Self::ResourceObject::get_psql_table(),
+                    e
+                );
+                Status::new(Code::Internal, error)
+            })?;
+
+        if validation_result.success {
+            if let Some(id) = id {
+                resource.set_id(id.to_string());
+            } else {
+                grpc_error!(
+                    "No id returned from insert [{}] function.",
+                    Self::ResourceObject::get_psql_table()
+                );
+                return Err(Status::new(Code::Internal, "Internal server error"));
+            }
             let result = GenericResourceResult {
                 phantom: PhantomData,
                 validation_result,
-                resource: Some(obj),
+                resource: Some(resource),
             };
             Ok(Response::new(result.into()))
         } else {
-            let error = "Error calling insert function.";
-            grpc_error!("{}", error);
-            grpc_debug!("[{:?}].", resource.try_get_data()?);
+            let error = "Validation errors returned from insert function.";
+            grpc_warn!("{}", error);
+            grpc_debug!("[{:?}].", data);
             grpc_debug!("[{:?}].", validation_result);
             let result = GenericResourceResult {
                 phantom: PhantomData,
@@ -173,13 +210,23 @@ where
         let data = match req.get_data() {
             Some(data) => data,
             None => {
-                let err = format!("No data provided for update with id: {}", req.try_get_id()?);
-                grpc_error!("{}", err);
-                return Err(Status::cancelled(err));
+                let error = format!("No data provided for update with id: {}", req.try_get_id()?);
+                grpc_error!("{}", error);
+                return Err(Status::cancelled(error));
             }
         };
 
-        let (data, validation_result) = resource.update(&data).await?;
+        let (data, validation_result) = resource.update(&data).await.map_err(|e| {
+            let error = "Update failed, we got an error from the database";
+            grpc_error!(
+                "{} for [{}]: {}",
+                error,
+                Self::ResourceObject::get_psql_table(),
+                e
+            );
+            Status::new(Code::Internal, error)
+        })?;
+
         if let Some(data) = data {
             resource.set_data(data.try_into()?);
             let result = GenericResourceResult {
@@ -189,8 +236,8 @@ where
             };
             Ok(Response::new(result.into()))
         } else {
-            let error = "Error calling update function.";
-            grpc_error!("{}", error);
+            let error = "Validation errors returned from update function.";
+            grpc_warn!("{}", error);
             grpc_debug!("[{:?}].", data);
             grpc_debug!("[{:?}].", validation_result);
             let result = GenericResourceResult {
@@ -211,10 +258,18 @@ where
     async fn generic_delete(&self, request: Request<Id>) -> Result<Response<()>, Status> {
         let id: Id = request.into_inner();
         let resource: Self::ResourceObject = id.into();
-        match resource.delete().await {
-            Ok(_) => Ok(Response::new(())),
-            Err(e) => Err(Status::new(Code::Internal, e.to_string())),
-        }
+        resource.delete().await.map_err(|e| {
+            let error = "Delete failed, we got an error from the database";
+            grpc_error!(
+                "{} for [{}]: {}",
+                error,
+                Self::ResourceObject::get_psql_table(),
+                e
+            );
+            Status::new(Code::Internal, error)
+        })?;
+
+        Ok(Response::new(()))
     }
 
     /// Returns ready:true when service is available

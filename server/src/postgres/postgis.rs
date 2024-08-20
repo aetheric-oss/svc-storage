@@ -36,7 +36,7 @@ impl postgis::Point for GeoPointZ {
         self.y
     }
     fn opt_z(&self) -> Option<f64> {
-        Some(self.x)
+        Some(self.z)
     }
 }
 impl EwkbRead for GeoPointZ {
@@ -109,19 +109,36 @@ mod tests {
     #[rustfmt::skip]
     #[test]
     fn test_ewkb_read_for_geo_point_z() {
+        ut_info!("start");
         // SELECT 'POINT(10 -20 100)'::geometry
         let ewkb = hex_to_vec("0101000080000000000000244000000000000034C00000000000005940");
         let point = GeoPointZ::read_ewkb(&mut ewkb.as_slice()).unwrap();
         assert_eq!(point, GeoPointZ { x: 10.0, y: -20.0, z: 100.0, });
 
         assert_eq!(GeoPointZ::point_type(), PointType::PointZ);
+        ut_info!("success");
+    }
+
+    #[test]
+    fn test_point_impl_for_geo_point_z() {
+        use postgis::Point;
+        ut_info!("start");
+        let point = GeoPointZ {
+            x: 40.123,
+            y: -40.123,
+            z: 100.0,
+        };
+        assert_eq!(point.x(), 40.123);
+        assert_eq!(point.y(), -40.123);
+        assert_eq!(point.opt_z(), Some(100.0));
+        ut_info!("success");
     }
 
     #[rustfmt::skip]
     #[test]
     fn test_line_string_impl_for_geo_line_string() {
         use postgis::LineString;
-        ut_info!("Start.");
+        ut_info!("start");
         let points = vec![
             GeoPointZ { x: 40.123, y: -40.123, z: 100.0, },
             GeoPointZ { x: 41.123, y: -41.123, z: 100.0, },
@@ -137,6 +154,6 @@ mod tests {
             assert_eq!(point, &points[index]);
         }
 
-        ut_info!("Success.");
+        ut_info!("success");
     }
 }
