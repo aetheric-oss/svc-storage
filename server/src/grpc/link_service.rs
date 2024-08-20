@@ -1,7 +1,5 @@
 //! Grpc Simple resource Traits
 
-pub use crate::common::ArrErr;
-
 use lib_common::uuid::Uuid;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -128,15 +126,16 @@ where
                 return Err(Status::new(Code::NotFound, error));
             }
         };
-        if Self::ResourceObject::get_by_id(&id).await.is_err() {
+
+        Self::ResourceObject::get_by_id(&id).await.map_err(|e| {
             let error = format!(
-                "No [{}] found for specified uuid: {}",
+                "No [{}] found for specified uuid [{:?}]",
                 Self::ResourceObject::get_psql_table(),
                 id
             );
-            grpc_error!("{}", error);
-            return Err(Status::new(Code::NotFound, error));
-        }
+            grpc_error!("{}: {}", error, e);
+            Status::new(Code::NotFound, error)
+        })?;
 
         let mut ids: Vec<HashMap<String, Uuid>> = vec![];
         for other_id in other_ids {
@@ -169,16 +168,22 @@ where
         let id: Id = request.into_inner();
         let resource: Self::ResourceObject = id.clone().into();
 
-        if Self::ResourceObject::get_by_id(&resource.try_get_uuid()?)
+        Self::ResourceObject::get_by_id(&resource.try_get_uuid()?)
             .await
-            .is_err()
-        {
-            let error = format!("No resource found for specified uuids: {:?}", id);
-            grpc_error!("{}", error);
-            return Err(Status::new(Code::NotFound, error));
-        }
+            .map_err(|e| {
+                grpc_error!(
+                    "No [{}] found for specified uuid [{:?}]: {}",
+                    Self::ResourceObject::get_psql_table(),
+                    id.id,
+                    e
+                );
+                Status::new(
+                    Code::NotFound,
+                    "Could not find any resource for the provided id",
+                )
+            })?;
 
-        match Self::LinkedResourceObject::delete_for_ids(
+        Self::LinkedResourceObject::delete_for_ids(
             HashMap::from([(
                 Self::ResourceObject::try_get_id_field()?,
                 resource.try_get_uuid()?,
@@ -186,11 +191,15 @@ where
             None,
         )
         .await
-        {
-            Ok(_) => Ok(Response::new(())),
-            Err(e) => Err(Status::new(Code::Internal, e.to_string())),
-        }
+        .map_err(|e| {
+            let error = "Something went wrong trying to unlink with provided values.";
+            grpc_error!("{}: {}", error, e);
+            Status::new(Code::Internal, error)
+        })?;
+
+        Ok(Response::new(()))
     }
+
     /// Returns a [`tonic`] gRCP [`Response`] with [`IdList`] of found ids on success
     ///
     /// The existence of the provided resource `id` will be validated first.
@@ -238,30 +247,52 @@ where
 
     /// Internal function used for `generic_get_linked_ids` and `generic_get_linked`
     ///
-    async fn _get_linked(id: Id) -> Result<Vec<String>, ArrErr> {
+    async fn _get_linked(id: Id) -> Result<Vec<String>, Status> {
         let resource: Self::ResourceObject = id.clone().into();
-        if Self::ResourceObject::get_by_id(&resource.try_get_uuid()?)
+        Self::ResourceObject::get_by_id(&resource.try_get_uuid()?)
             .await
-            .is_err()
-        {
-            let error = format!("No resource found for specified uuid: {}", id.id);
-            grpc_error!("{}", error);
-            return Err(ArrErr::Error(error));
-        }
+            .map_err(|e| {
+                grpc_error!(
+                    "No [{}] found for specified uuid [{:?}]: {}",
+                    Self::ResourceObject::get_psql_table(),
+                    id.id,
+                    e
+                );
+                Status::new(
+                    Code::NotFound,
+                    "Could not find any resource for the provided id",
+                )
+            })?;
 
-        let id_field = Self::ResourceObject::try_get_id_field()?;
+        let id_field = Self::ResourceObject::try_get_id_field().map_err(|e| {
+            grpc_error!(
+                "Unable to get id_field for [{}]: {}",
+                Self::ResourceObject::get_psql_table(),
+                e
+            );
+            Status::new(Code::Internal, "Internal server error.")
+        })?;
+
         let filter = AdvancedSearchFilter::search_equals(id_field, id.id);
-        match Self::LinkedResourceObject::advanced_search(filter).await {
-            Ok(rows) => {
-                let other_id_field = Self::OtherResourceObject::try_get_id_field()?;
-                let mut ids = vec![];
-                for row in rows {
-                    ids.push(row.get::<&str, Uuid>(other_id_field.as_str()).to_string());
-                }
-                Ok(ids)
-            }
-            Err(e) => Err(e),
+
+        let rows = Self::LinkedResourceObject::advanced_search(filter)
+            .await
+            .map_err(|e| {
+                let error = "Something went wrong trying to retrieve values from the database";
+                grpc_error!("{}: {}", error, e);
+                Status::new(Code::Internal, error)
+            })?;
+
+        let other_id_field = Self::OtherResourceObject::try_get_id_field().map_err(|e| {
+            grpc_error!("Unable to get id_field for OtherResourceObject: {}", e);
+            Status::new(Code::Internal, "Internal server error.")
+        })?;
+
+        let mut ids = vec![];
+        for row in rows {
+            ids.push(row.get::<&str, Uuid>(other_id_field.as_str()).to_string());
         }
+        Ok(ids)
     }
 
     /// Returns ready:true when service is available
