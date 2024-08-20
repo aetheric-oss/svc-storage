@@ -323,7 +323,6 @@ where
     T: GrpcDataObjectType,
 {
     psql_debug!("Start for ids [{:?}].", ids);
-    psql_debug!("Start.");
 
     let definition = V::get_definition();
 
