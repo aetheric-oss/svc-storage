@@ -349,13 +349,12 @@ where
 
     let client = get_psql_client().await?;
     let stmt = client.prepare_cached(delete_sql).await?;
-    match client.execute(&stmt, &params).await {
-        Ok(_) => {
-            //TODO(R5): flush shared memcache for this resource when memcache is implemented
-            Ok(())
-        }
-        Err(e) => Err(e.into()),
-    }
+
+    client
+        .execute(&stmt, &params)
+        .await
+        .map_err(|e| e.into())
+        .map(|_| ())
 }
 
 #[cfg(not(tarpaulin_include))]
