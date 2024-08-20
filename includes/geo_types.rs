@@ -14,12 +14,11 @@ impl From<PointZ> for GeoPointZ {
 impl fmt::Display for GeoPointZ {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let point: PointZ = (*self).into();
+
         #[cfg(not(tarpaulin_include))]
         // no_coverage: (Rnever) It's impossible to get None, as GeoPointZ into PointZ will always add the default srid
-        let srid = match point.srid {
-            Some(srid) => srid,
-            None => DEFAULT_SRID,
-        };
+        let srid = point.srid.unwrap_or(DEFAULT_SRID);
+
         f.write_str(&format!(
             "SRID={};POINT Z({:.15} {:.15} {:.15})",
             srid, point.x, point.y, point.z
@@ -47,12 +46,11 @@ impl From<LineStringZ> for GeoLineStringZ {
 impl fmt::Display for GeoLineStringZ {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let line_string: LineStringZ = (*self).clone().into();
+
         #[cfg(not(tarpaulin_include))]
         // no_coverage: (Rnever) It's impossible to get None, as GeoPointZ into PointZ will always add the default srid
-        let srid = match line_string.srid {
-            Some(srid) => srid,
-            None => DEFAULT_SRID,
-        };
+        let srid = line_string.srid.unwrap_or(DEFAULT_SRID);
+
         let line_string_points = line_string
             .points
             .into_iter()
@@ -85,12 +83,11 @@ impl From<PolygonZ> for GeoPolygonZ {
 impl fmt::Display for GeoPolygonZ {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let polygon: PolygonZ = (*self).clone().into();
+
         #[cfg(not(tarpaulin_include))]
         // no_coverage: (Rnever) It's impossible to get None, as GeoPolygonZ into PolygonZ will always add the default srid
-        let srid = match polygon.srid {
-            Some(srid) => srid,
-            None => DEFAULT_SRID,
-        };
+        let srid = polygon.srid.unwrap_or(DEFAULT_SRID);
+
         let polygon_rings = polygon
             .rings
             .into_iter()
@@ -287,7 +284,7 @@ mod tests {
                 PointZ {
                     x: x_2,
                     y: y_2,
-                    z: z_1,
+                    z: z_2,
                     srid: srid.clone(),
                 },
             ],
@@ -299,7 +296,7 @@ mod tests {
                 PointZ {
                     x: x_1 - 1.0,
                     y: y_1 - 1.0,
-                    z: z_2,
+                    z: z_1,
                     srid: srid.clone(),
                 },
                 PointZ {
@@ -328,7 +325,7 @@ mod tests {
                         GeoPointZ {
                             x: x_2,
                             y: y_2,
-                            z: z_1,
+                            z: z_2,
                         },
                     ],
                 },
@@ -337,7 +334,7 @@ mod tests {
                         GeoPointZ {
                             x: x_1 - 1.0,
                             y: y_1 - 1.0,
-                            z: z_2,
+                            z: z_1,
                         },
                         GeoPointZ {
                             x: x_2 - 1.0,
@@ -433,7 +430,7 @@ mod tests {
         };
 
         let expected = PolygonZ {
-            srid: srid.clone(),
+            srid: srid,
             rings: vec![exterior, interior],
         };
 

@@ -1,5 +1,4 @@
 //! gRPC client implementation
-use svc_storage::DEFAULT_SRID;
 use svc_storage_client_grpc::prelude::*;
 
 use lib_common::grpc::get_endpoint_from_env;
@@ -241,10 +240,7 @@ async fn itinerary_scenario() -> Result<(), Status> {
     .page_number(1)
     .results_per_page(50);
     let flight_plans = match flight_plan_client.search(fp_filter).await {
-        Ok(res) => {
-            let fps = res.into_inner();
-            fps
-        }
+        Ok(res) => res.into_inner(),
         Err(e) => {
             panic!(
                 "Error retrieving list of flight_plans for itineraries! {}",
@@ -282,7 +278,7 @@ async fn itinerary_scenario() -> Result<(), Status> {
     }
 
     // Link another one if available
-    if flight_plans.list.len() >= 1 {
+    if !flight_plans.list.is_empty() {
         let mut fp_ids = vec![];
         fp_ids.push(list.pop().unwrap().id);
         match link_client
@@ -683,7 +679,7 @@ async fn generate_sample_vertipads(vertiports: &vertiport::List) -> Result<verti
     for vertiport in &vertiports.list {
         let mut vertipad = vertipad::mock::get_data_obj_for_vertiport(vertiport);
         vertipad.name = format!("First vertipad for {}", vertipad.vertiport_id.clone());
-        vertipad.vertiport_id = vertiport.id.clone();
+        vertipad.vertiport_id.clone_from(&vertiport.id);
 
         let new_vertipad = match clients.vertipad.insert(vertipad).await {
             Ok(fp) => fp.into_inner(),
@@ -753,10 +749,14 @@ async fn flight_plan_scenario(
     // insert some random flight_plans
     for _ in 1..10 {
         let mut flight_plan = flight_plan::mock::get_data_obj();
-        flight_plan.pilot_id = pilot_id.clone();
-        flight_plan.vehicle_id = vehicle_id.clone();
-        flight_plan.origin_vertipad_id = origin_vertipad_id.clone();
-        flight_plan.target_vertipad_id = target_vertipad_id.clone();
+        flight_plan.pilot_id.clone_from(&pilot_id);
+        flight_plan.vehicle_id.clone_from(&vehicle_id);
+        flight_plan
+            .origin_vertipad_id
+            .clone_from(&origin_vertipad_id);
+        flight_plan
+            .target_vertipad_id
+            .clone_from(&target_vertipad_id);
 
         println!("Starting insert flight plan");
         match flight_plan_client.insert(flight_plan).await {
@@ -767,10 +767,14 @@ async fn flight_plan_scenario(
     // Make sure we have some future flight_plans
     for _ in 0..5 {
         let mut flight_plan = flight_plan::mock::get_future_data_obj();
-        flight_plan.pilot_id = pilot_id.clone();
-        flight_plan.vehicle_id = vehicle_id.clone();
-        flight_plan.origin_vertipad_id = origin_vertipad_id.clone();
-        flight_plan.target_vertipad_id = target_vertipad_id.clone();
+        flight_plan.pilot_id.clone_from(&pilot_id);
+        flight_plan.vehicle_id.clone_from(&vehicle_id);
+        flight_plan
+            .origin_vertipad_id
+            .clone_from(&origin_vertipad_id);
+        flight_plan
+            .target_vertipad_id
+            .clone_from(&target_vertipad_id);
 
         println!("Starting insert flight plan in the future");
         match flight_plan_client.insert(flight_plan).await {
@@ -781,10 +785,14 @@ async fn flight_plan_scenario(
     // Make sure we have some flight_plans in the past as well
     for _ in 0..5 {
         let mut flight_plan = flight_plan::mock::get_past_data_obj();
-        flight_plan.pilot_id = pilot_id.clone();
-        flight_plan.vehicle_id = vehicle_id.clone();
-        flight_plan.origin_vertipad_id = origin_vertipad_id.clone();
-        flight_plan.target_vertipad_id = target_vertipad_id.clone();
+        flight_plan.pilot_id.clone_from(&pilot_id);
+        flight_plan.vehicle_id.clone_from(&vehicle_id);
+        flight_plan
+            .origin_vertipad_id
+            .clone_from(&origin_vertipad_id);
+        flight_plan
+            .target_vertipad_id
+            .clone_from(&target_vertipad_id);
 
         println!("Starting insert flight plan in the past");
         match flight_plan_client.insert(flight_plan).await {

@@ -72,9 +72,8 @@ pub fn check_log_string_matches(log: Record, expected: &str) -> bool {
 }
 
 pub fn hashmap_from_ids(ids: &Ids) -> HashMap<String, String> {
-    let mut id_hash = HashMap::new();
-    for id in ids.ids.iter() {
-        id_hash.insert(id.field.clone(), id.value.clone());
-    }
-    id_hash
+    ids.ids
+        .iter()
+        .map(|id| (id.field.clone(), id.value.clone()))
+        .collect()
 }
