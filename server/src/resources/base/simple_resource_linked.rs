@@ -77,7 +77,7 @@ macro_rules! build_grpc_simple_resource_linked_impl {
             type Error = ArrErr;
 
             fn try_from(rows: Vec<Row>) -> Result<Self, ArrErr> {
-                resources_debug!("(try_from) Converting Vec<Row> to List: {:?}", rows);
+                resources_debug!("Converting Vec<Row> to List: {:?}", rows);
                 let mut res: Vec<Object> = Vec::with_capacity(rows.len());
 
                 for row in rows.into_iter() {
@@ -103,7 +103,7 @@ macro_rules! build_grpc_simple_resource_linked_impl {
             type Error = ArrErr;
 
             fn try_from(rows: Vec<Row>) -> Result<Self, ArrErr> {
-                resources_debug!("(try_from) Converting Vec<Row> to RowDataList: {:?}", rows);
+                resources_debug!("Converting Vec<Row> to RowDataList: {:?}", rows);
                 let mut res: Vec<RowData> = Vec::with_capacity(rows.len());
 
                 for row in rows.into_iter() {
@@ -143,7 +143,7 @@ macro_rules! build_generic_resource_linked_impl_from {
                     }
                     None => {
                         resources_debug!(
-                            "(from) No ids found when converting ResourceObject<Data> to Object."
+                            "No ids found when converting ResourceObject<Data> to Object."
                         );
                     }
                 }

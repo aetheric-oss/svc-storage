@@ -56,10 +56,7 @@ impl TryFrom<Row> for Data {
         let acquire: bool = row.get::<&str, bool>("acquire");
         let deliver: bool = row.get::<&str, bool>("deliver");
 
-        resources_debug!(
-            "(try_from) Converting Row to flight_plan_parcel::Data: {:?}",
-            row
-        );
+        resources_debug!("Converting Row to flight_plan_parcel::Data: {:?}", row);
         Ok(Data { acquire, deliver })
     }
 }
@@ -85,15 +82,13 @@ impl TryFrom<Row> for RowData {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
+        resources_debug!("Converting Row to flight_plan_parcel::Data: {:?}", row);
+
         let flight_plan_id: String = row.get::<&str, Uuid>("flight_plan_id").to_string();
         let parcel_id: String = row.get::<&str, Uuid>("parcel_id").to_string();
         let acquire: bool = row.get::<&str, bool>("acquire");
         let deliver: bool = row.get::<&str, bool>("deliver");
 
-        resources_debug!(
-            "(try_from) Converting Row to flight_plan_parcel::Data: {:?}",
-            row
-        );
         Ok(RowData {
             flight_plan_id,
             parcel_id,

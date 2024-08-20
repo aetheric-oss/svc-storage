@@ -4,7 +4,6 @@ pub use crate::grpc::server::adsb::*;
 
 use lib_common::time::{DateTime, Utc};
 use lib_common::uuid::Uuid;
-use log::debug;
 use std::collections::HashMap;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
@@ -69,7 +68,7 @@ impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("(try_from) Converting Row to adsb::Data: {:?}", row);
+        resources_debug!("Converting Row to adsb::Data: {:?}", row);
 
         let network_timestamp: Option<prost_wkt_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("network_timestamp")

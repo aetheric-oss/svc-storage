@@ -6,7 +6,6 @@ pub mod parcel;
 use anyhow::{Context, Result};
 use lib_common::time::{DateTime, Utc};
 use lib_common::uuid::Uuid;
-use log::debug;
 use std::collections::HashMap;
 use tokio::task;
 use tokio_postgres::row::Row;
@@ -220,7 +219,8 @@ impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("(try_from) Converting Row to flight_plan::Data: {:?}", row);
+        resources_debug!("Converting Row to flight_plan::Data: {:?}", row);
+
         let session_id: String = row.get("session_id");
         let pilot_id: String = row.get::<&str, Uuid>("pilot_id").to_string();
         let vehicle_id: String = row.get::<&str, Uuid>("vehicle_id").to_string();

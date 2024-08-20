@@ -85,7 +85,7 @@ mod tests {
     #[tokio::test]
     async fn test_load_logger_config_from_file() {
         assert_init_done().await;
-        ut_info!("Start.");
+        ut_info!("start");
 
         let result =
             lib_common::logger::load_logger_config_from_file("/usr/src/app/log4rs.yaml").await;
@@ -95,7 +95,7 @@ mod tests {
         // This message should be written to file
         ut_error!("Testing log config from file. This should be written to the tests.log file.");
 
-        ut_info!("Success.");
+        ut_info!("success");
     }
 
     #[tokio::test]

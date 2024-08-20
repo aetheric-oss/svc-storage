@@ -4,7 +4,6 @@ pub use crate::grpc::server::group::*;
 
 use anyhow::{Context, Result};
 use lib_common::uuid::Uuid;
-use log::debug;
 use std::collections::HashMap;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
@@ -101,7 +100,7 @@ impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("(try_from) Converting Row to group::Data: {:?}", row);
+        resources_debug!("Converting Row to group::Data: {:?}", row);
         let parent_group_id: Option<Uuid> = row.get("parent_group_id");
         let parent_group_id = parent_group_id.map(|val| val.to_string());
         let group_type = GroupType::from_str_name(row.get("group_type"))

@@ -1,6 +1,6 @@
 //! Vertiport Group
 use super::{
-    debug, ArrErr, GrpcDataObjectType, GrpcField, HashMap, PsqlInitResource, PsqlSearch, Resource,
+    ArrErr, GrpcDataObjectType, GrpcField, HashMap, PsqlInitResource, PsqlSearch, Resource,
     ResourceDefinition, ResourceObject, Row,
 };
 use crate::build_grpc_linked_resource_impl;
@@ -34,10 +34,7 @@ impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!(
-            "(try_from) Converting Row to vertiport_group::Data: {:?}",
-            row
-        );
+        resources_debug!("Converting Row to vertiport_group::Data: {:?}", row);
         Ok(Data {})
     }
 }

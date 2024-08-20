@@ -20,7 +20,7 @@ use crate::resources::geo_types::{GeoLineStringZ, GeoPointZ, GeoPolygonZ};
 use crate::resources::ValidationResult;
 use crate::Config;
 use crate::DEFAULT_SRID;
-use lib_common::logger::load_logger_config_from_file;
+use lib_common::logger::get_log_handle;
 use tokio::sync::OnceCell;
 use tokio_postgres::types::Type as PsqlFieldType;
 
@@ -28,15 +28,8 @@ pub(crate) static INIT_DONE: OnceCell<bool> = OnceCell::const_new();
 pub(crate) async fn assert_init_done() -> bool {
     *INIT_DONE
         .get_or_init(|| async move {
-            // Will use default config settings if no environment vars are found.
-            let config =
-                Config::try_from_env().expect("Failed to load configuration from environment");
-
-            // Try to load log configuration from the provided log file.
-            // Will default to stdout debug logging if the file can not be loaded.
-            let _ = load_logger_config_from_file(config.log_config.as_str())
-                .await
-                .or_else(|e| Ok::<(), String>(log::error!("(init) {}", e)));
+            // Init logger
+            get_log_handle().await;
 
             // Make sure all resource table exist in the database if we're not going to use any
             // stub server or client.

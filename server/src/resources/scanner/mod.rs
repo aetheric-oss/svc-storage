@@ -4,7 +4,6 @@ pub use crate::grpc::server::scanner::*;
 
 use anyhow::{Context, Result};
 use lib_common::uuid::Uuid;
-use log::debug;
 use std::collections::HashMap;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
@@ -100,7 +99,7 @@ impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("(try_from) Converting Row to scanner::Data: {:?}", row);
+        resources_debug!("Converting Row to scanner::Data: {:?}", row);
         let organization_id: Uuid = row.get("organization_id");
 
         let scanner_status = ScannerStatus::from_str_name(row.get("scanner_status"))
