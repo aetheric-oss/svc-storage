@@ -3,7 +3,7 @@
 pub use crate::grpc::server::vehicle::*;
 pub mod group;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use lib_common::time::{DateTime, Utc};
 use lib_common::uuid::Uuid;
 use std::collections::HashMap;
@@ -68,6 +68,11 @@ impl Resource for ResourceObject<Data> {
                     FieldDefinition::new(PsqlFieldType::UUID, false),
                 ),
                 (
+                    String::from("loading_type"),
+                    FieldDefinition::new(PsqlFieldType::ANYENUM, true)
+                        .set_default(String::from("'LAND'")),
+                ),
+                (
                     String::from("created_at"),
                     FieldDefinition::new_read_only(PsqlFieldType::TIMESTAMPTZ, true)
                         .set_default(String::from("CURRENT_TIMESTAMP")),
@@ -82,6 +87,14 @@ impl Resource for ResourceObject<Data> {
                     FieldDefinition::new_internal(PsqlFieldType::TIMESTAMPTZ, false),
                 ),
             ]),
+        }
+    }
+
+    /// Converts raw i32 values into string based on matching Enum value
+    fn get_enum_string_val(field: &str, value: i32) -> Option<String> {
+        match field {
+            "loading_type" => Some(LoadingType::try_from(value).ok()?.as_str_name().to_string()),
+            _ => None,
         }
     }
 
@@ -114,6 +127,7 @@ impl GrpcDataObjectType for Data {
             "hangar_bay_id" => Ok(GrpcField::Option(GrpcFieldOption::String(
                 self.hangar_bay_id.clone(),
             ))), //::core::option::Option<::prost_types::Timestamp>,
+            "loading_type" => Ok(GrpcField::Option(GrpcFieldOption::I32(self.loading_type))),
             "last_maintenance" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
                 self.last_maintenance.clone(),
             ))), //::core::option::Option<::prost_types::Timestamp>,
@@ -164,6 +178,14 @@ impl TryFrom<Row> for Data {
         let hangar_bay_id: Option<Uuid> = row.get("hangar_bay_id");
         let hangar_bay_id = hangar_bay_id.map(|val| val.to_string());
 
+        let loading_type: Option<i32> = match row.get::<&str, Option<&str>>("loading_type") {
+            Some(value) => LoadingType::from_str_name(value)
+                .context("(try_from) Could not convert database value to LoadingType Enum type.")
+                .map(|val| val as i32)
+                .ok(),
+            None => None,
+        };
+
         Ok(Data {
             vehicle_model_id: row.get::<&str, Uuid>("vehicle_model_id").to_string(),
             serial_number: row.get::<&str, String>("serial_number"),
@@ -173,6 +195,7 @@ impl TryFrom<Row> for Data {
             schedule: row.get::<&str, Option<String>>("schedule"),
             hangar_id,
             hangar_bay_id,
+            loading_type,
             last_maintenance,
             next_maintenance,
             created_at,
@@ -224,6 +247,7 @@ mod tests {
             schedule: Some(String::from("")),
             hangar_id: Some(String::from("INVALID")),
             hangar_bay_id: Some(String::from("INVALID")),
+            loading_type: Some(-1),
             last_maintenance: Some(prost_wkt_types::Timestamp {
                 seconds: -1,
                 nanos: -1,
@@ -262,6 +286,67 @@ mod tests {
             assert_eq!(expected_errors.len(), validation_result.errors.len());
             assert!(contains_field_errors(&validation_result, &expected_errors));
         }
+        ut_info!("success");
+    }
+
+    #[tokio::test]
+    async fn test_loading_type_get_enum_string_val() {
+        assert_init_done().await;
+        ut_info!("start");
+
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val("loading_type", ScannerType::Land.into()),
+            Some(String::from("LAND"))
+        );
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val(
+                "loading_type",
+                ScannerType::Gripper.into()
+            ),
+            Some(String::from("GRIPPER"))
+        );
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val("loading_type", ScannerType::Winch.into()),
+            Some(String::from("WINCH"))
+        );
+
+        assert_eq!(
+            ResourceObject::<Data>::get_enum_string_val("loading_type", -1),
+            None
+        );
+
+        ut_info!("success");
+    }
+
+    #[tokio::test]
+    async fn test_loading_type_as_str_name() {
+        assert_init_done().await;
+        ut_info!("start");
+
+        assert_eq!(ScannerType::Land.as_str_name(), "LAND");
+        assert_eq!(ScannerType::Gripper.as_str_name(), "GRIPPER");
+        assert_eq!(ScannerType::Winch.as_str_name(), "WINCH");
+
+        ut_info!("success");
+    }
+
+    #[tokio::test]
+    async fn test_loading_type_from_str_name() {
+        assert_init_done().await;
+        ut_info!("start");
+
+        assert_eq!(ScannerType::from_str_name("LAND"), Some(ScannerType::Land));
+        assert_eq!(
+            ScannerType::from_str_name("GRIPPER"),
+            Some(ScannerType::Gripper)
+        );
+        assert_eq!(
+            ScannerType::from_str_name("WINCH"),
+            Some(ScannerType::Winch)
+        );
+
+        assert_eq!(ScannerType::from_str_name("INVALID"), None);
+
         ut_info!("success");
     }
 
