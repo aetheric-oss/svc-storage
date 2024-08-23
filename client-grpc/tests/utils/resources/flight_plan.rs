@@ -158,7 +158,7 @@ pub async fn test_update_one(client: &FlightPlanClient, id: &str, new_data: Data
     assert_eq!(data.flight_plan_submitted, new_data.flight_plan_submitted);
     assert_eq!(data.flight_priority, new_data.flight_priority);
     assert_eq!(data.flight_status, new_data.flight_status);
-    assert_eq!(data.path, new_data.path);
+    assert_eq!(data.waypoints, new_data.waypoints);
     assert_eq!(data.pilot_id, new_data.pilot_id);
     assert_eq!(data.target_timeslot_start, new_data.target_timeslot_start);
     assert_eq!(data.target_timeslot_end, new_data.target_timeslot_end);

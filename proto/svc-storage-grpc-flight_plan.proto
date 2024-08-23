@@ -73,8 +73,8 @@ message Data {
     string pilot_id = 1;
     // vehicle_id UUID v4
     string vehicle_id = 2;
-    // the path of the flight
-    grpc.geo_types.GeoLineStringZ path = 3;
+    // the waypoints of the flight
+    grpc.geo_types.GeoLineStringZ waypoints = 3;
     // cruise speed of the vehicle
     float cruise_speed = 4;
     // hover speed of the vehicle
