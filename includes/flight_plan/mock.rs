@@ -81,7 +81,7 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
         z: 0.0,
     };
 
-    let path = GeoLineStringZ {
+    let waypoints = GeoLineStringZ {
         points: vec![start_point, end_point],
     };
 
@@ -119,7 +119,7 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
         session_id: "AETH00001".to_string(),
         pilot_id: Uuid::new_v4().to_string(),
         vehicle_id: Uuid::new_v4().to_string(),
-        path: Some(path),
+        waypoints: Some(waypoints),
         cruise_speed: avg_speed as f32,
         hover_speed: avg_speed as f32 / 3.0,
         weather_conditions: Some(String::from("cold and windy")),
@@ -245,8 +245,8 @@ fn test_get_past_data_obj() {
             .unwrap()
             .as_secs();
 
-        // Check path is set
-        assert!(past_data.path.is_some());
+        // Check waypoints is set
+        assert!(past_data.waypoints.is_some());
 
         // Check flight_release_approval is set
         assert!(past_data.flight_release_approval.is_some());

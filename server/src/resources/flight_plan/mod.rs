@@ -43,7 +43,7 @@ impl Resource for ResourceObject<Data> {
                     FieldDefinition::new(PsqlFieldType::UUID, true),
                 ),
                 (
-                    "path".to_string(),
+                    "waypoints".to_string(),
                     FieldDefinition::new(PsqlFieldType::PATH, true),
                 ),
                 (
@@ -179,7 +179,7 @@ impl GrpcDataObjectType for Data {
             "session_id" => Ok(GrpcField::String(self.session_id.clone())), //::prost::alloc::string::String,
             "pilot_id" => Ok(GrpcField::String(self.pilot_id.clone())), //::prost::alloc::string::String,
             "vehicle_id" => Ok(GrpcField::String(self.vehicle_id.clone())), //::prost::alloc::string::String,
-            "path" => Ok(GrpcField::Option(self.path.clone().into())),      //u32,
+            "waypoints" => Ok(GrpcField::Option(self.waypoints.clone().into())), //u32,
             "cruise_speed" => Ok(GrpcField::F32(self.cruise_speed)),        //f32,
             "hover_speed" => Ok(GrpcField::F32(self.hover_speed)),          //f32,
             "weather_conditions" => Ok(GrpcField::Option(GrpcFieldOption::String(
@@ -240,7 +240,7 @@ impl TryFrom<Row> for Data {
         let session_id: String = row.get("session_id");
         let pilot_id: String = row.get::<&str, Uuid>("pilot_id").to_string();
         let vehicle_id: String = row.get::<&str, Uuid>("vehicle_id").to_string();
-        let path = row.get::<&str, postgis::ewkb::LineStringZ>("path");
+        let waypoints = row.get::<&str, postgis::ewkb::LineStringZ>("waypoints");
         let cruise_speed = row.get::<&str, f32>("cruise_speed");
         let hover_speed = row.get::<&str, f32>("hover_speed");
         let origin_vertipad_id: String = row.get::<&str, Uuid>("origin_vertipad_id").to_string();
@@ -314,7 +314,7 @@ impl TryFrom<Row> for Data {
             session_id,
             pilot_id,
             vehicle_id,
-            path: Some(path.into()),
+            waypoints: Some(waypoints.into()),
             cruise_speed,
             hover_speed,
             weather_conditions: row.get("weather_conditions"),
@@ -377,7 +377,7 @@ mod tests {
             session_id: String::from("test"),
             pilot_id: String::from("INVALID"),
             vehicle_id: String::from("INVALID"),
-            path: Some(GeoLineStringZ { points: vec![] }),
+            waypoints: Some(GeoLineStringZ { points: vec![] }),
             cruise_speed: -1.0,
             hover_speed: -1.0,
             weather_conditions: Some(String::from("")),
