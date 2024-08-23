@@ -120,6 +120,8 @@ fn _get_data_obj(days_from_now_min: i64, days_from_now_max: i64) -> Data {
         pilot_id: Uuid::new_v4().to_string(),
         vehicle_id: Uuid::new_v4().to_string(),
         path: Some(path),
+        cruise_speed: avg_speed as f32,
+        hover_speed: avg_speed as f32 / 3.0,
         weather_conditions: Some(String::from("cold and windy")),
         origin_vertiport_id: Uuid::new_v4().to_string(),
         origin_vertipad_id: Uuid::new_v4().to_string(),

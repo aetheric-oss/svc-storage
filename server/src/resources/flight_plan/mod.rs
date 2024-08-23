@@ -47,6 +47,14 @@ impl Resource for ResourceObject<Data> {
                     FieldDefinition::new(PsqlFieldType::PATH, true),
                 ),
                 (
+                    "cruise_speed".to_string(),
+                    FieldDefinition::new(PsqlFieldType::FLOAT4, true),
+                ),
+                (
+                    "hover_speed".to_string(),
+                    FieldDefinition::new(PsqlFieldType::FLOAT4, true),
+                ),
+                (
                     "weather_conditions".to_string(),
                     FieldDefinition::new(PsqlFieldType::TEXT, false),
                 ),
@@ -172,6 +180,8 @@ impl GrpcDataObjectType for Data {
             "pilot_id" => Ok(GrpcField::String(self.pilot_id.clone())), //::prost::alloc::string::String,
             "vehicle_id" => Ok(GrpcField::String(self.vehicle_id.clone())), //::prost::alloc::string::String,
             "path" => Ok(GrpcField::Option(self.path.clone().into())),      //u32,
+            "cruise_speed" => Ok(GrpcField::F32(self.cruise_speed)),        //f32,
+            "hover_speed" => Ok(GrpcField::F32(self.hover_speed)),          //f32,
             "weather_conditions" => Ok(GrpcField::Option(GrpcFieldOption::String(
                 self.weather_conditions.clone(),
             ))), //::core::option::Option<::prost::alloc::string::String>,
@@ -231,6 +241,8 @@ impl TryFrom<Row> for Data {
         let pilot_id: String = row.get::<&str, Uuid>("pilot_id").to_string();
         let vehicle_id: String = row.get::<&str, Uuid>("vehicle_id").to_string();
         let path = row.get::<&str, postgis::ewkb::LineStringZ>("path");
+        let cruise_speed = row.get::<&str, f32>("cruise_speed");
+        let hover_speed = row.get::<&str, f32>("hover_speed");
         let origin_vertipad_id: String = row.get::<&str, Uuid>("origin_vertipad_id").to_string();
         let target_vertipad_id: String = row.get::<&str, Uuid>("target_vertipad_id").to_string();
         let origin_vertiport_id: String = row.get::<&str, Uuid>("origin_vertiport_id").to_string();
@@ -303,6 +315,8 @@ impl TryFrom<Row> for Data {
             pilot_id,
             vehicle_id,
             path: Some(path.into()),
+            cruise_speed,
+            hover_speed,
             weather_conditions: row.get("weather_conditions"),
             origin_vertiport_id,
             origin_vertipad_id,
@@ -364,6 +378,8 @@ mod tests {
             pilot_id: String::from("INVALID"),
             vehicle_id: String::from("INVALID"),
             path: Some(GeoLineStringZ { points: vec![] }),
+            cruise_speed: -1.0,
+            hover_speed: -1.0,
             weather_conditions: Some(String::from("")),
             origin_vertiport_id: String::from("INVALID"),
             origin_vertipad_id: String::from("INVALID"),
