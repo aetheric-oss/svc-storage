@@ -1,0 +1,23 @@
+//! Resources
+pub mod adsb;
+pub mod flight_plan;
+pub mod flight_plan_parcel;
+pub mod group;
+pub mod group_user;
+pub mod group_vehicle;
+pub mod group_vertipad;
+pub mod group_vertiport;
+pub mod itinerary;
+pub mod itinerary_flight_plan;
+pub mod parcel;
+pub mod parcel_scan;
+pub mod pilot;
+pub mod scanner;
+pub mod user;
+pub mod user_group;
+pub mod vehicle;
+pub mod vehicle_group;
+pub mod vertipad;
+pub mod vertipad_group;
+pub mod vertiport;
+pub mod vertiport_group;

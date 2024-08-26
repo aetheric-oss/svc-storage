@@ -9,12 +9,12 @@ import "svc-storage-grpc.proto";
 message Response {
     // struct with field -> error pairs to provide feedback about invalid fields
     ValidationResult validation_result = 1;
-    // Object struct with id [`String`] in [`Uuid`](uuid::Uuid) format and [`Data`] struct with adsb data
+    // Object struct with id [`String`] in [`Uuid`](lib_common::uuid::Uuid) format and [`Data`] struct with adsb data
     optional Object object = 2;
 }
 
 // Object struct with `id` and `data` field
-// * `id` [`String`] in [`Uuid`](uuid::Uuid) format
+// * `id` [`String`] in [`Uuid`](lib_common::uuid::Uuid) format
 // * `data` [`Data`] struct with adsb data
 message Object {
     //id UUID v4
@@ -24,11 +24,11 @@ message Object {
 }
 
 // UpdateObject struct with `id`, `data` and `mask` fields
-// * `id` [`String`] in [`Uuid](uuid::Uuid) format
+// * `id` [`String`] in [`Uuid`](lib_common::uuid::Uuid) format
 // * `data` [`Data`] struct with adsb data which should be used for update
 // * `mask` [`FieldMask`] struct with adsb fields that should be updated
 message UpdateObject {
-    // `id` [`String`] in [`Uuid](uuid::Uuid) format
+    // `id` [`String`] in [`Uuid`](lib_common::uuid::Uuid) format
     string id = 1;
     // struct with adsb data which should be used for update
     Data data = 2;

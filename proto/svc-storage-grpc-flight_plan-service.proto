@@ -50,7 +50,7 @@ service RpcService {
     //
     // # Examples
     // ```
-    // use svc_storage_client_grpc::{Id, FlightPlanClient, simple_service::Client, GeoLineString, Timestamp};
+    // use svc_storage_client_grpc::{Id, FlightPlanClient, simple_service::Client, GeoLineStringZ Timestamp};
     // use svc_storage_client_grpc::flight_plan::{Data, FlightStatus, FlightPriority};
     // use std::time::SystemTime;
     //
@@ -61,13 +61,15 @@ service RpcService {
     //     let pilot_id = "a2093c5e-9bbe-4f0f-97ee-276b43fa3759".to_owned();
     //     let origin_vertipad_id = "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned();
     //     let target_vertipad_id = "db67da52-2280-4316-8b29-9cf1bff65931".to_owned();
+    //     let session_id = "AETH-SESSION-X";
     //     println!("Starting insert flight plan");
     //     match client
     //     .insert(tonic::Request::new(Data {
     //         flight_status: FlightStatus::Draft as i32,
     //         vehicle_id,
+    //         session_id,
     //         pilot_id,
-    //         path: Some(GeoLineString { points: vec![] }),
+    //         path: Some(GeoLineStringZ{ points: vec![] }),
     //         weather_conditions: Some("Cloudy, low wind".to_owned()),
     //         origin_vertipad_id,
     //         origin_vertiport_id: None,
@@ -108,7 +110,7 @@ service RpcService {
     //
     // Returns [`Status`](tonic::Status) with [`Code::Cancelled`](tonic::Code::Cancelled) if the [`Request`](tonic::Request) doesn't contain any data.
     // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if any error is returned from a db call.
-    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if the provided Id can not be converted to a [`uuid::Uuid`].
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if the provided Id can not be converted to a [`lib_common::uuid::Uuid`].
     // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if the resulting Vec<tokio_postgres::Row> data could not be converted into [`List`](super::List).
     //
     // # Examples

@@ -3,11 +3,10 @@
 pub use crate::grpc::server::scanner::*;
 
 use anyhow::{Context, Result};
-use log::debug;
+use lib_common::uuid::Uuid;
 use std::collections::HashMap;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
-use uuid::Uuid;
 
 use super::base::simple_resource::*;
 use super::base::{FieldDefinition, ResourceDefinition};
@@ -73,7 +72,7 @@ impl Resource for ResourceObject<Data> {
 
     fn get_table_indices() -> Vec<String> {
         [
-            // TODO(R4) After groups are implemented, add organization_id index
+            // TODO(R5) After groups are implemented, add organization_id index
             // r#"ALTER TABLE scanner ADD CONSTRAINT fk_organization_id FOREIGN KEY(organization_id) REFERENCES itinerary_flight_plan(organization_id)"#.to_owned(),
         ]
         .to_vec()
@@ -95,12 +94,12 @@ impl GrpcDataObjectType for Data {
 }
 
 #[cfg(not(tarpaulin_include))]
-// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
+// no_coverage: (Rwaiting) Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
 impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("(try_from) Converting Row to scanner::Data: {:?}", row);
+        resources_debug!("Converting Row to scanner::Data: {:?}", row);
         let organization_id: Uuid = row.get("organization_id");
 
         let scanner_status = ScannerStatus::from_str_name(row.get("scanner_status"))
@@ -125,8 +124,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_scanner_schema() {
-        crate::get_log_handle().await;
-        ut_info!("(test_scanner_schema) start");
+        assert_init_done().await;
+        ut_info!("start");
 
         let id = Uuid::new_v4().to_string();
         let data = mock::get_data_obj();
@@ -144,13 +143,13 @@ mod tests {
             ut_info!("{:?}", validation_result);
             assert_eq!(validation_result.success, true);
         }
-        ut_info!("(test_scanner_schema) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_scanner_invalid_data() {
-        crate::get_log_handle().await;
-        ut_info!("(test_scanner_invalid_data) start");
+        assert_init_done().await;
+        ut_info!("start");
 
         let data = Data {
             organization_id: String::from("INVALID"),
@@ -168,13 +167,13 @@ mod tests {
             assert_eq!(expected_errors.len(), validation_result.errors.len());
             assert!(contains_field_errors(&validation_result, &expected_errors));
         }
-        ut_info!("(test_scanner_invalid_data) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_scanner_type_get_enum_string_val() {
-        crate::get_log_handle().await;
-        ut_info!("(test_scanner_type_get_enum_string_val) start");
+        assert_init_done().await;
+        ut_info!("start");
 
         assert_eq!(
             ResourceObject::<Data>::get_enum_string_val("scanner_type", ScannerType::Mobile.into()),
@@ -204,26 +203,26 @@ mod tests {
             None
         );
 
-        ut_info!("(test_scanner_type_get_enum_string_val) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_scanner_type_as_str_name() {
-        crate::get_log_handle().await;
-        ut_info!("(test_scanner_type_as_str_name) start");
+        assert_init_done().await;
+        ut_info!("start");
 
         assert_eq!(ScannerType::Mobile.as_str_name(), "MOBILE");
         assert_eq!(ScannerType::Locker.as_str_name(), "LOCKER");
         assert_eq!(ScannerType::Facility.as_str_name(), "FACILITY");
         assert_eq!(ScannerType::Underbelly.as_str_name(), "UNDERBELLY");
 
-        ut_info!("(test_scanner_type_as_str_name) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_scanner_type_from_str_name() {
-        crate::get_log_handle().await;
-        ut_info!("(test_scanner_type_from_str_name) start");
+        assert_init_done().await;
+        ut_info!("start");
 
         assert_eq!(
             ScannerType::from_str_name("MOBILE"),
@@ -243,13 +242,13 @@ mod tests {
         );
         assert_eq!(ScannerType::from_str_name("INVALID"), None);
 
-        ut_info!("(test_scanner_type_from_str_name) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_scanner_status_get_enum_string_val() {
-        crate::get_log_handle().await;
-        ut_info!("(test_scanner_status_get_enum_string_val) start");
+        assert_init_done().await;
+        ut_info!("start");
 
         assert_eq!(
             ResourceObject::<Data>::get_enum_string_val(
@@ -271,24 +270,24 @@ mod tests {
             None
         );
 
-        ut_info!("(test_scanner_status_get_enum_string_val) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_scanner_status_as_str_name() {
-        crate::get_log_handle().await;
-        ut_info!("(test_scanner_status_as_str_name) start");
+        assert_init_done().await;
+        ut_info!("start");
 
         assert_eq!(ScannerStatus::Active.as_str_name(), "ACTIVE");
         assert_eq!(ScannerStatus::Disabled.as_str_name(), "DISABLED");
 
-        ut_info!("(test_scanner_status_as_str_name) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_scanner_status_from_str_name() {
-        crate::get_log_handle().await;
-        ut_info!("(test_scanner_status_from_str_name) start");
+        assert_init_done().await;
+        ut_info!("start");
 
         assert_eq!(
             ScannerStatus::from_str_name("ACTIVE"),
@@ -300,6 +299,6 @@ mod tests {
         );
         assert_eq!(ScannerStatus::from_str_name("INVALID"), None);
 
-        ut_info!("(test_scanner_status_from_str_name) success");
+        ut_info!("success");
     }
 }

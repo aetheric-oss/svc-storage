@@ -1,8 +1,8 @@
 [package]
-description = "Arrow Storage service GRPC client"
-keywords    = ["vtol", "client", "storage"]       # max 5
+description = "Aetheric Storage service GRPC client"
+keywords    = ["vtol", "client", "storage"]          # max 5
 name        = "svc-storage-client-grpc"
-version     = "0.11.1-develop.9"
+version     = "0.11.1-develop.16"
 
 categories.workspace   = true
 edition.workspace      = true
@@ -20,8 +20,9 @@ include = [
 ]
 
 [features]
-dev       = ["mock", "all_resources", "svc-storage"]
-test_util = ["mock", "stub_backends", "all_resources"]
+dev              = ["mock", "all_resources", "svc-storage"]
+test_util        = ["mock", "stub_backends", "all_resources"]
+vendored-openssl = ["openssl/vendored"]
 # Supported resources
 adsb = ["any_resource"]
 all_resources = [
@@ -31,29 +32,31 @@ all_resources = [
   "group",
   "itinerary",
   "parcel",
+  "parcel_scan",
   "pilot",
   "scanner",
-  "parcel_scan",
   "user",
   "vehicle",
   "vertipad",
   "vertiport",
 ]
+# Indicates that at least 1 resource has been enabled
 any_resource = []
-flight_plan = ["any_resource"]
+# Available resources
+flight_plan        = ["any_resource"]
 flight_plan_parcel = ["any_resource", "flight_plan", "parcel"]
-group = ["any_resource", "user", "vehicle", "vertipad", "vertiport"]
-itinerary = ["any_resource", "flight_plan"]
-parcel = ["any_resource"]
-parcel_scan = ["any_resource", "scanner", "parcel"]
-pilot = ["any_resource"]
-scanner = ["any_resource"]
-user = ["any_resource", "group"]
-vehicle = ["any_resource"]
-vertipad = ["any_resource", "vertiport"]
-vertiport = ["any_resource"]
+group              = ["any_resource", "user", "vehicle", "vertipad", "vertiport"]
+itinerary          = ["any_resource", "flight_plan"]
+parcel             = ["any_resource"]
+parcel_scan        = ["any_resource", "scanner", "parcel"]
+pilot              = ["any_resource"]
+scanner            = ["any_resource"]
+user               = ["any_resource", "group"]
+vehicle            = ["any_resource"]
+vertipad           = ["any_resource", "vertiport"]
+vertiport          = ["any_resource"]
 # Will add a 'mock' module for the enabled resources, providing access to mock data generation functions
-mock = ["chrono", "rand", "geo"]
+mock = ["rand", "geo"]
 # Will use a stubbed backend connection, only use for tests!
 stub_backends = ["svc-storage/stub_server", "lib-common/grpc_mock", "tower"]
 # Pass through stub_server feature for our server code
@@ -70,16 +73,15 @@ stub_client = [
 [dependencies]
 anyhow          = "1.0"
 cfg-if          = "1.0"
-chrono          = { version = "0.4", optional = true }
 futures         = { version = "0.3", optional = true }
 geo             = { version = "0.26", optional = true }
-geo-types       = "0.7"
 lazy_static     = { version = "1.4", optional = true }
 log             = "0.4"
 num-derive      = "0.4"
 num-traits      = "0.2"
 ordered-float   = "4.1"
 paste           = { version = "1.0", optional = true }
+postgis         = "0.9"
 prost           = "0.12"
 prost-types     = "0.12"
 prost-wkt-types = "0.5"
@@ -88,7 +90,6 @@ serde           = { version = "1.0", features = ["derive"] }
 serde_json      = "1.0"
 tonic           = "0.10"
 tower           = { version = "0.4", optional = true }
-uuid            = { version = "1.4", features = ["v4"] }
 
 [dependencies.svc-storage]
 optional = true
@@ -96,8 +97,8 @@ path     = "../server"
 
 [dependencies.lib-common]
 features = ["grpc"]
-git      = "https://github.com/Arrow-air/lib-common"
-tag      = "latest-develop"
+git      = "https://github.com/aetheric-oss/lib-common"
+tag      = "v2.0.0"
 
 [dependencies.tokio]
 features = ["macros", "rt-multi-thread"]
@@ -116,9 +117,11 @@ features = [
 version = "1.2"
 
 [dev-dependencies]
-chrono      = "0.4"
+ctor        = "0.2"
+futures     = "0.3"
 lazy_static = "1.4"
 logtest     = "2.0"
+openssl     = "0.10"
 rand        = "0.8"
 
 # Make sure we enable the required modules and have access to all resources when running tests

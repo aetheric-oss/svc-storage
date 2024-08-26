@@ -2,12 +2,11 @@
 
 pub use crate::grpc::server::adsb::*;
 
-use chrono::{DateTime, Utc};
-use log::debug;
+use lib_common::time::{DateTime, Utc};
+use lib_common::uuid::Uuid;
 use std::collections::HashMap;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
-use uuid::Uuid;
 
 use super::base::simple_resource::*;
 use super::base::{FieldDefinition, ResourceDefinition};
@@ -64,12 +63,12 @@ impl GrpcDataObjectType for Data {
 }
 
 #[cfg(not(tarpaulin_include))]
-// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
+// no_coverage: (Rwaiting) Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
 impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("(try_from) Converting Row to adsb::Data: {:?}", row);
+        resources_debug!("Converting Row to adsb::Data: {:?}", row);
 
         let network_timestamp: Option<prost_wkt_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("network_timestamp")
@@ -91,8 +90,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_adsb_schema() {
-        crate::get_log_handle().await;
-        ut_info!("(test_adsb_schema) start");
+        assert_init_done().await;
+        ut_info!("start");
 
         let id = Uuid::new_v4().to_string();
         let data = mock::get_data_obj();
@@ -110,12 +109,12 @@ mod tests {
             ut_info!("{:?}", validation_result);
             assert_eq!(validation_result.success, true);
         }
-        ut_info!("(test_adsb_schema) success");
+        ut_info!("success");
     }
     #[tokio::test]
     async fn test_adsb_invalid_data() {
-        crate::get_log_handle().await;
-        ut_info!("(test_adsb_invalid_data) start");
+        assert_init_done().await;
+        ut_info!("start");
 
         let data = Data {
             icao_address: -1,
@@ -137,6 +136,6 @@ mod tests {
             assert_eq!(expected_errors.len(), validation_result.errors.len());
             assert!(contains_field_errors(&validation_result, &expected_errors));
         }
-        ut_info!("(test_adsb_invalid_data) success");
+        ut_info!("success");
     }
 }

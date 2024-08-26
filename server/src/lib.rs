@@ -1,7 +1,5 @@
 #![doc = include_str!("../README.md")]
 
-use tokio::sync::OnceCell;
-
 #[cfg(test)]
 #[macro_use]
 pub mod test_util;
@@ -15,6 +13,9 @@ pub mod resources;
 pub use crate::config::Config;
 pub use clap::Parser;
 
+/// The default SRID for the PostGIS types, WGS-84
+pub const DEFAULT_SRID: i32 = 4326;
+
 /// struct holding cli configuration options
 #[derive(Parser, Debug, Clone)]
 pub struct Cli {
@@ -26,70 +27,6 @@ pub struct Cli {
     pub rebuild_psql: Option<bool>,
 }
 impl Copy for Cli {}
-
-/// Initialized log4rs handle
-pub static LOG_HANDLE: OnceCell<Option<log4rs::Handle>> = OnceCell::const_new();
-pub(crate) async fn get_log_handle() -> Option<log4rs::Handle> {
-    LOG_HANDLE
-        .get_or_init(|| async move {
-            // Set up basic logger to make sure we can write to stdout
-            let stdout = log4rs::append::console::ConsoleAppender::builder()
-                .encoder(Box::new(log4rs::encode::pattern::PatternEncoder::new(
-                    "{d(%Y-%m-%d %H:%M:%S)} | {I} | {h({l}):5.5} | {f}:{L} | {m}{n}",
-                )))
-                .build();
-            let file = log4rs::append::file::FileAppender::builder()
-                .encoder(Box::new(log4rs::encode::json::JsonEncoder::new()))
-                .build("logs/all.log")
-                .unwrap();
-
-            match log4rs::config::Config::builder()
-                .appender(log4rs::config::Appender::builder().build("stdout", Box::new(stdout)))
-                .appender(log4rs::config::Appender::builder().build("file", Box::new(file)))
-                .logger(
-                    log4rs::config::Logger::builder()
-                        .appender("file")
-                        .build("backend", log::LevelFilter::Debug),
-                )
-                .logger(
-                    log4rs::config::Logger::builder()
-                        .appender("file")
-                        .build("app", log::LevelFilter::Debug),
-                )
-                .logger(
-                    log4rs::config::Logger::builder()
-                        .appender("file")
-                        .build("test", log::LevelFilter::Debug),
-                )
-                .build(
-                    log4rs::config::Root::builder()
-                        .appender("stdout")
-                        .build(log::LevelFilter::Debug),
-                ) {
-                Ok(config) => log4rs::init_config(config).ok(),
-                Err(_) => None,
-            }
-        })
-        .await
-        .to_owned()
-}
-
-/// Initialize a log4rs logger with provided configuration file path
-pub async fn load_logger_config_from_file(config_file: &str) -> Result<(), String> {
-    let log_handle = get_log_handle()
-        .await
-        .ok_or("(load_logger_config_from_file) Could not get the log handle.")?;
-    match log4rs::config::load_config_file(config_file, Default::default()) {
-        Ok(config) => {
-            log_handle.set_config(config);
-            Ok(())
-        }
-        Err(e) => Err(format!(
-            "(logger) Could not parse log config file [{}]: {}.",
-            config_file, e,
-        )),
-    }
-}
 
 /// Tokio signal handler that will wait for a user to press CTRL+C.
 /// This signal handler can be used in our [`tonic::transport::Server`] method `serve_with_shutdown`.
@@ -143,19 +80,44 @@ pub async fn shutdown_signal(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_util::assert_init_done;
 
     #[tokio::test]
     async fn test_load_logger_config_from_file() {
-        get_log_handle().await;
-        ut_info!("(test_config_from_env) Start.");
+        assert_init_done().await;
+        ut_info!("start");
 
-        let result = load_logger_config_from_file("/usr/src/app/log4rs.yaml").await;
-        ut_debug!("(test_config_from_env) {:?}", result);
+        let result =
+            lib_common::logger::load_logger_config_from_file("/usr/src/app/log4rs.yaml").await;
+        ut_debug!("{:?}", result);
         assert!(result.is_ok());
 
         // This message should be written to file
-        ut_error!("(test_config_from_env) Testing log config from file. This should be written to the tests.log file.");
+        ut_error!("Testing log config from file. This should be written to the tests.log file.");
 
-        ut_info!("(test_config_from_env) Success.");
+        ut_info!("success");
+    }
+
+    #[tokio::test]
+    async fn test_server_shutdown() {
+        assert_init_done().await;
+        ut_info!("start");
+
+        let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
+        let (_, health_service) = tonic_health::server::health_reporter();
+        tokio::spawn(async move {
+            let _ = tonic::transport::Server::builder()
+                .add_service(health_service)
+                .serve_with_shutdown(
+                    "0.0.0.0:50051".parse().unwrap(),
+                    shutdown_signal("grpc", Some(shutdown_rx)),
+                )
+                .await;
+        });
+
+        // Send server the shutdown request
+        assert!(shutdown_tx.send(()).is_ok());
+
+        ut_info!("success");
     }
 }

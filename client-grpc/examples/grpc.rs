@@ -1,12 +1,12 @@
 //! gRPC client implementation
 use svc_storage_client_grpc::prelude::*;
 
-use chrono::naive::NaiveDate;
-use chrono::{Datelike, Duration, Local, Timelike, Utc};
 use lib_common::grpc::get_endpoint_from_env;
+use lib_common::time::{Datelike, Duration, Local, NaiveDate, Timelike, Utc};
+use lib_common::uuid::Uuid;
+use svc_storage_client_grpc::prelude::{GeoPointZ, GeoPolygonZ};
 use tokio::sync::OnceCell;
 use tonic::Status;
-use uuid::Uuid;
 
 pub(crate) static CLIENTS: OnceCell<Clients> = OnceCell::const_new();
 
@@ -240,10 +240,7 @@ async fn itinerary_scenario() -> Result<(), Status> {
     .page_number(1)
     .results_per_page(50);
     let flight_plans = match flight_plan_client.search(fp_filter).await {
-        Ok(res) => {
-            let fps = res.into_inner();
-            fps
-        }
+        Ok(res) => res.into_inner(),
         Err(e) => {
             panic!(
                 "Error retrieving list of flight_plans for itineraries! {}",
@@ -281,7 +278,7 @@ async fn itinerary_scenario() -> Result<(), Status> {
     }
 
     // Link another one if available
-    if flight_plans.list.len() >= 1 {
+    if !flight_plans.list.is_empty() {
         let mut fp_ids = vec![];
         fp_ids.push(list.pop().unwrap().id);
         match link_client
@@ -538,7 +535,7 @@ async fn vertipad_scenario(vertiports: &vertiport::List) -> Result<vertipad::Lis
 
     println!("Starting insert vertipad");
     for vertiport in &vertiports.list {
-        let mut vertipad = vertipad::mock::get_data_obj_for_vertiport(vertiport.clone());
+        let mut vertipad = vertipad::mock::get_data_obj_for_vertiport(vertiport);
         vertipad.name = format!("First vertipad for {}", vertipad.vertiport_id.clone());
 
         let new_vertipad = match vertipad_client.insert(vertipad).await {
@@ -596,17 +593,38 @@ async fn generate_sample_vertiports() -> Result<vertiport::List, Status> {
         .insert(vertiport::Data {
             name: "My favorite port".to_string(),
             description: "Open during workdays and work hours only".to_string(),
-            geo_location: Some(
-                geo_types::Polygon::new(
-                    LineString::from(vec![
-                        (4.78565097, 53.01922827),
-                        (4.78650928, 53.01922827),
-                        (4.78607476, 53.01896366),
-                    ]),
-                    vec![],
-                )
-                .into(),
-            ),
+            // Den Helder, NL
+            geo_location: Some(GeoPolygonZ {
+                rings: vec![GeoLineStringZ {
+                    points: vec![
+                        GeoPointZ {
+                            x: 4.73618,
+                            y: 52.955051,
+                            z: -20.0,
+                        },
+                        GeoPointZ {
+                            x: 4.73618,
+                            y: 52.955801,
+                            z: -20.0,
+                        },
+                        GeoPointZ {
+                            x: 4.737607,
+                            y: 52.955801,
+                            z: -20.0,
+                        },
+                        GeoPointZ {
+                            x: 4.737607,
+                            y: 52.955051,
+                            z: -20.0,
+                        },
+                        GeoPointZ {
+                            x: 4.73618,
+                            y: 52.955051,
+                            z: -20.0,
+                        },
+                    ],
+                }],
+            }),
             schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
             created_at: None,
             updated_at: None,
@@ -617,9 +635,10 @@ async fn generate_sample_vertiports() -> Result<vertiport::List, Status> {
         Err(e) => panic!("Something went wrong inserting the vertiport: {}", e),
     };
 
-    // insert some random vertiports
+    // insert some random vertiports with location NLHoorn
     for index in 1..10 {
-        let mut vertiport = vertiport::mock::get_data_obj();
+        let mut vertiport =
+            vertiport::mock::get_data_obj_for_location(vertiport::mock::Location::NLHoorn);
         vertiport.name = format!("Mock vertiport {}", index);
 
         println!("Starting insert vertiport");
@@ -636,7 +655,8 @@ async fn generate_sample_vertiports() -> Result<vertiport::List, Status> {
     */
     let filter = AdvancedSearchFilter::search_geo_within(
         "geo_location".to_owned(),
-        "POINT(4.7862 53.0191)".to_string(),
+        // NL
+        "SRID=4326;POLYGON((4.746094 52.956581, 4.559326 52.43726, 4.01001 51.979467, 3.284912 51.469066, 3.493652 51.235783, 3.647461 51.29765, 3.834229 51.222024, 4.306641 51.359434, 4.438477 51.366293, 4.372559 51.462221, 4.515381 51.496433, 4.553833 51.435348, 4.667816 51.440484, 4.784546 51.509768, 4.842224 51.481554, 4.844971 51.420791, 4.927368 51.410514, 5.023499 51.490961, 5.081177 51.476422, 5.114136 51.429354, 5.081177 51.394236, 5.137482 51.346226, 5.140228 51.316194, 5.164948 51.311044, 5.2034 51.32306, 5.248718 51.30761, 5.234985 51.266383, 5.483551 51.299883, 5.861206 51.176588, 5.73761 50.908575, 5.655212 50.840983, 5.732117 50.781976, 6.009521 50.766344, 5.96283 50.804546, 6.061707 50.894718, 5.984802 50.972611, 5.894165 50.969152, 5.855713 51.0521, 5.913391 51.074539, 5.94635 51.055553, 6.102905 51.159021, 6.056213 51.234751, 6.207275 51.378981, 6.094666 51.597889, 5.940857 51.742677, 5.935364 51.824235, 6.097412 51.897173, 6.182556 51.922588, 6.37207 51.856478, 6.38855 51.885307, 6.775818 51.937831, 6.652222 52.070052, 6.740112 52.140905, 7.003784 52.272191, 6.959839 52.439939, 6.663208 52.500173, 6.707153 52.673718, 7.03125 52.683709, 7.157593 53.324968, 6.207275 53.694105, 4.779053 53.442918, 4.746094 52.956581))".to_owned()
     )
     .page_number(1)
     .results_per_page(50);
@@ -657,9 +677,9 @@ async fn generate_sample_vertipads(vertiports: &vertiport::List) -> Result<verti
     println!("Vertipad Client created");
 
     for vertiport in &vertiports.list {
-        let mut vertipad = vertipad::mock::get_data_obj_for_vertiport(vertiport.clone());
+        let mut vertipad = vertipad::mock::get_data_obj_for_vertiport(vertiport);
         vertipad.name = format!("First vertipad for {}", vertipad.vertiport_id.clone());
-        vertipad.vertiport_id = vertiport.id.clone();
+        vertipad.vertiport_id.clone_from(&vertiport.id);
 
         let new_vertipad = match clients.vertipad.insert(vertipad).await {
             Ok(fp) => fp.into_inner(),
@@ -729,10 +749,14 @@ async fn flight_plan_scenario(
     // insert some random flight_plans
     for _ in 1..10 {
         let mut flight_plan = flight_plan::mock::get_data_obj();
-        flight_plan.pilot_id = pilot_id.clone();
-        flight_plan.vehicle_id = vehicle_id.clone();
-        flight_plan.origin_vertipad_id = origin_vertipad_id.clone();
-        flight_plan.target_vertipad_id = target_vertipad_id.clone();
+        flight_plan.pilot_id.clone_from(&pilot_id);
+        flight_plan.vehicle_id.clone_from(&vehicle_id);
+        flight_plan
+            .origin_vertipad_id
+            .clone_from(&origin_vertipad_id);
+        flight_plan
+            .target_vertipad_id
+            .clone_from(&target_vertipad_id);
 
         println!("Starting insert flight plan");
         match flight_plan_client.insert(flight_plan).await {
@@ -743,10 +767,14 @@ async fn flight_plan_scenario(
     // Make sure we have some future flight_plans
     for _ in 0..5 {
         let mut flight_plan = flight_plan::mock::get_future_data_obj();
-        flight_plan.pilot_id = pilot_id.clone();
-        flight_plan.vehicle_id = vehicle_id.clone();
-        flight_plan.origin_vertipad_id = origin_vertipad_id.clone();
-        flight_plan.target_vertipad_id = target_vertipad_id.clone();
+        flight_plan.pilot_id.clone_from(&pilot_id);
+        flight_plan.vehicle_id.clone_from(&vehicle_id);
+        flight_plan
+            .origin_vertipad_id
+            .clone_from(&origin_vertipad_id);
+        flight_plan
+            .target_vertipad_id
+            .clone_from(&target_vertipad_id);
 
         println!("Starting insert flight plan in the future");
         match flight_plan_client.insert(flight_plan).await {
@@ -757,10 +785,14 @@ async fn flight_plan_scenario(
     // Make sure we have some flight_plans in the past as well
     for _ in 0..5 {
         let mut flight_plan = flight_plan::mock::get_past_data_obj();
-        flight_plan.pilot_id = pilot_id.clone();
-        flight_plan.vehicle_id = vehicle_id.clone();
-        flight_plan.origin_vertipad_id = origin_vertipad_id.clone();
-        flight_plan.target_vertipad_id = target_vertipad_id.clone();
+        flight_plan.pilot_id.clone_from(&pilot_id);
+        flight_plan.vehicle_id.clone_from(&vehicle_id);
+        flight_plan
+            .origin_vertipad_id
+            .clone_from(&origin_vertipad_id);
+        flight_plan
+            .target_vertipad_id
+            .clone_from(&target_vertipad_id);
 
         println!("Starting insert flight plan in the past");
         match flight_plan_client.insert(flight_plan).await {
@@ -769,10 +801,8 @@ async fn flight_plan_scenario(
         };
     }
 
-    let origin_timeslot_min =
-        prost_wkt_types::Timestamp::date_time(2022, 10, 12, 23, 00, 00).unwrap();
-    let origin_timeslot_max =
-        prost_wkt_types::Timestamp::date_time(2024, 10, 13, 23, 00, 00).unwrap();
+    let origin_timeslot_min = Timestamp::date_time(2022, 10, 12, 23, 00, 00).unwrap();
+    let origin_timeslot_max = Timestamp::date_time(2024, 10, 13, 23, 00, 00).unwrap();
     let time_filter = AdvancedSearchFilter::search_equals("pilot_id".to_string(), pilot_id.clone())
         .and_between(
             "origin_timeslot_start".to_owned(),

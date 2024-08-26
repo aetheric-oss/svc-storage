@@ -6,8 +6,6 @@ use config::ConfigError;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::task::JoinError;
 
-pub use uuid::Uuid;
-
 /// static boolean that can be used to check if we need psql connection
 pub static USE_PSQL_BACKEND: AtomicBool = AtomicBool::new(true);
 /// public function to check value of [USE_PSQL_BACKEND]
@@ -47,8 +45,8 @@ pub enum ArrErr {
     IoError(#[from] std::io::Error),
 
     #[error("uuid error: {0}")]
-    /// return new [`uuid::Error`] with calling params
-    UuidError(#[from] uuid::Error),
+    /// return new [`lib_common::uuid::Error`] with calling params
+    UuidError(#[from] lib_common::uuid::Error),
 
     #[error("error: {0}")]
     /// return new [`anyhow::Error`] with calling params

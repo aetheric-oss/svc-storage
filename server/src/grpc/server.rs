@@ -7,7 +7,6 @@ use crate::shutdown_signal;
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use tonic::transport::Server;
-use tonic::{Request, Status};
 
 // include gRPC generic structs
 include!("../../../out/grpc/grpc.rs");
@@ -58,55 +57,10 @@ pub mod search {
 }
 
 /// Provide geo types and conversions
-pub mod grpc_geo_types {
-    pub use geo_types::{Coord, LineString, Point, Polygon};
+pub mod geo_types {
     use serde::{Deserialize, Serialize};
 
-    /// Geo Location Point representation
-    /// <https://mapscaping.com/latitude-x-or-y/>
-    #[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, Copy, PartialEq, ::prost::Message, Serialize, Deserialize)]
-    pub struct GeoPoint {
-        /// longitude (x / horizontal / east-west)
-        /// range: -180 - 180
-        #[prost(double, tag = "1")]
-        pub longitude: f64,
-        /// latitude (y / vertical / north-south)
-        /// range: -90 - 90
-        #[prost(double, tag = "2")]
-        pub latitude: f64,
-    }
-    /// Geo Location Line representation
-    #[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, Copy, PartialEq, ::prost::Message, Serialize, Deserialize)]
-    pub struct GeoLine {
-        /// line start point as long/lat
-        #[prost(message, optional, tag = "1")]
-        pub start: ::core::option::Option<GeoPoint>,
-        /// line end point as long/lat
-        #[prost(message, optional, tag = "2")]
-        pub end: ::core::option::Option<GeoPoint>,
-    }
-    /// Geo Location Shape representation
-    #[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message, Serialize, Deserialize)]
-    pub struct GeoLineString {
-        /// list of points
-        #[prost(message, repeated, tag = "1")]
-        pub points: ::prost::alloc::vec::Vec<GeoPoint>,
-    }
-    /// Geo Location Polygon representation
-    #[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message, Serialize, Deserialize)]
-    pub struct GeoPolygon {
-        /// exterior
-        #[prost(message, optional, tag = "1")]
-        pub exterior: ::core::option::Option<GeoLineString>,
-        /// interiors
-        #[prost(message, repeated, tag = "2")]
-        pub interiors: ::prost::alloc::vec::Vec<GeoLineString>,
-    }
-
+    include!("../../../out/grpc/grpc.geo_types.rs");
     include!("../../../includes/geo_types.rs");
 }
 
@@ -123,17 +77,17 @@ pub mod grpc_geo_types {
 /// }
 /// ```
 #[cfg(not(tarpaulin_include))]
-// no_coverage: Can not be tested in unittest, should be part of integration
+// no_coverage: (R5) Can not be tested in unittest, should be part of integration
 // tests
 pub async fn grpc_server(config: Config, shutdown_rx: Option<tokio::sync::oneshot::Receiver<()>>) {
-    grpc_debug!("(grpc_server) entry.");
+    grpc_debug!("entry.");
 
     // GRPC Server
     let grpc_port = config.docker_port_grpc;
     let full_grpc_addr: SocketAddr = match format!("[::]:{}", grpc_port).parse() {
         Ok(addr) => addr,
         Err(e) => {
-            grpc_error!("(grpc_server) Failed to parse gRPC address: {}", e);
+            grpc_error!("Failed to parse gRPC address: {}", e);
             return;
         }
     };
@@ -207,10 +161,7 @@ pub async fn grpc_server(config: Config, shutdown_rx: Option<tokio::sync::onesho
         .await;
 
     //start server
-    grpc_info!(
-        "(grpc_server) Starting gRPC services on: {}.",
-        full_grpc_addr
-    );
+    grpc_info!("Starting gRPC services on: {}.", full_grpc_addr);
     match Server::builder()
         .add_service(health_service)
         .add_service(adsb::RpcServiceServer::new(adsb::GrpcServer::default()))
@@ -272,9 +223,9 @@ pub async fn grpc_server(config: Config, shutdown_rx: Option<tokio::sync::onesho
         .serve_with_shutdown(full_grpc_addr, shutdown_signal("grpc", shutdown_rx))
         .await
     {
-        Ok(_) => grpc_info!("(grpc_server) gRPC server running at: {}.", full_grpc_addr),
+        Ok(_) => grpc_info!("gRPC server running at: {}.", full_grpc_addr),
         Err(e) => {
-            grpc_error!("(grpc_server) Could not start gRPC server: {}", e);
+            grpc_error!("Could not start gRPC server: {}", e);
         }
     };
 }
@@ -287,23 +238,23 @@ mod tests {
     #[cfg(not(any(feature = "stub_backends")))]
     #[tokio::test]
     async fn test_grpc_server_is_ready() {
-        crate::get_log_handle().await;
-        ut_info!("(test_grpc_server_is_ready) start");
+        crate::test_util::assert_init_done().await;
+        ut_info!("start");
 
         let imp = adsb::GrpcServer::default();
         let data = adsb::mock::get_data_obj();
 
         let result = crate::postgres::get_psql_client().await;
-        ut_debug!("(test_grpc_server_is_ready) {:?}", result);
+        ut_debug!("{:?}", result);
         assert!(result.is_ok());
 
-        let result = imp.generic_insert(Request::new(data)).await;
-        ut_debug!("(test_grpc_server_is_ready) {:?}", result);
+        let result = imp.generic_insert(tonic::Request::new(data)).await;
+        ut_debug!("{:?}", result);
         assert!(result.is_ok());
 
         let adsb: adsb::Response = (result.unwrap()).into_inner();
         assert!(adsb.object.is_some());
 
-        ut_info!("(test_grpc_server_is_ready) success")
+        ut_info!("success")
     }
 }

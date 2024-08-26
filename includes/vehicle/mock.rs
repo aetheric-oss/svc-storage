@@ -1,8 +1,8 @@
 use super::Data;
-use chrono::{Datelike, Duration, NaiveDate, Timelike, Utc};
+use lib_common::time::{Datelike, Duration, NaiveDate, Timelike, Utc};
+use lib_common::uuid::Uuid;
 use rand::seq::SliceRandom;
 use rand::Rng;
-use uuid::Uuid;
 
 const CAL_WORKDAYS_8AM_6PM: &str = "\
 DTSTART:20221020T180000Z;DURATION:PT14H
@@ -15,6 +15,8 @@ pub fn get_data_obj() -> Data {
     let mut rng = rand::thread_rng();
 
     let now = Utc::now();
+    #[cfg(not(tarpaulin_include))]
+    // no_coverage: (Rnever) Invalid DateTime results can not be tested, would indicate a bug in Chrono
     let now = match NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
         .unwrap_or_else(|| {
             panic!(

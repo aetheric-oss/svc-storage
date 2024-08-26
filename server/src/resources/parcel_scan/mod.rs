@@ -2,17 +2,16 @@
 
 pub use crate::grpc::server::parcel_scan::*;
 
-use log::debug;
+use lib_common::time::{DateTime, Utc};
+use lib_common::uuid::Uuid;
 use std::collections::HashMap;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
-use uuid::Uuid;
 
 use super::base::simple_resource::*;
 use super::base::{FieldDefinition, ResourceDefinition};
 use crate::common::ArrErr;
 use crate::grpc::{GrpcDataObjectType, GrpcField, GrpcFieldOption};
-use chrono::{DateTime, Utc};
 
 crate::build_generic_resource_impl_from!();
 
@@ -83,15 +82,15 @@ impl GrpcDataObjectType for Data {
 }
 
 #[cfg(not(tarpaulin_include))]
-// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
+// no_coverage: (Rwaiting) Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
 impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("(try_from) Converting Row to parcel::Data: {:?}", row);
+        resources_debug!("(try_from) Converting Row to parcel::Data: {:?}", row);
         let scanner_id = row.get::<&str, Uuid>("scanner_id").to_string();
         let parcel_id = row.get::<&str, Uuid>("parcel_id").to_string();
-        let geo_location: GeoPoint = row.get::<&str, GeoPoint>("geo_location");
+        let geo_location: GeoPointZ = row.get::<&str, GeoPointZ>("geo_location");
         let created_at: Option<prost_wkt_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("created_at")
             .map(|val| val.into());
@@ -112,8 +111,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_parcel_scan_schema() {
-        crate::get_log_handle().await;
-        ut_info!("(test_parcel_scan_schema) start");
+        assert_init_done().await;
+        ut_info!("start");
 
         let id = Uuid::new_v4().to_string();
         let data = mock::get_data_obj();
@@ -132,18 +131,22 @@ mod tests {
             assert_eq!(validation_result.success, true);
         }
 
-        ut_info!("(test_parcel_scan_schema) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_parcel_scan_invalid_data() {
-        crate::get_log_handle().await;
-        ut_info!("(test_parcel_scan_invalid_data) start");
+        assert_init_done().await;
+        ut_info!("start");
 
         let data = Data {
             parcel_id: String::from("INVALID"),
             scanner_id: String::from("INVALID"),
-            geo_location: Some(geo_types::Point::new(200.0, -200.0).into()),
+            geo_location: Some(GeoPointZ {
+                x: -200.0,
+                y: 200.0,
+                z: 10.0,
+            }),
             created_at: Some(prost_wkt_types::Timestamp {
                 seconds: -1,
                 nanos: -1,
@@ -168,6 +171,6 @@ mod tests {
             assert!(contains_field_errors(&validation_result, &expected_errors));
         }
 
-        ut_info!("(test_parcel_scan_invalid_data) success");
+        ut_info!("success");
     }
 }

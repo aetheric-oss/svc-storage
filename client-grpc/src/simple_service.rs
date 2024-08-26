@@ -25,7 +25,7 @@ where
     /// # Errors
     ///
     /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if the provided `id` is not found in the database.
-    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].
+    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided Id can not be converted to a [`lib_common::uuid::Uuid`].
     /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if any error is returned from the db search result.
     /// Returns [`tonic::Status`] with [`tonic::Code::Unknown`] if the server is not ready.
     ///
@@ -79,11 +79,13 @@ where
     ///     let pilot_id = "a2093c5e-9bbe-4f0f-97ee-276b43fa3759".to_owned();
     ///     let origin_vertipad_id = "53acfe06-dd9b-42e8-8cb4-12a2fb2fa693".to_owned();
     ///     let target_vertipad_id = "db67da52-2280-4316-8b29-9cf1bff65931".to_owned();
+    ///     let session_id = "AETH-SESSION-X".to_owned();
     ///     let data = Data {
     ///         flight_status: FlightStatus::Draft as i32,
     ///         vehicle_id,
+    ///         session_id,
     ///         pilot_id,
-    ///         path: Some(GeoLineString { points: vec![] }),
+    ///         path: Some(GeoLineStringZ{ points: vec![] }),
     ///         weather_conditions: Some("Cloudy, low wind".to_owned()),
     ///         origin_vertipad_id,
     ///         origin_vertiport_id: None,
@@ -123,7 +125,7 @@ where
     ///
     /// Returns [`tonic::Status`] with [`tonic::Code::Cancelled`] if the [`Request`](tonic::Request) doesn't contain any data.
     /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if any error is returned from a db call.
-    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].
+    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided Id can not be converted to a [`lib_common::uuid::Uuid`].
     /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the resulting tokio_postgres::Row data could not be converted into [`Data`](Self::Data).
     /// Returns [`tonic::Status`] with [`tonic::Code::Unknown`] if the server is not ready.
     ///
@@ -177,7 +179,7 @@ where
     /// Returns [`tonic::Status`] with [`tonic::Code::NotFound`] if no record is
     /// found in the database for the provided id field and value combination.
     /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if any error is returned from a db call.
-    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].
+    /// Returns [`tonic::Status`] with [`tonic::Code::Internal`] if the provided Id can not be converted to a [`lib_common::uuid::Uuid`].
     /// Returns [`tonic::Status`] with [`tonic::Code::Unknown`] if the server is not ready.
     ///
     /// # Examples

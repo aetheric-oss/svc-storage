@@ -3,6 +3,15 @@
 
 #[macro_use]
 pub mod macros;
+
+#[cfg(not(tarpaulin_include))]
+// no_coverage: (Rnever) Test utilities, don't need to be part of our test coverage report
+#[cfg(all(
+    test,
+    any(not(feature = "stub_backends"), feature = "vendored-openssl")
+))]
+pub mod tests;
+
 pub mod init;
 pub mod linked_resource;
 pub mod simple_resource;
@@ -42,28 +51,28 @@ pub struct PsqlJsonValue {
 impl From<tokio_postgres::Error> for ArrErr {
     fn from(err: tokio_postgres::Error) -> Self {
         let err: Error = err.into();
-        psql_error!("(from) Error executing DB query: {}", err);
+        psql_error!("Error executing DB query: {}", err);
         ArrErr::Error(err.to_string())
     }
 }
 impl From<deadpool_postgres::PoolError> for ArrErr {
     fn from(err: deadpool_postgres::PoolError) -> Self {
         let err: Error = err.into();
-        psql_error!("(from) Postgres pool error: {}", err);
+        psql_error!("Postgres pool error: {}", err);
         ArrErr::Error(err.to_string())
     }
 }
 impl From<deadpool_postgres::ConfigError> for ArrErr {
     fn from(err: deadpool_postgres::ConfigError) -> Self {
         let err: Error = err.into();
-        psql_error!("(from) Postgres pool config error: {}", err);
+        psql_error!("Postgres pool config error: {}", err);
         ArrErr::Error(err.to_string())
     }
 }
 impl From<deadpool_postgres::BuildError> for ArrErr {
     fn from(err: deadpool_postgres::BuildError) -> Self {
         let err: Error = err.into();
-        psql_error!("(from) Postgres pool build error: {}", err);
+        psql_error!("Postgres pool build error: {}", err);
         ArrErr::Error(err.to_string())
     }
 }

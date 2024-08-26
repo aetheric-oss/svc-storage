@@ -2,11 +2,10 @@
 
 pub use crate::grpc::server::pilot::*;
 
-use log::debug;
+use lib_common::uuid::Uuid;
 use std::collections::HashMap;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
-use uuid::Uuid;
 
 use super::base::simple_resource::*;
 use super::base::{FieldDefinition, ResourceDefinition};
@@ -66,12 +65,12 @@ impl GrpcDataObjectType for Data {
 }
 
 #[cfg(not(tarpaulin_include))]
-// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
+// no_coverage: (Rwaiting) Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
 impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("(try_from) Converting Row to pilot::Data: {:?}", row);
+        resources_debug!("Converting Row to pilot::Data: {:?}", row);
         Ok(Data {
             first_name: row.get("first_name"),
             last_name: row.get("last_name"),
@@ -86,8 +85,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_pilot_schema() {
-        crate::get_log_handle().await;
-        ut_info!("(test_pilot_schema) start");
+        assert_init_done().await;
+        ut_info!("start");
 
         let id = Uuid::new_v4().to_string();
         let data = mock::get_data_obj();
@@ -106,6 +105,6 @@ mod tests {
             assert_eq!(validation_result.success, true);
         }
 
-        ut_info!("(test_pilot_schema) success");
+        ut_info!("success");
     }
 }

@@ -1,4 +1,4 @@
-![Arrow Banner](https://github.com/Arrow-air/tf-github/raw/main/src/templates/doc-banner-services.png)
+![Aetheric Banner](https://github.com/aetheric-oss/.github/raw/main/assets/doc-banner.png)
 
 # Interface Control Document (ICD) - `svc-storage`
 
@@ -8,21 +8,21 @@ This document defines the gRPC interfaces unique to the `svc-storage` microservi
 
 ### Metadata
 
-| Attribute     | Description                                                       |
-| ------------- |-------------------------------------------------------------------|
-| Maintainer(s) | [Services Team](https://github.com/orgs/Arrow-air/teams/services) |
-| Stuckee       | Lotte ([@owlot](https://github.com/owlot))                        |
-| Status        | Development                                                       |
+| Attribute     | Description                                                                    |
+| ------------- |--------------------------------------------------------------------------------|
+| Maintainer(s) | [@aetheric-oss/dev-realm](https://github.com/orgs/aetheric-oss/teams/dev-realm)|
+| Stuckee       | Lotte ([@owlot](https://github.com/owlot))                                     |
+| Status        | Development                                                                    |
 
 ## :books: Related Documents
 
-| Document                                                                                                          | Description
-| ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| [High-Level Concept of Operations (CONOPS)](https://github.com/Arrow-air/se-services/blob/develop/docs/conops.md) | Overview of Arrow microservices. |
-| [High-Level Interface Control Document (ICD)](https://github.com/Arrow-air/se-services/blob/develop/docs/icd.md)  | Interfaces and frameworks common to all Arrow microservices. |
-| [Requirements - `svc-storage`](https://nocodb.arrowair.com/dashboard/#/nc/p_uyeuw6scqlnpri/table/L4/svc-storage)  | Requirements and user stories for this microservice. |
-| [Concept of Operations - `svc-storage`](./conops.md)                                                              | Defines the motivation and duties of this microservice. |
-| [Software Design Document (SDD) - `svc-storage`](./sdd.md)                                                        | Specifies the internal activity of this microservice. |
+| Document                                                                                                             | Description
+| -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| [High-Level Concept of Operations (CONOPS)](https://github.com/aetheric-oss/se-services/blob/develop/docs/conops.md) | Overview of Realm microservices.                             |
+| [High-Level Interface Control Document (ICD)](https://github.com/aetheric-oss/se-services/blob/develop/docs/icd.md)  | Interfaces and frameworks common to all Realm microservices. |
+| [Requirements - `svc-storage`](https://nocodb.aetheric.nl/dashboard/#/nc/p_uyeuw6scqlnpri/table/L4/svc-storage)      | Requirements and user stories for this microservice.         |
+| [Concept of Operations - `svc-storage`](./conops.md)                                                                 | Defines the motivation and duties of this microservice.      |
+| [Software Design Document (SDD) - `svc-storage`](./sdd.md)                                                           | Specifies the internal activity of this microservice.        |
 
 ## :hammer: Frameworks
 
@@ -51,7 +51,7 @@ These interfaces are defined in protocol buffer files:
 
 ### Integrated Authentication & Encryption
 
-See [High-Level Services ICD](https://github.com/Arrow-air/se-services/blob/develop/docs/icd.md#space_invader-integrated-authentication--encryption).
+See [High-Level Services ICD](https://github.com/aetheric-oss/se-services/blob/develop/docs/icd.md#space_invader-integrated-authentication--encryption).
 
 ### gRPC Server Methods ("Services")
 

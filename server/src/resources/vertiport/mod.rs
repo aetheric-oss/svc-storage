@@ -3,17 +3,17 @@
 pub use crate::grpc::server::vertiport::*;
 pub mod group;
 
-use chrono::{DateTime, Utc};
-use log::debug;
+use lib_common::time::{DateTime, Utc};
+use lib_common::uuid::Uuid;
 use std::collections::HashMap;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
-use uuid::Uuid;
 
 use super::base::simple_resource::*;
 use super::base::{FieldDefinition, ResourceDefinition};
 use crate::common::ArrErr;
 use crate::grpc::{GrpcDataObjectType, GrpcField, GrpcFieldOption};
+use postgis::ewkb::PolygonZ;
 
 // Generate `From` trait implementations for GenericResource into and from Grpc defined Resource
 crate::build_generic_resource_impl_from!();
@@ -92,14 +92,14 @@ impl GrpcDataObjectType for Data {
 }
 
 #[cfg(not(tarpaulin_include))]
-// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
+// no_coverage: (Rwaiting) Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
 impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("(try_from) Converting Row to vertiport::Data: {:?}", row);
+        resources_debug!("Converting Row to vertiport::Data: {:?}", row);
         let schedule: Option<String> = row.get("schedule");
-        let geo_location = row.get::<&str, postgis::ewkb::Polygon>("geo_location");
+        let geo_location = row.get::<&str, PolygonZ>("geo_location");
 
         let created_at: Option<prost_wkt_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("created_at")
@@ -126,8 +126,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_vertiport_schema() {
-        crate::get_log_handle().await;
-        ut_info!("(test_vertiport_schema) start");
+        assert_init_done().await;
+        ut_info!("start");
 
         let id = Uuid::new_v4().to_string();
         let data = mock::get_data_obj();
@@ -145,27 +145,60 @@ mod tests {
             ut_info!("{:?}", validation_result);
             assert_eq!(validation_result.success, true);
         }
-        ut_info!("(test_vertiport_schema) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_vertiport_invalid_data() {
-        crate::get_log_handle().await;
-        ut_info!("(test_vertiport_invalid_data) start");
+        assert_init_done().await;
+        ut_info!("start");
 
         let data = Data {
             name: String::from(""),
             description: String::from(""),
-            geo_location: Some(
-                geo_types::Polygon::new(
-                    geo_types::LineString::from(vec![
-                        (4.78565097, 53.01922827),
-                        (204.78650928, 253.01922827),
-                    ]),
-                    vec![],
-                )
-                .into(),
-            ),
+            geo_location: Some(GeoPolygonZ {
+                rings: vec![
+                    GeoLineStringZ {
+                        points: vec![
+                            GeoPointZ {
+                                x: 0.0,
+                                y: 0.0,
+                                z: 0.0,
+                            },
+                            GeoPointZ {
+                                x: -202.0, // invalid
+                                y: 0.0,
+                                z: 0.0,
+                            },
+                            GeoPointZ {
+                                x: 0.0,
+                                y: 0.0,
+                                z: 0.0,
+                            },
+                            GeoPointZ {
+                                x: 180.0,
+                                y: 90.0,
+                                z: 0.0,
+                            },
+                        ],
+                    },
+                    GeoLineStringZ {
+                        // invalid
+                        points: vec![
+                            GeoPointZ {
+                                x: 180.0,
+                                y: 90.0,
+                                z: 0.0,
+                            },
+                            GeoPointZ {
+                                x: -180.0,
+                                y: -90.0,
+                                z: 0.0,
+                            },
+                        ],
+                    },
+                ],
+            }),
             schedule: Some(String::from("")),
             // The fields below are read_only, should not be returned as invalid
             // by validation even though they are invalid
@@ -190,6 +223,6 @@ mod tests {
             assert_eq!(expected_errors.len(), validation_result.errors.len());
             assert!(contains_field_errors(&validation_result, &expected_errors));
         }
-        ut_info!("(test_vertiport_invalid_data) success");
+        ut_info!("success");
     }
 }

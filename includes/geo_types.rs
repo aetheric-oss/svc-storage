@@ -1,91 +1,118 @@
-impl From<Point> for GeoPoint {
-    fn from(field: Point) -> Self {
+use crate::DEFAULT_SRID;
+use postgis::ewkb::{LineStringZ, PointZ, PolygonZ};
+use std::fmt;
+
+impl From<PointZ> for GeoPointZ {
+    fn from(field: PointZ) -> Self {
         Self {
-            longitude: field.x(),
-            latitude: field.y(),
+            x: field.x,
+            y: field.y,
+            z: field.z,
         }
     }
 }
+impl fmt::Display for GeoPointZ {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let point: PointZ = (*self).into();
 
-impl From<GeoPoint> for Point {
-    fn from(field: GeoPoint) -> Self {
-        Self::new(field.longitude, field.latitude)
+        #[cfg(not(tarpaulin_include))]
+        // no_coverage: (Rnever) It's impossible to get None, as GeoPointZ into PointZ will always add the default srid
+        let srid = point.srid.unwrap_or(DEFAULT_SRID);
+
+        f.write_str(&format!(
+            "SRID={};POINT Z({:.15} {:.15} {:.15})",
+            srid, point.x, point.y, point.z
+        ))
     }
 }
-
-impl From<GeoPoint> for Coord {
-    fn from(field: GeoPoint) -> Self {
-        Coord {
-            x: field.longitude,
-            y: field.latitude,
-        }
-    }
-}
-
-impl From<LineString> for GeoLineString {
-    fn from(field: LineString) -> Self {
-        let mut points: Vec<GeoPoint> = vec![];
-        for coord in field.coords() {
-            let point: Point = (*coord).into();
-            points.push(point.into());
-        }
-        Self { points }
-    }
-}
-impl From<GeoLineString> for LineString {
-    fn from(field: GeoLineString) -> Self {
-        let mut points: Vec<Coord> = vec![];
-        for point in field.points {
-            points.push(point.into())
-        }
-        LineString::from(points)
-    }
-}
-
-impl From<Polygon> for GeoPolygon {
-    fn from(field: Polygon) -> Self {
-        let mut interiors: Vec<GeoLineString> = vec![];
-        for line in field.interiors() {
-            interiors.push(line.clone().into())
-        }
-
+impl From<GeoPointZ> for PointZ {
+    fn from(field: GeoPointZ) -> Self {
         Self {
-            exterior: Some(field.exterior().clone().into()),
-            interiors,
+            x: field.x,
+            y: field.y,
+            z: field.z,
+            srid: Some(DEFAULT_SRID),
         }
     }
 }
-impl From<Vec<LineString>> for GeoPolygon {
-    fn from(field: Vec<LineString>) -> Self {
-        let mut polygon: Self = Self {
-            exterior: None,
-            interiors: vec![],
-        };
 
-        for mut line in field {
-            // Make sure we're working with closed lines
-            line.close();
-            if polygon.exterior.is_some() {
-                polygon.interiors.push(line.into())
-            } else {
-                polygon.exterior = Some(line.into())
-            }
+impl From<LineStringZ> for GeoLineStringZ {
+    fn from(field: LineStringZ) -> Self {
+        Self {
+            points: field.points.into_iter().map(|point| point.into()).collect(),
         }
-        polygon
     }
 }
-impl From<GeoPolygon> for Polygon {
-    fn from(field: GeoPolygon) -> Self {
-        let mut interiors: Vec<LineString> = vec![];
-        let exterior = match field.exterior {
-            Some(val) => val.into(),
-            None => LineString::new(vec![]),
-        };
+impl fmt::Display for GeoLineStringZ {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let line_string: LineStringZ = (*self).clone().into();
 
-        for line in field.interiors {
-            interiors.push(line.into())
+        #[cfg(not(tarpaulin_include))]
+        // no_coverage: (Rnever) It's impossible to get None, as GeoPointZ into PointZ will always add the default srid
+        let srid = line_string.srid.unwrap_or(DEFAULT_SRID);
+
+        let line_string_points = line_string
+            .points
+            .into_iter()
+            .map(|pt| format!("{:.15} {:.15} {:.15}", pt.x, pt.y, pt.z))
+            .collect::<Vec<String>>()
+            .join(","); // x y z, x y z, x y z
+        f.write_str(&format!(
+            "SRID={};LINESTRING Z({})",
+            srid, line_string_points
+        ))
+    }
+}
+impl From<GeoLineStringZ> for LineStringZ {
+    fn from(field: GeoLineStringZ) -> Self {
+        Self {
+            points: field.points.into_iter().map(|point| point.into()).collect(),
+            srid: Some(DEFAULT_SRID),
         }
-        Polygon::new(exterior, interiors)
+    }
+}
+
+impl From<PolygonZ> for GeoPolygonZ {
+    fn from(field: PolygonZ) -> Self {
+        Self {
+            rings: field.rings.into_iter().map(|line| line.into()).collect(),
+        }
+    }
+}
+
+impl fmt::Display for GeoPolygonZ {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let polygon: PolygonZ = (*self).clone().into();
+
+        #[cfg(not(tarpaulin_include))]
+        // no_coverage: (Rnever) It's impossible to get None, as GeoPolygonZ into PolygonZ will always add the default srid
+        let srid = polygon.srid.unwrap_or(DEFAULT_SRID);
+
+        let polygon_rings = polygon
+            .rings
+            .into_iter()
+            .map(|ring| {
+                let ring_str = ring
+                    .points
+                    .into_iter()
+                    .map(|pt| format!("{:.15} {:.15} {:.15}", pt.x, pt.y, pt.z))
+                    .collect::<Vec<String>>()
+                    .join(","); // x y z, x y z, x y z
+
+                format!("({ring_str})") // (x y z, x y z, x y z)
+            })
+            .collect::<Vec<String>>()
+            .join(","); // (x y z, x y z),(x y z, x y z)
+        f.write_str(&format!("SRID={};POLYGON Z({})", srid, polygon_rings))
+    }
+}
+
+impl From<GeoPolygonZ> for PolygonZ {
+    fn from(field: GeoPolygonZ) -> Self {
+        Self {
+            rings: field.rings.into_iter().map(|line| line.into()).collect(),
+            srid: Some(DEFAULT_SRID),
+        }
     }
 }
 #[cfg(test)]
@@ -96,42 +123,51 @@ mod tests {
     fn test_from_point_to_geo_point() {
         let x = 120.8;
         let y = -45.12;
-        let from = Point::new(x, y);
-        let expected = GeoPoint {
-            longitude: x,
-            latitude: y,
+        let z = 100.2;
+        let from = PointZ {
+            srid: Some(DEFAULT_SRID),
+            x,
+            y,
+            z,
         };
 
+        let expected = GeoPointZ { x, y, z };
+
         // Point into GeoPoint
-        let result: GeoPoint = from.into();
+        let result: GeoPointZ = from.into();
         assert_eq!(result, expected);
     }
     #[test]
     fn test_from_geo_point_to_point() {
         let x = 120.8;
         let y = -45.12;
-        let from = GeoPoint {
-            longitude: x,
-            latitude: y,
-        };
-        let expected = Point::new(x, y);
+        let z = 23.6;
+        let from = GeoPointZ { x, y, z };
 
-        // GeoPoint into Point
-        let result: Point = from.into();
+        let expected = PointZ {
+            srid: Some(DEFAULT_SRID),
+            x,
+            y,
+            z,
+        };
+
+        // GeoPointZ into Point
+        let result: PointZ = from.into();
         assert_eq!(result, expected);
     }
     #[test]
-    fn test_from_geo_point_to_coord() {
+    fn test_geo_point_display() {
         let x = 120.8;
         let y = -45.12;
-        let from = GeoPoint {
-            longitude: x,
-            latitude: y,
-        };
-        let expected = Coord { x, y };
+        let z = 23.6;
+        let from = GeoPointZ { x, y, z };
 
-        // GeoPoint into Coord
-        let result: Coord = from.into();
+        let expected = format!(
+            "SRID={};POINT Z({:.15} {:.15} {:.15})",
+            DEFAULT_SRID, x, y, z
+        );
+
+        let result = from.to_string();
         assert_eq!(result, expected);
     }
 
@@ -139,48 +175,90 @@ mod tests {
     fn test_from_line_string_to_geo_line_string() {
         let x_1 = 120.8;
         let y_1 = -45.12;
+        let z_1 = 50.8;
         let x_2 = 121.8;
         let y_2 = -46.12;
-        let from = LineString::from(vec![(x_1, y_1), (x_2, y_2)]);
-        let expected = GeoLineString {
+        let z_2 = 100.2;
+        let from = LineStringZ {
+            srid: Some(DEFAULT_SRID),
             points: vec![
-                GeoPoint {
-                    longitude: x_1,
-                    latitude: y_1,
+                PointZ {
+                    x: x_1,
+                    y: y_1,
+                    z: z_1,
+                    srid: Some(DEFAULT_SRID),
                 },
-                GeoPoint {
-                    longitude: x_2,
-                    latitude: y_2,
+                PointZ {
+                    x: x_2,
+                    y: y_2,
+                    z: z_2,
+                    srid: Some(DEFAULT_SRID),
+                },
+            ],
+        };
+
+        let expected = GeoLineStringZ {
+            points: vec![
+                GeoPointZ {
+                    x: x_1,
+                    y: y_1,
+                    z: z_1,
+                },
+                GeoPointZ {
+                    x: x_2,
+                    y: y_2,
+                    z: z_2,
                 },
             ],
         };
 
         // LineString into GeoLineString
-        let result: GeoLineString = from.into();
+        let result: GeoLineStringZ = from.into();
         assert_eq!(result, expected);
     }
     #[test]
     fn test_from_geo_line_string_to_line_string() {
         let x_1 = 120.8;
         let y_1 = -45.12;
+        let z_1 = 50.8;
         let x_2 = 121.8;
         let y_2 = -46.12;
-        let from = GeoLineString {
+        let z_2 = 100.2;
+        let from = GeoLineStringZ {
             points: vec![
-                GeoPoint {
-                    longitude: x_1,
-                    latitude: y_1,
+                GeoPointZ {
+                    x: x_1,
+                    y: y_1,
+                    z: z_1,
                 },
-                GeoPoint {
-                    longitude: x_2,
-                    latitude: y_2,
+                GeoPointZ {
+                    x: x_2,
+                    y: y_2,
+                    z: z_2,
                 },
             ],
         };
-        let expected = LineString::from(vec![(x_1, y_1), (x_2, y_2)]);
 
-        // GeoLineString into LineString
-        let result: LineString = from.into();
+        let expected = LineStringZ {
+            srid: Some(DEFAULT_SRID),
+            points: vec![
+                PointZ {
+                    x: x_1,
+                    y: y_1,
+                    z: z_1,
+                    srid: Some(DEFAULT_SRID),
+                },
+                PointZ {
+                    x: x_2,
+                    y: y_2,
+                    z: z_2,
+                    srid: Some(DEFAULT_SRID),
+                },
+            ],
+        };
+
+        // GeoLineStringZ into LineString
+        let result: LineStringZ = from.into();
         assert_eq!(result, expected);
     }
 
@@ -188,151 +266,176 @@ mod tests {
     fn test_from_polygon_to_geo_polygon() {
         let x_1 = 120.8;
         let y_1 = -45.12;
+        let z_1 = 50.8;
         let x_2 = x_1 - 0.001;
         let y_2 = y_1 - 0.001;
-        let exterior = LineString::from(vec![(x_1, y_1), (x_2, y_2)]);
-        let interiors = vec![LineString::from(vec![
-            (x_1 - 1.0, y_1 - 1.0),
-            (x_2 - 1.0, y_2 - 1.0),
-        ])];
-        let from = Polygon::new(exterior, interiors);
-        let expected = GeoPolygon {
-            exterior: Some(GeoLineString {
-                points: vec![
-                    GeoPoint {
-                        longitude: x_1,
-                        latitude: y_1,
-                    },
-                    GeoPoint {
-                        longitude: x_2,
-                        latitude: y_2,
-                    },
-                    GeoPoint {
-                        longitude: x_1,
-                        latitude: y_1,
-                    },
-                ],
-            }),
-            interiors: vec![GeoLineString {
-                points: vec![
-                    GeoPoint {
-                        longitude: x_1 - 1.0,
-                        latitude: y_1 - 1.0,
-                    },
-                    GeoPoint {
-                        longitude: x_2 - 1.0,
-                        latitude: y_2 - 1.0,
-                    },
-                    GeoPoint {
-                        longitude: x_1 - 1.0,
-                        latitude: y_1 - 1.0,
-                    },
-                ],
-            }],
+        let z_2 = 100.2;
+
+        let srid = Some(DEFAULT_SRID);
+        let exterior = LineStringZ {
+            srid: srid.clone(),
+            points: vec![
+                PointZ {
+                    x: x_1,
+                    y: y_1,
+                    z: z_1,
+                    srid: srid.clone(),
+                },
+                PointZ {
+                    x: x_2,
+                    y: y_2,
+                    z: z_2,
+                    srid: srid.clone(),
+                },
+            ],
+        };
+
+        let interior = LineStringZ {
+            srid: srid.clone(),
+            points: vec![
+                PointZ {
+                    x: x_1 - 1.0,
+                    y: y_1 - 1.0,
+                    z: z_1,
+                    srid: srid.clone(),
+                },
+                PointZ {
+                    x: x_2 - 1.0,
+                    y: y_2 - 1.0,
+                    z: z_2,
+                    srid: srid.clone(),
+                },
+            ],
+        };
+
+        let from = PolygonZ {
+            srid: srid.clone(),
+            rings: vec![exterior, interior],
+        };
+
+        let expected = GeoPolygonZ {
+            rings: vec![
+                GeoLineStringZ {
+                    points: vec![
+                        GeoPointZ {
+                            x: x_1,
+                            y: y_1,
+                            z: z_1,
+                        },
+                        GeoPointZ {
+                            x: x_2,
+                            y: y_2,
+                            z: z_2,
+                        },
+                    ],
+                },
+                GeoLineStringZ {
+                    points: vec![
+                        GeoPointZ {
+                            x: x_1 - 1.0,
+                            y: y_1 - 1.0,
+                            z: z_1,
+                        },
+                        GeoPointZ {
+                            x: x_2 - 1.0,
+                            y: y_2 - 1.0,
+                            z: z_2,
+                        },
+                    ],
+                },
+            ],
         };
 
         // Polygon into GeoPolygon
-        let result: GeoPolygon = from.into();
+        let result: GeoPolygonZ = from.into();
         assert_eq!(result, expected);
     }
     #[test]
     fn test_from_geo_polygon_to_polygon() {
         let x_1 = 120.8;
         let y_1 = -45.12;
+        let z_1 = 50.8;
         let x_2 = x_1 - 0.001;
         let y_2 = y_1 - 0.001;
-        let exterior = LineString::from(vec![(x_1, y_1), (x_2, y_2)]);
-        let interiors = vec![LineString::from(vec![
-            (x_1 - 1.0, y_1 - 1.0),
-            (x_2 - 1.0, y_2 - 1.0),
-        ])];
-        let from = GeoPolygon {
-            exterior: Some(GeoLineString {
-                points: vec![
-                    GeoPoint {
-                        longitude: x_1,
-                        latitude: y_1,
-                    },
-                    GeoPoint {
-                        longitude: x_2,
-                        latitude: y_2,
-                    },
-                    GeoPoint {
-                        longitude: x_1,
-                        latitude: y_1,
-                    },
-                ],
-            }),
-            interiors: vec![GeoLineString {
-                points: vec![
-                    GeoPoint {
-                        longitude: x_1 - 1.0,
-                        latitude: y_1 - 1.0,
-                    },
-                    GeoPoint {
-                        longitude: x_2 - 1.0,
-                        latitude: y_2 - 1.0,
-                    },
-                    GeoPoint {
-                        longitude: x_1 - 1.0,
-                        latitude: y_1 - 1.0,
-                    },
-                ],
-            }],
-        };
-        let expected = Polygon::new(exterior, interiors);
+        let z_2 = 100.2;
 
-        // GeoPolygon into Polygon
-        let result: Polygon = from.into();
-        assert_eq!(result, expected);
-    }
-    #[test]
-    fn test_from_vec_line_string_to_geo_polygon() {
-        let x_1 = 120.8;
-        let y_1 = -45.12;
-        let x_2 = x_1 - 0.001;
-        let y_2 = y_1 - 0.001;
-        let from = vec![
-            LineString::from(vec![(x_1, y_1), (x_2, y_2)]),
-            LineString::from(vec![(x_1 - 1.0, y_1 - 1.0), (x_2 - 1.0, y_2 - 1.0)]),
-        ];
-        let expected = GeoPolygon {
-            exterior: Some(GeoLineString {
-                points: vec![
-                    GeoPoint {
-                        longitude: x_1,
-                        latitude: y_1,
-                    },
-                    GeoPoint {
-                        longitude: x_2,
-                        latitude: y_2,
-                    },
-                    GeoPoint {
-                        longitude: x_1,
-                        latitude: y_1,
-                    },
-                ],
-            }),
-            interiors: vec![GeoLineString {
-                points: vec![
-                    GeoPoint {
-                        longitude: x_1 - 1.0,
-                        latitude: y_1 - 1.0,
-                    },
-                    GeoPoint {
-                        longitude: x_2 - 1.0,
-                        latitude: y_2 - 1.0,
-                    },
-                    GeoPoint {
-                        longitude: x_1 - 1.0,
-                        latitude: y_1 - 1.0,
-                    },
-                ],
-            }],
+        let srid = Some(DEFAULT_SRID);
+        let exterior = LineStringZ {
+            srid: srid.clone(),
+            points: vec![
+                PointZ {
+                    x: x_1,
+                    y: y_1,
+                    z: z_1,
+                    srid: Some(DEFAULT_SRID),
+                },
+                PointZ {
+                    x: x_2,
+                    y: y_2,
+                    z: z_2,
+                    srid: Some(DEFAULT_SRID),
+                },
+            ],
         };
 
-        // Vec<LineString> into GeoPolygon
-        let result: GeoPolygon = from.into();
+        let interior = LineStringZ {
+            srid: srid.clone(),
+            points: vec![
+                PointZ {
+                    x: x_2 - 1.0,
+                    y: y_2 - 1.0,
+                    z: z_2,
+                    srid: Some(DEFAULT_SRID),
+                },
+                PointZ {
+                    x: x_1 - 1.0,
+                    y: y_1 - 1.0,
+                    z: z_1,
+                    srid: Some(DEFAULT_SRID),
+                },
+            ],
+        };
+
+        let from = GeoPolygonZ {
+            rings: vec![
+                GeoLineStringZ {
+                    points: vec![
+                        GeoPointZ {
+                            x: x_1,
+                            y: y_1,
+                            z: z_1,
+                        },
+                        GeoPointZ {
+                            x: x_2,
+                            y: y_2,
+                            z: z_2,
+                        },
+                    ],
+                },
+                GeoLineStringZ {
+                    points: vec![
+                        GeoPointZ {
+                            x: x_2 - 1.0,
+                            y: y_2 - 1.0,
+                            z: z_2,
+                        },
+                        GeoPointZ {
+                            x: x_1 - 1.0,
+                            y: y_1 - 1.0,
+                            z: z_1,
+                        },
+                    ],
+                },
+            ],
+        };
+
+        let expected = PolygonZ {
+            srid: srid,
+            rings: vec![exterior, interior],
+        };
+
+        // GeoPolygonZ into Polygon
+        let result: PolygonZ = from.into();
         assert_eq!(result, expected);
     }
 }

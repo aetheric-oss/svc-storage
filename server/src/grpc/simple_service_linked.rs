@@ -3,19 +3,19 @@
 use std::collections::HashMap;
 use std::marker::PhantomData;
 
+use lib_common::uuid::Uuid;
 use tokio_postgres::Row;
 use tonic::{Code, Request, Response, Status};
-use uuid::Uuid;
 
 use super::server::*;
 use super::GrpcDataObjectType;
-use crate::common::ArrErr;
 use crate::postgres::simple_resource::PsqlType as PsqlSimpleType;
 use crate::postgres::simple_resource_linked::{PsqlObjectType, PsqlType};
 use crate::postgres::PsqlSearch;
 use crate::resources::base::simple_resource::SimpleResource;
 use crate::resources::base::simple_resource_linked::{GenericResourceResult, SimpleResourceLinked};
 use crate::resources::base::ObjectType;
+use crate::resources::base::Resource;
 
 /// Generic gRPC object traits to provide wrappers for common `Resource` functions
 ///
@@ -23,6 +23,9 @@ use crate::resources::base::ObjectType;
 /// U: `Data` combined resource Data type
 /// V: `ResourceObject<super::Data>` Resource type of 'super' resource being linked
 /// W: `super::Data` Data type of 'super' resource being linked
+#[cfg(not(tarpaulin_include))]
+// no_coverage: (R5) is part of integration tests, coverage report will need to be merged to show
+// these lines as covered.
 #[tonic::async_trait]
 pub trait GrpcSimpleServiceLinked
 where
@@ -46,17 +49,17 @@ where
     <Self as GrpcSimpleServiceLinked>::LinkedUpdateObject: Send,
     <Self as GrpcSimpleServiceLinked>::LinkedResponse:
         From<GenericResourceResult<Self::LinkedResourceObject, Self::LinkedData>>,
-    <Self as GrpcSimpleServiceLinked>::ResourceObject: ObjectType<Self::Data>
+    <Self as GrpcSimpleServiceLinked>::ResourceObject: ObjectType<Self::ResourceData>
         + PsqlType
         + PsqlSearch
-        + SimpleResource<Self::Data>
-        + PsqlObjectType<Self::Data>
+        + SimpleResource<Self::ResourceData>
+        + PsqlObjectType<Self::ResourceData>
         + From<Id>
-        + From<Self::Data>
+        + From<Self::ResourceData>
         + Clone
         + Sync
         + Send,
-    <Self as GrpcSimpleServiceLinked>::Data: GrpcDataObjectType + TryFrom<Row>,
+    <Self as GrpcSimpleServiceLinked>::ResourceData: GrpcDataObjectType + TryFrom<Row>,
     <Self as GrpcSimpleServiceLinked>::OtherResourceObject: ObjectType<Self::OtherData>
         + PsqlType
         + PsqlSearch
@@ -107,7 +110,7 @@ where
     type ResourceObject;
     /// The type expected for the Data struct of the 'main' resource.
     /// Must implement; [`GrpcDataObjectType`], `TryFrom<[Row]>`
-    type Data;
+    type ResourceData;
 
     /// The type expected for the [`Self::ResourceObject<Self::Data>`] type of the 'other' resource.
     /// Must implement; [`ObjectType<Self::Data>`], [`PsqlType`], [`PsqlSearch`],
@@ -127,8 +130,7 @@ where
     /// # Errors
     ///
     /// Returns [`Status`] with [`Code::NotFound`] if no record is returned from the database.  
-    /// Returns [`Status`] with [`Code::Internal`] if the provided Ids can not
-    /// be converted to valid [`uuid::Uuid`]s.  
+    /// Returns [`Status`] with [`Code::Internal`] if the provided Ids can not be converted to valid [`lib_common::uuid::Uuid`]s.  
     /// Returns [`Status`] with [`Code::Internal`] if the resulting [`Row`] data could not be converted into [`Self::LinkedObject`].
     async fn generic_get_by_id(
         &self,
@@ -136,15 +138,27 @@ where
     ) -> Result<Response<Self::LinkedObject>, Status> {
         let id: Ids = request.into_inner();
         let mut resource: Self::LinkedResourceObject = id.clone().into();
-        let obj = Self::LinkedResourceObject::get_for_ids(id.clone().try_into()?).await;
-        if let Ok(obj) = obj {
-            resource.set_data(obj.try_into()?);
-            Ok(Response::new(resource.into()))
-        } else {
-            let error = format!("No resource found for specified uuids: {:?}", id);
-            grpc_error!("(generic_get_by_id) {}", error);
-            Err(Status::new(Code::NotFound, error))
-        }
+
+        let data: Self::LinkedData =
+            Self::LinkedResourceObject::get_for_ids(&id.clone().try_into()?)
+                .await
+                .map_err(|e| {
+                    grpc_error!(
+                        "No [{}] found for specified uuids [{:?}]: {}",
+                        Self::ResourceObject::get_psql_table(),
+                        id,
+                        e
+                    );
+                    Status::new(
+                        Code::NotFound,
+                        "Could not find any resource for the provided id",
+                    )
+                })?
+                .try_into()?;
+
+        resource.set_data(data);
+
+        Ok(Response::new(resource.into()))
     }
 
     /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type [`Self::LinkedRowDataList`].
@@ -162,10 +176,20 @@ where
         request: Request<AdvancedSearchFilter>,
     ) -> Result<Response<Self::LinkedRowDataList>, Status> {
         let filter: AdvancedSearchFilter = request.into_inner();
-        match Self::LinkedResourceObject::advanced_search(filter).await {
-            Ok(rows) => Ok(Response::new(rows.try_into()?)),
-            Err(e) => Err(Status::new(Code::Internal, e.to_string())),
-        }
+        let rows = Self::LinkedResourceObject::advanced_search(filter)
+            .await
+            .map_err(|e| {
+                let error = "Something went wrong trying to retrieve values from the database";
+                grpc_error!(
+                    "{} for [{}]: {}",
+                    error,
+                    Self::ResourceObject::get_psql_table(),
+                    e
+                );
+                Status::new(Code::Internal, error)
+            })?;
+
+        Ok(Response::new(rows.try_into()?))
     }
 
     /// Returns an empty [`tonic`] gRCP [`Response`] on success
@@ -176,23 +200,29 @@ where
     /// # Errors
     ///
     /// Returns [`Status`] with [`Code::NotFound`] if no record exists for the given `id`.
-    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to valid [`uuid::Uuid`].  
-    /// Returns [`Status`] with [`Code::Internal`] if any error is returned from the db search result.  
+    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to valid [`lib_common::uuid::Uuid`].  
+    /// Returns [`Status`] with [`Code::Internal`] if any error is returned from the db update result.  
     ///
     async fn generic_unlink(&self, request: Request<Id>) -> Result<Response<()>, Status> {
         let id: Id = request.into_inner();
         let resource: Self::ResourceObject = id.clone().into();
 
-        if Self::ResourceObject::get_by_id(&resource.try_get_uuid()?)
+        Self::ResourceObject::get_by_id(&resource.try_get_uuid()?)
             .await
-            .is_err()
-        {
-            let error = format!("No resource found for specified uuids: {:?}", id);
-            grpc_error!("(generic_unlink) {}", error);
-            return Err(Status::new(Code::NotFound, error));
-        }
+            .map_err(|e| {
+                grpc_error!(
+                    "No [{}] found for specified uuid [{:?}]: {}",
+                    Self::ResourceObject::get_psql_table(),
+                    id.id,
+                    e
+                );
+                Status::new(
+                    Code::NotFound,
+                    "Could not find any resource for the provided id",
+                )
+            })?;
 
-        match Self::LinkedResourceObject::delete_for_ids(
+        Self::LinkedResourceObject::delete_for_ids(
             HashMap::from([(
                 Self::ResourceObject::try_get_id_field()?,
                 resource.try_get_uuid()?,
@@ -200,10 +230,13 @@ where
             None,
         )
         .await
-        {
-            Ok(_) => Ok(tonic::Response::new(())),
-            Err(e) => Err(Status::new(Code::Internal, e.to_string())),
-        }
+        .map_err(|e| {
+            let error = "Something went wrong trying to unlink with provided values.";
+            grpc_error!("{}: {}", error, e);
+            Status::new(Code::Internal, error)
+        })?;
+
+        Ok(Response::new(()))
     }
 
     /// Returns a [`tonic`] gRCP [`Response`] with [`IdList`] of found ids on success
@@ -216,7 +249,8 @@ where
     /// # Errors
     ///
     /// Returns [`Status`] with [`Code::NotFound`] if no record exists for the given `id`.
-    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].  
+    /// Returns [`Status`] with [`Code::Internal`] if no id_field is defined for the ResourceObject.
+    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`lib_common::uuid::Uuid`].  
     /// Returns [`Status`] with [`Code::Internal`] if any error is returned from the db search result.  
     async fn generic_get_linked_ids(&self, request: Request<Id>) -> Result<Response<IdList>, Status>
     where
@@ -224,7 +258,7 @@ where
     {
         let id: Id = request.into_inner();
         let ids = Self::_get_linked(id).await?;
-        Ok(tonic::Response::new(IdList { ids }))
+        Ok(Response::new(IdList { ids }))
     }
 
     /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type [`Self::OtherList`].
@@ -238,7 +272,8 @@ where
     /// # Errors
     ///
     /// Returns [`Status`] with [`Code::NotFound`] if no record exists for the given `id`.
-    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`uuid::Uuid`].  
+    /// Returns [`Status`] with [`Code::Internal`] if no id_field is defined for the ResourceObject or OtherResourceObject.
+    /// Returns [`Status`] with [`Code::Internal`] if the provided Id can not be converted to a [`lib_common::uuid::Uuid`].  
     /// Returns [`Status`] with [`Code::Internal`] if any error is returned from the db search result.  
     async fn generic_get_linked(
         &self,
@@ -252,42 +287,63 @@ where
         let other_id_field = Self::OtherResourceObject::try_get_id_field()?;
         let filter = AdvancedSearchFilter::search_in(other_id_field, ids);
 
-        match Self::OtherResourceObject::advanced_search(filter).await {
-            Ok(rows) => Ok(tonic::Response::new(rows.try_into()?)),
-            Err(e) => Err(Status::new(Code::Internal, e.to_string())),
-        }
+        let rows = Self::OtherResourceObject::advanced_search(filter).await?;
+
+        Ok(Response::new(rows.try_into()?))
     }
 
     /// Internal function used for `generic_get_linked_ids` and `generic_get_linked`
     ///
-    async fn _get_linked(id: Id) -> Result<Vec<String>, ArrErr> {
+    async fn _get_linked(id: Id) -> Result<Vec<String>, Status> {
         let resource: Self::ResourceObject = id.clone().into();
-        if Self::ResourceObject::get_by_id(&resource.try_get_uuid()?)
-            .await
-            .is_err()
-        {
-            let error = format!("No resource found for specified uuid: {}", id.id);
-            grpc_error!("(_get_linked) {}", error);
-            return Err(ArrErr::Error(error));
-        }
 
-        let id_field = Self::ResourceObject::try_get_id_field()?;
+        Self::ResourceObject::get_by_id(&resource.try_get_uuid()?)
+            .await
+            .map_err(|e| {
+                grpc_error!(
+                    "No [{}] found for specified uuid [{:?}]: {}",
+                    Self::ResourceObject::get_psql_table(),
+                    id.id,
+                    e
+                );
+                Status::new(
+                    Code::NotFound,
+                    "Could not find any resource for the provided id",
+                )
+            })?;
+
+        let id_field = Self::ResourceObject::try_get_id_field().map_err(|e| {
+            grpc_error!(
+                "Unable to get id_field for [{}]: {}",
+                Self::ResourceObject::get_psql_table(),
+                e
+            );
+            Status::new(Code::Internal, "Internal server error.")
+        })?;
+
         let filter = AdvancedSearchFilter::search_equals(id_field, id.id);
-        match Self::LinkedResourceObject::advanced_search(filter).await {
-            Ok(rows) => {
-                let other_id_field = Self::OtherResourceObject::try_get_id_field()?;
-                let mut ids = vec![];
-                for row in rows {
-                    ids.push(row.get::<&str, Uuid>(other_id_field.as_str()).to_string());
-                }
-                Ok(ids)
-            }
-            Err(e) => Err(e),
+        let rows = Self::LinkedResourceObject::advanced_search(filter)
+            .await
+            .map_err(|e| {
+                let error = "Something went wrong trying to retrieve values from the database";
+                grpc_error!("{}: {}", error, e);
+                Status::new(Code::Internal, error)
+            })?;
+
+        let other_id_field = Self::OtherResourceObject::try_get_id_field().map_err(|e| {
+            grpc_error!("Unable to get id_field for OtherResourceObject: {}", e);
+            Status::new(Code::Internal, "Internal server error.")
+        })?;
+
+        let mut ids = vec![];
+        for row in rows {
+            ids.push(row.get::<&str, Uuid>(other_id_field.as_str()).to_string());
         }
+        Ok(ids)
     }
 
     /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type [`Self::LinkedResponse`].
-    /// `Self::Response(From<GenericResourceResult<Self::LinkedResourceObject, Self::Data>>)` will contain the inserted record after saving the provided data [`Self::LinkedRowData`].
+    /// `Self::Response(From<GenericResourceResult<Self::LinkedResourceObject, Self::ResourceData>>)` will contain the inserted record after saving the provided data [`Self::LinkedRowData`].
     ///
     /// The given data will be validated before insert.  
     /// Any errors found during validation will be added to the [`ValidationResult`](crate::resources::ValidationResult).  
@@ -302,10 +358,21 @@ where
         request: Request<Self::LinkedRowData>,
     ) -> Result<Response<Self::LinkedResponse>, Status> {
         let data = request.into_inner();
-        grpc_debug!("(generic_insert) Inserting with data {:?}", data);
+        grpc_debug!("Inserting with data {:?}", data);
         let validation_result =
             <<Self as GrpcSimpleServiceLinked>::LinkedResourceObject as PsqlType>::create(&data)
-                .await?;
+                .await
+                .map_err(|e| {
+                    let error = "Insert failed, we got an error from the database";
+                    grpc_error!(
+                        "{} for [{}]: {}",
+                        error,
+                        Self::ResourceObject::get_psql_table(),
+                        e
+                    );
+                    Status::new(Code::Internal, error)
+                })?;
+
         if validation_result.success {
             let resource: Self::LinkedResourceObject = data.into();
             let result = GenericResourceResult {
@@ -315,10 +382,10 @@ where
             };
             Ok(Response::new(result.into()))
         } else {
-            let error = "Error calling insert function.";
-            grpc_error!("(generic_insert) {}", error);
-            grpc_debug!("(generic_insert) [{:?}].", data);
-            grpc_debug!("(generic_insert) [{:?}].", validation_result);
+            let error = "Validation errors returned from insert function.";
+            grpc_warn!("{}", error);
+            grpc_debug!("[{:?}].", data);
+            grpc_debug!("[{:?}].", validation_result);
             let result = GenericResourceResult {
                 phantom: PhantomData,
                 validation_result,
@@ -329,7 +396,7 @@ where
     }
 
     /// Returns a [`tonic`] gRCP [`Response`] containing an object of provided type [`Self::LinkedResourceObject`].
-    /// `Self::Response(From<GenericResourceResult<Self::LinkedResourceObject, Self::Data>>)` will contain the updated record after saving the provided data [`Self::LinkedUpdateObject`].
+    /// `Self::Response(From<GenericResourceResult<Self::LinkedResourceObject, Self::ResourceData>>)` will contain the updated record after saving the provided data [`Self::LinkedUpdateObject`].
     ///
     /// The given data will be validated before insert.
     /// Any errors found during validation will be added to the [`ValidationResult`](crate::resources::ValidationResult).
@@ -339,8 +406,8 @@ where
     ///
     /// Returns [`Status`] with [`Code::Cancelled`] if the [`Request`] doesn't contain any data.  
     /// Returns [`Status`] with [`Code::Internal`] if any error is returned from a db call.  
-    /// Returns [`Status`] with [`Code::Internal`] if the provided Ids can not be converted to valid [`uuid::Uuid`]s.  
-    /// Returns [`Status`] with [`Code::Internal`] if the resulting [`Row`] data could not be converted into [`Self::Data`].  
+    /// Returns [`Status`] with [`Code::Internal`] if the provided Ids can not be converted to valid [`lib_common::uuid::Uuid`]s.  
+    /// Returns [`Status`] with [`Code::Internal`] if the resulting [`Row`] data could not be converted into [`Self::ResourceData`].  
     ///
     async fn generic_update(
         &self,
@@ -355,12 +422,22 @@ where
                     "No data provided for update with ids: {:?}",
                     resource.get_ids()
                 );
-                grpc_error!("(generic_update) {}", err);
+                grpc_error!("{}", err);
                 return Err(Status::cancelled(err));
             }
         };
 
-        let (data, validation_result) = resource.update(&data).await?;
+        let (data, validation_result) = resource.update(&data).await.map_err(|e| {
+            let error = "Update failed, we got an error from the database";
+            grpc_error!(
+                "{} for [{}]: {}",
+                error,
+                Self::ResourceObject::get_psql_table(),
+                e
+            );
+            Status::new(Code::Internal, error)
+        })?;
+
         if let Some(data) = data {
             resource.set_data(data.try_into()?);
             let result = GenericResourceResult {
@@ -370,10 +447,10 @@ where
             };
             Ok(Response::new(result.into()))
         } else {
-            let error = "Error calling update function.";
-            grpc_error!("(generic_update) {}", error);
-            grpc_debug!("(generic_update) [{:?}].", data);
-            grpc_debug!("(generic_update) [{:?}].", validation_result);
+            let error = "Validation errors returned from update function.";
+            grpc_warn!("{}", error);
+            grpc_debug!("[{:?}].", data);
+            grpc_debug!("[{:?}].", validation_result);
             let result = GenericResourceResult {
                 phantom: PhantomData,
                 validation_result,
@@ -387,15 +464,22 @@ where
     ///
     /// # Errors
     ///
-    /// Returns [`Status`] with [`Code::NotFound`] if no record is returned from the database.  
     /// Returns [`Status`] with [`Code::Internal`] if any error is returned from a db call.  
     async fn generic_delete(&self, request: Request<Ids>) -> Result<Response<()>, Status> {
         let id: Ids = request.into_inner();
         let resource: Self::LinkedResourceObject = id.into();
-        match resource.delete().await {
-            Ok(_) => Ok(Response::new(())),
-            Err(e) => Err(Status::new(Code::Internal, e.to_string())),
-        }
+        resource.delete().await.map_err(|e| {
+            let error = "Delete failed, we got an error from the database";
+            grpc_error!(
+                "{} for [{}]: {}",
+                error,
+                Self::ResourceObject::get_psql_table(),
+                e
+            );
+            Status::new(Code::Internal, error)
+        })?;
+
+        Ok(Response::new(()))
     }
 
     /// Returns ready:true when service is available

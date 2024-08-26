@@ -4,15 +4,17 @@ use log::info;
 use svc_storage::*;
 
 /// Main entry point: starts gRPC Server on specified address and port
-#[tokio::main]
 #[cfg(not(tarpaulin_include))]
+// no_coverage: (R5) Will be part of integration tests, coverage report will need to be merged to show.
+#[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Will use default config settings if no environment vars are found.
-    let config = Config::try_from_env().unwrap_or_default();
+    let config = Config::try_from_env()
+        .map_err(|e| format!("Failed to load configuration from environment: {}", e))?;
 
     // Try to load log configuration from the provided log file.
     // Will default to stdout debug logging if the file can not be loaded.
-    load_logger_config_from_file(config.log_config.as_str())
+    lib_common::logger::load_logger_config_from_file(config.log_config.as_str())
         .await
         .or_else(|e| Ok::<(), String>(log::error!("(main) {}", e)))?;
 
@@ -25,14 +27,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         if rebuild_psql {
             info!("(main) Found argument [rebuild_psql]. Rebuilding now...");
             #[cfg(not(feature = "stub_backends"))]
-            svc_storage::postgres::init::recreate_db().await?;
+            postgres::init::recreate_db().await?;
             info!("(main) PSQL Rebuild completed.");
         }
     } else if let Some(init_psql) = args.init_psql {
         if init_psql {
             info!("(main) Found argument [init_psql]. Creating database schema now...");
             #[cfg(not(feature = "stub_backends"))]
-            svc_storage::postgres::init::create_db().await?;
+            postgres::init::create_db().await?;
             info!("(main) PSQL Database creation completed.");
         }
     }

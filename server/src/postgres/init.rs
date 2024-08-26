@@ -14,7 +14,7 @@ use crate::resources::{
 /// If the database is fresh, we need to create all tables.
 /// This function makes sure the tables will be created in the correct order
 pub async fn create_db() -> Result<(), ArrErr> {
-    psql_info!("(create_db) Creating database tables.");
+    psql_info!("Creating database tables.");
     ResourceObject::<group::Data>::init_table().await?;
     ResourceObject::<user::Data>::init_table().await?;
     ResourceObject::<user_group::Data>::init_table().await?;
@@ -39,7 +39,7 @@ pub async fn create_db() -> Result<(), ArrErr> {
 /// If we want to recreate the database tables created by this module, we will want to drop the existing tables first.
 /// This function makes sure the tables will be dropped in the correct order
 pub async fn drop_db() -> Result<(), ArrErr> {
-    psql_warn!("(drop_db) Dropping database tables.");
+    psql_warn!("Dropping database tables.");
     // Drop our tables (in the correct order)
     ResourceObject::<parcel_scan::Data>::drop_table().await?;
     ResourceObject::<scanner::Data>::drop_table().await?;
@@ -64,11 +64,11 @@ pub async fn drop_db() -> Result<(), ArrErr> {
 
 /// Recreate the database by dropping all tables first (if they exist) and recreating them again
 pub async fn recreate_db() -> Result<(), ArrErr> {
-    psql_warn!("(recreate_db) Re-creating database tables.");
+    psql_warn!("Re-creating database tables.");
     drop_db().await?;
     create_db().await?;
 
-    psql_debug!("(recreate_db) Clearing caches.");
+    psql_debug!("Clearing caches.");
     // Make sure to clear any cached statements
     let pool = super::pool::DB_POOL
         .get()
@@ -98,10 +98,10 @@ where
         let mut client = get_psql_client().await?;
         let transaction = client.transaction().await?;
         for index_query in queries {
-            psql_debug!("(_init_table_indices) [{}].", index_query);
+            psql_debug!("[{}].", index_query);
             if let Err(e) = transaction.execute(&index_query, &[]).await {
                 psql_error!(
-                    "(_init_table_indices) Failed to create indices for table [{}]: {}",
+                    "Failed to create indices for table [{}]: {}",
                     Self::get_psql_table(),
                     e
                 );
@@ -117,9 +117,9 @@ where
         let transaction = client.transaction().await?;
         let create_table = Self::_get_create_table_query();
 
-        psql_debug!("(init_table) [{}].", create_table);
+        psql_debug!("[{}].", create_table);
         if let Err(e) = transaction.execute(&create_table, &[]).await {
-            psql_error!("(init_table) Failed to create table: {}", e);
+            psql_error!("Failed to create table: {}", e);
             return transaction.rollback().await.map_err(ArrErr::from);
         }
         transaction.commit().await?;
@@ -133,15 +133,11 @@ where
         let transaction = client.transaction().await?;
 
         let drop_query = format!(r#"DROP TABLE IF EXISTS "{}""#, definition.psql_table);
-        psql_debug!("(drop_table) [{}].", drop_query);
+        psql_debug!("[{}].", drop_query);
 
-        psql_info!("(drop_table) Dropping table [{}].", definition.psql_table);
+        psql_info!("Dropping table [{}].", definition.psql_table);
         if let Err(e) = transaction.execute(&drop_query, &[]).await {
-            psql_error!(
-                "(drop_table) Failed to drop table [{}]: {}",
-                e,
-                definition.psql_table
-            );
+            psql_error!("Failed to drop table [{}]: {}", e, definition.psql_table);
             return transaction.rollback().await.map_err(ArrErr::from);
         }
         transaction.commit().await.map_err(ArrErr::from)
@@ -163,7 +159,7 @@ where
     fn _get_create_table_query() -> String {
         let definition = Self::get_definition();
         psql_info!(
-            "(_get_create_table_query) Composing create table query for [{}].",
+            "Composing create table query for [{}].",
             definition.psql_table
         );
         let id_field = match Self::try_get_id_field() {
@@ -203,7 +199,7 @@ where
     fn _get_create_table_query() -> String {
         let definition = Self::get_definition();
         psql_info!(
-            "(_get_create_table_query) Composing create table query for [{}].",
+            "Composing create table query for [{}].",
             definition.psql_table
         );
 
@@ -234,9 +230,10 @@ fn get_create_table_fields_sql(fields: &HashMap<String, FieldDefinition>) -> Vec
             PsqlFieldType::TIMESTAMPTZ => field_sql.push_str(" TIMESTAMP WITH TIME ZONE"),
             PsqlFieldType::ANYENUM => field_sql.push_str(" TEXT"),
             PsqlFieldType::INT2 => field_sql.push_str(" SMALLINT"),
-            PsqlFieldType::INT4 => field_sql.push_str(" INTEGER"),
             PsqlFieldType::INT8 => field_sql.push_str(" BIGINT"),
-            PsqlFieldType::NUMERIC => field_sql.push_str(" DOUBLE PRECISION"),
+            PsqlFieldType::INT8_ARRAY => field_sql.push_str(" BIGINT[]"),
+            PsqlFieldType::FLOAT8 => field_sql.push_str(" DOUBLE PRECISION"),
+            PsqlFieldType::FLOAT4 => field_sql.push_str(" REAL"),
             PsqlFieldType::BYTEA => field_sql.push_str(" BYTEA"),
             PsqlFieldType::PATH => field_sql.push_str(" GEOMETRY"),
             PsqlFieldType::POINT => field_sql.push_str(" GEOMETRY"),

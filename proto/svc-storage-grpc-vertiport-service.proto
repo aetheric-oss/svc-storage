@@ -228,14 +228,13 @@ service RpcService {
     //         description: "Open during workdays and work hours only".to_owned(),
     //         schedule: Some(CAL_WORKDAYS_8AM_6PM.to_owned()),
     //         geo_location: Some(
-    //             geo_types::Polygon::new(
-    //                 geo_types::LineString::from(vec![
-    //                     (4.78565097, 53.01922827),
-    //                     (4.78650928, 53.01922827),
-    //                     (4.78607476, 53.01896366),
-    //                 ]),
-    //                 vec![],
-    //             )
+    //             PolygonZ {
+    //                 LineStringZ {
+    //                     points: vec![],
+    //                     srid: Some(4326)
+    //                 },
+    //                 srid: Some(4326)
+    //             }
     //            .into(),
     //         ),
     //         created_at: None,
@@ -264,7 +263,7 @@ service RpcService {
     //
     // Returns [`Status`](tonic::Status) with [`Code::Cancelled`](tonic::Code::Cancelled) if the [`Request`](tonic::Request) doesn't contain any data.
     // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if any error is returned from a db call.
-    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if the provided Id can not be converted to a [`uuid::Uuid`].
+    // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if the provided Id can not be converted to a [`lib_common::uuid::Uuid`].
     // Returns [`Status`](tonic::Status) with [`Code::Internal`](tonic::Code::Internal) if the resulting Vec<tokio_postgres::Row> data could not be converted into [`List`](super::List).
     //
     // # Examples

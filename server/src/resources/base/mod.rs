@@ -8,10 +8,10 @@ use crate::grpc::server::{Id, IdList, Ids};
 use crate::postgres::PsqlJsonValue;
 use crate::{common::ArrErr, grpc::GrpcDataObjectType};
 use core::fmt::Debug;
+use lib_common::uuid::Uuid;
 use log::error;
 use std::collections::HashMap;
 use tokio_postgres::types::Type as PsqlFieldType;
-use uuid::Uuid;
 
 /// Generic trait providing useful functions for our resources
 pub trait Resource
@@ -158,7 +158,7 @@ impl ResourceDefinition {
 }
 
 /// Generic resource wrapper struct used to implement our generic traits
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ResourceObject<T>
 where
     T: GrpcDataObjectType + prost::Message,
@@ -259,14 +259,14 @@ impl FieldDefinition {
     }
     /// Gets the `default` value for this field
     ///
-    /// The function will panic if no default has been set. It's recommended to call
+    /// The function will return 'NULL' if no default has been set. It's recommended to call
     /// [`has_default`](FieldDefinition::has_default) first, to determine if this function can be used or
     /// not
     pub fn get_default(&self) -> String {
         if self.has_default() {
             self.default.clone().unwrap_or_else(|| String::from("NULL"))
         } else {
-            panic!("get_default called on a field without a default value");
+            String::from("NULL")
         }
     }
 }
@@ -329,12 +329,17 @@ impl TryFrom<PsqlJsonValue> for Vec<u32> {
 
 #[cfg(test)]
 mod tests {
+    use crate::test_util::assert_init_done;
+
     use super::*;
     use tokio_postgres::types::Type as PsqlFieldType;
 
     // FieldDefinition tests
-    #[test]
-    fn test_field_definition_new() {
+    #[tokio::test]
+    async fn test_field_definition_new() {
+        assert_init_done().await;
+        ut_debug!("start");
+
         let field_type = PsqlFieldType::VARCHAR;
         let mandatory = true;
         let field_def = FieldDefinition::new(field_type.clone(), mandatory);
@@ -344,10 +349,15 @@ mod tests {
         assert!(!field_def.is_internal());
         assert!(!field_def.is_read_only());
         assert!(!field_def.has_default());
+
+        ut_debug!("success");
     }
 
-    #[test]
-    fn test_field_definition_internal_field() {
+    #[tokio::test]
+    async fn test_field_definition_internal_field() {
+        assert_init_done().await;
+        ut_debug!("start");
+
         let field_type = PsqlFieldType::FLOAT8;
         let mandatory = false;
         let field_def = FieldDefinition::new_internal(field_type.clone(), mandatory);
@@ -357,10 +367,15 @@ mod tests {
         assert!(field_def.is_internal());
         assert!(field_def.is_read_only());
         assert!(!field_def.has_default());
+
+        ut_debug!("success");
     }
 
-    #[test]
-    fn test_field_definition_read_only_field() {
+    #[tokio::test]
+    async fn test_field_definition_read_only_field() {
+        assert_init_done().await;
+        ut_debug!("start");
+
         let field_type = PsqlFieldType::FLOAT8;
         let mandatory = false;
         let field_def = FieldDefinition::new_read_only(field_type.clone(), mandatory);
@@ -370,10 +385,15 @@ mod tests {
         assert!(!field_def.is_internal());
         assert!(field_def.is_read_only());
         assert!(!field_def.has_default());
+
+        ut_debug!("success");
     }
 
-    #[test]
-    fn test_field_definition_set_default() {
+    #[tokio::test]
+    async fn test_field_definition_set_default() {
+        assert_init_done().await;
+        ut_debug!("start");
+
         let field_type = PsqlFieldType::BOOL;
         let mandatory = true;
         let mut field_def = FieldDefinition::new(field_type, mandatory);
@@ -385,20 +405,29 @@ mod tests {
 
         assert!(field_def.has_default());
         assert_eq!(field_def.get_default(), default_value);
+
+        ut_debug!("success");
     }
 
-    #[test]
-    #[should_panic(expected = "get_default called on a field without a default value")]
-    fn test_field_definition_get_default_without_default() {
+    #[tokio::test]
+    async fn test_field_definition_get_default_without_default() {
+        assert_init_done().await;
+        ut_debug!("start");
+
         let field_type = PsqlFieldType::TEXT;
         let mandatory = false;
         let field_def = FieldDefinition::new_internal(field_type, mandatory);
 
-        field_def.get_default();
+        assert_eq!("NULL".to_owned(), field_def.get_default());
+
+        ut_debug!("success");
     }
 
-    #[test]
-    fn test_field_definition_get_default_with_default() {
+    #[tokio::test]
+    async fn test_field_definition_get_default_with_default() {
+        assert_init_done().await;
+        ut_debug!("start");
+
         let field_type = PsqlFieldType::FLOAT4;
         let mandatory = false;
         let default_value = "3.14".to_owned();
@@ -406,11 +435,16 @@ mod tests {
         field_def.set_default(default_value.clone());
 
         assert_eq!(field_def.get_default(), default_value);
+
+        ut_debug!("success");
     }
 
     // ResourceDefinition tests
-    #[test]
-    fn test_resource_definition_get_psql_table() {
+    #[tokio::test]
+    async fn test_resource_definition_get_psql_table() {
+        assert_init_done().await;
+        ut_debug!("start");
+
         let psql_table = "my_table".to_owned();
         let resource_def = ResourceDefinition {
             psql_table: psql_table.clone(),
@@ -419,10 +453,15 @@ mod tests {
         };
 
         assert_eq!(resource_def.get_psql_table(), psql_table);
+
+        ut_debug!("success");
     }
 
-    #[test]
-    fn test_resource_definition_get_psql_id_cols() {
+    #[tokio::test]
+    async fn test_resource_definition_get_psql_id_cols() {
+        assert_init_done().await;
+        ut_debug!("start");
+
         let psql_id_cols = vec!["id".to_owned(), "name".to_owned()];
         let resource_def = ResourceDefinition {
             psql_table: String::new(),
@@ -431,10 +470,15 @@ mod tests {
         };
 
         assert_eq!(resource_def.get_psql_id_cols(), psql_id_cols);
+
+        ut_debug!("success");
     }
 
-    #[test]
-    fn test_resource_definition_has_field() {
+    #[tokio::test]
+    async fn test_resource_definition_has_field() {
+        assert_init_done().await;
+        ut_debug!("start");
+
         let field_name = "field1";
         let field_def = FieldDefinition::new(PsqlFieldType::TEXT, true);
 
@@ -449,10 +493,15 @@ mod tests {
 
         assert!(resource_def.has_field(field_name));
         assert!(!resource_def.has_field("nonexistent_field"));
+
+        ut_debug!("success");
     }
 
-    #[test]
-    fn test_resource_definition_try_get_field() {
+    #[tokio::test]
+    async fn test_resource_definition_try_get_field() {
+        assert_init_done().await;
+        ut_debug!("start");
+
         let field_name = "field1";
         let field_def = FieldDefinition::new(PsqlFieldType::TEXT, true);
 
@@ -477,5 +526,7 @@ mod tests {
                 "error: Tried to get field [nonexistent_field] for table [{}], but the field does not exist.", resource_def.get_psql_table()
             )
         );
+
+        ut_debug!("success");
     }
 }

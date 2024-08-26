@@ -1,9 +1,27 @@
 ---
-## DO NOT EDIT!
-## This file was provisioned by Terraform
-## File origin: https://github.com/Arrow-air/tf-github/tree/main/src/templates/rust-svc/docker-compose.yml
+# Define extensions with an anchors so it can be used as an alias to merge in the fields
+x-test: &test
+  image: ${RUST_IMAGE_NAME}:${RUST_IMAGE_TAG}
+  configs:
+    - source: log4rs
+      target: ${LOG_CONFIG}
+    - source: dot-env
+      target: /.env
+  security_opt:
+    - seccomp:unconfined
 
-version: '3.8'
+x-coverage: &coverage
+x-cockroachdb-dependency: &cockroachdb-dependency
+  volumes:
+    - type: volume
+      source: cockroachdb-ssl
+      target: /cockroach/ssl
+      read_only: true
+  depends_on:
+    cockroachdb:
+      condition: service_healthy
+  # Run as root user, so we are allowed to read the cockroach db certs on the mounted path
+  user: "0:0"
 
 configs:
   log4rs:
@@ -19,7 +37,6 @@ services:
   cockroachdb-init:
     container_name: ${DOCKER_NAME}-cockroachdb-init
     image: cockroachdb/cockroach:latest-v22.1
-    env_file: .env
     volumes:
       - type: volume
         source: cockroachdb
@@ -37,7 +54,6 @@ services:
   cockroachdb:
     container_name: ${DOCKER_NAME}-cockroachdb
     image: cockroachdb/cockroach:latest-v22.1
-    env_file: .env
     depends_on:
       cockroachdb-init:
         condition: service_completed_successfully
@@ -63,39 +79,194 @@ services:
     command: start-single-node --certs-dir=/cockroach/ssl/certs --advertise-addr=cockroachdb
 
   web-server:
-    extends:
-      file: docker-compose-base.yml
-      service: web-server
+    container_name: ${DOCKER_NAME}-web-server
+    image: ${PACKAGE_NAME}:${DOCKER_IMAGE_TAG:-latest}
+    ports:
+      - ${HOST_PORT_REST}:${DOCKER_PORT_REST:-8080}
+      - ${HOST_PORT_GRPC}:${DOCKER_PORT_GRPC:-50051}
+    healthcheck:
+      test: ["CMD", "grpc_health_probe", "-addr", "localhost:${DOCKER_PORT_GRPC}"]
+      interval: 2s
+      timeout: 1s
+      retries: 3
+      start_period: 30s
     volumes:
+      - type: bind
+        source: logs/
+        target: /logs/
       - type: volume
         source: cockroachdb-ssl
         target: /cockroach/ssl
         read_only: true
+    configs:
+      - source: log4rs
+        target: ${LOG_CONFIG}
+      - source: dot-env
+        target: /.env
+    #extends:
+      #file: docker-compose-base.yml
+      #service: web-server
+    # Add CockroachDB dependencies so the server can connect to it
+    <<: *cockroachdb-dependency
     command: --rebuild-psql=true  --init-psql=true
-    depends_on:
-      cockroachdb:
-        condition: service_healthy
 
   example:
-    extends:
-      file: docker-compose-base.yml
-      service: example
+    <<: *test
+    container_name: ${DOCKER_NAME}-example
+    command: cargo run --manifest-path "${CARGO_MANIFEST_PATH:-Cargo.toml}" --example "${EXAMPLE_TARGET:-grpc}"
+    environment:
+      - SERVER_HOSTNAME
+      - SERVER_PORT_GRPC
+      - SERVER_PORT_REST
+      - RUST_BACKTRACE
+    volumes:
+      - type: bind
+        source: "${SOURCE_PATH:-.}/"
+        target: "/usr/src/app"
+      - type: bind
+        source: "${SOURCE_PATH:-.}/.cargo/registry"
+        target: "/usr/local/cargo/registry"
+      - type: bind
+        source: logs/
+        target: /logs/
     links:
-      - cockroachdb
+      - web-server
+    depends_on:
+      web-server:
+        condition: service_healthy
+    #extends:
+      #file: docker-compose-base.yml
+      #service: example
+    # Add CockroachDB dependencies so we can connect to it when running the examples
+    #<<: *cockroachdb-dependency
 
   ut-coverage:
-    extends:
-      file: docker-compose-base.yml
-      service: ut-coverage
-
-  it-coverage:
-    extends:
-      file: docker-compose-base.yml
-      service: it-coverage
-    links:
-      - cockroachdb
+    <<: *test
+    container_name: ${DOCKER_NAME}-ut-coverage
     volumes:
+      - type: bind
+        source: "${SOURCE_PATH:-.}/"
+        target: "/usr/src/app"
+      - type: bind
+        source: "${SOURCE_PATH:-.}/.cargo/registry"
+        target: "/usr/local/cargo/registry"
+    environment:
+      - SERVER_HOSTNAME
+      - SERVER_PORT_GRPC
+      - SERVER_PORT_REST
+      - RUST_BACKTRACE
+    command: sh -c "
+      cargo tarpaulin \
+        -l -v -t 600 \
+        --manifest-path '${CARGO_MANIFEST_PATH:-Cargo.toml}' \
+        --engine llvm \
+        --workspace \
+        --tests \
+        --no-fail-fast \
+        --features ${PACKAGE_FEATURES}
+        --out Lcov \
+        --output-dir coverage/ ;
+      find . -name *.profraw -delete &&
+      chown -R ${DOCKER_USER_ID:-1000}:${DOCKER_GROUP_ID:-1000} /usr/src/app/*"
+
+    #extends:
+      #file: docker-compose-base.yml
+      #service: ut-coverage
+
+  # Override integration test defaults since we need the database to be running as well to run our server tests
+  it-coverage:
+    <<: *test
+    container_name: ${DOCKER_NAME}-it-coverage
+    volumes:
+      - type: bind
+        source: "${SOURCE_PATH:-.}/"
+        target: "/usr/src/app"
+      - type: bind
+        source: "${SOURCE_PATH:-.}/.cargo/registry"
+        target: "/usr/local/cargo/registry"
+      - type: bind
+        source: logs/
+        target: /logs/
       - type: volume
         source: cockroachdb-ssl
         target: /cockroach/ssl
         read_only: true
+    environment:
+      - SERVER_HOSTNAME
+      - SERVER_PORT_GRPC
+      - SERVER_PORT_REST
+      - RUST_BACKTRACE
+    links:
+      - web-server
+    depends_on:
+      web-server:
+        condition: service_healthy
+      cockroachdb:
+        condition: service_healthy
+    # Run as root user, so we are allowed to read the cockroach db certs on the mounted path
+    user: "0:0"
+    command: sh -c "
+      cargo tarpaulin \
+        -l -v -t 600 \
+        --manifest-path '${CARGO_MANIFEST_PATH:-Cargo.toml}' \
+        --engine llvm \
+        --workspace \
+        --tests \
+        --no-fail-fast \
+        --features ${PACKAGE_FEATURES}
+        --out Lcov \
+        --output-dir coverage/
+        -- --test-threads=1;
+      find . -name *.profraw -delete &&
+      chown -R ${DOCKER_USER_ID:-1000}:${DOCKER_GROUP_ID:-1000} /usr/src/app/*"
+    #extends:
+      #file: docker-compose-base.yml
+      #service: it-coverage
+    # Add CockroachDB dependencies so we can connect to it during our tests
+    #<<: *cockroachdb-dependency
+
+  # Override full integration test defaults since we need the database to be running as well to run our server tests
+  it-full:
+    <<: *test
+    container_name: ${DOCKER_NAME}-it-full
+    command: sh -c "
+      cargo test \
+        --manifest-path '${CARGO_MANIFEST_PATH:-Cargo.toml}' \
+        --workspace \
+        --test integration_test \
+        --features ${PACKAGE_FEATURES:-default} -- --test-threads=1;
+      chown -R ${DOCKER_USER_ID:-1000}:${DOCKER_GROUP_ID:-1000} /usr/src/app/*"
+    environment:
+      - PACKAGE_FEATURES=all_resources,vendored-openssl
+      - SERVER_HOSTNAME
+      - SERVER_PORT_GRPC
+      - SERVER_PORT_REST
+      - RUST_BACKTRACE
+    volumes:
+      - type: bind
+        source: "${SOURCE_PATH:-.}/"
+        target: "/usr/src/app"
+      - type: bind
+        source: "${SOURCE_PATH:-.}/.cargo/registry"
+        target: "/usr/local/cargo/registry"
+      - type: bind
+        source: logs/
+        target: /logs/
+      - type: volume
+        source: cockroachdb-ssl
+        target: /cockroach/ssl
+        read_only: true
+    links:
+      - web-server
+    depends_on:
+      web-server:
+        condition: service_healthy
+      cockroachdb:
+        condition: service_healthy
+    # Run as root user, so we are allowed to read the cockroach db certs on the mounted path
+    user: "0:0"
+    #extends:
+      #file: docker-compose-base.yml
+      #service: it-full
+    # Add CockroachDB dependencies so we can connect to it during our tests
+    #<<: *cockroachdb-dependency

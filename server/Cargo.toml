@@ -1,8 +1,8 @@
 [package]
-description = "Arrow storage service GRPC server"
-keywords    = ["vtol", "server", "storage"]       # max 5
+description = "Aetheric storage service GRPC server"
+keywords    = ["vtol", "server", "storage"]          # max 5
 name        = "svc-storage"
-version     = "0.11.1-develop.9"
+version     = "0.11.1-develop.16"
 
 categories.workspace   = true
 edition.workspace      = true
@@ -30,7 +30,6 @@ byteorder           = "1.5"
 bytes               = "1.5"
 cargo-husky         = "1"
 cfg-if              = "1.0"
-chrono              = { version = "0.4", features = ["serde"] }
 clap                = { version = "4.4", features = ["derive"] }
 config              = "0.13"
 deadpool            = "0.10"
@@ -38,7 +37,6 @@ deadpool-postgres   = { version = "0.11", features = ["serde", "rt_tokio_1"] }
 dotenv              = "0.15"
 futures             = "0.3"
 geo                 = { version = "0.26", optional = true }
-geo-types           = "0.7"
 hyper               = "0.14"
 lazy_static         = "1.4"
 log                 = "0.4"
@@ -62,11 +60,10 @@ tokio               = { version = "1.33", features = ["full"] }
 tokio-util          = "0.7"
 tonic               = "0.10"
 tonic-health        = "0.10"
-uuid                = { version = "1.4", features = ["v4"] }
 
 [dependencies.lib-common]
-git = "https://github.com/Arrow-air/lib-common"
-tag = "latest-develop"
+git = "https://github.com/aetheric-oss/lib-common"
+tag = "v2.0.0"
 
 [dependencies.log4rs]
 features = [
@@ -94,6 +91,7 @@ version  = "0.7"
 assert_matches = "1.5"
 logtest        = "2.0"
 rand           = "0.8"
+regex          = "1.10"
 
 [dev-dependencies.cargo-husky]
 default-features = false          # Disable features which are enabled by default

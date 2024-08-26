@@ -3,11 +3,10 @@
 pub use crate::grpc::server::parcel::*;
 
 use anyhow::{Context, Result};
-use log::debug;
+use lib_common::uuid::Uuid;
 use std::collections::HashMap;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
-use uuid::Uuid;
 
 use super::base::simple_resource::*;
 use super::base::{FieldDefinition, ResourceDefinition};
@@ -92,12 +91,12 @@ impl GrpcDataObjectType for Data {
 }
 
 #[cfg(not(tarpaulin_include))]
-// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
+// no_coverage: (Rwaiting) Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
 impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("(try_from) Converting Row to parcel::Data: {:?}", row);
+        resources_debug!("Converting Row to parcel::Data: {:?}", row);
         let user_id: String = row.get::<&str, Uuid>("user_id").to_string();
         let weight_grams: i64 = row.get("weight_grams");
         let status = ParcelStatus::from_str_name(row.get("status"))
@@ -119,8 +118,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_parcel_schema() {
-        crate::get_log_handle().await;
-        ut_info!("(test_parcel_schema) start");
+        assert_init_done().await;
+        ut_info!("start");
 
         let id = Uuid::new_v4().to_string();
         let data = mock::get_data_obj();
@@ -138,13 +137,13 @@ mod tests {
             ut_info!("{:?}", validation_result);
             assert_eq!(validation_result.success, true);
         }
-        ut_info!("(test_parcel_schema) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_parcel_invalid_data() {
-        crate::get_log_handle().await;
-        ut_info!("(test_parcel_invalid_data) start");
+        assert_init_done().await;
+        ut_info!("start");
 
         let data = Data {
             user_id: String::from("INVALID"),
@@ -162,13 +161,13 @@ mod tests {
             assert_eq!(expected_errors.len(), validation_result.errors.len());
             assert!(contains_field_errors(&validation_result, &expected_errors));
         }
-        ut_info!("(test_parcel_invalid_data) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_parcel_get_enum_status_string_val() {
-        crate::get_log_handle().await;
-        ut_info!("(test_parcel_get_enum_status_string_val) start");
+        assert_init_done().await;
+        ut_info!("start");
 
         assert_eq!(
             ResourceObject::<Data>::get_enum_string_val(
@@ -203,13 +202,13 @@ mod tests {
             None
         );
 
-        ut_info!("(test_parcel_get_enum_status_string_val) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_parcel_status_as_str_name() {
-        crate::get_log_handle().await;
-        ut_info!("(test_parcel_status_as_str_name) start");
+        assert_init_done().await;
+        ut_info!("start");
 
         assert_eq!(ParcelStatus::Notdroppedoff.as_str_name(), "NOTDROPPEDOFF");
         assert_eq!(ParcelStatus::Droppedoff.as_str_name(), "DROPPEDOFF");
@@ -218,13 +217,13 @@ mod tests {
         assert_eq!(ParcelStatus::Pickedup.as_str_name(), "PICKEDUP");
         assert_eq!(ParcelStatus::Complete.as_str_name(), "COMPLETE");
 
-        ut_info!("(test_parcel_status_as_str_name) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_parcel_status_from_str_name() {
-        crate::get_log_handle().await;
-        ut_info!("(test_parcel_status_from_str_name) start");
+        assert_init_done().await;
+        ut_info!("start");
 
         assert_eq!(
             ParcelStatus::from_str_name("NOTDROPPEDOFF"),
@@ -253,6 +252,6 @@ mod tests {
 
         assert_eq!(ParcelStatus::from_str_name("INVALID"), None);
 
-        ut_info!("(test_parcel_status_from_str_name) success");
+        ut_info!("success");
     }
 }

@@ -1,6 +1,6 @@
 //! Vehicle Group
 use super::{
-    debug, ArrErr, GrpcDataObjectType, GrpcField, HashMap, PsqlInitResource, PsqlSearch, Resource,
+    ArrErr, GrpcDataObjectType, GrpcField, HashMap, PsqlInitResource, PsqlSearch, Resource,
     ResourceDefinition, ResourceObject, Row,
 };
 use crate::build_grpc_linked_resource_impl;
@@ -29,15 +29,12 @@ impl GrpcDataObjectType for Data {
 }
 
 #[cfg(not(tarpaulin_include))]
-// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
+// no_coverage: (Rwaiting) Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
 impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!(
-            "(try_from) Converting Row to vehicle_group::Data: {:?}",
-            row
-        );
+        resources_debug!("Converting Row to vehicle_group::Data: {:?}", row);
         Ok(Data {})
     }
 }
@@ -49,8 +46,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_vehicle_group_schema() {
-        crate::get_log_handle().await;
-        ut_info!("(test_vehicle_group_schema) start");
+        assert_init_done().await;
+        ut_info!("start");
 
         let data = Data {};
 
@@ -79,6 +76,6 @@ mod tests {
             assert_eq!(validation_result.success, true);
         }
 
-        ut_info!("(test_vehicle_group_schema) success");
+        ut_info!("success");
     }
 }

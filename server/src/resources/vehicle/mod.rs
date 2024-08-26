@@ -4,12 +4,11 @@ pub use crate::grpc::server::vehicle::*;
 pub mod group;
 
 use anyhow::Result;
-use chrono::{DateTime, Utc};
-use log::debug;
+use lib_common::time::{DateTime, Utc};
+use lib_common::uuid::Uuid;
 use std::collections::HashMap;
 use tokio_postgres::row::Row;
 use tokio_postgres::types::Type as PsqlFieldType;
-use uuid::Uuid;
 
 use super::base::simple_resource::*;
 use super::base::{FieldDefinition, ResourceDefinition};
@@ -136,12 +135,12 @@ impl GrpcDataObjectType for Data {
 }
 
 #[cfg(not(tarpaulin_include))]
-// no_coverage: Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
+// no_coverage: (Rwaiting) Can not be tested in unittest until https://github.com/sfackler/rust-postgres/pull/979 has been merged
 impl TryFrom<Row> for Data {
     type Error = ArrErr;
 
     fn try_from(row: Row) -> Result<Self, ArrErr> {
-        debug!("(try_from) Converting Row to vehicle::Data: {:?}", row);
+        resources_debug!("Converting Row to vehicle::Data: {:?}", row);
 
         let last_maintenance: Option<prost_wkt_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("last_maintenance")
@@ -189,8 +188,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_vehicle_schema() {
-        crate::get_log_handle().await;
-        ut_info!("(test_vehicle_schema) start");
+        assert_init_done().await;
+        ut_info!("start");
 
         let id = Uuid::new_v4().to_string();
         let data = mock::get_data_obj();
@@ -208,13 +207,13 @@ mod tests {
             ut_info!("{:?}", validation_result);
             assert_eq!(validation_result.success, true);
         }
-        ut_info!("(test_vehicle_schema) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_vehicle_invalid_data() {
-        crate::get_log_handle().await;
-        ut_info!("(test_vehicle_invalid_data) start");
+        assert_init_done().await;
+        ut_info!("start");
 
         let data = Data {
             vehicle_model_id: String::from("INVALID"),
@@ -248,11 +247,8 @@ mod tests {
         let result = validate::<ResourceObject<Data>>(&data);
         assert!(result.is_ok());
         if let Ok((data, validation_result)) = result {
-            ut_debug!(
-                "(test_vehicle_invalid_data) validation result: {:?}",
-                validation_result
-            );
-            ut_debug!("(test_vehicle_invalid_data) data: {:?}", data);
+            ut_debug!("validation result: {:?}", validation_result);
+            ut_debug!("data: {:?}", data);
             assert_eq!(validation_result.success, false);
 
             let expected_errors = vec![
@@ -266,13 +262,13 @@ mod tests {
             assert_eq!(expected_errors.len(), validation_result.errors.len());
             assert!(contains_field_errors(&validation_result, &expected_errors));
         }
-        ut_info!("(test_vehicle_invalid_data) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_vehicle_model_type_as_str_name() {
-        crate::get_log_handle().await;
-        ut_info!("(test_vehicle_model_type_as_str_name) start");
+        assert_init_done().await;
+        ut_info!("start");
 
         assert_eq!(VehicleModelType::VtolCargo.as_str_name(), "VTOL_CARGO");
         assert_eq!(
@@ -280,13 +276,13 @@ mod tests {
             "VTOL_PASSENGER"
         );
 
-        ut_info!("(test_vehicle_model_type_as_str_name) success");
+        ut_info!("success");
     }
 
     #[tokio::test]
     async fn test_vehicle_model_type_from_str_name() {
-        crate::get_log_handle().await;
-        ut_info!("(test_vehicle_model_type_from_str_name) start");
+        assert_init_done().await;
+        ut_info!("start");
 
         assert_eq!(
             VehicleModelType::from_str_name("VTOL_CARGO"),
@@ -299,6 +295,6 @@ mod tests {
 
         assert_eq!(VehicleModelType::from_str_name("INVALID"), None);
 
-        ut_info!("(test_vehicle_model_type_from_str_name) success");
+        ut_info!("success");
     }
 }

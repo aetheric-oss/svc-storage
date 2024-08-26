@@ -3,6 +3,10 @@
 
 #[macro_use]
 pub mod macros;
+
+#[cfg(test)]
+pub mod tests;
+
 pub mod server;
 
 mod link_service;
@@ -21,7 +25,7 @@ use std::{fmt::Debug, vec};
 use tokio::runtime::{Handle, Runtime};
 use tonic::Status;
 
-use server::grpc_geo_types::*;
+use server::geo_types::{GeoLineStringZ, GeoPointZ, GeoPolygonZ};
 
 /// gRPC field types
 #[derive(Debug, Clone, PartialEq)]
@@ -48,16 +52,14 @@ pub enum GrpcField {
     F32(f32),
     /// bool
     Bool(bool),
-    /// i16
-    I16(i16),
     /// Timestamp
     Timestamp(Timestamp),
     /// Geometric Point
-    GeoPoint(Point),
+    GeoPointZ(GeoPointZ),
     /// Geometric Polygon
-    GeoPolygon(Polygon),
+    GeoPolygonZ(GeoPolygonZ),
     /// Geometric Line
-    GeoLineString(LineString),
+    GeoLineStringZ(GeoLineStringZ),
     /// Option GrpcFieldOption
     Option(GrpcFieldOption),
 }
@@ -87,16 +89,14 @@ pub enum GrpcFieldOption {
     F32(Option<f32>),
     /// Option\<bool\>
     Bool(Option<bool>),
-    /// Option\<i16\>
-    I16(Option<i16>),
     /// Option\<Timestamp\>
     Timestamp(Option<Timestamp>),
     /// Geo Point
-    GeoPoint(Option<Point>),
+    GeoPointZ(Option<GeoPointZ>),
     /// Geo Polygon
-    GeoPolygon(Option<Polygon>),
+    GeoPolygonZ(Option<GeoPolygonZ>),
     /// Geo Line
-    GeoLineString(Option<LineString>),
+    GeoLineStringZ(Option<GeoLineStringZ>),
     /// [None]
     None,
 }
@@ -117,9 +117,9 @@ impl From<ArrErr> for Status {
         // <https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html#error-handling>
         // <https://cheatsheetseries.owasp.org/cheatsheets/Logging_Cheat_Sheet.html#which-events-to-log>
         let err: Error = err.into();
-        grpc_warn!("(from) {:#}", err);
+        grpc_warn!("{:#}", err);
 
-        tonic::Status::internal("error".to_string())
+        Status::internal("error".to_string())
     }
 }
 
@@ -215,14 +215,6 @@ impl From<GrpcField> for f32 {
         }
     }
 }
-impl From<GrpcField> for i16 {
-    fn from(field: GrpcField) -> Self {
-        match field {
-            GrpcField::I16(field) => field,
-            _ => 0,
-        }
-    }
-}
 impl From<GrpcField> for bool {
     fn from(field: GrpcField) -> Self {
         match field {
@@ -239,55 +231,55 @@ impl From<GrpcField> for Timestamp {
         }
     }
 }
-impl From<Option<GeoPoint>> for GrpcFieldOption {
-    fn from(field: Option<GeoPoint>) -> Self {
+impl From<Option<GeoPointZ>> for GrpcFieldOption {
+    fn from(field: Option<GeoPointZ>) -> Self {
         match field {
-            Some(field) => GrpcFieldOption::GeoPoint(Some(field.into())),
-            _ => GrpcFieldOption::GeoPoint(None),
+            Some(field) => GrpcFieldOption::GeoPointZ(Some(field)),
+            _ => GrpcFieldOption::GeoPointZ(None),
         }
     }
 }
-impl From<GrpcField> for Point {
+impl From<GrpcField> for GeoPointZ {
     fn from(field: GrpcField) -> Self {
         match field {
-            GrpcField::GeoPoint(field) => field,
-            _ => GeoPoint {
-                longitude: 0.0,
-                latitude: 0.0,
-            }
-            .into(),
+            GrpcField::GeoPointZ(field) => field,
+            _ => GeoPointZ {
+                x: 0.0,
+                y: 0.0,
+                z: 0.0,
+            },
         }
     }
 }
-impl From<Option<GeoLineString>> for GrpcFieldOption {
-    fn from(field: Option<GeoLineString>) -> Self {
+impl From<Option<GeoLineStringZ>> for GrpcFieldOption {
+    fn from(field: Option<GeoLineStringZ>) -> Self {
         match field {
-            Some(field) => GrpcFieldOption::GeoLineString(Some(field.into())),
-            _ => GrpcFieldOption::GeoLineString(None),
+            Some(field) => GrpcFieldOption::GeoLineStringZ(Some(field)),
+            _ => GrpcFieldOption::GeoLineStringZ(None),
         }
     }
 }
-impl From<GrpcField> for LineString {
+impl From<GrpcField> for GeoLineStringZ {
     fn from(field: GrpcField) -> Self {
         match field {
-            GrpcField::GeoLineString(field) => field,
-            _ => LineString::new(vec![]),
+            GrpcField::GeoLineStringZ(field) => field,
+            _ => GeoLineStringZ { points: vec![] },
         }
     }
 }
-impl From<Option<GeoPolygon>> for GrpcFieldOption {
-    fn from(field: Option<GeoPolygon>) -> Self {
+impl From<Option<GeoPolygonZ>> for GrpcFieldOption {
+    fn from(field: Option<GeoPolygonZ>) -> Self {
         match field {
-            Some(field) => GrpcFieldOption::GeoPolygon(Some(field.into())),
-            _ => GrpcFieldOption::GeoPolygon(None),
+            Some(field) => GrpcFieldOption::GeoPolygonZ(Some(field)),
+            _ => GrpcFieldOption::GeoPolygonZ(None),
         }
     }
 }
-impl From<GrpcField> for Polygon {
+impl From<GrpcField> for GeoPolygonZ {
     fn from(field: GrpcField) -> Self {
         match field {
-            GrpcField::GeoPolygon(field) => field,
-            _ => Polygon::new(LineString::new(vec![]), vec![]),
+            GrpcField::GeoPolygonZ(field) => field,
+            _ => GeoPolygonZ { rings: vec![] },
         }
     }
 }
@@ -305,12 +297,11 @@ impl From<GrpcFieldOption> for Option<GrpcField> {
             GrpcFieldOption::U32(field) => field.map(GrpcField::U32),
             GrpcFieldOption::U32List(field) => field.map(GrpcField::U32List),
             GrpcFieldOption::F32(field) => field.map(GrpcField::F32),
-            GrpcFieldOption::I16(field) => field.map(GrpcField::I16),
             GrpcFieldOption::Bool(field) => field.map(GrpcField::Bool),
             GrpcFieldOption::Timestamp(field) => field.map(GrpcField::Timestamp),
-            GrpcFieldOption::GeoPoint(field) => field.map(GrpcField::GeoPoint),
-            GrpcFieldOption::GeoLineString(field) => field.map(GrpcField::GeoLineString),
-            GrpcFieldOption::GeoPolygon(field) => field.map(GrpcField::GeoPolygon),
+            GrpcFieldOption::GeoPointZ(field) => field.map(GrpcField::GeoPointZ),
+            GrpcFieldOption::GeoLineStringZ(field) => field.map(GrpcField::GeoLineStringZ),
+            GrpcFieldOption::GeoPolygonZ(field) => field.map(GrpcField::GeoPolygonZ),
             GrpcFieldOption::None => None,
         }
     }
@@ -328,7 +319,7 @@ impl From<GrpcFieldOption> for Option<GrpcField> {
 /// use svc_storage::resources::base::ResourceObject;
 /// use svc_storage::resources::vertipad;
 /// async fn example() {
-///     let id = uuid::Uuid::new_v4();
+///     let id = lib_common::uuid::Uuid::new_v4();
 ///     let handle = get_runtime_handle();
 ///     // start a blocking task so we can make sure
 ///     // our function is ready before we continue our code
@@ -347,479 +338,4 @@ pub fn get_runtime_handle() -> Result<Handle, ArrErr> {
         let rt = Runtime::new()?;
         Ok(rt.handle().clone())
     })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use prost_wkt_types::Timestamp;
-    use tonic::Status;
-
-    #[tokio::test]
-    async fn test_from_arrerr_to_status() {
-        crate::get_log_handle().await;
-        ut_info!("(test_from_arrerr_to_status) start");
-
-        // Create an ArrErr instance with an error message
-        let arr_err = ArrErr::Error("test error message".to_string());
-        // Call the From<ArrErr> for Status implementation to convert the error
-        let status = Status::from(arr_err);
-        // Check that the resulting Status instance has the expected code and message
-        assert_eq!(status.code(), tonic::Code::Internal);
-        assert_eq!(status.message(), "error");
-
-        ut_info!("(test_from_arrerr_to_status) success");
-    }
-
-    #[tokio::test]
-    async fn test_from_grpc_field_to_bytes() {
-        crate::get_log_handle().await;
-        ut_info!("(test_from_grpc_field_to_bytes) start");
-
-        let bytes = vec![0x68, 0x65, 0x6c, 0x6c, 0x6f];
-
-        // GrpcField into bytes
-        let field = GrpcField::Bytes(bytes.clone());
-        let result: Vec<u8> = field.into();
-        assert_eq!(result, bytes.clone());
-
-        // GrpcFieldOption into bytes
-        let field_option = GrpcFieldOption::Bytes(Some(bytes.clone()));
-        let result: Option<GrpcField> = field_option.into();
-        assert_eq!(result, Some(GrpcField::Bytes(bytes.clone())));
-
-        ut_info!("(test_from_grpc_field_to_bytes) success");
-    }
-
-    #[tokio::test]
-    async fn test_from_grpc_field_to_string_list() {
-        crate::get_log_handle().await;
-        ut_info!("(test_from_grpc_field_to_string_list) start");
-
-        // input vec, should return vec
-        let field = GrpcField::StringList(vec!["hello".to_string(), "world".to_string()]);
-        let result = Vec::<String>::from(field);
-        assert_eq!(result, vec!["hello".to_string(), "world".to_string()]);
-
-        // input single string, should return vec
-        let field = GrpcField::String("test".to_string());
-        let result: Vec<String> = field.into();
-        assert_eq!(result, vec!["test".to_string()]);
-
-        // input non string, should return empty list
-        let field = GrpcField::I64(123);
-        let result: Vec<String> = field.into();
-        assert_eq!(result, Vec::<String>::new());
-
-        ut_info!("(test_from_grpc_field_to_string_list) success");
-    }
-
-    #[tokio::test]
-    async fn test_from_grpc_field_to_string() {
-        crate::get_log_handle().await;
-        ut_info!("(test_from_grpc_field_to_string) start");
-
-        let string = String::from("hello");
-
-        // GrpcField into String
-        let field = GrpcField::String(string.clone());
-        let result: String = field.into();
-        assert_eq!(result, string.clone());
-
-        // GrpcFieldOption into String
-        let field_option = GrpcFieldOption::String(Some(string.clone()));
-        let result: Option<GrpcField> = field_option.into();
-        assert_eq!(result, Some(GrpcField::String(string.clone())));
-
-        let field = GrpcFieldOption::String(None);
-        let result: Option<GrpcField> = field.into();
-        assert_eq!(result, None);
-
-        // Non GrpcField::String into String
-        let field = GrpcField::I64(42);
-        let result: String = field.into();
-        assert_eq!(result, "I64(42)");
-
-        ut_info!("(test_from_grpc_field_to_string) success");
-    }
-
-    #[tokio::test]
-    async fn test_from_grpc_field_to_i64_vec() {
-        crate::get_log_handle().await;
-        ut_info!("(test_from_grpc_field_to_i64_vec) start");
-
-        let i64_vec = vec![1, -2, 3, -4];
-
-        // GrpcField into Vec<i64>
-        let field = GrpcField::I64List(i64_vec.clone());
-        let result: Vec<i64> = field.into();
-        assert_eq!(result, i64_vec.clone());
-
-        // GrpcFieldOption into Vec<i64>
-        let field = GrpcFieldOption::I64List(Some(i64_vec.clone()));
-        let result: Option<GrpcField> = field.into();
-        assert_eq!(result, Some(GrpcField::I64List(i64_vec.clone())));
-
-        let field = GrpcFieldOption::I64List(None);
-        let result: Option<GrpcField> = field.into();
-        assert_eq!(result, None);
-
-        // GrpcField::I64 into Vec<i64>
-        let field = GrpcField::I64(42);
-        let result: Vec<i64> = field.into();
-        assert_eq!(result, vec![42]);
-
-        // Non GrpcField::I64List into Vec<i64>
-        let field = GrpcField::Bool(false);
-        let result: Vec<i64> = field.into();
-        assert_eq!(result, Vec::<i64>::new());
-
-        ut_info!("(test_from_grpc_field_to_i64_vec) success");
-    }
-
-    #[tokio::test]
-    async fn test_from_grpc_field_to_i64() {
-        crate::get_log_handle().await;
-        ut_info!("(test_from_grpc_field_to_i64) start");
-
-        let i64 = -42;
-
-        // GrpcField into i64
-        let field = GrpcField::I64(i64);
-        let result: i64 = field.into();
-        assert_eq!(result, i64);
-
-        let field = GrpcField::U32(32);
-        let result: u32 = field.into();
-        assert_eq!(result, 32);
-
-        // GrpcFieldOption into i64
-        let field = GrpcFieldOption::I64(Some(i64));
-        let result: Option<GrpcField> = field.into();
-        assert_eq!(result, Some(GrpcField::I64(i64)));
-
-        let field = GrpcFieldOption::U32(Some(32));
-        let result: Option<GrpcField> = field.into();
-        assert_eq!(result, Some(GrpcField::U32(32)));
-
-        let field = GrpcFieldOption::I64(None);
-        let result: Option<GrpcField> = field.into();
-        assert_eq!(result, None);
-
-        // Non GrpcField::I64 into i64
-        let field = GrpcField::Bool(false);
-        let result: i64 = field.into();
-        assert_eq!(result, 0);
-
-        ut_info!("(test_from_grpc_field_to_i64) success");
-    }
-
-    #[tokio::test]
-    async fn test_from_grpc_field_to_f64() {
-        crate::get_log_handle().await;
-        ut_info!("(test_from_grpc_field_to_f64) start");
-
-        let f64 = 42.42;
-
-        // GrpcField into f64
-        let field = GrpcField::F64(f64);
-        let result: f64 = field.into();
-        assert_eq!(result, f64);
-
-        // GrpcFieldOption into f64
-        let field = GrpcFieldOption::F64(Some(f64));
-        let result: Option<GrpcField> = field.into();
-        assert_eq!(result, Some(GrpcField::F64(f64)));
-
-        let field = GrpcFieldOption::F64(None);
-        let result: Option<GrpcField> = field.into();
-        assert_eq!(result, None);
-
-        // Non GrpcField::F64 into f64
-        let field = GrpcField::Bool(false);
-        let result: f64 = field.into();
-        assert_eq!(result, 0.0);
-
-        ut_info!("(test_from_grpc_field_to_f64) success");
-    }
-
-    #[tokio::test]
-    async fn test_from_grpc_field_to_i32() {
-        crate::get_log_handle().await;
-        ut_info!("(test_from_grpc_field_to_i32) start");
-
-        let i32 = -42;
-
-        // GrpcField into i32
-        let field = GrpcField::I32(i32);
-        let result: i32 = field.into();
-        assert_eq!(result, i32);
-
-        // GrpcFieldOption into i32
-        let field = GrpcFieldOption::I32(Some(i32));
-        let result: Option<GrpcField> = field.into();
-        assert_eq!(result, Some(GrpcField::I32(i32)));
-
-        let field = GrpcFieldOption::I32(None);
-        let result: Option<GrpcField> = field.into();
-        assert_eq!(result, None);
-
-        // Non GrpcField::I32 into i32
-        let field = GrpcField::Bool(false);
-        let result: i32 = field.into();
-        assert_eq!(result, 0);
-
-        ut_info!("(test_from_grpc_field_to_i32) success");
-    }
-
-    #[tokio::test]
-    async fn test_from_grpc_field_to_u32() {
-        crate::get_log_handle().await;
-        ut_info!("(test_from_grpc_field_to_u32) start");
-
-        let u32 = 42;
-
-        // GrpcField into u32
-        let field = GrpcField::U32(u32);
-        let result: u32 = field.into();
-        assert_eq!(result, u32);
-
-        // GrpcFieldOption into u32
-        let field = GrpcFieldOption::U32(Some(u32));
-        let result: Option<GrpcField> = field.into();
-        assert_eq!(result, Some(GrpcField::U32(u32)));
-
-        let field = GrpcFieldOption::U32(None);
-        let result: Option<GrpcField> = field.into();
-        assert_eq!(result, None);
-
-        // Non GrpcField::U32 into u32
-        let field = GrpcField::Bool(false);
-        let result: u32 = field.into();
-        assert_eq!(result, 0);
-
-        ut_info!("(test_from_grpc_field_to_u32) success");
-    }
-
-    #[tokio::test]
-    async fn test_from_grpc_field_to_u32_vec() {
-        crate::get_log_handle().await;
-        ut_info!("(test_from_grpc_field_to_u32_vec) start");
-
-        let u32_vec = vec![1, 2, 3];
-
-        // GrpcField into Vec<u32>
-        let field = GrpcField::U32List(u32_vec.clone());
-        let result: Vec<u32> = field.into();
-        assert_eq!(result, u32_vec.clone());
-
-        // GrpcFieldOption into Vec<u32>
-        let field = GrpcFieldOption::U32List(Some(u32_vec.clone()));
-        let result: Option<GrpcField> = field.into();
-        assert_eq!(result, Some(GrpcField::U32List(u32_vec.clone())));
-
-        let field = GrpcFieldOption::U32List(None);
-        let result: Option<GrpcField> = field.into();
-        assert_eq!(result, None);
-
-        // GrpcField::U32 into Vec<u32>
-        let field = GrpcField::U32(42);
-        let result: Vec<u32> = field.into();
-        assert_eq!(result, vec![42]);
-
-        // Non GrpcField::U32List into Vec<u32>
-        let field = GrpcField::Bool(false);
-        let result: Vec<u32> = field.into();
-        assert_eq!(result, Vec::<u32>::new());
-
-        ut_info!("(test_from_grpc_field_to_u32_vec) success");
-    }
-
-    #[tokio::test]
-    async fn test_from_grpc_field_to_f32() {
-        crate::get_log_handle().await;
-        ut_info!("(test_from_grpc_field_to_f32) start");
-
-        let f32 = 42.42;
-
-        // GrpcField into f32
-        let field = GrpcField::F32(f32);
-        let result: f32 = field.into();
-        assert_eq!(result, f32);
-
-        // GrpcFieldOption into f32
-        let field = GrpcFieldOption::F32(Some(f32));
-        let result: Option<GrpcField> = field.into();
-        assert_eq!(result, Some(GrpcField::F32(f32)));
-
-        let field = GrpcFieldOption::F32(None);
-        let result: Option<GrpcField> = field.into();
-        assert_eq!(result, None);
-
-        // Non GrpcField::F32 into f32
-        let field = GrpcField::Bool(false);
-        let result: f32 = field.into();
-        assert_eq!(result, 0.0);
-
-        ut_info!("(test_from_grpc_field_to_f32) success");
-    }
-
-    #[tokio::test]
-    async fn test_from_grpc_field_to_i16() {
-        crate::get_log_handle().await;
-        ut_info!("(test_from_grpc_field_to_i16) start");
-
-        let i16 = -42;
-
-        // GrpcField into i16
-        let field = GrpcField::I16(i16);
-        let result: i16 = field.into();
-        assert_eq!(result, i16);
-
-        // GrpcFieldOption into i16
-        let field = GrpcFieldOption::I16(Some(i16));
-        let result: Option<GrpcField> = field.into();
-        assert_eq!(result, Some(GrpcField::I16(i16)));
-
-        let field = GrpcFieldOption::I16(None);
-        let result: Option<GrpcField> = field.into();
-        assert_eq!(result, None);
-
-        // Non GrpcField::I16 into i16
-        let field = GrpcField::Bool(false);
-        let result: i16 = field.into();
-        assert_eq!(result, 0);
-
-        ut_info!("(test_from_grpc_field_to_i16) success");
-    }
-
-    #[tokio::test]
-    async fn test_from_grpc_field_to_bool() {
-        crate::get_log_handle().await;
-        ut_info!("(test_from_grpc_field_to_bool) start");
-
-        let bool = true;
-
-        // GrpcField into bool
-        let field = GrpcField::Bool(bool);
-        let result: bool = field.into();
-        assert_eq!(result, bool);
-
-        // GrpcFieldOption into bool
-        let field = GrpcFieldOption::Bool(Some(bool));
-        let result: Option<GrpcField> = field.into();
-        assert_eq!(result, Some(GrpcField::Bool(bool)));
-
-        let field = GrpcFieldOption::Bool(None);
-        let result: Option<GrpcField> = field.into();
-        assert_eq!(result, None);
-
-        // Non GrpcField::Bool into bool
-        let field = GrpcField::I64(42);
-        let result: bool = field.into();
-        assert_eq!(result, false);
-
-        ut_info!("(test_from_grpc_field_to_bool) success");
-    }
-
-    #[tokio::test]
-    async fn test_from_grpc_field_to_timestamp() {
-        crate::get_log_handle().await;
-        ut_info!("(test_from_grpc_field_to_timestamp) start");
-
-        let timestamp = Timestamp::from(SystemTime::now());
-        let field = GrpcField::Timestamp(timestamp.clone());
-        assert_eq!(timestamp, Timestamp::from(field));
-
-        let timestamp = Timestamp::from(SystemTime::UNIX_EPOCH);
-        let field = GrpcField::Timestamp(timestamp.clone());
-        assert_eq!(timestamp, Timestamp::from(field));
-
-        let field = GrpcField::Bool(false);
-        let result: Timestamp = field.into();
-
-        // this one is tricky as the Timestamp returned from the Bool conversion should be the current timestamp (fallback)
-        // But if we make the comparison with a newly created timestamp, the nanos will be different.
-        // We'll be checking the seconds for now, but this might result in false negatives if the test runs on a second switch.
-        assert_eq!(result.seconds, Timestamp::from(SystemTime::now()).seconds);
-
-        ut_info!("(test_from_grpc_field_to_timestamp) success");
-    }
-
-    #[tokio::test]
-    async fn test_from_grpc_field_to_point() {
-        crate::get_log_handle().await;
-        ut_info!("(test_from_grpc_field_to_point) start");
-
-        let point = Point::new(120.8, 45.12);
-
-        // GrpcField into GeoPoint
-        let field = GrpcField::GeoPoint(point.clone());
-        let result: Point = field.into();
-        assert_eq!(result, point.clone());
-
-        // GrpcFieldOption into GeoPoint
-        let field_option = GrpcFieldOption::GeoPoint(Some(point.clone()));
-        let result: Option<GrpcField> = field_option.into();
-        assert_eq!(result, Some(GrpcField::GeoPoint(point.clone())));
-
-        let field = GrpcFieldOption::GeoPoint(None);
-        let result: Option<GrpcField> = field.into();
-        assert_eq!(result, None);
-
-        ut_info!("(test_from_grpc_field_to_point) success");
-    }
-
-    #[tokio::test]
-    async fn test_from_grpc_field_to_linestring() {
-        crate::get_log_handle().await;
-        ut_info!("(test_from_grpc_field_to_linestring) start");
-
-        let line_string = LineString::from(vec![(0.12, 1.23)]);
-
-        // GrpcField into GeoLineString
-        let field = GrpcField::GeoLineString(line_string.clone());
-        let result: LineString = field.into();
-        assert_eq!(result, line_string.clone());
-
-        // GrpcFieldOption into GeoLineString
-        let field_option = GrpcFieldOption::GeoLineString(Some(line_string.clone()));
-        let result: Option<GrpcField> = field_option.into();
-        assert_eq!(result, Some(GrpcField::GeoLineString(line_string.clone())));
-
-        let field = GrpcFieldOption::GeoLineString(None);
-        let result: Option<GrpcField> = field.into();
-        assert_eq!(result, None);
-
-        ut_info!("(test_from_grpc_field_to_linestring) success");
-    }
-
-    #[tokio::test]
-    async fn test_from_grpc_field_to_polygon() {
-        crate::get_log_handle().await;
-        ut_info!("(test_from_grpc_field_to_polygon) start");
-
-        let exterior = LineString::from(vec![(0.12, 1.23)]);
-        let interiors = vec![
-            LineString::from(vec![(0.11, 1.22)]),
-            LineString::from(vec![(0.11, 1.21)]),
-        ];
-        let polygon = Polygon::new(exterior, interiors);
-
-        // GrpcField into Polygon
-        let field = GrpcField::GeoPolygon(polygon.clone());
-        let result: Polygon = field.into();
-        assert_eq!(result, polygon.clone());
-
-        // GrpcFieldOption into Polygon
-        let field_option = GrpcFieldOption::GeoPolygon(Some(polygon.clone()));
-        let result: Option<GrpcField> = field_option.into();
-        assert_eq!(result, Some(GrpcField::GeoPolygon(polygon.clone())));
-
-        let field = GrpcFieldOption::GeoPolygon(None);
-        let result: Option<GrpcField> = field.into();
-        assert_eq!(result, None);
-
-        ut_info!("(test_from_grpc_field_to_polygon) success");
-    }
 }

@@ -715,7 +715,7 @@ impl AdvancedSearchFilter {
 // times though.
 #[allow(dead_code)]
 pub(crate) fn get_single_search_value(search_value: &Vec<String>) -> Result<String, String> {
-    log::debug!(
+    grpc_debug!(
         "(get_single_search_value) get value from: {:?}.",
         search_value
     );
@@ -738,78 +738,115 @@ pub(crate) fn filter_for_operator(
     operator: PredicateOperator,
 ) -> Result<(), String> {
     for object in unfiltered {
-        let val = match search_field {
-            "id" => &object[search_field],
+        let mut val = match search_field {
+            "id" => object[search_field].clone(),
             _ => {
                 let data = &object["data"];
-                &data[search_field]
+                data[search_field].clone()
             }
         };
 
+        let ids = &object["ids"];
+        println!("(filter_for_operator) (MOCK) test ids field [{}].", ids,);
+        if val == serde_json::Value::Null && *ids != serde_json::Value::Null {
+            println!("(filter_for_operator) (MOCK) found ids [{}].", ids,);
+            serde_json::from_value::<Vec<super::FieldValue>>(ids.clone())
+                .map_err(|e| {
+                    format!(
+                        "Could not convert [{:?}] to Ids from json value: {}",
+                        ids, e
+                    )
+                })?
+                .iter()
+                .find(|id| id.field == search_field)
+                .map(|id| val = serde_json::Value::String(id.value.clone()));
+        }
+
+        println!(
+            "(filter_for_operator) (MOCK) got value [{}] for object [{}].",
+            val, object
+        );
         match operator {
             PredicateOperator::Equals => {
                 let search_val: String = get_single_search_value(search_values)?;
-                let val = val.to_string();
-                log::debug!(
-                    "(filter_for_operator) Equals filter with value [{}] for val [{}].",
-                    search_val,
-                    val
+                let cmp_val: String;
+                if let Some(string) = val.as_str() {
+                    cmp_val = string.to_string();
+                } else {
+                    cmp_val = format!("{}", val);
+                }
+                println!(
+                    "(filter_for_operator) (MOCK) Equals filter with value [{}] for val [{}].",
+                    search_val, cmp_val
                 );
-                if val == *search_val {
-                    log::debug!("(filter_for_operator) found!");
+                if cmp_val == *search_val {
+                    println!("(filter_for_operator) (MOCK) Equals found!");
                     filtered.push(object.clone())
                 }
             }
             PredicateOperator::NotEquals => {
                 let search_val: String = get_single_search_value(search_values)?;
-                let val = val.to_string();
-                log::debug!(
-                    "(filter_for_operator) NotEquals filter with value [{}] for val [{}].",
-                    search_val,
-                    val
+                let cmp_val: String;
+                if let Some(string) = val.as_str() {
+                    cmp_val = string.to_string();
+                } else {
+                    cmp_val = format!("{}", val);
+                }
+                println!(
+                    "(filter_for_operator) (MOCK) NotEquals filter with value [{}] for val [{}].",
+                    search_val, val
                 );
-                if val != *search_val {
-                    log::debug!("(filter_for_operator) found!");
+                if cmp_val != *search_val {
+                    println!("(filter_for_operator) (MOCK) NotEquals found!");
                     filtered.push(object.clone())
                 }
             }
             PredicateOperator::In => {
-                let val = val.to_string();
-                log::debug!(
-                    "(filter_for_operator) In filter with values [{:?}] for val [{}].",
-                    search_values,
-                    val
-                );
-                for search_val in search_values {
-                    if val == *search_val {
-                        log::debug!("(filter_for_operator) found!");
-                        filtered.push(object.clone())
-                    }
+                let cmp_val: String;
+                if let Some(string) = val.as_str() {
+                    cmp_val = string.to_string();
+                } else {
+                    cmp_val = format!("{}", val);
                 }
+
+                println!(
+                    "(filter_for_operator) (MOCK) In filter with values [{:?}] for val [{}].",
+                    search_values, cmp_val
+                );
+
+                let _ = search_values
+                    .iter()
+                    .find(|&search_val| search_val == &cmp_val)
+                    .map(|_| {
+                        println!("(filter_for_operator) (MOCK) In found!");
+                        filtered.push(object.clone())
+                    });
             }
             PredicateOperator::NotIn => {
-                let val = val.to_string();
-                log::debug!(
-                    "(filter_for_operator) NotIn filter with values [{:?}] for val [{}].",
-                    search_values,
-                    val
+                let cmp_val: String;
+                if let Some(string) = val.as_str() {
+                    cmp_val = string.to_string();
+                } else {
+                    cmp_val = format!("{}", val);
+                }
+
+                println!(
+                    "(filter_for_operator) (MOCK) NotIn filter with values [{:?}] for val [{}].",
+                    search_values, cmp_val
                 );
-                let mut found = false;
-                for search_val in search_values {
-                    if val == *search_val {
-                        found = true
-                    }
-                }
-                if !found {
-                    log::debug!("(filter_for_operator) found!");
-                    filtered.push(object.clone())
-                }
+
+                let _ = search_values
+                    .iter()
+                    .find(|&search_val| search_val == &cmp_val)
+                    .ok_or_else(|| {
+                        println!("(filter_for_operator) (MOCK) NotIn found!");
+                        filtered.push(object.clone());
+                    });
             }
             PredicateOperator::Between => {
-                log::debug!(
-                    "(filter_for_operator) Between filter with values [{:?}] for val [{}].",
-                    search_values,
-                    val
+                println!(
+                    "(filter_for_operator) (MOCK) Between filter with values [{:?}] for val [{}].",
+                    search_values, val
                 );
                 let mut values: std::collections::VecDeque<String> = search_values.clone().into();
 
@@ -825,15 +862,15 @@ pub(crate) fn filter_for_operator(
                         return Err("Error in advanced search parameters. Between operator is expecting 2 values but got only one.".to_string());
                     }
                 };
-                log::debug!(
-                    "(filter_for_operator) Found min [{}] and max [{}] values to compare with.",
+                println!(
+                    "(filter_for_operator) (MOCK) Found min [{}] and max [{}] values to compare with.",
                     min,
                     max
                 );
 
                 if let Some(num_val) = val.as_f64() {
-                    log::debug!(
-                        "(filter_for_operator) Can convert val to number, got [{}].",
+                    println!(
+                        "(filter_for_operator) (MOCK) Can convert val to number, got [{}].",
                         num_val
                     );
                     let num_min = min.parse::<f64>().map_err(|e| {
@@ -843,15 +880,15 @@ pub(crate) fn filter_for_operator(
                         format!("Could not convert search_value max [{}] to f64: {}", max, e)
                     })?;
                     if num_val >= num_min && num_val <= num_max {
-                        log::debug!("(filter_for_operator) found!");
+                        println!("(filter_for_operator) (MOCK) Between found!");
                         filtered.push(object.clone())
                     }
                 } else if let Ok(date_val) = lib_common::time::DateTime::parse_from_rfc3339(
                     val.as_str()
                         .ok_or("Could not convert provided value to string.")?,
                 ) {
-                    log::debug!(
-                        "(filter_for_operator) Can convert val to date, got [{}].",
+                    println!(
+                        "(filter_for_operator) (MOCK) Can convert val to date, got [{}].",
                         date_val
                     );
                     let date_min =
@@ -870,65 +907,79 @@ pub(crate) fn filter_for_operator(
                             )
                         })?;
                     if date_val >= date_min && date_val <= date_max {
-                        log::debug!("(filter_for_operator) found!");
+                        println!("(filter_for_operator) (MOCK) Between found!");
                         filtered.push(object.clone())
                     }
                 } else {
-                    log::warn!(
-                        "(filter_for_operator) Can't convert val [{}] to number or date, don't know what to do.",
+                    grpc_warn!(
+                        "(filter_for_operator) (MOCK) Can't convert val [{}] to number or date, don't know what to do.",
                         &val.to_string()
                     );
                 }
             }
             PredicateOperator::IsNull => {
-                log::debug!("(filter_for_operator) IsNull filter for value [{}].", val);
+                println!(
+                    "(filter_for_operator) (MOCK) IsNull filter for value [{}].",
+                    val
+                );
                 if val.is_null() {
-                    log::debug!("(filter_for_operator) found!");
+                    println!("(filter_for_operator) (MOCK) IsNull found!");
                     filtered.push(object.clone())
                 }
             }
             PredicateOperator::IsNotNull => {
-                log::debug!(
-                    "(filter_for_operator) IsNotNull filter for value [{}].",
+                println!(
+                    "(filter_for_operator) (MOCK) IsNotNull filter for value [{}].",
                     val
                 );
                 if !val.is_null() {
-                    log::debug!("(filter_for_operator) found!");
+                    println!("(filter_for_operator) (MOCK) IsNotNull found!");
                     filtered.push(object.clone())
                 }
             }
             PredicateOperator::Ilike => {
-                /*
-                filter_str = format!(
-                    r#" "{}"::text ILIKE ${}"#,
-                    search_col.col_name, next_param_index
+                let search_val: String = get_single_search_value(search_values)?;
+                let cmp_val: String;
+                if let Some(string) = val.as_str() {
+                    cmp_val = string.to_string();
+                } else {
+                    cmp_val = format!("{}", val);
+                }
+                println!(
+                    "(filter_for_operator) (MOCK) Ilike filter with value [{}] for val [{}].",
+                    search_val, cmp_val
                 );
-                search_col.set_value(get_single_search_value(values)?);
-                params.push(search_col.clone());
-                next_param_index += 1;
-                */
+                if cmp_val.to_lowercase().contains(&search_val.to_lowercase()) {
+                    println!("(filter_for_operator) (MOCK) Ilike found!");
+                    filtered.push(object.clone())
+                }
             }
             PredicateOperator::Like => {
-                /*
-                    filter_str = format!(
-                        r#" "{}"::text LIKE ${}"#,
-                        search_col.col_name, next_param_index
-                    );
-                    search_col.set_value(get_single_search_value(values)?);
-                    params.push(search_col.clone());
-                    next_param_index += 1;
-                */
+                let search_val: String = get_single_search_value(search_values)?;
+                let cmp_val: String;
+                if let Some(string) = val.as_str() {
+                    cmp_val = string.to_string();
+                } else {
+                    cmp_val = format!("{}", val);
+                }
+                println!(
+                    "(filter_for_operator) (MOCK) Like filter with value [{}] for val [{}].",
+                    search_val, cmp_val
+                );
+                if cmp_val.contains(&search_val) {
+                    println!("(filter_for_operator) (MOCK) Like found!");
+                    filtered.push(object.clone())
+                }
             }
             PredicateOperator::Greater => {
                 let search_val: String = get_single_search_value(search_values)?;
-                log::debug!(
-                    "(filter_for_operator) Greater filter with value [{:?}] for val [{}].",
-                    search_val,
-                    val
+                println!(
+                    "(filter_for_operator) (MOCK) Greater filter with value [{:?}] for val [{}].",
+                    search_val, val
                 );
                 if let Some(num_val) = val.as_f64() {
-                    log::debug!(
-                        "(filter_for_operator) Can convert val to number, got [{}].",
+                    println!(
+                        "(filter_for_operator) (MOCK) Can convert val to number, got [{}].",
                         num_val
                     );
                     let num_search_val = search_val.parse::<f64>().map_err(|e| {
@@ -938,15 +989,15 @@ pub(crate) fn filter_for_operator(
                         )
                     })?;
                     if num_val > num_search_val {
-                        log::debug!("(filter_for_operator) found!");
+                        println!("(filter_for_operator) (MOCK) Greater found!");
                         filtered.push(object.clone())
                     }
                 } else if let Ok(date_val) = lib_common::time::DateTime::parse_from_rfc3339(
                     val.as_str()
                         .ok_or("Could not convert provided value to string.")?,
                 ) {
-                    log::debug!(
-                        "(filter_for_operator) Can convert val to date, got [{}].",
+                    println!(
+                        "(filter_for_operator) (MOCK) Can convert val to date, got [{}].",
                         date_val
                     );
                     let search_date = lib_common::time::DateTime::parse_from_rfc3339(&search_val)
@@ -957,26 +1008,26 @@ pub(crate) fn filter_for_operator(
                         )
                     })?;
                     if date_val > search_date {
-                        log::debug!("(filter_for_operator) found!");
+                        println!("(filter_for_operator) (MOCK) Greater found!");
                         filtered.push(object.clone())
                     }
                 } else {
-                    log::warn!(
-                        "(filter_for_operator) Can't convert val [{}] to number or date, don't know what to do.",
+                    grpc_warn!(
+                        "(filter_for_operator) (MOCK) Can't convert val [{}] to number or date, don't know what to do.",
                         &val.to_string()
                     );
                 }
             }
             PredicateOperator::GreaterOrEqual => {
                 let search_val: String = get_single_search_value(search_values)?;
-                log::debug!(
-                    "(filter_for_operator) GreaterOrEqual filter with value [{:?}] for val [{}].",
+                println!(
+                    "(filter_for_operator) (MOCK) GreaterOrEqual filter with value [{:?}] for val [{}].",
                     search_val,
                     val
                 );
                 if let Some(num_val) = val.as_f64() {
-                    log::debug!(
-                        "(filter_for_operator) Can convert val to number, got [{}].",
+                    println!(
+                        "(filter_for_operator) (MOCK) Can convert val to number, got [{}].",
                         num_val
                     );
                     let num_search_val = search_val.parse::<f64>().map_err(|e| {
@@ -986,15 +1037,15 @@ pub(crate) fn filter_for_operator(
                         )
                     })?;
                     if num_val >= num_search_val {
-                        log::debug!("(filter_for_operator) found!");
+                        println!("(filter_for_operator) (MOCK) GreaterOrEqual found!");
                         filtered.push(object.clone())
                     }
                 } else if let Ok(date_val) = lib_common::time::DateTime::parse_from_rfc3339(
                     val.as_str()
                         .ok_or("Could not convert provided value to string.")?,
                 ) {
-                    log::debug!(
-                        "(filter_for_operator) Can convert val to date, got [{}].",
+                    println!(
+                        "(filter_for_operator) (MOCK) Can convert val to date, got [{}].",
                         date_val
                     );
                     let search_date = lib_common::time::DateTime::parse_from_rfc3339(&search_val)
@@ -1005,26 +1056,25 @@ pub(crate) fn filter_for_operator(
                         )
                     })?;
                     if date_val >= search_date {
-                        log::debug!("(filter_for_operator) found!");
+                        println!("(filter_for_operator) (MOCK) GreaterOrEqual found!");
                         filtered.push(object.clone())
                     }
                 } else {
-                    log::warn!(
-                        "(filter_for_operator) Can't convert val [{}] to number or date, don't know what to do.",
+                    grpc_warn!(
+                        "(filter_for_operator) (MOCK) Can't convert val [{}] to number or date, don't know what to do.",
                         &val.to_string()
                     );
                 }
             }
             PredicateOperator::Less => {
                 let search_val: String = get_single_search_value(search_values)?;
-                log::debug!(
-                    "(filter_for_operator) Less filter with value [{:?}] for val [{}].",
-                    search_val,
-                    val
+                println!(
+                    "(filter_for_operator) (MOCK) Less filter with value [{:?}] for val [{}].",
+                    search_val, val
                 );
                 if let Some(num_val) = val.as_f64() {
-                    log::debug!(
-                        "(filter_for_operator) Can convert val to number, got [{}].",
+                    println!(
+                        "(filter_for_operator) (MOCK) Can convert val to number, got [{}].",
                         num_val
                     );
                     let num_search_val = search_val.parse::<f64>().map_err(|e| {
@@ -1034,15 +1084,15 @@ pub(crate) fn filter_for_operator(
                         )
                     })?;
                     if num_val < num_search_val {
-                        log::debug!("(filter_for_operator) found!");
+                        println!("(filter_for_operator) (MOCK) Less found!");
                         filtered.push(object.clone())
                     }
                 } else if let Ok(date_val) = lib_common::time::DateTime::parse_from_rfc3339(
                     val.as_str()
                         .ok_or("Could not convert provided value to string.")?,
                 ) {
-                    log::debug!(
-                        "(filter_for_operator) Can convert val to date, got [{}].",
+                    println!(
+                        "(filter_for_operator) (MOCK) Can convert val to date, got [{}].",
                         date_val
                     );
                     let search_date = lib_common::time::DateTime::parse_from_rfc3339(&search_val)
@@ -1053,26 +1103,26 @@ pub(crate) fn filter_for_operator(
                         )
                     })?;
                     if date_val < search_date {
-                        log::debug!("(filter_for_operator) found!");
+                        println!("(filter_for_operator) (MOCK) Less found!");
                         filtered.push(object.clone())
                     }
                 } else {
-                    log::warn!(
-                        "(filter_for_operator) Can't convert val [{}] to number or date, don't know what to do.",
+                    grpc_warn!(
+                        "(filter_for_operator) (MOCK) Can't convert val [{}] to number or date, don't know what to do.",
                         &val.to_string()
                     );
                 }
             }
             PredicateOperator::LessOrEqual => {
                 let search_val: String = get_single_search_value(search_values)?;
-                log::debug!(
-                    "(filter_for_operator) LessOrEqual filter with value [{:?}] for val [{}].",
+                println!(
+                    "(filter_for_operator) (MOCK) LessOrEqual filter with value [{:?}] for val [{}].",
                     search_val,
                     val
                 );
                 if let Some(num_val) = val.as_f64() {
-                    log::debug!(
-                        "(filter_for_operator) Can convert val to number, got [{}].",
+                    println!(
+                        "(filter_for_operator) (MOCK) Can convert val to number, got [{}].",
                         num_val
                     );
                     let num_search_val = search_val.parse::<f64>().map_err(|e| {
@@ -1082,15 +1132,15 @@ pub(crate) fn filter_for_operator(
                         )
                     })?;
                     if num_val <= num_search_val {
-                        log::debug!("(filter_for_operator) found!");
+                        println!("(filter_for_operator) (MOCK) LessOrEqual found!");
                         filtered.push(object.clone())
                     }
                 } else if let Ok(date_val) = lib_common::time::DateTime::parse_from_rfc3339(
                     val.as_str()
                         .ok_or("Could not convert provided value to string.")?,
                 ) {
-                    log::debug!(
-                        "(filter_for_operator) Can convert val to date, got [{}].",
+                    println!(
+                        "(filter_for_operator) (MOCK) Can convert val to date, got [{}].",
                         date_val
                     );
                     let search_date = lib_common::time::DateTime::parse_from_rfc3339(&search_val)
@@ -1101,47 +1151,47 @@ pub(crate) fn filter_for_operator(
                         )
                     })?;
                     if date_val <= search_date {
-                        log::debug!("(filter_for_operator) found!");
+                        println!("(filter_for_operator) (MOCK) LessOrEqual found!");
                         filtered.push(object.clone())
                     }
                 } else {
-                    log::warn!(
-                        "(filter_for_operator) Can't convert val [{}] to number or date, don't know what to do.",
+                    grpc_warn!(
+                        "(filter_for_operator) (MOCK) Can't convert val [{}] to number or date, don't know what to do.",
                         &val.to_string()
                     );
                 }
             }
             PredicateOperator::GeoIntersect => {
                 /*
-                    filter_str = format!(
-                        r#" st_intersect(st_geomfromtext(${}), "{}")"#,
-                        next_param_index, search_col.col_name,
-                    );
-                    search_col.set_value(get_single_search_value(values)?);
-                    params.push(search_col.clone());
-                    next_param_index += 1;
+                filter_str = format!(
+                r#" st_intersect(st_geomfromtext(${}), "{}")"#,
+                next_param_index, search_col.col_name,
+                );
+                search_col.set_value(get_single_search_value(values)?);
+                params.push(search_col.clone());
+                next_param_index += 1;
                 */
             }
             PredicateOperator::GeoWithin => {
                 /*
-                    filter_str = format!(
-                        r#" st_within(st_geomfromtext(${}), "{}")"#,
-                        next_param_index, search_col.col_name,
-                    );
-                    search_col.set_value(get_single_search_value(values)?);
-                    params.push(search_col.clone());
-                    next_param_index += 1;
+                filter_str = format!(
+                r#" st_within(st_geomfromtext(${}), "{}")"#,
+                next_param_index, search_col.col_name,
+                );
+                search_col.set_value(get_single_search_value(values)?);
+                params.push(search_col.clone());
+                next_param_index += 1;
                 */
             }
             PredicateOperator::GeoDisjoint => {
                 /*
-                    filter_str = format!(
-                        r#" st_disjoint(st_geomfromtext(${}), "{}")"#,
-                        next_param_index, search_col.col_name,
-                    );
-                    search_col.set_value(get_single_search_value(values)?);
-                    params.push(search_col.clone());
-                    next_param_index += 1;
+                filter_str = format!(
+                r#" st_disjoint(st_geomfromtext(${}), "{}")"#,
+                next_param_index, search_col.col_name,
+                );
+                search_col.set_value(get_single_search_value(values)?);
+                params.push(search_col.clone());
+                next_param_index += 1;
                 */
             }
         }
@@ -1279,6 +1329,49 @@ mod tests {
         assert_eq!(
             filter_option3.predicate_operator,
             PredicateOperator::In as i32
+        );
+        assert_eq!(
+            filter_option3.comparison_operator,
+            Some(ComparisonOperator::Or as i32)
+        );
+    }
+
+    // Test all of search, and, or options for predicate operator; not_in
+    #[test]
+    fn test_search_not_in() {
+        let filter =
+            AdvancedSearchFilter::search_not_in(String::from("not_in"), vec![String::from("test")])
+                .and_not_in(String::from("and_not_in"), vec![String::from("test")])
+                .or_not_in(String::from("or_not_in"), vec![String::from("test")]);
+
+        assert_eq!(filter.filters.len(), 3);
+
+        let filter_option1 = &filter.filters[0];
+        assert_eq!(filter_option1.search_field, "not_in");
+        assert_eq!(filter_option1.search_value, vec!["test"]);
+        assert_eq!(
+            filter.filters[0].predicate_operator,
+            PredicateOperator::NotIn as i32
+        );
+
+        let filter_option2 = &filter.filters[1];
+        assert_eq!(filter_option2.search_field, "and_not_in");
+        assert_eq!(filter_option2.search_value, vec!["test"]);
+        assert_eq!(
+            filter_option2.predicate_operator,
+            PredicateOperator::NotIn as i32
+        );
+        assert_eq!(
+            filter_option2.comparison_operator,
+            Some(ComparisonOperator::And as i32)
+        );
+
+        let filter_option3 = &filter.filters[2];
+        assert_eq!(filter_option3.search_field, "or_not_in");
+        assert_eq!(filter_option3.search_value, vec!["test"]);
+        assert_eq!(
+            filter_option3.predicate_operator,
+            PredicateOperator::NotIn as i32
         );
         assert_eq!(
             filter_option3.comparison_operator,
@@ -1505,6 +1598,334 @@ mod tests {
         );
     }
 
+    // Test all of search, and, or options for predicate operator; greater
+    #[test]
+    fn test_search_greater() {
+        let filter =
+            AdvancedSearchFilter::search_greater(String::from("greater"), String::from("1"))
+                .and_greater(String::from("and_greater"), String::from("2"))
+                .or_greater(String::from("or_greater"), String::from("3"));
+
+        assert_eq!(filter.filters.len(), 3);
+
+        let filter_option1 = &filter.filters[0];
+        assert_eq!(filter_option1.search_field, "greater");
+        assert_eq!(filter_option1.search_value, vec!["1"]);
+        assert_eq!(
+            filter.filters[0].predicate_operator,
+            PredicateOperator::Greater as i32
+        );
+
+        let filter_option2 = &filter.filters[1];
+        assert_eq!(filter_option2.search_field, "and_greater");
+        assert_eq!(filter_option2.search_value, vec!["2"]);
+        assert_eq!(
+            filter_option2.predicate_operator,
+            PredicateOperator::Greater as i32
+        );
+        assert_eq!(
+            filter_option2.comparison_operator,
+            Some(ComparisonOperator::And as i32)
+        );
+
+        let filter_option3 = &filter.filters[2];
+        assert_eq!(filter_option3.search_field, "or_greater");
+        assert_eq!(filter_option3.search_value, vec!["3"]);
+        assert_eq!(
+            filter_option3.predicate_operator,
+            PredicateOperator::Greater as i32
+        );
+        assert_eq!(
+            filter_option3.comparison_operator,
+            Some(ComparisonOperator::Or as i32)
+        );
+    }
+
+    // Test all of search, and, or options for predicate operator; greater_or_equal
+    #[test]
+    fn test_search_greater_or_equal() {
+        let filter = AdvancedSearchFilter::search_greater_or_equal(
+            String::from("greater_or_equal"),
+            String::from("1"),
+        )
+        .and_greater_or_equal(String::from("and_greater_or_equal"), String::from("2"))
+        .or_greater_or_equal(String::from("or_greater_or_equal"), String::from("3"));
+
+        assert_eq!(filter.filters.len(), 3);
+
+        let filter_option1 = &filter.filters[0];
+        assert_eq!(filter_option1.search_field, "greater_or_equal");
+        assert_eq!(filter_option1.search_value, vec!["1"]);
+        assert_eq!(
+            filter.filters[0].predicate_operator,
+            PredicateOperator::GreaterOrEqual as i32
+        );
+
+        let filter_option2 = &filter.filters[1];
+        assert_eq!(filter_option2.search_field, "and_greater_or_equal");
+        assert_eq!(filter_option2.search_value, vec!["2"]);
+        assert_eq!(
+            filter_option2.predicate_operator,
+            PredicateOperator::GreaterOrEqual as i32
+        );
+        assert_eq!(
+            filter_option2.comparison_operator,
+            Some(ComparisonOperator::And as i32)
+        );
+
+        let filter_option3 = &filter.filters[2];
+        assert_eq!(filter_option3.search_field, "or_greater_or_equal");
+        assert_eq!(filter_option3.search_value, vec!["3"]);
+        assert_eq!(
+            filter_option3.predicate_operator,
+            PredicateOperator::GreaterOrEqual as i32
+        );
+        assert_eq!(
+            filter_option3.comparison_operator,
+            Some(ComparisonOperator::Or as i32)
+        );
+    }
+
+    // Test all of search, and, or options for predicate operator; less
+    #[test]
+    fn test_search_less() {
+        let filter = AdvancedSearchFilter::search_less(String::from("less"), String::from("1"))
+            .and_less(String::from("and_less"), String::from("2"))
+            .or_less(String::from("or_less"), String::from("3"));
+
+        assert_eq!(filter.filters.len(), 3);
+
+        let filter_option1 = &filter.filters[0];
+        assert_eq!(filter_option1.search_field, "less");
+        assert_eq!(filter_option1.search_value, vec!["1"]);
+        assert_eq!(
+            filter.filters[0].predicate_operator,
+            PredicateOperator::Less as i32
+        );
+
+        let filter_option2 = &filter.filters[1];
+        assert_eq!(filter_option2.search_field, "and_less");
+        assert_eq!(filter_option2.search_value, vec!["2"]);
+        assert_eq!(
+            filter_option2.predicate_operator,
+            PredicateOperator::Less as i32
+        );
+        assert_eq!(
+            filter_option2.comparison_operator,
+            Some(ComparisonOperator::And as i32)
+        );
+
+        let filter_option3 = &filter.filters[2];
+        assert_eq!(filter_option3.search_field, "or_less");
+        assert_eq!(filter_option3.search_value, vec!["3"]);
+        assert_eq!(
+            filter_option3.predicate_operator,
+            PredicateOperator::Less as i32
+        );
+        assert_eq!(
+            filter_option3.comparison_operator,
+            Some(ComparisonOperator::Or as i32)
+        );
+    }
+
+    // Test all of search, and, or options for predicate operator; less_or_equal
+    #[test]
+    fn test_search_less_or_equal() {
+        let filter = AdvancedSearchFilter::search_less_or_equal(
+            String::from("less_or_equal"),
+            String::from("1"),
+        )
+        .and_less_or_equal(String::from("and_less_or_equal"), String::from("2"))
+        .or_less_or_equal(String::from("or_less_or_equal"), String::from("3"));
+
+        assert_eq!(filter.filters.len(), 3);
+
+        let filter_option1 = &filter.filters[0];
+        assert_eq!(filter_option1.search_field, "less_or_equal");
+        assert_eq!(filter_option1.search_value, vec!["1"]);
+        assert_eq!(
+            filter.filters[0].predicate_operator,
+            PredicateOperator::LessOrEqual as i32
+        );
+
+        let filter_option2 = &filter.filters[1];
+        assert_eq!(filter_option2.search_field, "and_less_or_equal");
+        assert_eq!(filter_option2.search_value, vec!["2"]);
+        assert_eq!(
+            filter_option2.predicate_operator,
+            PredicateOperator::LessOrEqual as i32
+        );
+        assert_eq!(
+            filter_option2.comparison_operator,
+            Some(ComparisonOperator::And as i32)
+        );
+
+        let filter_option3 = &filter.filters[2];
+        assert_eq!(filter_option3.search_field, "or_less_or_equal");
+        assert_eq!(filter_option3.search_value, vec!["3"]);
+        assert_eq!(
+            filter_option3.predicate_operator,
+            PredicateOperator::LessOrEqual as i32
+        );
+        assert_eq!(
+            filter_option3.comparison_operator,
+            Some(ComparisonOperator::Or as i32)
+        );
+    }
+
+    // Test all of search, and, or options for predicate operator; geo_intersect
+    #[test]
+    fn test_search_geo_intersect() {
+        let filter = AdvancedSearchFilter::search_geo_intersect(
+            String::from("geo_intersect"),
+            String::from("POINT Z(1,2,3)"),
+        )
+        .and_geo_intersect(
+            String::from("and_geo_intersect"),
+            String::from("POINT Z(4,5,6)"),
+        )
+        .or_geo_intersect(
+            String::from("or_geo_intersect"),
+            String::from("POINT Z(7,8,9)"),
+        );
+
+        assert_eq!(filter.filters.len(), 3);
+
+        let filter_option1 = &filter.filters[0];
+        assert_eq!(filter_option1.search_field, "geo_intersect");
+        assert_eq!(filter_option1.search_value, vec!["POINT Z(1,2,3)"]);
+        assert_eq!(
+            filter.filters[0].predicate_operator,
+            PredicateOperator::GeoIntersect as i32
+        );
+
+        let filter_option2 = &filter.filters[1];
+        assert_eq!(filter_option2.search_field, "and_geo_intersect");
+        assert_eq!(filter_option2.search_value, vec!["POINT Z(4,5,6)"]);
+        assert_eq!(
+            filter_option2.predicate_operator,
+            PredicateOperator::GeoIntersect as i32
+        );
+        assert_eq!(
+            filter_option2.comparison_operator,
+            Some(ComparisonOperator::And as i32)
+        );
+
+        let filter_option3 = &filter.filters[2];
+        assert_eq!(filter_option3.search_field, "or_geo_intersect");
+        assert_eq!(filter_option3.search_value, vec!["POINT Z(7,8,9)"]);
+        assert_eq!(
+            filter_option3.predicate_operator,
+            PredicateOperator::GeoIntersect as i32
+        );
+        assert_eq!(
+            filter_option3.comparison_operator,
+            Some(ComparisonOperator::Or as i32)
+        );
+    }
+
+    // Test all of search, and, or options for predicate operator; geo_within
+    #[test]
+    fn test_search_geo_within() {
+        let filter = AdvancedSearchFilter::search_geo_within(
+            String::from("geo_within"),
+            String::from("POINT Z(1,2,3)"),
+        )
+        .and_geo_within(
+            String::from("and_geo_within"),
+            String::from("POINT Z(4,5,6)"),
+        )
+        .or_geo_within(
+            String::from("or_geo_within"),
+            String::from("POINT Z(7,8,9)"),
+        );
+
+        assert_eq!(filter.filters.len(), 3);
+
+        let filter_option1 = &filter.filters[0];
+        assert_eq!(filter_option1.search_field, "geo_within");
+        assert_eq!(filter_option1.search_value, vec!["POINT Z(1,2,3)"]);
+        assert_eq!(
+            filter.filters[0].predicate_operator,
+            PredicateOperator::GeoWithin as i32
+        );
+
+        let filter_option2 = &filter.filters[1];
+        assert_eq!(filter_option2.search_field, "and_geo_within");
+        assert_eq!(filter_option2.search_value, vec!["POINT Z(4,5,6)"]);
+        assert_eq!(
+            filter_option2.predicate_operator,
+            PredicateOperator::GeoWithin as i32
+        );
+        assert_eq!(
+            filter_option2.comparison_operator,
+            Some(ComparisonOperator::And as i32)
+        );
+
+        let filter_option3 = &filter.filters[2];
+        assert_eq!(filter_option3.search_field, "or_geo_within");
+        assert_eq!(filter_option3.search_value, vec!["POINT Z(7,8,9)"]);
+        assert_eq!(
+            filter_option3.predicate_operator,
+            PredicateOperator::GeoWithin as i32
+        );
+        assert_eq!(
+            filter_option3.comparison_operator,
+            Some(ComparisonOperator::Or as i32)
+        );
+    }
+
+    // Test all of search, and, or options for predicate operator; geo_disjoint
+    #[test]
+    fn test_search_geo_disjoint() {
+        let filter = AdvancedSearchFilter::search_geo_disjoint(
+            String::from("geo_disjoint"),
+            String::from("POINT Z(1,2,3)"),
+        )
+        .and_geo_disjoint(
+            String::from("and_geo_disjoint"),
+            String::from("POINT Z(4,5,6)"),
+        )
+        .or_geo_disjoint(
+            String::from("or_geo_disjoint"),
+            String::from("POINT Z(7,8,9)"),
+        );
+
+        assert_eq!(filter.filters.len(), 3);
+
+        let filter_option1 = &filter.filters[0];
+        assert_eq!(filter_option1.search_field, "geo_disjoint");
+        assert_eq!(filter_option1.search_value, vec!["POINT Z(1,2,3)"]);
+        assert_eq!(
+            filter.filters[0].predicate_operator,
+            PredicateOperator::GeoDisjoint as i32
+        );
+
+        let filter_option2 = &filter.filters[1];
+        assert_eq!(filter_option2.search_field, "and_geo_disjoint");
+        assert_eq!(filter_option2.search_value, vec!["POINT Z(4,5,6)"]);
+        assert_eq!(
+            filter_option2.predicate_operator,
+            PredicateOperator::GeoDisjoint as i32
+        );
+        assert_eq!(
+            filter_option2.comparison_operator,
+            Some(ComparisonOperator::And as i32)
+        );
+
+        let filter_option3 = &filter.filters[2];
+        assert_eq!(filter_option3.search_field, "or_geo_disjoint");
+        assert_eq!(filter_option3.search_value, vec!["POINT Z(7,8,9)"]);
+        assert_eq!(
+            filter_option3.predicate_operator,
+            PredicateOperator::GeoDisjoint as i32
+        );
+        assert_eq!(
+            filter_option3.comparison_operator,
+            Some(ComparisonOperator::Or as i32)
+        );
+    }
+
     #[test]
     fn test_predicate_operator_as_str_name() {
         assert_eq!(PredicateOperator::Equals.as_str_name(), "EQUALS");
@@ -1575,6 +1996,18 @@ mod tests {
         assert_eq!(
             PredicateOperator::from_str_name("GREATER"),
             Some(PredicateOperator::Greater)
+        );
+        assert_eq!(
+            PredicateOperator::from_str_name("GREATER_OR_EQUAL"),
+            Some(PredicateOperator::GreaterOrEqual)
+        );
+        assert_eq!(
+            PredicateOperator::from_str_name("LESS"),
+            Some(PredicateOperator::Less)
+        );
+        assert_eq!(
+            PredicateOperator::from_str_name("LESS_OR_EQUAL"),
+            Some(PredicateOperator::LessOrEqual)
         );
         assert_eq!(
             PredicateOperator::from_str_name("GEO_INTERSECT"),
