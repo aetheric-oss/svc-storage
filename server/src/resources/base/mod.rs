@@ -259,14 +259,14 @@ impl FieldDefinition {
     }
     /// Gets the `default` value for this field
     ///
-    /// The function will panic if no default has been set. It's recommended to call
+    /// The function will return 'NULL' if no default has been set. It's recommended to call
     /// [`has_default`](FieldDefinition::has_default) first, to determine if this function can be used or
     /// not
     pub fn get_default(&self) -> String {
         if self.has_default() {
             self.default.clone().unwrap_or_else(|| String::from("NULL"))
         } else {
-            panic!("get_default called on a field without a default value");
+            String::from("NULL")
         }
     }
 }
@@ -410,7 +410,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[should_panic(expected = "get_default called on a field without a default value")]
     async fn test_field_definition_get_default_without_default() {
         assert_init_done().await;
         ut_debug!("start");
@@ -419,7 +418,7 @@ mod tests {
         let mandatory = false;
         let field_def = FieldDefinition::new_internal(field_type, mandatory);
 
-        field_def.get_default();
+        assert_eq!("NULL".to_owned(), field_def.get_default());
 
         ut_debug!("success");
     }

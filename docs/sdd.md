@@ -700,6 +700,7 @@ erDiagram
         uuid flight_plan_id PK
         uuid pilot_id FK
         uuid vehicle_id FK
+        text session_id
         geometry path "LINESTRING"
         text weather_conditions "Optional"
         uuid origin_vertipad_id FK
