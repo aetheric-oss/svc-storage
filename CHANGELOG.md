@@ -1,3 +1,52 @@
+## [Release 0.12.0](https://github.com/aetheric-oss/svc-storage/releases/tag/v0.12.0)
+
+### ✨ Features
+
+- change last_vertiport_id to hangar_id and add hangar_bay_id ([`510d20a`](https://github.com/aetheric-oss/svc-storage/commit/510d20a9c894643b1988f0b78f7347d1365594dd))
+- change departure and arrival times to timeslots ([`721e6b9`](https://github.com/aetheric-oss/svc-storage/commit/721e6b99102b13f5c9fb70794d865eed4aa90830))
+-  **groups:** add vehicle, vertipad and vertiport group services ([`a034c52`](https://github.com/aetheric-oss/svc-storage/commit/a034c5265b661519eebac3905165b07379b38e15))
+- fix st_intersects call ([`8b11c54`](https://github.com/aetheric-oss/svc-storage/commit/8b11c547193ea594f10a9129215ae831b8ae6ff0))
+- add email field to user record ([`776ad69`](https://github.com/aetheric-oss/svc-storage/commit/776ad69de82004d7523ad5cbffbcfcfd33f41890))
+- add session id field to flight plan ([`592e487`](https://github.com/aetheric-oss/svc-storage/commit/592e487db2ae49f6775fedb4d4652067ee3cf489))
+- add altitude information to all geometries ([`471b9ea`](https://github.com/aetheric-oss/svc-storage/commit/471b9ea32f751e0ca79e2b84736e11611b0e163e))
+-  **server-grpc:** add unit tests for gRPC services ([`8872a2b`](https://github.com/aetheric-oss/svc-storage/commit/8872a2bac682bdee46793624d7ffa545215c0959))
+-  **server-postgres:** add unit tests for postgres traits ([`d1b8570`](https://github.com/aetheric-oss/svc-storage/commit/d1b8570cfb998a122fc9ac9f0ae15fe31e65f2a8))
+
+### 🐛 Fixes
+
+- cargo build grpc output dir ([`e4aa60a`](https://github.com/aetheric-oss/svc-storage/commit/e4aa60abde95c035fde70eb3dac5254626e073c5))
+- add utoipa derives for UpdateObjects ([`b444c94`](https://github.com/aetheric-oss/svc-storage/commit/b444c94240017d08d1a2e78b30bd3c28397c9cfa))
+- update config unwrap to have error log ([`6acb795`](https://github.com/aetheric-oss/svc-storage/commit/6acb795ceaf34868f6cc57f4028fa872d38895f4))
+-  **geo_types:** fix integration tests and gis structs ([`a33358b`](https://github.com/aetheric-oss/svc-storage/commit/a33358bafee1617f535674b9356047728c07cea1))
+-  **grpc-client:** fix broken tests and add missing resources ([`b5cd865`](https://github.com/aetheric-oss/svc-storage/commit/b5cd86542db455095545f3fddc3cab89f7b7fe1e))
+-  **server-resources:** add missing tests ([`a9f1e40`](https://github.com/aetheric-oss/svc-storage/commit/a9f1e40b9ca14f46ed487ce83630eccd93476299))
+- reviewer comments ([`66476fd`](https://github.com/aetheric-oss/svc-storage/commit/66476fd29a7d4b5c2cbd7ff687cbf9c7f1fdab97))
+
+### 🛠 Maintenance
+
+- terraform provisioned file changes ([`9862140`](https://github.com/aetheric-oss/svc-storage/commit/986214093d9ec402e1b62b6c096d7193108f9946))
+- update cargo dependencies ([`44d67d0`](https://github.com/aetheric-oss/svc-storage/commit/44d67d07bba5f8caf49595a1506c63d6bfb9c412))
+- fix unit test debug logs ([`99d47d4`](https://github.com/aetheric-oss/svc-storage/commit/99d47d4f56e6f3e4120cc6391f820b793441f9d1))
+- fix static analysis warnings ([`cbf4459`](https://github.com/aetheric-oss/svc-storage/commit/cbf4459cb30d42da5a58f3f5127fb99835ac6e50))
+- tofu provisioned file changes ([`436e7cc`](https://github.com/aetheric-oss/svc-storage/commit/436e7cc4e649a36bebf474917cab57f957c72b03))
+- update Arrow-air refs to aetheric-oss ([`78a5853`](https://github.com/aetheric-oss/svc-storage/commit/78a585334b940122fe89fed4afdfd038af2b3d3a))
+- fix excessive log output ([`1b89fd5`](https://github.com/aetheric-oss/svc-storage/commit/1b89fd5f154a4590c125a4882fd6620a36ab800f))
+- replace old Arrow references ([`c47dbaf`](https://github.com/aetheric-oss/svc-storage/commit/c47dbaf49db63c3a751661739eb6259a245b9036))
+- update to lib-common v2.0.0 ([`52822aa`](https://github.com/aetheric-oss/svc-storage/commit/52822aa534534b1dfdf39178f042bb37a7f46483))
+- update log messages removing function names ([`71d7af8`](https://github.com/aetheric-oss/svc-storage/commit/71d7af8eef9a16b60ccd7bb52883e8e503497e8c))
+- docker-compose file ([`f29273b`](https://github.com/aetheric-oss/svc-storage/commit/f29273b87474064b3e30efa433f396aaf568d1d2))
+- improved error handling and log messages ([`f480554`](https://github.com/aetheric-oss/svc-storage/commit/f480554f1f5323e8fbdf5dd0647b5053e7f3c834))
+- code style fixes ([`f93dfb8`](https://github.com/aetheric-oss/svc-storage/commit/f93dfb8383b37716dcfc8cca2f7b1c8a5c268ce0))
+
+### ✅ Tests
+
+-  **it:** add integration test target ([`ee1dd1b`](https://github.com/aetheric-oss/svc-storage/commit/ee1dd1b6fa070337a55a66cea4eef11a2b4d6e17))
+-  **ut:** add schema tests for group resources ([`611c219`](https://github.com/aetheric-oss/svc-storage/commit/611c2193ddf32faf880e2c2757932b07491b908d))
+
+### 📚 Documentation
+
+-  **sdd:** add groups and fields designs ([`eded936`](https://github.com/aetheric-oss/svc-storage/commit/eded936c0f95f33a047e12c807678cbf832eaf19))
+
 ## [Release 0.11.0](https://github.com/Arrow-air/svc-storage/releases/tag/v0.11.0)
 
 ### ✨ Features
