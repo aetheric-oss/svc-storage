@@ -5,8 +5,6 @@
 RUST_IMAGE_NAME     ?= ghcr.io/arrow-air/tools/arrow-rust
 RUST_IMAGE_TAG      ?= 1.2
 DOCKER_IMAGE_NAME   ?= $(PACKAGE_NAME)
-DOCKER_USER_ID      ?= $(shell echo `id -u`)
-DOCKER_GROUP_ID     ?= $(shell echo `id -g`)
 CARGO_MANIFEST_PATH ?= Cargo.toml
 CARGO_INCREMENTAL   ?= 1
 RUSTC_BOOTSTRAP     ?= 0
@@ -29,28 +27,26 @@ COMMA := ,
 # function with a generic template to run docker with the required values
 # Accepts $1 = command to run, $2 = additional command flags (optional)
 ifeq ("$(CARGO_MANIFEST_PATH)", "")
-	cargo_run = echo "$(BOLD)$(YELLOW)No Cargo.toml found in any of the subdirectories, skipping cargo check...$(SGR0)"
+cargo_run = echo "$(BOLD)$(YELLOW)No Cargo.toml found in any of the subdirectories, skipping cargo check...$(SGR0)"
 else
-	cargo_run = docker run \
-				--name=$(DOCKER_NAME)-$(subst $(COMMA),_,$@) \
-				--rm \
-				--user $(DOCKER_USER_ID):$(DOCKER_GROUP_ID) \
-				--workdir=/usr/src/app \
-				$(ADDITIONAL_OPT) \
-				-v "$(SOURCE_PATH)/:/usr/src/app" \
-				-v "$(SOURCE_PATH)/.cargo/registry:/usr/local/cargo/registry" \
-				-e CARGO_INCREMENTAL=$(CARGO_INCREMENTAL) \
-				-e RUSTC_BOOTSTRAP=$(RUSTC_BOOTSTRAP) \
-				-t $(RUST_IMAGE_NAME):$(RUST_IMAGE_TAG) \
-				cargo $(1) --manifest-path "$(CARGO_MANIFEST_PATH)" $(2)
-	endif
+cargo_run = docker run \
+	--name=$(DOCKER_NAME)-$(subst $(COMMA),_,$@) \
+	--rm \
+	--user `id -u`:`id -g` \
+	--workdir=/usr/src/app \
+	$(ADDITIONAL_OPT) \
+	-v "$(SOURCE_PATH)/:/usr/src/app" \
+	-v "$(SOURCE_PATH)/.cargo/registry:/usr/local/cargo/registry" \
+	-e CARGO_INCREMENTAL=$(CARGO_INCREMENTAL) \
+	-e RUSTC_BOOTSTRAP=$(RUSTC_BOOTSTRAP) \
+	-t $(RUST_IMAGE_NAME):$(RUST_IMAGE_TAG) \
+	cargo $(1) --manifest-path "$(CARGO_MANIFEST_PATH)" $(2)
+endif
 
 rust-docker-pull:
 	@docker pull -q $(RUST_IMAGE_NAME):$(RUST_IMAGE_TAG)
 latest-docker-pull:
-	@docker pull -q $(DOCKER_IMAGE_NAME):latest 2>/dev/null || true
-dev-docker-pull:
-	@docker pull -q $(DOCKER_IMAGE_NAME):dev 2>/dev/null || true
+	@docker pull -q $(DOCKER_IMAGE_NAME):latest || true
 
 .help-rust:
 	@echo ""
@@ -171,51 +167,27 @@ rust-grpc-api:
 		pseudomuto/protoc-gen-doc \
 		--doc_opt=json,$(PACKAGE_NAME)-grpc-api.json
 
-# Run unit test for this service.
-# Client stubs can be enabled since we don't need to test any integrations.
-# We will run this on the dev image, which runs a server with stubbed
-# backends as well so we don't need to run any other services it depends on.
-rust-ut-coverage: DOCKER_IMAGE_TAG=dev
-rust-ut-coverage: PACKAGE_FEATURES=$(PACKAGE_UT_FEATURES)
-rust-ut-coverage: check-cargo-registry check-logs-dir rust-docker-pull dev-docker-pull
-	@docker compose run \
-		--rm \
-		-e SERVER_PORT_GRPC=$(DOCKER_PORT_GRPC) \
-		-e SERVER_PORT_REST=$(DOCKER_PORT_REST) \
-		-e SERVER_HOSTNAME=$(DOCKER_NAME)-web-server \
-		-e PACKAGE_FEATURES=$(PACKAGE_UT_FEATURES) \
-		ut-coverage ; docker compose down
-	@sed -e "s/\/usr\/src\/app\///g" -i coverage/lcov.info
-
-# Run integration test for this service.
-# Client should not be enabled as we want to make actual calls to the server.
-# We will run this on the dev image, which runs a server with stubbed
-# backends as so we don't need to run any other services it depends on.
 rust-it-coverage: DOCKER_IMAGE_TAG=dev
-rust-it-coverage: PACKAGE_FEATURES=$(PACKAGE_IT_FEATURES)
-rust-it-coverage: check-cargo-registry check-logs-dir rust-docker-pull dev-docker-pull
+rust-it-coverage: check-cargo-registry check-logs-dir rust-docker-pull latest-docker-pull
 	@docker compose run \
 		--rm \
+		--user `id -u`:`id -g` \
 		-e SERVER_PORT_GRPC=$(DOCKER_PORT_GRPC) \
 		-e SERVER_PORT_REST=$(DOCKER_PORT_REST) \
 		-e SERVER_HOSTNAME=$(DOCKER_NAME)-web-server \
-		-e PACKAGE_FEATURES=$(PACKAGE_IT_FEATURES) \
 		it-coverage ; docker compose down
 	@sed -e "s/\/usr\/src\/app\///g" -i coverage/lcov.info
 
-# Run full integration test for this service.
-# Should not use any stubs for backends so all dependencies
-# should be started by docker compose using the latest versions
-rust-it-full: DOCKER_IMAGE_TAG=latest
-rust-it-full: PACKAGE_FEATURES=$(PACKAGE_IT_FEATURES)
-rust-it-full: check-cargo-registry check-logs-dir rust-docker-pull latest-docker-pull
+rust-ut-coverage: DOCKER_IMAGE_TAG=latest
+rust-ut-coverage: check-cargo-registry rust-docker-pull
 	@docker compose run \
 		--rm \
+		--user `id -u`:`id -g` \
 		-e SERVER_PORT_GRPC=$(DOCKER_PORT_GRPC) \
 		-e SERVER_PORT_REST=$(DOCKER_PORT_REST) \
 		-e SERVER_HOSTNAME=$(DOCKER_NAME)-web-server \
-		-e PACKAGE_FEATURES=$(PACKAGE_IT_FULL_FEATURES) \
-		it-full ; docker compose down
+		ut-coverage ; docker compose down
+	@sed -e "s/\/usr\/src\/app\///g" -i coverage/lcov.info
 
 release-checklist: docker-pull
 	@echo "$(CYAN)Running release checklist...$(SGR0)"
