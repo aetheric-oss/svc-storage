@@ -20,6 +20,12 @@ message GeoLineStringZ {
     repeated GeoPointZ points = 1;
 }
 
+// Geo Location GeoMultiPointZ representation
+message GeoMultiPointZ {
+    // list of points
+    repeated GeoPointZ points = 1;
+}
+
 // Geo Location PolygonZ representation
 message GeoPolygonZ {
     // rings

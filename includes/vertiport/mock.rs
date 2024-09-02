@@ -1,5 +1,5 @@
 use super::Data;
-use crate::resources::geo_types::{GeoLineStringZ, GeoPointZ, GeoPolygonZ};
+use crate::resources::geo_types::{GeoLineStringZ, GeoPointZ, GeoMultiPointZ, GeoPolygonZ};
 use lib_common::time::{Datelike, Duration, NaiveDate, Timelike, Utc};
 use rand::seq::SliceRandom;
 use rand::Rng;
@@ -76,11 +76,28 @@ pub fn get_data_obj() -> Data {
     // Pick a random location from the list of demo locations
     let locations = get_locations();
     let geo_location = locations[rng.gen_range(0..locations.len())].clone();
+    let ingress_0 = GeoMultiPointZ {
+        points: vec![
+            GeoPointZ {
+                x: 4.0,
+                y: 5.0,
+                z: 6.0,
+            },
+            GeoPointZ {
+                x: 1.0,
+                y: 2.0,
+                z: 3.0,
+            },
+        ],
+    };
+    let egress_0 = ingress_0.clone();
 
     Data {
         name: format!("Demo vertiport {:0>8}", rng.gen_range(0..10000000)),
         description: "Open during workdays and work hours only".to_string(),
         geo_location: Some(geo_location),
+        ingress_0: Some(ingress_0),
+        egress_0: Some(egress_0),
         schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
         created_at,
         updated_at,

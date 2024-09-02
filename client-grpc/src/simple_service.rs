@@ -82,12 +82,16 @@ where
     ///     let target_vertipad_id = "db67da52-2280-4316-8b29-9cf1bff65931".to_owned();
     ///     let target_vertiport_id = "db67da52-2280-4316-8b29-9cf1bff65932".to_owned();
     ///     let session_id = "AETH-SESSION-X".to_owned();
+    ///     let cruise_speed = 100.0;
+    ///     let hover_speed = 50.0;
     ///     let data = Data {
     ///         flight_status: FlightStatus::Draft as i32,
     ///         vehicle_id,
     ///         session_id,
+    ///         cruise_speed,
+    ///         hover_speed,
     ///         pilot_id,
-    ///         path: Some(GeoLineStringZ{ points: vec![] }),
+    ///         waypoints: Some(GeoLineStringZ{ points: vec![] }),
     ///         weather_conditions: Some("Cloudy, low wind".to_owned()),
     ///         origin_vertipad_id,
     ///         origin_vertiport_id,

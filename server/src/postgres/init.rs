@@ -238,6 +238,7 @@ fn get_create_table_fields_sql(fields: &HashMap<String, FieldDefinition>) -> Vec
             PsqlFieldType::PATH => field_sql.push_str(" GEOMETRY"),
             PsqlFieldType::POINT => field_sql.push_str(" GEOMETRY"),
             PsqlFieldType::POLYGON => field_sql.push_str(" GEOMETRY"),
+            PsqlFieldType::POINT_ARRAY => field_sql.push_str(" GEOMETRY"),
             _ => field_sql.push_str(&format!(" {}", field.field_type.name().to_uppercase())),
         }
 

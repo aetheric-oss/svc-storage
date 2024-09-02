@@ -950,6 +950,13 @@ mod tests {
                     let val = format!("SRID={};POLYGON Z((1.1 1.1 10.0, 2.1 2.2 10.0), (3.1 3.2 10.0, 4.1 4.2 10.0))", DEFAULT_SRID);
                     (val.to_string(), format!("{:?}", val))
                 }
+                PsqlFieldType::POINT_ARRAY => {
+                    let val = format!(
+                        "SRID={};MULTIPOINT Z((1.1 1.1 10.0), (3.1 3.2 10.0), (4.1 4.2 10.0))",
+                        DEFAULT_SRID
+                    );
+                    (val.to_string(), format!("{:?}", val))
+                }
                 PsqlFieldType::PATH => {
                     let val = format!(
                         "SRID={};LineString Z(1.1 1.1 10.0, 2.1 2.2 10.0)",
