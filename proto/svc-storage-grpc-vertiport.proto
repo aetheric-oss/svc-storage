@@ -45,12 +45,16 @@ message Data {
     string description = 2;
     // geographical area location of the vertiport
     grpc.geo_types.GeoPolygonZ geo_location = 3;
+    // geographical area location of the vertiport
+    grpc.geo_types.GeoMultiPointZ ingress_0 = 4;
+    // geographical area location of the vertiport
+    grpc.geo_types.GeoMultiPointZ egress_0 = 5;
     // RRULE data string to indicate the vertipad's opening days and hours
-    optional string schedule = 4;
+    optional string schedule = 6;
     // timestamp of the date and time the vertiport has been created
-    optional google.protobuf.Timestamp created_at = 5;
+    optional google.protobuf.Timestamp created_at = 7;
     // timestamp of the last update action performed on the data
-    optional google.protobuf.Timestamp updated_at = 6;
+    optional google.protobuf.Timestamp updated_at = 8;
 }
 
 // Struct containing a `list` of vertiport [Vec\<Object\>]

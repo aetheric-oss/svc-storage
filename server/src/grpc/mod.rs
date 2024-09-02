@@ -25,7 +25,7 @@ use std::{fmt::Debug, vec};
 use tokio::runtime::{Handle, Runtime};
 use tonic::Status;
 
-use server::geo_types::{GeoLineStringZ, GeoPointZ, GeoPolygonZ};
+use server::geo_types::{GeoLineStringZ, GeoMultiPointZ, GeoPointZ, GeoPolygonZ};
 
 /// gRPC field types
 #[derive(Debug, Clone, PartialEq)]
@@ -60,6 +60,8 @@ pub enum GrpcField {
     GeoPolygonZ(GeoPolygonZ),
     /// Geometric Line
     GeoLineStringZ(GeoLineStringZ),
+    /// Geometric Point Array
+    GeoMultiPointZ(GeoMultiPointZ),
     /// Option GrpcFieldOption
     Option(GrpcFieldOption),
 }
@@ -97,6 +99,8 @@ pub enum GrpcFieldOption {
     GeoPolygonZ(Option<GeoPolygonZ>),
     /// Geo Line
     GeoLineStringZ(Option<GeoLineStringZ>),
+    /// Geo Point Array
+    GeoMultiPointZ(Option<GeoMultiPointZ>),
     /// [None]
     None,
 }
@@ -267,6 +271,22 @@ impl From<GrpcField> for GeoLineStringZ {
         }
     }
 }
+impl From<Option<GeoMultiPointZ>> for GrpcFieldOption {
+    fn from(field: Option<GeoMultiPointZ>) -> Self {
+        match field {
+            Some(field) => GrpcFieldOption::GeoMultiPointZ(Some(field)),
+            _ => GrpcFieldOption::GeoMultiPointZ(None),
+        }
+    }
+}
+impl From<GrpcField> for GeoMultiPointZ {
+    fn from(field: GrpcField) -> Self {
+        match field {
+            GrpcField::GeoMultiPointZ(field) => field,
+            _ => GeoMultiPointZ { points: vec![] },
+        }
+    }
+}
 impl From<Option<GeoPolygonZ>> for GrpcFieldOption {
     fn from(field: Option<GeoPolygonZ>) -> Self {
         match field {
@@ -301,6 +321,7 @@ impl From<GrpcFieldOption> for Option<GrpcField> {
             GrpcFieldOption::Timestamp(field) => field.map(GrpcField::Timestamp),
             GrpcFieldOption::GeoPointZ(field) => field.map(GrpcField::GeoPointZ),
             GrpcFieldOption::GeoLineStringZ(field) => field.map(GrpcField::GeoLineStringZ),
+            GrpcFieldOption::GeoMultiPointZ(field) => field.map(GrpcField::GeoMultiPointZ),
             GrpcFieldOption::GeoPolygonZ(field) => field.map(GrpcField::GeoPolygonZ),
             GrpcFieldOption::None => None,
         }
