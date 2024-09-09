@@ -123,6 +123,9 @@ fn add_utoipa_attributes(
 ) -> tonic_build::Builder {
     // Add utoipa derive macro's for client exposed structs
     builder
+        .extern_path(".grpc.geo_types.GeoPointZ", "GeoPointZ")
+        .extern_path(".grpc.geo_types.GeoLineStringZ", "GeoLineStringZ")
+        .extern_path(".grpc.geo_types.GeoPolygonZ", "GeoPolygonZ")
         // Add schema type for timestamp fields
         .field_attribute(
             "created_at",
@@ -211,7 +214,4 @@ fn add_utoipa_attributes(
             "Response",
             format!("#[schema(as = {}::Response)]", resource_type),
         )
-        .type_attribute("GeoPointZ", "#[derive(ToSchema, IntoParams)]")
-        .type_attribute("GeoPolygonZ", "#[derive(ToSchema, IntoParams)]")
-        .type_attribute("GeoLineStringZ", "#[derive(ToSchema, IntoParams)]")
 }
