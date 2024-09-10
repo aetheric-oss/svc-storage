@@ -2,7 +2,7 @@
 description = "Aetheric storage service GRPC server"
 keywords    = ["vtol", "server", "storage"]          # max 5
 name        = "svc-storage"
-version     = "0.12.1-develop.0"
+version     = "0.12.1"
 
 categories.workspace   = true
 edition.workspace      = true

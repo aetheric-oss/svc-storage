@@ -1,3 +1,13 @@
+## [Release 0.12.1](https://github.com/aetheric-oss/svc-storage/releases/tag/v0.12.1)
+
+### 🐛 Fixes
+
+-  **client-grpc:** fix rest references for geo types ([`7c73875`](https://github.com/aetheric-oss/svc-storage/commit/7c738750b999249c02cd1aea687607f1de99556b))
+
+### 🛠 Maintenance
+
+- tofu provisioned file changes ([`665cb2c`](https://github.com/aetheric-oss/svc-storage/commit/665cb2cbba16f49d530cec7110538e38f5d3c89f))
+
 ## [Release 0.12.0](https://github.com/aetheric-oss/svc-storage/releases/tag/v0.12.0)
 
 ### ✨ Features
