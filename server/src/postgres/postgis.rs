@@ -1,6 +1,6 @@
 //! Implement Postgis Traits for our own Structs
 
-use crate::grpc::server::geo_types::{GeoLineStringZ, GeoPointZ};
+use crate::grpc::server::geo_types::{GeoLineStringZ, GeoMultiPointZ, GeoPointZ};
 use crate::DEFAULT_SRID;
 use byteorder::{BigEndian, LittleEndian, ReadBytesExt};
 use bytes::{BufMut, BytesMut};
@@ -84,6 +84,15 @@ impl ToSql for GeoPointZ {
 }
 
 impl<'a> postgis::LineString<'a> for GeoLineStringZ {
+    type ItemType = GeoPointZ;
+    type Iter = std::slice::Iter<'a, GeoPointZ>;
+
+    fn points(&'a self) -> Self::Iter {
+        self.points.iter()
+    }
+}
+
+impl<'a> postgis::MultiPoint<'a> for GeoMultiPointZ {
     type ItemType = GeoPointZ;
     type Iter = std::slice::Iter<'a, GeoPointZ>;
 

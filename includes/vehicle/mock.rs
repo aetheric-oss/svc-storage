@@ -68,6 +68,7 @@ pub fn get_data_obj() -> Data {
         schedule: Some(CAL_WORKDAYS_8AM_6PM.to_owned()),
         hangar_id: None,
         hangar_bay_id: None,
+        loading_type: None,
         last_maintenance,
         next_maintenance,
         created_at,

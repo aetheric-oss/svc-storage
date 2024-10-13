@@ -625,6 +625,20 @@ async fn generate_sample_vertiports() -> Result<vertiport::List, Status> {
                     ],
                 }],
             }),
+            ingress_0: Some(GeoMultiPointZ {
+                points: vec![GeoPointZ {
+                    x: 4.73618,
+                    y: 52.955051,
+                    z: -20.0,
+                }],
+            }),
+            egress_0: Some(GeoMultiPointZ {
+                points: vec![GeoPointZ {
+                    x: 4.73618,
+                    y: 52.955051,
+                    z: -20.0,
+                }],
+            }),
             schedule: Some(CAL_WORKDAYS_8AM_6PM.to_string()),
             created_at: None,
             updated_at: None,

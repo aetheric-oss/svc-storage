@@ -43,8 +43,16 @@ impl Resource for ResourceObject<Data> {
                     FieldDefinition::new(PsqlFieldType::UUID, true),
                 ),
                 (
-                    "path".to_string(),
+                    "waypoints".to_string(),
                     FieldDefinition::new(PsqlFieldType::PATH, true),
+                ),
+                (
+                    "cruise_speed".to_string(),
+                    FieldDefinition::new(PsqlFieldType::FLOAT4, true),
+                ),
+                (
+                    "hover_speed".to_string(),
+                    FieldDefinition::new(PsqlFieldType::FLOAT4, true),
                 ),
                 (
                     "weather_conditions".to_string(),
@@ -55,7 +63,15 @@ impl Resource for ResourceObject<Data> {
                     FieldDefinition::new(PsqlFieldType::UUID, true),
                 ),
                 (
+                    "origin_vertiport_id".to_string(),
+                    FieldDefinition::new(PsqlFieldType::UUID, true),
+                ),
+                (
                     "target_vertipad_id".to_string(),
+                    FieldDefinition::new(PsqlFieldType::UUID, true),
+                ),
+                (
+                    "target_vertiport_id".to_string(),
                     FieldDefinition::new(PsqlFieldType::UUID, true),
                 ),
                 (
@@ -148,7 +164,9 @@ impl Resource for ResourceObject<Data> {
     fn get_table_indices() -> Vec<String> {
         [
             r#"ALTER TABLE "flight_plan" ADD CONSTRAINT fk_origin_vertipad_id FOREIGN KEY("origin_vertipad_id") REFERENCES "vertipad"("vertipad_id")"#.to_string(),
+            r#"ALTER TABLE "flight_plan" ADD CONSTRAINT fk_origin_vertiport_id FOREIGN KEY("origin_vertiport_id") REFERENCES "vertiport"("vertiport_id")"#.to_string(),
             r#"ALTER TABLE "flight_plan" ADD CONSTRAINT fk_target_vertipad_id FOREIGN KEY("target_vertipad_id") REFERENCES "vertipad"("vertipad_id")"#.to_string(),
+            r#"ALTER TABLE "flight_plan" ADD CONSTRAINT fk_target_vertiport_id FOREIGN KEY("target_vertiport_id") REFERENCES "vertiport"("vertiport_id")"#.to_string(),
             r#"CREATE INDEX IF NOT EXISTS flight_plan_flight_status_idx ON "flight_plan" ("flight_status")"#.to_string(),
             r#"CREATE INDEX IF NOT EXISTS flight_plan_flight_priority_idx ON "flight_plan" ("flight_priority")"#.to_string(),
         ].to_vec()
@@ -161,17 +179,15 @@ impl GrpcDataObjectType for Data {
             "session_id" => Ok(GrpcField::String(self.session_id.clone())), //::prost::alloc::string::String,
             "pilot_id" => Ok(GrpcField::String(self.pilot_id.clone())), //::prost::alloc::string::String,
             "vehicle_id" => Ok(GrpcField::String(self.vehicle_id.clone())), //::prost::alloc::string::String,
-            "path" => Ok(GrpcField::Option(self.path.clone().into())),      //u32,
+            "waypoints" => Ok(GrpcField::Option(self.waypoints.clone().into())), //u32,
+            "cruise_speed" => Ok(GrpcField::F32(self.cruise_speed)),        //f32,
+            "hover_speed" => Ok(GrpcField::F32(self.hover_speed)),          //f32,
             "weather_conditions" => Ok(GrpcField::Option(GrpcFieldOption::String(
                 self.weather_conditions.clone(),
             ))), //::core::option::Option<::prost::alloc::string::String>,
-            "origin_vertiport_id" => Ok(GrpcField::Option(GrpcFieldOption::String(
-                self.origin_vertiport_id.clone(),
-            ))), //::core::option::Option<::prost::alloc::string::String>,
+            "origin_vertiport_id" => Ok(GrpcField::String(self.origin_vertiport_id.clone())), //::prost::alloc::string::String,
             "origin_vertipad_id" => Ok(GrpcField::String(self.origin_vertipad_id.clone())), //::prost::alloc::string::String,
-            "target_vertiport_id" => Ok(GrpcField::Option(GrpcFieldOption::String(
-                self.target_vertiport_id.clone(),
-            ))), //::core::option::Option<::prost::alloc::string::String>,
+            "target_vertiport_id" => Ok(GrpcField::String(self.target_vertiport_id.clone())), //::prost::alloc::string::String,
             "target_vertipad_id" => Ok(GrpcField::String(self.target_vertipad_id.clone())), //::prost::alloc::string::String,
             "origin_timeslot_start" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
                 self.origin_timeslot_start.clone(),
@@ -224,30 +240,32 @@ impl TryFrom<Row> for Data {
         let session_id: String = row.get("session_id");
         let pilot_id: String = row.get::<&str, Uuid>("pilot_id").to_string();
         let vehicle_id: String = row.get::<&str, Uuid>("vehicle_id").to_string();
-        let path = row.get::<&str, postgis::ewkb::LineStringZ>("path");
+        let waypoints = row.get::<&str, postgis::ewkb::LineStringZ>("waypoints");
+        let cruise_speed = row.get::<&str, f32>("cruise_speed");
+        let hover_speed = row.get::<&str, f32>("hover_speed");
         let origin_vertipad_id: String = row.get::<&str, Uuid>("origin_vertipad_id").to_string();
         let target_vertipad_id: String = row.get::<&str, Uuid>("target_vertipad_id").to_string();
+        let origin_vertiport_id: String = row.get::<&str, Uuid>("origin_vertiport_id").to_string();
+        let target_vertiport_id: String = row.get::<&str, Uuid>("target_vertiport_id").to_string();
 
         let approved_by: Option<Uuid> = row.get("approved_by");
         let approved_by = approved_by.map(|val| val.to_string());
 
         let handle = get_runtime_handle()?;
         let vertipad_id = row.get("origin_vertipad_id");
-        let data = task::block_in_place(move || {
+        let _data = task::block_in_place(move || {
             handle.block_on(async move {
                 <ResourceObject<vertipad::Data> as PsqlType>::get_by_id(&vertipad_id).await
             })
         })?;
-        let origin_vertiport_id = data.get::<&str, Uuid>("vertiport_id").to_string();
 
         let handle = get_runtime_handle()?;
         let vertipad_id = row.get("target_vertipad_id");
-        let data = task::block_in_place(move || {
+        let _data = task::block_in_place(move || {
             handle.block_on(async move {
                 <ResourceObject<vertipad::Data> as PsqlType>::get_by_id(&vertipad_id).await
             })
         })?;
-        let target_vertiport_id = data.get::<&str, Uuid>("vertiport_id").to_string();
 
         let flight_plan_submitted: Option<prost_wkt_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("flight_plan_submitted")
@@ -296,11 +314,13 @@ impl TryFrom<Row> for Data {
             session_id,
             pilot_id,
             vehicle_id,
-            path: Some(path.into()),
+            waypoints: Some(waypoints.into()),
+            cruise_speed,
+            hover_speed,
             weather_conditions: row.get("weather_conditions"),
-            origin_vertiport_id: Some(origin_vertiport_id),
+            origin_vertiport_id,
             origin_vertipad_id,
-            target_vertiport_id: Some(target_vertiport_id),
+            target_vertiport_id,
             target_vertipad_id,
             origin_timeslot_start,
             origin_timeslot_end,
@@ -357,11 +377,13 @@ mod tests {
             session_id: String::from("test"),
             pilot_id: String::from("INVALID"),
             vehicle_id: String::from("INVALID"),
-            path: Some(GeoLineStringZ { points: vec![] }),
+            waypoints: Some(GeoLineStringZ { points: vec![] }),
+            cruise_speed: -1.0,
+            hover_speed: -1.0,
             weather_conditions: Some(String::from("")),
-            origin_vertiport_id: None,
+            origin_vertiport_id: String::from("INVALID"),
             origin_vertipad_id: String::from("INVALID"),
-            target_vertiport_id: None,
+            target_vertiport_id: String::from("INVALID"),
             target_vertipad_id: String::from("INVALID"),
             origin_timeslot_start: Some(prost_wkt_types::Timestamp {
                 seconds: -1,
@@ -411,7 +433,9 @@ mod tests {
                 "pilot_id",
                 "vehicle_id",
                 "origin_vertipad_id",
+                "origin_vertiport_id",
                 "target_vertipad_id",
+                "target_vertiport_id",
                 "origin_timeslot_start",
                 "origin_timeslot_end",
                 "target_timeslot_start",

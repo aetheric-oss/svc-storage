@@ -69,7 +69,7 @@ service RpcService {
     //         vehicle_id,
     //         session_id,
     //         pilot_id,
-    //         path: Some(GeoLineStringZ{ points: vec![] }),
+    //         waypoints: Some(GeoLineStringZ{ points: vec![] }),
     //         weather_conditions: Some("Cloudy, low wind".to_owned()),
     //         origin_vertipad_id,
     //         origin_vertiport_id: None,
