@@ -18,7 +18,7 @@ services:
       tags:
         - ${PACKAGE_NAME}:local
     depends_on:
-      svc-db:
+      db:
         condition: service_healthy
     profiles:
       - integration-test
