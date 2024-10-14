@@ -38,7 +38,7 @@ pub fn validate_dt(
     value: &Timestamp,
     errors: &mut Vec<ValidationError>,
 ) -> Option<DateTime<Utc>> {
-    let date_time: DateTime<Utc> = (*value).clone().into();
+    let date_time: DateTime<Utc> = (*value).into();
     if date_time.timestamp() >= 0 {
         Some(date_time)
     } else {
