@@ -1,6 +1,6 @@
 ## DO NOT EDIT!
 # This file was provisioned by OpenTofu
-# File origin: https://github.com/aetheric-oss/tofu-github/tree/main/src/modules/vars/templates/rust/svc/.compose/aetheric-svc/rust-test.yaml
+# File origin: https://github.com/aetheric-oss/tofu-github/tree/main/src/modules/vars/templates/rust/svc/.compose/aetheric-svc/rust-test.yaml.tftpl
 
 ---
 
@@ -59,6 +59,11 @@ services:
     depends_on:
       web-server:
         condition: service_healthy
+    volumes:
+      - type: volume
+        source: db-ssl
+        target: /cockroach/ssl
+        read_only: true
     profiles:
       - integration-test
 
