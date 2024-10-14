@@ -47,14 +47,11 @@ fn build_proto(
             builder = get_grpc_builder_config(&format!("{}/{}", cur_dir, "../out/grpc/client/"));
             builder = add_utoipa_attributes(builder, resource_type.clone());
         }
-        if resource_type == "flight_plan_parcel" {
-            builder = builder.type_attribute("Data", "#[derive(Copy)]")
-        }
 
         builder
             .build_server(false)
             .build_client(false)
-            .compile(&[get_file(proto_dir, resource_type)], &[proto_dir])?;
+            .compile_protos(&[get_file(proto_dir, resource_type)], &[proto_dir])?;
     }
 
     // Compile resource service files
@@ -71,7 +68,7 @@ fn build_proto(
     builder
         .build_server(server)
         .build_client(client)
-        .compile(&service_files, &[proto_dir])?;
+        .compile_protos(&service_files, &[proto_dir])?;
 
     Ok(())
 }
@@ -83,8 +80,8 @@ fn get_grpc_builder_config(out_path: &str) -> tonic_build::Builder {
         .emit_rerun_if_changed(true)
         .out_dir(out_path)
         .extern_path(".google.protobuf.Timestamp", "::prost_wkt_types::Timestamp")
-        .type_attribute("ReadyRequest", "#[derive(Eq, Copy)]")
-        .type_attribute("ReadyResponse", "#[derive(Eq, Copy)]")
+        .type_attribute("ReadyRequest", "#[derive(Eq)]")
+        .type_attribute("ReadyResponse", "#[derive(Eq)]")
         .type_attribute("Id", "#[derive(Eq)]")
         .type_attribute("SearchFilter", "#[derive(Eq)]")
         .type_attribute("AdvancedSearchFilter", "#[derive(Eq)]")
@@ -112,7 +109,7 @@ fn get_grpc_builder_config(out_path: &str) -> tonic_build::Builder {
         .type_attribute("RowData", "#[derive(Serialize, Deserialize)]")
         .type_attribute("Response", "#[derive(Serialize, Deserialize)]")
         .type_attribute("FieldValue", "#[derive(Serialize, Deserialize)]")
-        .type_attribute("GeoPointZ", "#[derive(Serialize, Deserialize, Copy)]")
+        .type_attribute("GeoPointZ", "#[derive(Serialize, Deserialize)]")
         .type_attribute("GeoPolygonZ", "#[derive(Serialize, Deserialize)]")
         .type_attribute("GeoLineStringZ", "#[derive(Serialize, Deserialize)]")
 }

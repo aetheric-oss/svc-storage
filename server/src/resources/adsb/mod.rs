@@ -51,7 +51,7 @@ impl GrpcDataObjectType for Data {
             "icao_address" => Ok(GrpcField::I64(self.icao_address)),
             "message_type" => Ok(GrpcField::I64(self.message_type)),
             "network_timestamp" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
-                self.network_timestamp.clone(),
+                self.network_timestamp,
             ))),
             "payload" => Ok(GrpcField::Bytes(self.payload.clone())),
             _ => Err(ArrErr::Error(format!(
