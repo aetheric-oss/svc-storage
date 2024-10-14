@@ -20,6 +20,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - type: volume
+        source: db-ssl
+        target: /cockroach/ssl
+        read_only: true
     profiles:
       - integration-test
 
