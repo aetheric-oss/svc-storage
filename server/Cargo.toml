@@ -12,8 +12,8 @@ repository.workspace   = true
 
 [features]
 default          = []
-dev              = ["mock"]
-test_util        = ["mock", "stub_backends"]
+dev              = ["mock", "wkt"]
+test_util        = ["mock", "stub_backends", "wkt"]
 vendored-openssl = ["openssl/vendored"]
 # Will add a 'mock' module for the enabled resources, providing access to mock data generation functions
 mock = ["rand", "geo"]
@@ -27,43 +27,44 @@ stub_client = ["stub_backends"]
 [dependencies]
 anyhow              = "1.0"
 byteorder           = "1.5"
-bytes               = "1.5"
+bytes               = "1.7"
 cargo-husky         = "1"
 cfg-if              = "1.0"
-clap                = { version = "4.4", features = ["derive"] }
-config              = "0.13"
-deadpool            = "0.10"
-deadpool-postgres   = { version = "0.11", features = ["serde", "rt_tokio_1"] }
+clap                = { version = "4.5", features = ["derive"] }
+config              = "0.14"
+deadpool            = "0.12"
+deadpool-postgres   = { version = "0.14", features = ["serde", "rt_tokio_1"] }
 dotenv              = "0.15"
 futures             = "0.3"
-geo                 = { version = "0.26", optional = true }
-hyper               = "0.14"
-lazy_static         = "1.4"
+geo                 = { version = "0.28", optional = true }
+hyper               = "1.4"
+lazy_static         = "1.5"
 log                 = "0.4"
 native-tls          = "0.2"
 num-derive          = "0.4"
 num-traits          = "0.2"
-once_cell           = "1.18"
+once_cell           = "1.20"
 openssl             = "0.10"
 paste               = "1.0"
 postgis             = "0.9"
 postgres-native-tls = "0.5"
-prost               = "0.12"
-prost-types         = "0.12"
-prost-wkt-types     = "0.5"
+prost               = "0.13"
+prost-types         = "0.13"
+prost-wkt-types     = "0.6"
 rand                = { version = "0.8", optional = true }
 serde               = "1.0"
 serde_json          = "1.0"
 serde_yaml          = "0.9"
 thiserror           = "1.0"
-tokio               = { version = "1.33", features = ["full"] }
+tokio               = { version = "1.40", features = ["full"] }
 tokio-util          = "0.7"
-tonic               = "0.10"
-tonic-health        = "0.10"
+tonic               = "0.12"
+tonic-health        = "0.12"
+wkt                 = { version = "0.11", optional = true }
 
 [dependencies.lib-common]
 git = "https://github.com/aetheric-oss/lib-common"
-tag = "v2.0.0"
+tag = "v3.0.0"
 
 [dependencies.log4rs]
 features = [
@@ -72,7 +73,7 @@ features = [
   "json_format",
   "gzip",
 ]
-version = "1.2"
+version = "1.3"
 
 [dependencies.postgres-types]
 features = [
@@ -89,9 +90,10 @@ version  = "0.7"
 
 [dev-dependencies]
 assert_matches = "1.5"
+ctor           = "0.2"
 logtest        = "2.0"
 rand           = "0.8"
-regex          = "1.10"
+regex          = "1.11"
 
 [dev-dependencies.cargo-husky]
 default-features = false          # Disable features which are enabled by default
@@ -104,4 +106,10 @@ features = ["dev"]
 path     = "."
 
 [build-dependencies]
-tonic-build = { version = "0.10", features = ["cleanup-markdown"] }
+tonic-build = { version = "0.12", features = ["cleanup-markdown"] }
+
+# https://github.com/xd009642/tarpaulin?tab=readme-ov-file#ignoring-code-in-files
+# removes warnings introduced by rust 1.8
+# can be removed when the cfg attributes can be replaced with `#[coverage(off)]` (currently only available in nightly)
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(tarpaulin_include)'] }

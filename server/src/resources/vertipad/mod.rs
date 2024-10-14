@@ -89,10 +89,10 @@ impl GrpcDataObjectType for Data {
             "enabled" => Ok(GrpcField::Bool(self.enabled)),
             "occupied" => Ok(GrpcField::Bool(self.occupied)),
             "created_at" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
-                self.created_at.clone(),
+                self.created_at,
             ))), //::core::option::Option<::prost_types::Timestamp>,
             "updated_at" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
-                self.updated_at.clone(),
+                self.updated_at,
             ))), //::core::option::Option<::prost_types::Timestamp>,
             _ => Err(ArrErr::Error(format!(
                 "Invalid key specified [{}], no such field found",

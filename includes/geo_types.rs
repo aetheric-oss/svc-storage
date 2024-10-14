@@ -273,43 +273,43 @@ mod tests {
 
         let srid = Some(DEFAULT_SRID);
         let exterior = LineStringZ {
-            srid: srid.clone(),
+            srid,
             points: vec![
                 PointZ {
                     x: x_1,
                     y: y_1,
                     z: z_1,
-                    srid: srid.clone(),
+                    srid,
                 },
                 PointZ {
                     x: x_2,
                     y: y_2,
                     z: z_2,
-                    srid: srid.clone(),
+                    srid,
                 },
             ],
         };
 
         let interior = LineStringZ {
-            srid: srid.clone(),
+            srid,
             points: vec![
                 PointZ {
                     x: x_1 - 1.0,
                     y: y_1 - 1.0,
                     z: z_1,
-                    srid: srid.clone(),
+                    srid,
                 },
                 PointZ {
                     x: x_2 - 1.0,
                     y: y_2 - 1.0,
                     z: z_2,
-                    srid: srid.clone(),
+                    srid,
                 },
             ],
         };
 
         let from = PolygonZ {
-            srid: srid.clone(),
+            srid,
             rings: vec![exterior, interior],
         };
 
