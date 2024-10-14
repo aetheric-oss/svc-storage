@@ -64,6 +64,15 @@ services:
         source: db-ssl
         target: /cockroach/ssl
         read_only: true
+      - type: bind
+        source: "${SOURCE_PATH:-../..}/"
+        target: "/usr/src/app"
+      - type: bind
+        source: "${SOURCE_PATH:-../..}/.cargo/registry"
+        target: "/usr/local/cargo/registry"
+      - type: bind
+        source: ../../logs/
+        target: /logs/
     profiles:
       - integration-test
 
