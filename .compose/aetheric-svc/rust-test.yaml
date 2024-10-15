@@ -70,6 +70,7 @@ services:
     environment:
       - PACKAGE_FEATURES=${PACKAGE_UT_FEATURES}
       - SERVER_HOSTNAME=aetheric-${PACKAGE_NAME}-web-server-stubbed
+      - SERVER_PORT_GRPC=50051
     depends_on:
       web-server-stubbed:
         condition: service_healthy
@@ -90,6 +91,7 @@ services:
     environment:
       - PACKAGE_FEATURES=${PACKAGE_IT_FULL_FEATURES}
       - SERVER_HOSTNAME=aetheric-${PACKAGE_NAME}-web-server
+      - SERVER_PORT_GRPC=50051
     depends_on:
       web-server:
         condition: service_healthy
@@ -104,6 +106,7 @@ services:
     environment:
       - PACKAGE_FEATURES=${PACKAGE_IT_FEATURES}
       - SERVER_HOSTNAME=aetheric-${PACKAGE_NAME}-web-server-stubbed
+      - SERVER_PORT_GRPC=50051
     depends_on:
       web-server-stubbed:
         condition: service_healthy
@@ -119,6 +122,7 @@ services:
     environment:
       - SERVER_HOSTNAME=aetheric-${PACKAGE_NAME}-web-server-stubbed
       - SERVER_PORT_REST=${DOCKER_PORT_REST:-8000}
+      - SERVER_PORT_GRPC=50051
     depends_on:
       web-server-stubbed:
         condition: service_healthy
