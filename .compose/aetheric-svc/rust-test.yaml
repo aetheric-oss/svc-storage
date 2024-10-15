@@ -21,7 +21,7 @@ x-volumes-it: &volumes-it
       target: "/usr/local/cargo/registry"
     - type: bind
       source: "../../logs/"
-      target: "/usr/src/app/logs/"
+      target: "/logs/"
 
 x-test: &test
   user: ${DOCKER_USER_ID:-0}:${DOCKER_GROUP_ID:-0}
