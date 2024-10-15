@@ -20,6 +20,7 @@ services:
       - realm-db
       - realm
       - integration-test
+      - it-coverage
     volumes:
       - type: volume
         source: db-data
@@ -44,6 +45,7 @@ services:
       - realm-db
       - realm
       - integration-test
+      - it-coverage
     ports:
       - 36257:36257
       - 8082:8080
