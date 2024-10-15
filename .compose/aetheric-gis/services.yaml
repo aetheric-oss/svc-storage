@@ -19,6 +19,7 @@ services:
       - realm-gis
       - realm
       - integration-test
+      - it-coverage
     volumes:
       - type: volume
         source: postgis-ssl
@@ -40,6 +41,7 @@ services:
       - realm-gis
       - realm
       - integration-test
+      - it-coverage
     environment:
       - SERVER_HOSTNAME=localhost
       - PGSSLROOTCERT=/var/lib/postgresql/certs/root.crt
