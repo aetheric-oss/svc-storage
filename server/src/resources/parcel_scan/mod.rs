@@ -71,7 +71,7 @@ impl GrpcDataObjectType for Data {
             "scanner_id" => Ok(GrpcField::String(self.scanner_id.clone())),
             "geo_location" => Ok(GrpcField::Option(self.geo_location.into())),
             "created_at" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
-                self.created_at.clone(),
+                self.created_at,
             ))), //::core::option::Option<::prost_types::Timestamp>
             _ => Err(ArrErr::Error(format!(
                 "Invalid key specified [{}], no such field found",

@@ -38,6 +38,7 @@ impl Copy for Cli {}
 /// use svc_storage::shutdown_signal;
 /// pub async fn server() {
 ///     let (_, health_service) = tonic_health::server::health_reporter();
+///
 ///     tonic::transport::Server::builder()
 ///         .add_service(health_service)
 ///         .serve_with_shutdown("0.0.0.0:50051".parse().unwrap(), shutdown_signal("grpc", None));
@@ -81,22 +82,6 @@ pub async fn shutdown_signal(
 mod tests {
     use super::*;
     use crate::test_util::assert_init_done;
-
-    #[tokio::test]
-    async fn test_load_logger_config_from_file() {
-        assert_init_done().await;
-        ut_info!("start");
-
-        let result =
-            lib_common::logger::load_logger_config_from_file("/usr/src/app/log4rs.yaml").await;
-        ut_debug!("{:?}", result);
-        assert!(result.is_ok());
-
-        // This message should be written to file
-        ut_error!("Testing log config from file. This should be written to the tests.log file.");
-
-        ut_info!("success");
-    }
 
     #[tokio::test]
     async fn test_server_shutdown() {

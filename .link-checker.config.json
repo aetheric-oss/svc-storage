@@ -2,6 +2,9 @@
   "ignorePatterns": [
     {
       "pattern": "nocodb.aetheric.nl"
+    },
+    {
+      "pattern": "http://localhost"
     }
   ],
   "httpHeaders": [

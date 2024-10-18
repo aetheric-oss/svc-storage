@@ -174,31 +174,31 @@ impl GrpcDataObjectType for Data {
             ))), //::core::option::Option<::prost::alloc::string::String>,
             "target_vertipad_id" => Ok(GrpcField::String(self.target_vertipad_id.clone())), //::prost::alloc::string::String,
             "origin_timeslot_start" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
-                self.origin_timeslot_start.clone(),
+                self.origin_timeslot_start,
             ))), //::core::option::Option<::prost_types::Timestamp>,
             "origin_timeslot_end" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
-                self.origin_timeslot_end.clone(),
+                self.origin_timeslot_end,
             ))), //::core::option::Option<::prost_types::Timestamp>,
             "target_timeslot_start" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
-                self.target_timeslot_start.clone(),
+                self.target_timeslot_start,
             ))), //::core::option::Option<::prost_types::Timestamp>,
             "target_timeslot_end" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
-                self.target_timeslot_end.clone(),
+                self.target_timeslot_end,
             ))), //::core::option::Option<::prost_types::Timestamp>,
             "actual_departure_time" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
-                self.actual_departure_time.clone(),
+                self.actual_departure_time,
             ))), //::core::option::Option<::prost_types::Timestamp>,
             "actual_arrival_time" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
-                self.actual_arrival_time.clone(),
+                self.actual_arrival_time,
             ))), //::core::option::Option<::prost_types::Timestamp>,
             "flight_release_approval" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
-                self.flight_release_approval.clone(),
+                self.flight_release_approval,
             ))), //::core::option::Option<::prost_types::Timestamp>,
             "flight_plan_submitted" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
-                self.flight_plan_submitted.clone(),
+                self.flight_plan_submitted,
             ))), //::core::option::Option<::prost_types::Timestamp>,
             "carrier_ack" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
-                self.carrier_ack.clone(),
+                self.carrier_ack,
             ))), //::core::option::Option<::prost_types::Timestamp>,
             "approved_by" => Ok(GrpcField::Option(GrpcFieldOption::String(
                 self.approved_by.clone(),
