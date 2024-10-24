@@ -14,6 +14,15 @@ use crate::resources::base::ResourceObject;
 pub(crate) static INIT_DONE: OnceCell<bool> = OnceCell::const_new();
 
 pub async fn assert_init_done() -> bool {
+    let _ = super::pool::DB_POOL
+        .lock()
+        .await
+        .readiness()
+        .await
+        .map_err(|e| {
+            psql_warn!("Database was not ready! [{}]", e);
+        });
+
     *INIT_DONE
         .get_or_init(|| async move {
             // Create simple_resource tables

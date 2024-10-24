@@ -115,16 +115,16 @@ impl GrpcDataObjectType for Data {
                 self.hangar_bay_id.clone(),
             ))), //::core::option::Option<::prost_types::Timestamp>,
             "last_maintenance" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
-                self.last_maintenance.clone(),
+                self.last_maintenance,
             ))), //::core::option::Option<::prost_types::Timestamp>,
             "next_maintenance" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
-                self.next_maintenance.clone(),
+                self.next_maintenance,
             ))), //::core::option::Option<::prost_types::Timestamp>,
             "created_at" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
-                self.created_at.clone(),
+                self.created_at,
             ))), //::core::option::Option<::prost_types::Timestamp>,
             "updated_at" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
-                self.updated_at.clone(),
+                self.updated_at,
             ))), //::core::option::Option<::prost_types::Timestamp>,
             _ => Err(ArrErr::Error(format!(
                 "Invalid key specified [{}], no such field found",

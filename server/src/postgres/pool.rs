@@ -1,5 +1,5 @@
 use crate::config::Config;
-use deadpool::managed::{Object, PoolError};
+use deadpool::managed::Object;
 use deadpool_postgres::{
     tokio_postgres::NoTls, Manager, ManagerConfig, Pool, RecyclingMethod, Runtime,
 };
@@ -7,50 +7,60 @@ use native_tls::{Certificate, Identity, TlsConnector};
 use postgres_native_tls::MakeTlsConnector;
 use std::fmt::Debug;
 use std::fs;
-use tokio::sync::OnceCell;
+use std::sync::LazyLock;
+use tokio::sync::Mutex;
 
 pub use crate::common::ArrErr;
 
 /// Create global variable to access our database pool
-pub(crate) static DB_POOL: OnceCell<Pool> = OnceCell::const_new();
+pub(crate) static DB_POOL: LazyLock<Mutex<PostgresPool>> =
+    LazyLock::new(|| Mutex::new(init_pool()));
+
 /// Shorthand function to get the database connection pool
 #[cfg(any(not(feature = "stub_backends"), feature = "vendored-openssl"))]
-async fn get_psql_pool() -> &'static Pool {
-    DB_POOL
-        .get_or_init(|| async move {
-            psql_info!("Initializing database connection pool.");
-            let pg = PostgresPool::from_config()
-                .expect("(get_psql_pool) Unable to create PostgreSQL pool");
-            match pg.readiness().await {
-                Ok(_) => pg.pool,
-                Err(e) => {
-                    psql_error!("Connection failed with config: {:?}", pg);
-                    panic!("(get_psql_pool) Unable to create PostgreSQL pool: {}", e)
-                }
-            }
-        })
-        .await
+fn init_pool() -> PostgresPool {
+    psql_info!("Initializing database connection pool.");
+    PostgresPool::from_config().expect("(init_pool) Unable to create PostgreSQL pool")
 }
 
 #[cfg(all(feature = "stub_backends", not(feature = "vendored-openssl")))]
-async fn get_psql_pool() -> &'static Pool {
-    DB_POOL
-        .get_or_init(|| async move {
-            psql_info!("(MOCK) Initializing database connection pool.");
-            let mut cfg = deadpool_postgres::Config::default();
-            cfg.dbname = Some("deadpool".to_string());
-            cfg.manager = Some(ManagerConfig {
-                recycling_method: RecyclingMethod::Fast,
-            });
-            let pool = cfg.create_pool(Some(Runtime::Tokio1), NoTls);
-            psql_debug!("(MOCK) Pool created: {:?}", pool);
-            pool.expect("(get_psql_pool MOCK) Unable to create PostgreSQL pool")
-        })
-        .await
+fn init_pool() -> PostgresPool {
+    psql_info!("(MOCK) Initializing database connection pool.");
+    let mut cfg = deadpool_postgres::Config::default();
+    cfg.dbname = Some("deadpool".to_string());
+    cfg.manager = Some(ManagerConfig {
+        recycling_method: RecyclingMethod::Fast,
+    });
+    let pool = cfg
+        .create_pool(Some(Runtime::Tokio1), NoTls)
+        .expect("(get_psql_pool MOCK) Unable to create PostgreSQL pool");
+    psql_debug!("(MOCK) Pool created: {:?}", pool);
+    PostgresPool { pool }
 }
 
-pub(crate) async fn get_psql_client() -> Result<Object<Manager>, PoolError<tokio_postgres::Error>> {
-    get_psql_pool().await.get().await
+pub(crate) async fn get_psql_client() -> Result<Object<Manager>, ArrErr> {
+    psql_debug!("Function called.");
+    let mut pool = DB_POOL.lock().await;
+
+    #[cfg(test)]
+    // Tests are running in a separate runtime which sometimes results in broken database
+    // connections in our global DB_POOL.
+    // Here we're making sure the database is ready to accept connections, and if not, force a
+    // reconnect
+    let _ = pool.readiness().await.inspect_err(|_| {
+        psql_warn!("Database not ready!?");
+        pool.pool.manager().statement_caches.clear();
+    });
+
+    let client: Object<Manager> = pool.pool.get().await?;
+    if client.is_closed() {
+        psql_error!("Found a closed database client, this should only happen in tests! Will try to recover...");
+        *pool = PostgresPool::from_config()
+            .expect("(get_psql_client) Unable to create PostgreSQL pool");
+        return Ok(pool.pool.get().await?);
+    }
+    psql_debug!("Returning client: [{:?}]", client);
+    Ok(client)
 }
 
 /// Postgres Pool
