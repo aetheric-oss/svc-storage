@@ -133,5 +133,3 @@ services:
     extends:
       file: svc.yaml
       service: storage
-
-
