@@ -2,7 +2,7 @@
 
 use super::{PsqlData, PsqlField, PsqlFieldSend};
 use crate::common::ArrErr;
-use crate::grpc::server::geo_types::{GeoLineStringZ, GeoPointZ, GeoPolygonZ};
+use crate::grpc::server::geo_types::{GeoLineStringZ, GeoMultiPointZ, GeoPointZ, GeoPolygonZ};
 use crate::grpc::server::ValidationError;
 use crate::grpc::{GrpcDataObjectType, GrpcField};
 use crate::resources::base::{Resource, ResourceDefinition};
@@ -172,6 +172,24 @@ pub fn validate_line_string(
     success
 }
 
+/// Validates a [`MultiPointZ`] (used by postgres).
+/// Creates an error entry in the errors list if a conversion was not possible.
+/// Returns `true` on success, `false` if the conversion failed.
+pub fn validate_multipoint(
+    field: String,
+    value: &GeoMultiPointZ,
+    errors: &mut Vec<ValidationError>,
+) -> bool {
+    psql_debug!("{:?}", value);
+
+    let mut success = true;
+    for pt in value.points.iter() {
+        success &= validate_point(field.clone(), pt, errors);
+    }
+
+    success
+}
+
 /// Generates the insert statements and list of variables for the provided data
 pub fn get_insert_vars<'a>(
     data: &'a impl GrpcDataObjectType,
@@ -280,6 +298,27 @@ pub fn get_insert_vars<'a>(
                             return Err(ArrErr::Error(error));
                         }
                     }
+                    PsqlFieldType::POINT_ARRAY => {
+                        psql_debug!(
+                            "POINT_ARRAY found for field_value: {:?}",
+                            data.get_field_value(key)
+                        );
+
+                        if let Ok(path_option) = data.get_field_value(key) {
+                            match get_path_sql_val(path_option) {
+                                Some(val) => inserts.push(val),
+                                None => continue,
+                            };
+                        } else {
+                            let error = format!(
+                                "Could not convert value into a postgis::ewkb::MultiPointZ for field: {}",
+                                key
+                            );
+                            psql_error!("{}", error);
+                            psql_debug!("field_value: {:?}", value);
+                            return Err(ArrErr::Error(error));
+                        }
+                    }
                     PsqlFieldType::INT8 => {
                         let val: &PsqlField = <&Box<PsqlFieldSend>>::clone(&value).as_ref();
                         inserts.push(format!("${}::BIGINT", index));
@@ -380,6 +419,22 @@ pub fn get_update_vars<'a>(
                         } else {
                             let error = format!(
                                 "Could not convert value into a postgis::ewkb::LineStringZ for field: {}",
+                                key
+                            );
+                            psql_error!("{}", error);
+                            psql_debug!("field_value: {:?}", value);
+                            return Err(ArrErr::Error(error));
+                        }
+                    }
+                    PsqlFieldType::POINT_ARRAY => {
+                        if let Ok(path_option) = data.get_field_value(key) {
+                            match get_path_sql_val(path_option) {
+                                Some(val) => updates.push(format!(r#""{}" = {}"#, key, val)),
+                                None => updates.push(format!(r#""{}" = NULL"#, key)),
+                            };
+                        } else {
+                            let error = format!(
+                                "Could not convert value into a postgis::ewkb::MultiPointZ for field: {}",
                                 key
                             );
                             psql_error!("{}", error);
@@ -533,6 +588,10 @@ where
                                 // Will use the raw type for insert/update statements
                                 converted.insert(key, Box::new(true));
                             }
+                            PsqlFieldType::POINT_ARRAY => {
+                                // Will use the raw type for insert/update statements
+                                converted.insert(key, Box::new(true));
+                            }
                             PsqlFieldType::TEXT => {
                                 converted.insert(key, Box::new(None::<String>));
                             }
@@ -621,6 +680,12 @@ where
             }
             PsqlFieldType::PATH => {
                 if validate_line_string(key.to_string(), &val_to_validate.into(), &mut errors) {
+                    // Will use the raw type for insert/update statements
+                    converted.insert(key, Box::new(true));
+                }
+            }
+            PsqlFieldType::POINT_ARRAY => {
+                if validate_multipoint(key.to_string(), &val_to_validate.into(), &mut errors) {
                     // Will use the raw type for insert/update statements
                     converted.insert(key, Box::new(true));
                 }
@@ -929,6 +994,57 @@ mod tests {
         };
 
         let result = validate_line_string("line".to_string(), &line, &mut errors);
+        assert!(!result);
+        assert!(!errors.is_empty());
+        assert_eq!(errors.len(), 2);
+        assert_eq!(errors[0].field, "line");
+        assert_eq!(errors[1].field, "line");
+
+        ut_info!("success");
+    }
+
+    #[tokio::test]
+    async fn test_validate_multipoint_valid() {
+        assert_init_done().await;
+        ut_info!("start");
+
+        let mut errors: Vec<ValidationError> = vec![];
+        let line = GeoMultiPointZ {
+            points: vec![
+                GeoPointZ {
+                    x: 40.123,
+                    y: -40.123,
+                    z: 100.0,
+                },
+                GeoPointZ {
+                    x: 41.123,
+                    y: -41.123,
+                    z: 100.0,
+                },
+            ],
+        };
+        let result = validate_multipoint("line".to_string(), &line, &mut errors);
+        assert!(result);
+        assert!(errors.is_empty());
+
+        ut_info!("success");
+    }
+
+    #[tokio::test]
+    async fn test_validate_multipoint_invalid() {
+        assert_init_done().await;
+        ut_info!("start");
+
+        let mut errors: Vec<ValidationError> = vec![];
+        let line = GeoMultiPointZ {
+            points: vec![GeoPointZ {
+                x: 400.123,
+                y: -400.123,
+                z: 100.0,
+            }],
+        };
+
+        let result = validate_multipoint("line".to_string(), &line, &mut errors);
         assert!(!result);
         assert!(!errors.is_empty());
         assert_eq!(errors.len(), 2);

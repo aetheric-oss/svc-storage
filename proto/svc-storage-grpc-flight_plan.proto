@@ -73,46 +73,50 @@ message Data {
     string pilot_id = 1;
     // vehicle_id UUID v4
     string vehicle_id = 2;
-    // the path of the flight
-    grpc.geo_types.GeoLineStringZ path = 3;
+    // the waypoints of the flight
+    grpc.geo_types.GeoLineStringZ waypoints = 3;
+    // cruise speed of the vehicle
+    float cruise_speed = 4;
+    // hover speed of the vehicle
+    float hover_speed = 5;
     // weather_conditions
-    optional string weather_conditions = 4;
+    optional string weather_conditions = 6;
     // origin_vertiport_id UUID v4, only listed for get results, not needed for
     // creation (known through pad_id)
-    optional string origin_vertiport_id = 5;
+    string origin_vertiport_id = 7;
     // origin_vertipad_id UUID v4
-    string origin_vertipad_id = 6;
+    string origin_vertipad_id = 8;
     // Start of the departure vertipad timeslot
-    google.protobuf.Timestamp origin_timeslot_start = 7;
+    google.protobuf.Timestamp origin_timeslot_start = 9;
     // End of the departure vertipad timeslot
-    google.protobuf.Timestamp origin_timeslot_end = 8;
+    google.protobuf.Timestamp origin_timeslot_end = 10;
     // target_vertiport_id UUID v4, only listed for get results, not needed
     // for creation (known through pad_id)
-    optional string target_vertiport_id = 9;
+    string target_vertiport_id = 11;
     // target_vertipad_id UUID v4
-    string target_vertipad_id = 10;
+    string target_vertipad_id = 12;
     // Start of the departure vertipad timeslot
-    google.protobuf.Timestamp target_timeslot_start = 11;
+    google.protobuf.Timestamp target_timeslot_start = 13;
     // End of the departure vertipad timeslot
-    google.protobuf.Timestamp target_timeslot_end = 12;
+    google.protobuf.Timestamp target_timeslot_end = 14;
     // actual_departure_time
-    optional google.protobuf.Timestamp actual_departure_time = 13;
+    optional google.protobuf.Timestamp actual_departure_time = 15;
     // actual_arrival_time
-    optional google.protobuf.Timestamp actual_arrival_time = 14;
+    optional google.protobuf.Timestamp actual_arrival_time = 16;
     // flight_release_approval date and time
-    optional google.protobuf.Timestamp flight_release_approval = 15;
+    optional google.protobuf.Timestamp flight_release_approval = 17;
     // flight_plan_submitted date and time
-    optional google.protobuf.Timestamp flight_plan_submitted = 16;
+    optional google.protobuf.Timestamp flight_plan_submitted = 18;
     // aircraft/pilot acknowledgement of orders pre-flight
-    optional google.protobuf.Timestamp carrier_ack = 17;
+    optional google.protobuf.Timestamp carrier_ack = 19;
     // approved_by UUID v4
-    optional string approved_by = 18;
+    optional string approved_by = 20;
     // flight_status
-    FlightStatus flight_status = 19;
+    FlightStatus flight_status = 21;
     // flightPriority
-    FlightPriority flight_priority = 20;
+    FlightPriority flight_priority = 22;
     // session ID
-    string session_id = 21;
+    string session_id = 23;
 }
 
 // Struct containing a `list` of flight_plan [Vec\<Object\>]

@@ -115,6 +115,7 @@ fn get_grpc_builder_config(out_path: &str) -> tonic_build::Builder {
         .type_attribute("GeoPointZ", "#[derive(Serialize, Deserialize, Copy)]")
         .type_attribute("GeoPolygonZ", "#[derive(Serialize, Deserialize)]")
         .type_attribute("GeoLineStringZ", "#[derive(Serialize, Deserialize)]")
+        .type_attribute("GeoMultiPointZ", "#[derive(Serialize, Deserialize)]")
 }
 
 fn add_utoipa_attributes(
@@ -126,6 +127,7 @@ fn add_utoipa_attributes(
         .extern_path(".grpc.geo_types.GeoPointZ", "GeoPointZ")
         .extern_path(".grpc.geo_types.GeoLineStringZ", "GeoLineStringZ")
         .extern_path(".grpc.geo_types.GeoPolygonZ", "GeoPolygonZ")
+        .extern_path(".grpc.geo_types.GeoMultiPointZ", "GeoMultiPointZ")
         // Add schema type for timestamp fields
         .field_attribute(
             "created_at",

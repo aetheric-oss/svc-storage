@@ -302,6 +302,7 @@ where
                                 PsqlFieldType::TIMESTAMPTZ
                                 | PsqlFieldType::POINT
                                 | PsqlFieldType::PATH
+                                | PsqlFieldType::POINT_ARRAY
                                 | PsqlFieldType::POLYGON => assert!(true),
                                 _ => {
                                     if definition.is_mandatory() {
@@ -370,6 +371,10 @@ fn test_field_type_matches_grpc_field(field_type: PsqlFieldType, grpc_field: Grp
             grpc_field,
             GrpcField::Option(GrpcFieldOption::GeoLineStringZ(_))
         )),
+        PsqlFieldType::POINT_ARRAY => assert!(matches!(
+            grpc_field,
+            GrpcField::Option(GrpcFieldOption::GeoMultiPointZ(_))
+        )),
         _ => {
             panic!(
                 "No matching GrpcField implemented for field_type: {:?}",
@@ -402,7 +407,7 @@ fn test_field_type_matches_optional_grpc_field(field_type: PsqlFieldType, grpc_f
         PsqlFieldType::ANYENUM => {
             assert!(matches!(
                 grpc_field,
-                GrpcField::Option(GrpcFieldOption::String(_))
+                GrpcField::Option(GrpcFieldOption::I32(_))
             ))
         }
         PsqlFieldType::INT8_ARRAY => {
@@ -452,6 +457,10 @@ fn test_field_type_matches_optional_grpc_field(field_type: PsqlFieldType, grpc_f
         PsqlFieldType::PATH => assert!(matches!(
             grpc_field,
             GrpcField::Option(GrpcFieldOption::GeoLineStringZ(_))
+        )),
+        PsqlFieldType::POINT_ARRAY => assert!(matches!(
+            grpc_field,
+            GrpcField::Option(GrpcFieldOption::GeoMultiPointZ(_))
         )),
         _ => {
             panic!(

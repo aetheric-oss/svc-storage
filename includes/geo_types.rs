@@ -1,5 +1,5 @@
 use crate::DEFAULT_SRID;
-use postgis::ewkb::{LineStringZ, PointZ, PolygonZ};
+use postgis::ewkb::{LineStringZ, PointZ, PolygonZ, MultiPointZ};
 use std::fmt;
 
 impl From<PointZ> for GeoPointZ {
@@ -65,6 +65,42 @@ impl fmt::Display for GeoLineStringZ {
 }
 impl From<GeoLineStringZ> for LineStringZ {
     fn from(field: GeoLineStringZ) -> Self {
+        Self {
+            points: field.points.into_iter().map(|point| point.into()).collect(),
+            srid: Some(DEFAULT_SRID),
+        }
+    }
+}
+
+impl From<MultiPointZ> for GeoMultiPointZ {
+    fn from(field: MultiPointZ) -> Self {
+        Self {
+            points: field.points.into_iter().map(|point| point.into()).collect(),
+        }
+    }
+}
+impl fmt::Display for GeoMultiPointZ {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let multipoint: MultiPointZ = (*self).clone().into();
+
+        #[cfg(not(tarpaulin_include))]
+        // no_coverage: (Rnever) It's impossible to get None, as GeoPointZ into PointZ will always add the default srid
+        let srid = multipoint.srid.unwrap_or(DEFAULT_SRID);
+
+        let multipoint_points = multipoint
+            .points
+            .into_iter()
+            .map(|pt| format!("({:.15} {:.15} {:.15})", pt.x, pt.y, pt.z))
+            .collect::<Vec<String>>()
+            .join(","); // x y z, x y z, x y z
+        f.write_str(&format!(
+            "SRID={};MULTIPOINT Z({})",
+            srid, multipoint_points
+        ))
+    }
+}
+impl From<GeoMultiPointZ> for MultiPointZ {
+    fn from(field: GeoMultiPointZ) -> Self {
         Self {
             points: field.points.into_iter().map(|point| point.into()).collect(),
             srid: Some(DEFAULT_SRID),
@@ -214,6 +250,51 @@ mod tests {
 
         // LineString into GeoLineString
         let result: GeoLineStringZ = from.into();
+        assert_eq!(result, expected);
+    }
+    #[test]
+    fn test_from_multipoint_to_geo_multipoint() {
+        let x_1 = 120.8;
+        let y_1 = -45.12;
+        let z_1 = 50.8;
+        let x_2 = 121.8;
+        let y_2 = -46.12;
+        let z_2 = 100.2;
+        let from = MultiPointZ {
+            srid: Some(DEFAULT_SRID),
+            points: vec![
+                PointZ {
+                    x: x_1,
+                    y: y_1,
+                    z: z_1,
+                    srid: Some(DEFAULT_SRID),
+                },
+                PointZ {
+                    x: x_2,
+                    y: y_2,
+                    z: z_2,
+                    srid: Some(DEFAULT_SRID),
+                },
+            ],
+        };
+
+        let expected = GeoMultiPointZ {
+            points: vec![
+                GeoPointZ {
+                    x: x_1,
+                    y: y_1,
+                    z: z_1,
+                },
+                GeoPointZ {
+                    x: x_2,
+                    y: y_2,
+                    z: z_2,
+                },
+            ],
+        };
+
+        // LineString into GeoMultiPoint
+        let result: GeoMultiPointZ = from.into();
         assert_eq!(result, expected);
     }
     #[test]

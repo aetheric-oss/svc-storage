@@ -13,6 +13,18 @@ enum VehicleModelType {
     VTOL_PASSENGER = 1;
 }
 
+// Enum for loading type
+enum LoadingType {
+    // Vehicle must land and be loaded manually
+    LAND = 0;
+
+    // Vehicle can grip and lift cargo
+    GRIPPER = 1;
+
+    // Vehicle can winch and lift cargo
+    WINCH = 2;
+}
+
 // Response struct returning an [Object] on success and [ValidationResult] if invalid fields were provided
 message Response {
     // struct with field -> error pairs to provide feedback about invalid fields
@@ -62,14 +74,16 @@ message Data {
     optional string hangar_id = 7;
     // optional id UUID v4 of the hangar bay (vertipad) this aircraft is assigned to
     optional string hangar_bay_id = 8;
+    // optional loading type of the vehicle
+    optional LoadingType loading_type = 9;
     // optional date of vehicle's last maintenance
-    optional google.protobuf.Timestamp last_maintenance = 9;
-    // optional date  of vehicle's next planned maintenance
-    optional google.protobuf.Timestamp next_maintenance = 10;
+    optional google.protobuf.Timestamp last_maintenance = 10;
+    // optional date of vehicle's next planned maintenance
+    optional google.protobuf.Timestamp next_maintenance = 11;
     // timestamp of the date and time the vehicle has been created
-    optional google.protobuf.Timestamp created_at = 11;
+    optional google.protobuf.Timestamp created_at = 12;
     // timestamp of the last update action performed on the data
-    optional google.protobuf.Timestamp updated_at = 12;
+    optional google.protobuf.Timestamp updated_at = 13;
 }
 
 // Struct containing a `list` of vehicle [Vec\<Object\>]

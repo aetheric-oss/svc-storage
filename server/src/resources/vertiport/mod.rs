@@ -13,7 +13,7 @@ use super::base::simple_resource::*;
 use super::base::{FieldDefinition, ResourceDefinition};
 use crate::common::ArrErr;
 use crate::grpc::{GrpcDataObjectType, GrpcField, GrpcFieldOption};
-use postgis::ewkb::PolygonZ;
+use postgis::ewkb::{MultiPointZ, PolygonZ};
 
 // Generate `From` trait implementations for GenericResource into and from Grpc defined Resource
 crate::build_generic_resource_impl_from!();
@@ -38,6 +38,14 @@ impl Resource for ResourceObject<Data> {
                 (
                     "geo_location".to_string(),
                     FieldDefinition::new(PsqlFieldType::POLYGON, true),
+                ),
+                (
+                    "ingress_0".to_string(),
+                    FieldDefinition::new(PsqlFieldType::POINT_ARRAY, true),
+                ),
+                (
+                    "egress_0".to_string(),
+                    FieldDefinition::new(PsqlFieldType::POINT_ARRAY, true),
                 ),
                 (
                     "schedule".to_string(),
@@ -74,6 +82,8 @@ impl GrpcDataObjectType for Data {
             "name" => Ok(GrpcField::String(self.name.clone())), // ::prost::alloc::string::String,
             "description" => Ok(GrpcField::String(self.description.clone())), // ::prost::alloc::string::String,
             "geo_location" => Ok(GrpcField::Option(self.geo_location.clone().into())),
+            "ingress_0" => Ok(GrpcField::Option(self.ingress_0.clone().into())),
+            "egress_0" => Ok(GrpcField::Option(self.egress_0.clone().into())),
             "schedule" => Ok(GrpcField::Option(GrpcFieldOption::String(
                 self.schedule.clone(),
             ))), // ::core::option::Option<::prost::alloc::string::String>,
@@ -100,6 +110,8 @@ impl TryFrom<Row> for Data {
         resources_debug!("Converting Row to vertiport::Data: {:?}", row);
         let schedule: Option<String> = row.get("schedule");
         let geo_location = row.get::<&str, PolygonZ>("geo_location");
+        let ingress_0 = row.get::<&str, MultiPointZ>("ingress_0");
+        let egress_0 = row.get::<&str, MultiPointZ>("egress_0");
 
         let created_at: Option<prost_wkt_types::Timestamp> = row
             .get::<&str, Option<DateTime<Utc>>>("created_at")
@@ -112,6 +124,8 @@ impl TryFrom<Row> for Data {
             name: row.get("name"),
             description: row.get("description"),
             geo_location: Some(geo_location.into()),
+            ingress_0: Some(ingress_0.into()),
+            egress_0: Some(egress_0.into()),
             schedule,
             created_at,
             updated_at,
@@ -156,6 +170,27 @@ mod tests {
         let data = Data {
             name: String::from(""),
             description: String::from(""),
+            ingress_0: Some(GeoMultiPointZ {
+                points: vec![
+                    GeoPointZ {
+                        x: -202.0, // invalid
+                        y: 0.0,
+                        z: 0.0,
+                    },
+                    GeoPointZ {
+                        x: 0.0,
+                        y: 300.0, // invalid
+                        z: 0.0,
+                    },
+                ],
+            }),
+            egress_0: Some(GeoMultiPointZ {
+                points: vec![GeoPointZ {
+                    x: -202.0, // invalid
+                    y: 0.0,
+                    z: 0.0,
+                }],
+            }),
             geo_location: Some(GeoPolygonZ {
                 rings: vec![
                     GeoLineStringZ {
@@ -219,7 +254,13 @@ mod tests {
             assert_eq!(validation_result.success, false);
 
             // expecting 2x geo_location error due to 2 points being out of range
-            let expected_errors = vec!["geo_location", "geo_location"];
+            let expected_errors = vec![
+                "geo_location",
+                "geo_location",
+                "ingress_0",
+                "ingress_0",
+                "egress_0",
+            ];
             assert_eq!(expected_errors.len(), validation_result.errors.len());
             assert!(contains_field_errors(&validation_result, &expected_errors));
         }
