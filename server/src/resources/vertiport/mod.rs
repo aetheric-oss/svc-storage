@@ -78,10 +78,10 @@ impl GrpcDataObjectType for Data {
                 self.schedule.clone(),
             ))), // ::core::option::Option<::prost::alloc::string::String>,
             "created_at" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
-                self.created_at.clone(),
+                self.created_at,
             ))), //::core::option::Option<::prost_types::Timestamp>,
             "updated_at" => Ok(GrpcField::Option(GrpcFieldOption::Timestamp(
-                self.updated_at.clone(),
+                self.updated_at,
             ))), //::core::option::Option<::prost_types::Timestamp>,
             _ => Err(ArrErr::Error(format!(
                 "Invalid key specified [{}], no such field found",

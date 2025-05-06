@@ -18,7 +18,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .type_attribute("GeoLineStringZ", "#[derive(ToSchema, IntoParams)]")
         .build_server(false)
         .build_client(false)
-        .compile(&[get_file(proto_dir, "geo_types".to_owned())], &[proto_dir])?;
+        .compile_protos(&[get_file(proto_dir, "geo_types".to_owned())], &[proto_dir])?;
 
     Ok(())
 }

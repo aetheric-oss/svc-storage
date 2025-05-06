@@ -70,12 +70,8 @@ pub async fn recreate_db() -> Result<(), ArrErr> {
 
     psql_debug!("Clearing caches.");
     // Make sure to clear any cached statements
-    let pool = super::pool::DB_POOL
-        .get()
-        .ok_or(ArrErr::Error(String::from(
-            "(recreate_db) Could not get pool.",
-        )))?;
-    pool.manager().statement_caches.clear();
+    let postgres_pool = super::pool::DB_POOL.lock().await;
+    postgres_pool.pool.manager().statement_caches.clear();
 
     Ok(())
 }
